@@ -1,5 +1,5 @@
 # -*- sh -*-
-# $Id: utils,v 1.5 2003/10/01 16:05:46 rkh Exp $
+# $Id: utils,v 1.6 2003/10/02 17:25:31 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 JEMAPPELLE=`basename $0`
@@ -45,4 +45,4 @@ else
 	exec >>"$LOG_DIR/$JEMAPPELLE" 2>&1
 fi
 
-
+source /apps/compbio/setup.sh
