@@ -193,15 +193,16 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.7 2003/11/03 23:33:27 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.8 2003/11/04 01:12:35 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
-				 specificity of models, methods, and parameters. Select
+				 specificity of models, methods, and parameters. 1) Select
 				 the Model Set, methods, and thresholds you wish to use to
-				 select sequences, the set of "known" sequences with which
-				 sensitivity and specificity will be assessed, and click
-				 "vroom". Clicking the summary statistics in the hits, TP,
-				 FN, and UP columns will show sequences in those sets.',
+				 select sequences, 2) the set of "known" sequences with
+				 which sensitivity and specificity will be assessed, and
+				 3) click "vroom". Clicking the summary statistics in the
+				 hits, TP, FN, and UP columns will show sequences in those
+				 sets.',
 
 				 $p->tip($p->tooltip('Green text','This is sample descriptive text')
 						 . ' indicates elements with descriptive mouseover text.'),
