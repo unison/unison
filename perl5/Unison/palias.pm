@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.2 2003/06/11 00:17:05 cavs Exp $>
+S<$Id: palias.pm,v 1.3 2003/06/11 01:25:33 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -19,39 +19,35 @@ B<> is a
 
 package Unison;
 
-sub add_palias
-  {
-  my $self = shift;
+sub add_palias {
+  my ($self,$pseq_id,$porigin_id,$alias,$descr) = @_;
   $self->is_open()
-  || croak("Unison connection not established");
-  my ($pseq_id,$porigin_id,$alias,$descr) = @_;
-  if (defined $descr and $descr =~ /\w/)
-  {
-  $descr =~ s/([\'])/\\$1/g;
-  $descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
-  $descr = "'$descr'";
+	|| croak("Unison connection not established");
+
+  if (defined $descr and $descr =~ /\w/) {
+	$descr =~ s/([\'])/\\$1/g;
+	$descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
+	$descr = "'$descr'";
+  } else {
+	$descr = 'NULL'; 
   }
-  else
-  { $descr = 'NULL'; }
 
   if ( not defined $pseq_id 
      or not defined $porigin_id
      or not defined $alias 
-     or not defined $descr)
-  {
-  confess(sprintf("<pseq_id,porigin_id,alias,descr>=<%s,%s,%s,%s>",
-          defined $pseq_id ? $pseq_id : 'undef',
-          defined $porigin_id ? $porigin_id : 'undef',
-          defined $alias ? $alias : 'undef',
-          defined $descr ? $descr : 'undef' ));
+     or not defined $descr) {
+	confess(sprintf("<pseq_id,porigin_id,alias,descr>=<%s,%s,%s,%s>",
+					defined $pseq_id ? $pseq_id : 'undef',
+					defined $porigin_id ? $porigin_id : 'undef',
+					defined $alias ? $alias : 'undef',
+					defined $descr ? $descr : 'undef' ));
   }
 
   $self->do( "insert into palias (pseq_id,porigin_id,alias,descr) "
        . "values ($pseq_id,$porigin_id,'$alias',$descr)",
          { PrintError=>0 } );
   return;
-  }
-
+}
 
 =pod
 
@@ -73,21 +69,30 @@ sub add_palias
  Name:      get_pseq_id_from_alias()
  Purpose:   get a pseq_id given an alias
  Arguments: palias
- Returns:   pseq_id
+ Returns:   array of pseq_id
 
 =cut
 
 sub get_pseq_id_from_alias {
   my ($u,$alias) = @_;
-
   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
-  throw Unison::RuntimeError("Unison connection not established")
-    if ! defined $alias;
-  my $sth = $u->prepare_cached("select best_pseq_id(?)");
-  $sth->execute($alias);
-  my $ba = $sth->fetchrow_array;
-  $sth->finish();
-  return( $ba );
+  (defined $alias) 
+	|| throw Unison::RuntimeError("alias not defined");
+  # this'll be screwed up if the alias contains a ' quote... better to use bind vars...
+
+  my $sql;
+  my @ids;
+
+  # case-sensitive first (much faster than case folded search below)
+  $sql = "select distinct pseq_id from palias where alias='$alias'";
+  @ids = @{ $u->{'dbh'}->selectall_arrayref($sql) };
+  return( map {@$_}  @ids ) if @ids;
+
+  # nothing returned from case-sensitive search -- try case-folding
+  $alias = uc($alias);
+  $sql = "select distinct pseq_id from palias where upper(alias)='$alias'";
+  @ids = @{ $u->{'dbh'}->selectall_arrayref($sql) };
+  return( map {@$_}  @ids );
 }
 
 
