@@ -1,44 +1,61 @@
 =head1 NAME
 
-Unison -- interface to the Unison database
+Unison -- Unison database API for perl
 
-S<$Id: Unison.pm,v 1.10 2004/05/04 05:04:37 rkh Exp $>
+S<$Id: Unison.pm,v 1.11 2004/05/14 20:34:05 rkh Exp $>
 
 =head1 SYNOPSIS
 
-use Unison;
+ use Unison;
 
 =head1 DESCRIPTION
 
-B<Unison::> is the perl API to the Unison database.  This module,
-B<Unison.pm>, loads the following commonly-used submodules in the Unison::
-API.  Please see these submodules for documention.
+The B<Unison::> perl modules implement a perl API to the Unison database.
+
+C<use Unison;> really loads Unison::common, which in turn loads the most
+commonly used Unison modules. See Unison::common for more information.
+
+Modules currently available are:
 
 =over
 
-=item Unison::utilities;
+=item Unison::blat
 
-=item Unison::DBI;
+=item Unison::common
 
-=item Unison::Exceptions;
+=item Unison::DBI
 
-=item Unison::pseq;
+=item Unison::Exceptions
 
-=item Unison::porigin;
+=item Unison::genome_features
 
-=item Unison::paprospect2;
+=item Unison::palias
 
-=item Unison::pmprospect2;
+=item Unison::paprospect2
 
-=item Unison::palias;
+=item Unison::papseq
 
-=item Unison::papseq;
+=item Unison::params
 
-=item Unison::params;
+=item Unison::pmprospect2
 
-=item Unison::run_history;
+=item Unison::porigin
 
-=item Unison::userprefs;
+=item Unison::pseq
+
+=item Unison::pseq_features
+
+=item Unison::run_history
+
+=item Unison::SQL
+
+=item Unison::template
+
+=item Unison::Unison
+
+=item Unison::userprefs
+
+=item Unison::utilities
 
 d28 1
 
@@ -55,31 +72,31 @@ use warnings;
 our ($RELEASE) = q$Name:  $ =~ m/Name:\s+(\S*)\s+/;
 if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
 use Unison::common;
-use Unison::utilities;
-use Unison::DBI;
-use Unison::Exceptions;
-use Unison::pseq;
-use Unison::porigin;
-use Unison::paprospect2;
-use Unison::pmprospect2;
-use Unison::palias;
-use Unison::papseq;
-use Unison::params;
-use Unison::run_history;
-use Unison::userprefs;
+use Unison::common;
 
 =pod
+=pod
+=head1 SEE ALSO
 =head1 SEE ALSO
 =over
-=pod
+=over
+=item perldoc Unison::intro
+
+=item * L<http://java.sun.com/docs/codeconv/>
+
+I'm (now) trying to follow these conventions. Functions which migrate to
+the new style will be preserved, emit a warning about deprecation, call
+the new function, and eventually be removed in future versions.
+
+=back
 =back
 
 =head1 AUTHOR
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+ Reece Hart, Ph.D.                      rkh@gene.com, http://www.gene.com/
+ Genentech, Inc.                        650-225-6133 (voice), -5389 (fax)
+ Bioinformatics and Protein Engineering
+ 1 DNA Way, MS-93                       http://harts.net/reece/
+ South San Francisco, CA  94080-4990    reece@harts.net, GPG: 0x25EC91A0
  South San Francisco, CA  94080-4990    reece@harts.net, GPG: 0x25EC91A0
 
 =cut
