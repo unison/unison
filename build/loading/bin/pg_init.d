@@ -3,11 +3,12 @@
 # pg_init.d -- init.d startup of postgresql
 #
 # chkconfig: 2345 90 10
+# description: postgresql startup
 #
 # this merely sets a few env variables before calling
 # the pg_ctl script provided with postgresql
 #
-# $Id$
+# $Id: pg_init.d,v 1.1 2004/04/29 21:51:11 rkh Exp $
 #
 
 
