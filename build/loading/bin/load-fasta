@@ -2,8 +2,8 @@
 # load fasta sequences into unison
 # $ load-fasta -o origin <fastafile
 
-$^W++;
 use strict;
+use warnings;
 use IO::File;
 use Bio::SeqIO;
 use Getopt::Long qw(:config gnu_getopt);
@@ -12,6 +12,8 @@ use Digest::MD5  qw(md5_hex);
 use Data::Dumper;
 use Genentech::Unison;
 
+select(STDERR); $|++;
+select(STDOUT); $|++;
 
 my $origin;
 my $filelist;
@@ -40,7 +42,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.13 2003/02/05 22:14:24 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.14 2003/03/21 04:25:34 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
@@ -145,7 +147,7 @@ sub process_seq
 	$skip = "haven't reached $startafter yet";
 	undef $startafter if ($id eq $startafter);
 	}
-  elsif (defined %alias and exists $alias{$id})
+  elsif (%alias and exists $alias{$id})
 	{ $skip = 'extant alias'; }
   elsif (defined $maxlen and length($seq)>$maxlen)
 	{ $skip = sprintf("too long (%d AA; maxlen=$maxlen",length($seq)); }
@@ -162,12 +164,13 @@ sub process_seq
   if ($origin =~ m/SPDI/i)
 	{
 	my %ids;
-	$ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
+	# NO UNQs in database -- not unique!
+	# $ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
 	$ids{$1}++ if $descr =~ s/(PRO\d+)\s+//;
 	$ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
 	$ids{$id}++;
 	@ids = sort keys %ids;
-	warn("! $id: SPDI sequence didn't match 3 identifiers (@ids)\n") unless $#ids==2;
+	#warn("! $id: SPDI sequence didn't match 2 identifiers (@ids)\n") unless $#ids==1;
     }
   else
 	{
@@ -183,7 +186,7 @@ sub process_seq
   # select/insert sequences, then link aliases
   my $pseq_id;
   my $frommd5='';
-  if (defined %md5 and exists $md5{ $md5 })
+  if (%md5 and exists $md5{ $md5 })
 	{
 	$pseq_id = $md5{ $md5 };
 	$frommd5='*';
