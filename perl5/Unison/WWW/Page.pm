@@ -6,7 +6,6 @@ use CGI::Carp qw(fatalsToBrowser);
 use Unison::Exceptions;
 use Unison;
 
-
 sub new {
   my $class = shift;
   my $self = $class->SUPER::new( @_ );
@@ -42,8 +41,30 @@ sub new {
   };
 
 
-  # Most pages should refer to sequences by pseq_id. If pseq_id isn't defined,
-  # then we attempt to infer it from seq, md5, or alias (in that order).
+
+  # Most pages should refer to sequences by pseq_id. If pseq_id isn't
+  # defined, then we attempt to infer it from given 'seq', 'md5', or
+  # 'alias' (in that order).  Furthermore, if none of those are defined
+  # but 'q' is, then we heuristically attempt to guess whether q is a
+  # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
+  # right thing' lookups (e.g., from a browswer toolbar)
+  if (exists $v->{'q'}
+	  and not exists $v->{pseq_id}
+	  and not exists $v->{seq}
+	  and not exists $v->{md5}
+	  and not exists $v->{alias}) {
+	my $q = $v->{'q'};
+	if ($q !~ m/\D/) {						# all digits => is a pseq_id
+	  $v->{pseq_id} = $q;
+	} elsif ($q =~ m/Unison:(\d+)/)	{		# explicit Unison: id
+	  $v->{pseq_id} = $1;
+	} elsif (length($q)==32 and $q!~m/[^0-9a-f]/i) { # md5 checksum
+	  $v->{md5} = $q;
+	} else {
+	  $v->{alias} = $q;
+	}
+  }
+
   if (not exists $v->{pseq_id}) {
 	my @ids;
 
@@ -78,8 +99,11 @@ sub new {
 	$v->{pseq_id} = $ids[0];
   }
 
-  undef $v->{md5};
-  undef $v->{seq};
+  # hereafter, we don't want these polluting our variables
+  delete $v->{'q'};
+  delete $v->{alias};
+  delete $v->{md5};
+  delete $v->{seq};
 
   $self->start_html;
   return $self;
@@ -111,6 +135,9 @@ sub render
   {
   my $p = shift;
   my $title = shift;
+
+  my $timestamp = 
+
   return ($p->header(),
 
 		  $p->start_html(-title=>"Unison: $title"), "\n\n\n",
@@ -126,21 +153,26 @@ sub render
 		  '</tr>', "\n",
 		  "<!-- ========== end banner bar ========== -->\n",
 
-		  "\n<!-- ========== begin page content ========== -->\n",
 		  '<tr>', "\n",
+		  "\n<!-- ========== begin subnav content ========== -->\n",
 		  '  <td class="cnav">',
-		  
-		     (map {"<b>$_:</b><br>"
-					 . (defined $p->{unison}->{$_} ? $p->{unison}->{$_} 
-						: 'unknown')
-					 . '<p>'
-				   } qw(username host dbname)),
+		     (join('<p>',
+				   map {"<b>$_->[0]:</b><br>$_->[1]"}
+				   (map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
+						 qw(username host dbname)),
+				   ['release',
+					$p->{unison}->selectrow_array
+					('select value::date from meta where key=\'release timestamp\'')])),
              '</td>', "\n",
-		  '  <td class="body">', 
+		  "\n<!-- ========== end subnav content ========== -->\n",
+
+		  "\n<!-- ========== begin page content ========== -->\n",
+		  '  <td class="body">',
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
 		  '  </td>', "\n",
 		  "\n<!-- ========== end page content ========== -->\n",
+		  '</tr>', "\n",
 
 		  "\n<!-- ========== begin footer ========== -->\n",
 		  '<tr>', "\n",
