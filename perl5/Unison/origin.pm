@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::porigin -- Unison porigin table utilities
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id: porigin.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -19,14 +19,6 @@ B<> is a
 
 package Unison;
 
-sub porigin_si_porigin_id
-  {
-  my ($self,$origin) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my ($rv) = $self->{'dbh'}->selectrow_array("select porigin_si_porigin_id ('$origin')");
-  return $rv;
-  }
 =pod
 
 =over
@@ -38,9 +30,41 @@ ensure that origin is in the porigin table, return porigin_id
 =back
 
 =cut
+sub porigin_si_porigin_id {
+  my ($self,$origin) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my ($rv) = $self->selectrow_array("select porigin_si_porigin_id ('$origin')");
+  return $rv;
+}
 
 
 
+=pod
+
+=over
+
+=item B<::porigin_last_updated( C<porigin_id>, [set] )>
+
+If the optional second argument is defined (e.g,. porigin_last_updated(15,1)), then 
+set the last_updated field to now.  In any case, the last_updated value is returned.
+
+=back
+
+=cut
+sub porigin_last_updated {
+  my ($self,$porigin_id) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  if (defined $_[2]) {
+	$self->do("update porigin set last_updated=now() where porigin_id=$porigin_id");
+  }
+  my $sth = $self->prepare("select last_updated from porigin where porigin_id=?");
+  $sth->execute( $porigin_id );
+  my ($rv) = $sth->fetchrow_array();
+  $sth->finish();
+  return $rv;
+  }
 
 
 

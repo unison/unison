@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.3 2003/05/16 00:21:01 rkh Exp $>
+S<$Id: DBI.pm,v 1.4 2003/05/27 22:39:23 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -30,13 +30,21 @@ use DBI;
 use Data::Dumper;
 use Unison::Exceptions;
 
+
+# Really, this should probably all be moved to an import subroutine (or a
+# separate Unison::Options module?) which does this optionally.  By doing
+# it here, we get standardized options but at the expense of prohibiting
+# the use of these flags for other meanings.
 use Getopt::Long;
 my $p = new Getopt::Long::Parser;
 $p->configure( qw(gnu_getopt pass_through) );
 our %opts =
   (
    dbname => $ENV{PGDATABASE} || 'csb',
-   host => $ENV{PGHOST} || ( `hostname` =~ m/^comp\d/ ? 'svc' : 'td-svc'),
+   # setting host here causes a problem: it's sometimes necessary to have
+   # a NULL host setting (and 'localhost' means something else).  If we set
+   # it here, there's no way to undef it.
+   # host => $ENV{PGHOST} || ( `hostname` =~ m/^comp\d/ ? 'svc' : 'td-svc'),
    username => $ENV{PGUSER} || 'PUBLIC',
    password => $ENV{PGPASSWORD}
   );
@@ -77,8 +85,8 @@ immediately and an exception thrown if unsuccessful.
 sub connect
   {
   my $self = shift;
-  my $dsn = shift || sprintf('dbi:Pg:dbname=%s;host=%s',
-							 $self->{dbname},$self->{host});
+  my $dsn = shift || ("dbi:Pg:dbname=$self->{dbname}"
+					  . ( defined $self->{host} ? ";host=$self->{host}" : '') );
   my $username = shift || $self->{username};
   my $pass = shift || $self->{password};
   my $attr = shift || \%attr;
