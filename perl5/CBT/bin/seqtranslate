@@ -1,0 +1,115 @@
+#!/usr/bin/env perl
+
+=head1 NAME
+
+seqtranslate -- translates DNA sequences to protein sequences
+S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+
+=head1 SYNOPSIS
+
+seqtranslate <na.fasta >aa.fasta
+
+=head1 DESCRIPTION
+
+B<seqtranslate> translates DNA sequences to protein sequences using the
+"standard" codon table.
+
+=head1 OPTIONS AND ARGUMENTS
+
+=over
+
+=item -f
+
+=cut
+
+use strict;
+use warnings;
+use Bio::PrimarySeq;
+use Bio::SeqIO;
+use Bio::SeqUtils;
+use Getopt::Long qw(:config gnu_getopt);
+
+
+my ($forward,$f0,$f1,$f2) = (0,0,0,0);
+my ($reverse,$r0,$r1,$r2) = (0,0,0,0);
+my ($translate) = 0;
+GetOptions(
+		   'forward|f' => \$forward,
+		   'f0|0' => \$f0, 'f1|1' => \$f1, 'f2|2' => \$f2,
+		   'reverse|r' => \$reverse,
+		   'r0|3' => \$r0, 'r1|4' => \$r1, 'r2|5' => \$r2,
+		  )
+  || die("$0: usage\n");
+
+$f0=$f1=$f2=1 if $forward;
+$r0=$r1=$r2=1 if $reverse;
+
+( $f0 || $f1 || $f2 || $r0 || $r1 || $r2 )
+  || die("no frame selected for translation\n");
+
+
+my $in = new Bio::SeqIO( -format => 'Fasta' );
+my $out = new Bio::SeqIO( -format => 'Fasta' );
+
+
+while( my $ps = $in->next_seq() )
+  {
+  my $idr = $ps->id();
+
+  if ($f0 || $f1 || $f2)
+	{
+	$ps->id("$idr-F");
+
+	_write( $out, _translate($ps,0) ) if ($f0);
+	_write( $out, _translate($ps,1) ) if ($f1);
+	_write( $out, _translate($ps,2) ) if ($f2);
+	}
+
+  if ($r0 || $r1 || $r2)
+	{
+	$ps->seq($ps->revcom()->seq());
+	$ps->id("$idr-R");
+
+	_write( $out, _translate($ps,0) ) if ($r0);
+	_write( $out, _translate($ps,1) ) if ($r1);
+	_write( $out, _translate($ps,2) ) if ($r2);
+	}
+  }
+
+
+sub _write
+  {
+  my $out = shift;
+  my $ps = shift;
+  if ( $ps->seq() =~ m/[^X]/ )
+	{ $out->write_seq( $ps ); }
+  else
+	{ warn( sprintf("skipped %s (%s): all X\n",
+					$ps->display_id(), $ps->desc()) ) }
+  }
+
+sub _translate
+  {
+  my $ps = shift;
+  my $frame = shift;
+  my $xl = $ps->translate(undef,undef,$frame);
+  my $id = $xl->display_id() . $frame;
+  my ($Fn) = $id =~ m/-([FR]\d)/;
+  $xl->display_id( $id );
+  $xl->desc( $xl->desc . " /trans=$Fn" );
+  return $xl;
+  }
+
+=pod
+
+=head1 BUGS
+
+=head1 AUTHOR
+
+ Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
+ Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
+ Bioinformatics Department
+ 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
+ South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+
+=cut
