@@ -1,10 +1,10 @@
-# $Id: prospect.pm,v 1.1 2003/06/23 21:39:12 cavs Exp $
+# $Id: prospect.pm,v 1.1 2003/06/25 18:59:24 cavs Exp $
 #
-# BioPerl module for Bio::AlignIO::prospect
+# BioPerl module for Bio::AlignIO::prospect2
 
 =head1 NAME
 
-Bio::AlignIO::prospect - prospect threading input/output stream
+Bio::AlignIO::prospect2 - prospect threading input/output stream
 
 =head1 SYNOPSIS
 
@@ -57,7 +57,7 @@ See http://www.bioinformaticssolutions.com for more information on prospect.
 
 # Let the code begin...
 
-package Bio::AlignIO::prospect;
+package Bio::AlignIO::prospect2;
 use vars qw(@ISA);
 use strict;
 
