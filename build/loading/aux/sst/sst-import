@@ -9,8 +9,10 @@ use DBI;
 select(STDERR); $|++;
 select(STDOUT); $|++;
 
-print(STDERR '$Id: ssp-build,v 1.3 2004/06/04 22:16:43 rkh Exp $ ', "\n");
+print(STDERR '$Id: sst-import,v 1.2 2004/06/10 22:05:12 rkh Exp $ ', "\n");
 
+(defined $ENV{SSTPASS})
+  || die("$0: SSTPASS not defined\n");
 
 my $sql;
 my $sth;
