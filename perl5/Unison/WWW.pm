@@ -8,6 +8,6 @@ BEGIN {
   if (exists $ENV{SCRIPT_FILENAME})
 	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
 }
-use lib $ENV{PWD}."/../perl5";
+use lib $ENV{PWD}."../perl5";
 
 1;
