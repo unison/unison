@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pmprospect2 -- Unison p2params table utilities
-S<$Id: pmprospect2.pm,v 1.2 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: pmprospect2.pm,v 1.3 2004/05/04 04:49:18 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -13,8 +13,6 @@ my $u = new Unison;
 
 B<> is a
 
-=head1 ROUTINES AND METHODS
-
 =cut
 
 package Unison;
@@ -25,8 +23,24 @@ use strict;
 use warnings;
 
 
+=pod
+
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
 ###############################################################################################
-## pmprospect2
+## add_pmprospect2
+
+=pod
+
+=item B<< $u->add_pmprospect2( C<pseq_id,id,len,ncores> ) >>
+
+=cut
+
 sub add_pmprospect2
   {
   my $self = shift;
@@ -36,35 +50,30 @@ sub add_pmprospect2
   $self->do( "insert into pmprospect2 (pseq_id,name,len,ncores) "
 			 . "values ($pseq_id,'$id',$len,$ncores);" );
   return;
-=pod
-
-=over
-
-=item B<Unison::add_pmprospect2( C<pseq_id,id,len,ncores> )>
-
-=back
-
-=cut
   }
 
 
 
 =pod
 
+=back
+
 =head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
 
 =head1 SEE ALSO
 
+=over 4
+
+=item * perldoc Unison
+
+=back
+
 =head1 AUTHOR
 
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department             
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+see C<perldoc Unison> for contact information
 
 =cut
 
 1;
-
-

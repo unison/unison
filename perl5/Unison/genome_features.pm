@@ -1,3 +1,21 @@
+=head1 NAME
+
+Unison::genome_features -- draw genomic features from Unison
+S<$Id: DBI.pm,v 1.18 2004/10/14 19:54:34 rkh Exp $>
+
+=head1 SYNOPSIS
+
+ use Unison;
+
+=head1 DESCRIPTION
+
+B<Unison::DBI> provides an object-oriented interface to the Unison
+database.  It provides connection defaults for public access.  Unison
+objects may be used anywhere that a standard DBI handle can be used.
+
+=cut
+
+
 package Unison::genome_features;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -12,6 +30,7 @@ our @EXPORT_OK = qw( genome_features_panel );
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::blat;
+
 
 
 sub genome_features_panel($%);
@@ -34,6 +53,38 @@ our %opts =
   );
 
 
+
+=pod
+
+=head1 ROUTINES & METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+##  genome_features_panel
+
+=pod
+
+=item $u->genome_features_panel( C<%opts> )
+
+genome_features_panel returns a Bio::Graphics::Panel. This panel may be
+used to generate a graphic and or imagemap to depict genomic features.
+
+%opts may contain the following keys:
+  pseq_id
+  genasm_id
+  chr, gstart, gstop
+  margin
+  width
+  verbose
+
+You'll have to look at examples or the code to figure out what they're
+doing.
+
+=cut
 
 sub genome_features_panel ($%) {
   my $u = shift;
@@ -90,13 +141,15 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.2 2004/06/25 00:20:44 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.3 2004/08/02 21:58:43 rkh Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
 
 
   my $gd = $panel->gd();
+  ## FIXME: the following file needs to be relocated to the Unison perl5
+  ## directory (or the dependency removed)
   my $unison_fn = '/home/rkh/www/csb/unison/av/unison.xpm';
   if ( -f $unison_fn ) {
 	my $ugd = GD::Image->newFromXpm($unison_fn);
@@ -278,3 +331,28 @@ sub add_p2gblataln {
 
   return $nadded;
 }
+
+
+=pod
+
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see C<perldoc Unison> for contact information
+
+=cut
+
+1;
