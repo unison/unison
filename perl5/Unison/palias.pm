@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.15 2004/08/02 18:01:48 rkh Exp $>
+S<$Id: palias.pm,v 1.16 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -94,9 +94,9 @@ sub add_palias {
 
 =item B<< $u->get_pseq_id_from_alias(C<text>) >>
 
-returns an array of pseq_ids for the given alias by first trying for an
-exact match; if that fails, a case-folded search is performed; if that
-fails, a fuzzy search (with ilike) is tried.
+returns an array of distinct pseq_ids for the given alias by first trying
+for an exact match; if that fails, a case-folded search is performed; if
+that fails, a fuzzy search (with ilike) is tried.
 
 If the alias starts with /, ~, ~*, or ^, then only the regular express
 search is tried.
@@ -169,7 +169,8 @@ sub get_pseq_id_from_alias {
 
 =item B<< $u->get_pseq_id_from_alias_exact(C<text>) >>
 
-returns an array of pseq_ids for exact, case-sensitive matches to the given alias
+returns an array of distinct pseq_ids for exact, case-sensitive matches to
+the given alias
 
 =cut
 
@@ -192,7 +193,8 @@ sub get_pseq_id_from_alias_exact {
 
 =item B<< $u->get_pseq_id_from_alias_casefolded(C<text>) >>
 
-returns an array of pseq_ids for exact, case-INsensitive matches to the given alias
+returns an array of distinct pseq_ids for exact, case-INsensitive matches
+to the given alias
 
 =cut
 
@@ -215,8 +217,8 @@ sub get_pseq_id_from_alias_casefolded {
 
 =item B<< $u->get_pseq_id_from_alias_regexp(C<regexp>) >>
 
-returns an array of pseq_ids by searching for the given alias as a regular
-expression.
+returns an array of distinct pseq_ids by searching for the given alias as
+a regular expression.
 
 Regular expression matching may be case sensitive or insensitive, and are
 explicitly specified by preceeding the regexp with ~ or ~* respectively.
@@ -251,8 +253,8 @@ sub get_pseq_id_from_alias_regexp {
 
 =item B<< $u->get_pseq_id_from_alias_fuzzy(C<text>) >>
 
-returns an array of pseq_ids by searching for the given alias expression
-with ilike.
+returns an array of distinct pseq_ids by searching for the given alias
+expression with ilike.
 
 =cut
 
