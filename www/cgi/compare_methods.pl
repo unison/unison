@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-#$ID = q$\Id$;
+#$ID = q$\Id$
 #####################################################
 use strict;
 use warnings;
