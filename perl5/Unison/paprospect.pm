@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::paprospect2 -- Unison paprospect2 table utilities
-S<$Id: paprospect2.pm,v 1.2 2003/07/31 23:56:48 rkh Exp $>
+S<$Id: paprospect2.pm,v 1.3 2003/08/20 19:43:09 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -46,9 +46,9 @@ my %uf = (
 =head2 insert_thread()
 
  Name:      insert_thread()
- Purpose:   insert 1 Prospect2::Thread object into the database
+ Purpose:   insert 1 Prospect::Thread object into the database
  Arguments: Unison connection, pseq_id, run_id, 
-            Prospect2::ThreadSummary or Prospect2::Thread
+            Prospect::ThreadSummary or Prospect::Thread
  Returns:   nada
 
 =cut
@@ -61,7 +61,7 @@ sub insert_thread {
     throw Unison::BadUsage( "insertThread() pseq_id provided is missing or invalid" );
   } elsif ( !defined $run_id or $run_id !~ m/^\d+$/ ) {
     throw Unison::BadUsage( "insertThread() run_id provided is missing or invalid" );
-  } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
+  } elsif  ( !defined $t or (ref $t !~ m/Prospect::Thread/ )) {
     throw Unison::BadUsage( "insertThread() thread provided is missing or invalid" );
   }
 
@@ -95,9 +95,9 @@ sub insert_thread {
 =head2 delete_thread()
 
  Name:      delete_thread()
- Purpose:   delete 1 Prospect2::Thread object into the database
+ Purpose:   delete 1 Prospect::Thread object into the database
  Arguments: Unison connection, pseq_id, run_id, 
-            Prospect2::ThreadSummary or Prospect2::Thread
+            Prospect::ThreadSummary or Prospect::Thread
  Returns:   nada
 
 =cut
@@ -109,7 +109,7 @@ sub delete_thread {
     throw Unison::BadUsage( "delete_thread() pseq_id provided is missing or invalid" );
   } elsif ( !defined $run_id or $run_id !~ m/^\d+$/ ) {
     throw Unison::BadUsage( "delete_thread() run_id provided is missing or invalid" );
-  } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
+  } elsif  ( !defined $t or (ref $t !~ m/Prospect::Thread/ )) {
     throw Unison::BadUsage( "delete_thread() thread provided is missing or invalid" );
   }
 
