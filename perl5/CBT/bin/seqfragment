@@ -3,7 +3,7 @@
 =head1 NAME
 
 seqfragment -- fragment sequences from a fasta file
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id: seqfragment,v 1.1 2003/05/05 20:14:04 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -61,17 +61,21 @@ use Pod::Usage;
 my %options =
   (
    zero => 0,
-   length => undef,  # 'constant-length' => 1,
+   length => undef,  # not implemented: 'constant-length' => 1,
    overlap => 0,  'constant-overlap' => 0,
    offset => undef,
    'id-format' => 1,
    debug => 0,
+   'start-fragment' => 1,
+   'end-fragment' => undef,
    );
 GetOptions(
 		   \%options,
-		   'length|l=i', # 'constant-length|L',
+		   'length|l=i', # not implemented: 'constant-length|L',
 		   'overlap|v=i', 'constant-overlap|V',
 		   'offset|o=i',
+		   'start-fragment|f=i',
+		   'end-fragment|F=i',
 		   'id-format|i=i',
 		   'zero|z',
 		   'debug|d+',
@@ -126,7 +130,11 @@ while( my $s0 = $si->next_seq() )
 	printf(STDERR     "%2s %30s %3d:%3d %3d %s\n", 
 		   'i', 'in ->', 0, $l0-1, $l0, $seq);
 	}
-  for( my $i=0; $e<$l0-1; $i++ )
+
+  for( my $i=$options{'start-fragment'}-1;
+	   (defined $options{'end-fragment'} ? $i<=$options{'end-fragment'}-1 : 1)
+	     and $e<$l0-1;
+	   $i++ )
 	{
 	my $b = $i * $offset;
 	$e = $b + $len - 1;
