@@ -20,7 +20,7 @@ $fh->open("<$fn")
   || die("$fn: $!\n");
 
 my $dir; ($dir = $fn) =~ s/\.\w+$//;
-print(STDERR "writing to $dir/\n";)
+print(STDERR "writing output to $dir/\n");
 -d $dir
   || mkdir($dir)
   || die("$dir: $!\n");
@@ -107,26 +107,26 @@ $fh->print(
 </frameset>
 ');
 $fh->close();
-
+print("  wrote $fn\n");
 
 $fn = "$dir/pr.html";
 $fh->open(">$fn")
   || die("$fn: $!\n");
 $fh->print("<html><body><pre>$pr</pre></body></html>");
 $fh->close();
-print("wrote $fn\n");
+print("  wrote $fn\n");
 
 $fn = "$dir/do.html";
 $fh->open(">$fn")
   || die("$fn: $!\n");
 $fh->print("<html><body><pre>$do</pre></body></html>");
 $fh->close();
-print("wrote $fn\n");
+print("  wrote $fn\n");
 
 $fn = "$dir/al.html";
 $fh->open(">$fn")
   || die("$fn: $!\n");
 $fh->print("<html><body><pre>$al</pre></body></html>");
 $fh->close();
-print("wrote $fn\n");
+print("  wrote $fn\n");
 
