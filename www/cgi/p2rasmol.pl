@@ -9,9 +9,9 @@ use Bio::Structure::IO;
 use Unison::WWW;
 use Unison::WWW::Page;
 
-use Prospect::Options;
-use Prospect::LocalClient;
-use Prospect::Exceptions;
+use Bio::Prospect::Options;
+use Bio::Prospect::LocalClient;
+use Bio::Prospect::Exceptions;
 
 
 
@@ -20,7 +20,7 @@ my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->ensure_required_params(qw(pseq_id run_id templates));
+$p->ensure_required_params(qw(pseq_id params_id templates));
 
 my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 if (not defined $seq) {
@@ -36,22 +36,22 @@ if (@missing) {
 }
 my $template = $templates[0];
 
-my $po = $u->get_p2options_by_run_id( $v->{run_id} );
+my $po = $u->get_p2options_by_params_id( $v->{params_id} );
 if (not defined $po) {
-  $p->die("The run_id parameter ($v->{run_id}) is invalid."); 
+  $p->die("The params_id parameter ($v->{params_id}) is invalid."); 
 }
 $po->{templates} = \@templates;
 
 try {
-  my $pf = new Prospect::LocalClient( {options=>$po} );
-#  my $pt = new Prospect::Transformation;
+  my $pf = new Bio::Prospect::LocalClient( {options=>$po} );
+#  my $pt = new Bio::Prospect::Transformation;
   my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
 									-format => 'pdb')->next_structure();
   my $thr = ($pf->thread( $seq ))[0];
   print("Content-type: application/x-rasmol\n\n",
 		$thr->output_rasmol_script( $str ),
 	   );
-} catch Prospect::RuntimeError with {
+} catch Bio::Prospect::RuntimeError with {
   $p->die("couldn't generate rasmol script",$@)
 };
 
