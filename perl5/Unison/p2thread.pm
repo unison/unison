@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2thread -- Unison p2thread table utilities
-S<$Id: p2thread.pm,v 1.3 2003/05/16 00:21:01 rkh Exp $>
+S<$Id: p2thread.pm,v 1.1 2003/06/10 20:27:33 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -59,24 +59,24 @@ sub insert_thread {
  
   # check parameters
   if      ( !defined $pseq_id or $pseq_id !~ m/^\d+$/ ) {
-    die( "insertThread() pseq_id provided is missing or invalid" );
+    throw Unison::BadUsage( "insertThread() pseq_id provided is missing or invalid" );
   } elsif ( !defined $p2params_id or $p2params_id !~ m/^\d+$/ ) {
-    die( "insertThread() p2params_id provided is missing or invalid" );
+    throw Unison::BadUsage( "insertThread() p2params_id provided is missing or invalid" );
   } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
-    die( "insertThread() thread provided is missing or invalid" );
+    throw Unison::BadUsage( "insertThread() thread provided is missing or invalid" );
   }
  
   # get the model id for the template name given
   my $pmodel_id = $u->get_pmodel_id($t->tname);
   if ( !defined $pmodel_id or $pmodel_id eq '' ) {
-    die( "insertThread() pmodel_id doesn't exist for template name: " . $t->name() );
+    throw Unison::BadUsage( "insertThread() pmodel_id doesn't exist for template name: " . $t->name() );
   }
  
   # build key/values for sql insert
   my @keys = ('pseq_id','p2params_id','pmodel_id',keys %uf );
   my @values = ( $pseq_id,$p2params_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
  
-  die( "keys (" . $#keys+1 . ") != values (" . $#values+1 . ")\n" ) if $#keys != $#values;
+  throw Unison::BadUsage( "keys (" . $#keys+1 . ") != values (" . $#values+1 . ")\n" ) if $#keys != $#values;
  
   my $sql = 'insert into p2thread (' .  join(',',@keys) .  ') values (' .
     join(',',map { '?' } @keys) .  ')';
@@ -108,17 +108,18 @@ sub delete_thread {
                                                                                                                                               
   # check parameters
   if      ( !defined $pseq_id or $pseq_id !~ m/^\d+$/ ) {
-    die( "deleteThread() pseq_id provided is missing or invalid" );
+    throw Unison::BadUsage( "delete_thread() pseq_id provided is missing or invalid" );
   } elsif ( !defined $p2params_id or $p2params_id !~ m/^\d+$/ ) {
-    die( "deleteThread() p2params_id provided is missing or invalid" );
+    throw Unison::BadUsage( "delete_thread() p2params_id provided is missing or invalid" );
   } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
-    die( "deleteThread() thread provided is missing or invalid" );
+    throw Unison::BadUsage( "delete_thread() thread provided is missing or invalid" );
   }
+
                                                                                                                                               
   # get the model id for the template name given
   my $pmodel_id = $u->get_pmodel_id($t->tname);
   if ( !defined $pmodel_id or $pmodel_id eq '' ) {
-    die( "deleteThread() pmodel_id doesn't exist for template name: " . $t->name() );
+    throw Unison::RuntimeError( "deleteThread() pmodel_id doesn't exist for template name: " . $t->name() );
   }
                                                                                                                                               
   # build key/values for sql insert
