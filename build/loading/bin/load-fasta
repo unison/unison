@@ -4,13 +4,12 @@
 
 use strict;
 use warnings;
-use IO::File;
 use Bio::SeqIO;
-use Getopt::Long qw(:config gnu_getopt);
-use DBI;
-use Digest::MD5  qw(md5_hex);
 use Data::Dumper;
-use Genentech::Unison;
+use Digest::MD5  qw(md5_hex);
+use Getopt::Long qw(:config gnu_getopt);
+use IO::File;
+use Unison;
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
@@ -22,13 +21,15 @@ my $maxlen = 8200;							# empirical limit
 my $sqlonly = 0;
 my $nomd5 = 1;								# now default!
 my $noalias = 0;
-GetOptions( @Genentech::Unison::OPTS,
+my $inclsubex = 0;
+GetOptions( @Unison::options,
 			'origin|o=s' => \$origin,
 			'startafter|A=s' => \$startafter,
 			'maxlen|L=s' => \$maxlen,
 			'nomd5' => \$nomd5,
 			'noalias' => \$noalias,
 			'sqlonly' => \$sqlonly,
+			'inclsubex' => \$inclsubex,
 		  )
   || die("$0: bad usage\n");
 defined $origin
@@ -36,13 +37,13 @@ defined $origin
 
 
 # whee... globals
-my $udb = new Genentech::Unison;
+my $udb = new Unison;
 my $porigin_id = $udb->porigin_si_porigin_id($origin);
 my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.14 2003/03/21 04:25:34 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.15 2003/04/28 16:58:35 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
@@ -85,7 +86,7 @@ else
   }
 
 printf(STDERR "# before: %d extant aliases, %d extant md5s\n"
-	   . "# %d sequences scanned; %d skipped; %d added\n",
+	   . "# %d sequences scanned; %d skipped; %d added or extant\n",
 	   scalar keys %alias, scalar keys %md5, 
 	   $nseen, $nskipped, $nadded);
 printf
@@ -113,8 +114,11 @@ sub process_seq
   {
   my $bs = shift;
   my $id = $bs->display_id();
-  my $descr = $bs->desc();
   my $seq = $bs->seq();
+  if (not defined $seq)
+	{ warn("$id: sequence not defined\n"); return; }
+
+  my $descr = $bs->desc();
   my $oseq = $seq;
   $seq = uc($seq); $seq =~ s/[^-\*\?A-Z]//g;
   my $md5 = md5_hex($seq);
@@ -153,7 +157,7 @@ sub process_seq
 	{ $skip = sprintf("too long (%d AA; maxlen=$maxlen",length($seq)); }
   elsif (length($seq) == 0)
 	{ $skip = "zero-length"; }
-  elsif ($descr =~ m%/type=(\w+)% and $1 ne 'gene')
+  elsif (!$inclsubex and $descr =~ m%/type=(\w+)% and $1 ne 'gene')
 	{ $skip = "non-gene genescan transcript"; }
   if (defined $skip)
 	{ warn("# skipping $id: $skip ($descr)\n"); $nskipped++; return; }

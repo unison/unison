@@ -1,0 +1,46 @@
+#!/usr/bin/env perl
+# load-pmprofile -- loads psiblast profiles into unison
+# $Id$
+
+
+use strict;
+use warnings;
+use Digest::MD5;
+use Getopt::Long qw(:config gnu_getopt);
+use IO::File;
+use Unison;
+use Bio::Tools::BPpsilite;
+
+GetOptions( @Unison::options )
+  || die("options");
+
+
+my $fh = new IO::File;
+#my $u = new Unison;
+
+#my $sth;
+#$sth = $u->prepare("insert into pmprofile(porigin_id,name,md5) values ($porigin_id,?,?)")
+#  || die($u->errstr());
+
+while( my $fn = shift )
+  {
+  $fh->open("<$fn")
+	|| die("$fn: $!\n");
+  my $r = Bio::Tools::BPpsilite->new(-fh=>$fh);
+  my $j = $r->number_of_iterations;
+  my $R = $r->round($j);
+  while( my $subj = $R->nextSbjct )
+	{
+	my $n = $subj->name;
+	$n =~ s/\s.*//;
+	while( my $hsp = $subj->nextHSP)
+	  {
+	  printf("$n: score=%d e=%g I=%d P=%d G=%d L=%d\n",
+			 $hsp->score, $hsp->P,
+			 $hsp->match, $hsp->positive, $hsp->gaps, $hsp->hsplength);
+#	  $sth->execute(
+	  }
+	}
+  }
+
+#$u->disconnect();

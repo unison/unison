@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id: DBI.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -26,8 +26,10 @@ package Unison;
 use strict;
 use warnings;
 use DBI;
-use Exceptions;
+use CBT::Exceptions;
+use CBT::StandardExceptions;
 use Data::Dumper;
+
 
 use Getopt::Long;
 my $p = new Getopt::Long::Parser;
@@ -86,10 +88,10 @@ sub connect
 	$self->{dbh} = $dbh;
 	return($self);
 	}
-  throw Exception::ConnectionFailed( "couldn't connect to unison",
-									 "dsn=$dsn\n" .
-									 'username='.$self->{username}."\n" .
-									 'password='.(defined $ENV{'PGPASSWORD'}?'<pass>':'<undef>') );
+  throw CBT::Exception::ConnectionFailed( "couldn't connect to unison",
+										  "dsn=$dsn\n" .
+										  'username='.$self->{username}."\n" .
+										  'password='.(defined $ENV{'PGPASSWORD'}?'<pass>':'<undef>') );
   return undef;
 =pod
 
@@ -122,7 +124,7 @@ sub AUTOLOAD
   $method =~ s/^.*:://;
   return if $method eq 'DESTROY';
   $self->dbh()->can($method)
-	or throw Exception::NotImplemented ("can't find method $method");
+	or throw CBT::Exception::NotImplemented ("can't find method $method");
   warn("AUTOLOAD thinks $self->dbh() can $method\n") if $ENV{DEBUG};
   eval "sub $AUTOLOAD { throw Exception::NotConnected unless defined \$_[0]->dbh();
                         (shift)->dbh()->$method(\@_); } ";
