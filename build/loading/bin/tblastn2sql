@@ -1,0 +1,56 @@
+#!/usr/bin/env perl
+# read tblastn results and output SQL for plocus inserts
+# $Id$
+
+use warnings;
+use strict;
+
+use Getopt::Long qw(:config gnu_getopt);
+use Bio::Tools::BPlite;
+
+my %opts = (update=>0);
+GetOptions(\%opts,
+		   'genome_id|g=i',
+		  )
+  or die("$0: bad usage\n");
+
+if ( not exists $opts{genome_id} ) {
+  die( "--genome_id|-g parameter is missing\n" ); }
+
+
+my $in = new Bio::Tools::BPlite(-fh=>\*STDIN);
+
+my $qname = $in->query;
+my $qlen = $in->qlength();
+my ($pseq_id) = $qname =~ m/Unison:(\d+)/;
+if (not defined $pseq_id) {
+  die("$qname doesn't look like a unison query sequence\n");
+}
+
+
+while( my $sbj = $in->nextSbjct() ) {
+  my $sname = $sbj->name();
+  my ($chr,$datum) = $sname =~ m/chr=(\w+):(\d+)/;
+  if (not defined $datum) {
+	warn("-- couldn't get base chromosomal offset for $sname\n"); next;
+  }
+  while( my $hsp = $sbj->nextHSP() ) {
+	next unless $hsp->hsplength() >= 15;
+	next unless $hsp->gaps() <= 3;
+	next unless $hsp->length() - $hsp->positive() <= 3;	# <= 3 mismatches
+	next unless $hsp->percent() >= 95;
+
+	my $chr_start = $datum + $hsp->hit->start();
+	my $chr_end = $datum + $hsp->hit->end();
+	printf("insert into plocus (pseq_id,pstart,pstop,genome_id,chr,gstart,gstop,ident,eval) "
+		   . "values (%d,%d,%d,%d,%s,%d,%d,%d,%s);\n",
+		   $pseq_id, $hsp->query->start(), $hsp->query->end(),
+		   $opts{genome_id}, $chr, $chr_start, $chr_end, 
+		   $hsp->percent(), $hsp->significance());
+  }
+}
+
+
+
+############################################################################
+# $Log: run-p2,v $
