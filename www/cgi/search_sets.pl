@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# search_sets.pl -- compare a pset and pmodelset among several methods
 
 use strict;
 use warnings;
@@ -34,76 +35,165 @@ my (@SP) = map { $_->[0] } @{ $u->selectall_arrayref("select pseq_id from pseqse
 my $nSP = $#SP+1;
 
 
-my (@hmm_P,@hmm_TP,@hmm_FN,@hmm_UP);
+#my (@hmm_P,@hmm_TP,@hmm_FN,@hmm_UP);
 my ($hmm_P,$hmm_TP,$hmm_FN,$hmm_UP) = ('','','','');
 
-my (@pssm_P,@pssm_TP,@pssm_FN,@pssm_UP);
+#my (@pssm_P,@pssm_TP,@pssm_FN,@pssm_UP);
 my ($pssm_P,$pssm_TP,$pssm_FN,$pssm_UP) = ('','','','');
 
-my (@p2_P,@p2_TP,@p2_FN,@p2_UP);
+#my (@p2_P,@p2_TP,@p2_FN,@p2_UP);
 my ($p2_P,$p2_TP,$p2_FN,$p2_UP) = ('','','','');
 
-my %P;										# counts # of times pseq_id was hit
+my %P;										# counts # of times pseq_id was hit for U_ & I_
 my ($I_P,$I_TP,$I_FN,$I_UP) = ('','','','');
 my ($U_P,$U_TP,$U_FN,$U_UP) = ('','','','');
 
+my $set;									# pseq_id array ref; if set below, show seq list
 
-if ($v->{submit}) {
+
+
+## This cgi really has two modes: a summary display and a sequence list
+## display.  The summary is shown by default; if $v->{submit} =~
+## m/^[IU]_(P|TP|FN|UP)$/, then a sequence list is shown. I/U selects the
+## intersection or union, and P, TP, FN, and UP correspond to the positive
+## (hits), true positive, false negative, and unknown positives.  If only one
+## method is specified, then U_* are the sequence lists for that method, and
+## this observation is used to reduce the number of cases I deal with below.
+## In schematic:
+## - compute hmm_* if needed
+## - compute pssm_* if needed
+## - compute p2_* if needed
+## - compute U_*
+## - compute I_ unless we're showing a list of U_*
+
+
+if (exists $v->{submit}) {
   my (@P,$FNr,$UPr,$TPr);
 
   if ($v->{hmm}) {
+	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval) );
 	@P = _get_hmm_hits();
 	$P{$_}++ for @P;
-	($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
-	$hmm_P  = $#P+1;
-	if ($nSP>0) {
-	  $hmm_TP = sprintf('%d / %5.1f%%', $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-	  $hmm_FN = sprintf('%d / %5.1f%%', $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	if ($v->{submit} !~ m/^[IU]/) {
+	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
+	  $hmm_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#P+1);
+	  if ($nSP>0) {
+		$hmm_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
+		$hmm_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	  }
+	  $hmm_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+						 $url, $#$UPr+1);
 	}
-	$hmm_UP = $#$UPr+1;
   }
 
   if ($v->{pssm}) {
+	my $url = $p->make_url( qw(pset_id pmodelset_id pssm pssm_eval) );
 	@P = _get_pssm_hits();
 	$P{$_}++ for @P;
-	($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
-	$pssm_P  = $#P+1;
-	if ($nSP>0) {
-	  $pssm_TP = sprintf('%d / %5.1f%%', $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-	  $pssm_FN = sprintf('%d / %5.1f%%', $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	if ($v->{submit} !~ m/^[IU]/) {
+	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
+	  $pssm_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#P+1);
+	  if ($nSP>0) {
+		$pssm_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
+		$pssm_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	  }
+	  $pssm_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+						 $url, $#$UPr+1);
 	}
-	$pssm_UP = $#$UPr+1;
   }
 
   if ($v->{p2}) {
+	my $url = $p->make_url( qw(pset_id pmodelset_id p2 p2_run_id p2_svm) );
 	@P = _get_p2_hits();
 	$P{$_}++ for @P;
-	($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
-	$p2_P  = $#P+1;
-	if ($nSP>0) {
-	  $p2_TP = sprintf('%d / %5.1f%%', $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-	  $p2_FN = sprintf('%d / %5.1f%%', $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	if ($v->{submit} !~ m/^[IU]/) {
+	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
+	  $p2_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#P+1);
+	  if ($nSP>0) {
+		$p2_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
+		$p2_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	  }
+	  $p2_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+						 $url, $#$UPr+1);
 	}
-	$p2_UP = $#$UPr+1;
   }
 
-  my $n = ($v->{hmm}?1:0) + ($v->{pssm}?1:0) + ($v->{p2}?1:0);
+  # UNION
+  my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_run_id p2_svm) );
   my @U_P = sort keys %P;
-  ($FNr,$UPr,$TPr) = acomm(\@SP,\@U_P);
-  $U_P = $#U_P+1;
-  $U_TP = $#$TPr+1;
-  $U_FN = $#$FNr+1;
-  $U_UP = $#$UPr+1;
+  if ($v->{submit} !~ m/^I_/) {
+	($FNr,$UPr,$TPr) = acomm(\@SP,\@U_P);
+	$U_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#U_P+1);
+	if ($nSP>0) {
+		$U_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
+		$U_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	  }
+	$U_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+						 $url, $#$UPr+1);
+  }
 
-  my @I_P = grep { $P{$_} == $n } @U_P;
-  ($FNr,$UPr,$TPr) = acomm(\@SP,\@I_P);
-  $I_P = $#I_P+1;
-  $I_TP = $#$TPr+1;
-  $I_FN = $#$FNr+1;
-  $I_UP = $#$UPr+1;
+  if ($v->{submit} eq 'U_P') 
+	{ @$set = @U_P; }
+  elsif ($v->{submit} eq 'U_TP')
+	{ @$set = @$TPr; }
+  elsif ($v->{submit} eq 'U_FN')
+	{ @$set = @$FNr; }
+  elsif ($v->{submit} eq 'U_UP')
+	{ @$set = @$UPr; }
+  else {
+	# INTERSECTION
+	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_run_id p2_svm) );
+	my $n = ($v->{hmm}?1:0) + ($v->{pssm}?1:0) + ($v->{p2}?1:0);
+	my @I_P = grep { $P{$_} == $n } @U_P;
+	if ($v->{submit} ne 'I_P') {
+	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@I_P);
+	  $I_P  = sprintf('<a href="%s;submit=I_P">%d</a>',$url, $#I_P+1);
+	  if ($nSP>0) {
+		$I_TP = sprintf('<a href="%s;submit=I_TP">%d (%5.1f%%)</a>',
+						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
+		$I_FN = sprintf('<a href="%s;submit=I_FN">%d (%5.1f%%)</a>',
+						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
+	  }
+	  $I_UP  = sprintf('<a href="%s;submit=I_UP">%d</a>',
+						 $url, $#$UPr+1);
+	}
+
+	if ($v->{submit} eq 'I_P') 
+	  { @$set = @I_P; }
+	elsif ($v->{submit} eq 'I_TP')
+	  { @$set = @$TPr; }
+	elsif ($v->{submit} eq 'I_FN')
+	  { @$set = @$FNr; }
+	elsif ($v->{submit} eq 'I_UP')
+	  { @$set = @$UPr; }
+  }
 }
 
 
+
+
+
+if ($set) {
+  @$set = sort {$a<=>$b} @$set;
+  my @rows = map { ["<a href=\"pseq_summary.pl?pseq_id=$_\">$_</a>",$u->best_annotation($_,1)] } @$set;
+
+  print $p->render("Sequence Mining",
+				   $p->group(sprintf("%d $v->{submit} results",$#rows+1),
+							 Unison::WWW::Table::render(['pseq_id','best_annotation'],\@rows)));
+  exit(0);
+}
+
+
+
+# default case: prepare the form and summary statistics
 
 my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" } 
   @{ $u->selectall_arrayref("select pset_id,name from pset") }; 
@@ -111,19 +201,16 @@ my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" }
   @{ $u->selectall_arrayref('select * from pmodelset') };
 
 print $p->render("Sequence Mining",
-				 '$Id: search_sets.pl,v 1.1 2003/10/31 19:02:53 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.2 2003/10/31 22:55:35 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. Select
 				 the Model Set you wish to use to select sequences, the
 				 set of "known" sequences with which sensitivity and
 				 specificity will be assessed, and click
-				 "vroom!". Clicking the summary statistics in the hits,
+				 "vroom". Clicking the summary statistics in the hits,
 				 TP, FN, and UP columns will show sequences in those
 				 sets.',
-
-				 $p->warn('This page is a work-in-progress. ' .
-						  'Gnarly searches may take several minutes!'),
 
 				 $p->start_form(-method=>'GET'),
 
@@ -131,7 +218,7 @@ print $p->render("Sequence Mining",
 
 				 '<tr>', 
 				 '<th colspan=2>',
-				 $p->submit(-name=>'submit', -value=>'vroom!'),
+				 $p->submit(-name=>'submit', -value=>'vroom'),
 				 ,'</th>',
 				 '<th align="center" colspan="3">Sequence Set: ',
 				 $p->popup_menu(-name => 'pset_id',
@@ -144,10 +231,10 @@ print $p->render("Sequence Mining",
 
 				 '<tr>', 
 				 '<th colspan="2">Model set: ',
-				 $p->popup_menu(-name => 'modelset_id',
+				 $p->popup_menu(-name => 'pmodelset_id',
 								-values => [keys %ms],
 								-labels => \%ms,
-								-default => "$v->{modelset_id}"),
+								-default => "$v->{pmodelset_id}"),
 				 '</th>',
 				 '<th align="center" colspan="2">SP (',$nSP,' sequences)</th>',
 				 '<th></th>',
@@ -174,9 +261,9 @@ print $p->render("Sequence Mining",
 				 $p->checkbox(-name => 'hmm',
 							  -label => 'HMM/Pfam ',
 							  -checked => $v->{hmm}),
-				 '<br>with eval <= ',
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with eval <= ',
 				 $p->popup_menu(-name => 'hmm_eval',
-								-values => [qw(1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
+								-values => [qw(1e-60 1e-50 1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
 								-default => "$v->{hmm_eval}"),
 				 '</td>',
 				 '<td align="right">', $hmm_P ,'</td>',
@@ -190,9 +277,9 @@ print $p->render("Sequence Mining",
 				 $p->checkbox(-name => 'pssm',
 							  -label => 'PSSM ',
 							  -checked => $v->{pssm}),
-				 '<br>with eval <= ',
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with eval <= ',
 				 $p->popup_menu(-name => 'pssm_eval',
-								-values => [qw(1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
+								-values => [qw(1e-60 1e-50 1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
 								-default => "$v->{pssm_eval}"),
 				 '</td>',
 				 '<td align="right">', $pssm_P ,'</td>',
@@ -207,18 +294,18 @@ print $p->render("Sequence Mining",
 							  -label => 'Prospect2 ',
 							  -checked => $v->{p2}),
 
-				 '<br>Parameter set: ',
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
 				 $p->popup_menu(-name => 'p2_run_id',
 								-values => [qw(1)],
 								-default => "$v->{p2_run_id}"),
-				 '<br>with svm >= ',
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with svm >= ',
 				 $p->popup_menu(-name => 'p2_svm',
 								-values => [qw(13 12 11 10 9 8 7 6 5)],
 								-default => "$v->{p2_svm}"),
-				 '<br>with raw <= ',
-				 $p->popup_menu(-name => 'p2_raw',
-								-values => [qw(-2000 -1500 -1000 -500 -250 0 100 250)],
-								-default => "$v->{p2_raw}"),
+#				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with raw <= ',
+#				 $p->popup_menu(-name => 'p2_raw',
+#								-values => [qw(-2000 -1500 -1000 -500 -250 0 100 250)],
+#								-default => "$v->{p2_raw}"),
 				 '</td>',
 				 '<td align="right">', $p2_P ,'</td>',
 				 '<td align="right">', $p2_TP,'</td>',
@@ -229,10 +316,13 @@ print $p->render("Sequence Mining",
 				 '<tr>',
 				 '<td colspan=3></td>',
 				 '<td colspan=2 bgcolor="lightgrey" align="center">',
-				 $p->tooltip('NOTE',
-							 'Reminder: The union of individual FN entries
-							 IS NOT equal to as the FN rate computed from
-							 the union of hits.  Ditto for the UP.'),
+				 $p->tooltip('NOTE (mouseover me)', 'The union of
+							 individual FNs above IS NOT equal to the FN
+							 set computed from the union of hits.  Ditto
+							 for the UP.  The FN and UP below are computed
+							 from the union of hits.  This note is your
+							 clue that you should not tally vertically in this 
+							 column.'),
 				 '</td>',
 				 '</tr>',"\n",
 
@@ -280,7 +370,7 @@ sub _hmm_sql {
 }
 sub _get_hmm_hits {
   my $sql = _hmm_sql();
-  print(STDERR "hmm: $sql\n");
+#  print(STDERR "hmm: $sql\n");
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
@@ -296,7 +386,7 @@ sub _pssm_sql {
 }
 sub _get_pssm_hits {
   my $sql = _pssm_sql();
-  print(STDERR "pssm: $sql\n");
+#  print(STDERR "pssm: $sql\n");
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
@@ -312,7 +402,7 @@ sub _p2_sql {
 }
 sub _get_p2_hits {
   my $sql = _p2_sql();
-  print(STDERR "p2: $sql\n");
+#  print(STDERR "p2: $sql\n");
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
@@ -356,90 +446,6 @@ sub acomm
 
   return(\@u1,\@u2,\@c);
   }
-__END__
-
-
-my $s_sql = Unison::SQL->new()
-  ->table('palias A')
-  ->columns('distinct A.pseq_id');
-
-if (exists $v->{o_sel}) {
-  my @porigin_id = map { $u->porigin_porigin_id_by_origin($_) } 
-	$p->param('o_sel');
-  $s_sql->where( 'A.porigin_id in ('
-			   . join(',', sort {$a<=>$b} @porigin_id) 
-			   . ')' );
-}
-
-if (exists $v->{r_species}) {
-  $s_sql->where("A.tax_id=$v->{r_species_sel}");
-}
-
-if (exists $v->{r_age} or exists $v->{r_len}) {
-  $s_sql->join('pseq Q on A.pseq_id=Q.pseq_id');
-  if (exists $v->{r_age}) {
-	$s_sql->where("Q.added>=now()-'$v->{r_age_sel}'::interval");
-  }
-  if (exists $v->{r_len_sel}) {
-	$s_sql->where("Q.len>=$v->{r_len_min} and Q.len<=$v->{r_len_max}");
-  }
-}
-
-if (exists $v->{r_sigp}) {
-  $s_sql->join('pseqprop P on A.pseq_id=P.pseq_id')
-	->where("P.sigpredict>=$v->{r_sigp_sel}::real");
-}
-
-if (exists $v->{al_hmm}) {
-  $s_sql->join('pahmm H on A.pseq_id=H.pseq_id')
-	->where("H.eval<=$v->{al_hmm_eval}")
-	->join('pmsm_pmhmm HM on H.pmodel_id=HM.pmodel_id')
-	->where("HM.pmodelset_id=$v->{al_ms_sel}");
-}
-
-if (exists $v->{al_papssm}) {
-  $s_sql->join('papssm P on A.pseq_id=P.pseq_id')
-	->where("P.eval<=$v->{al_pssm_eval}")
-	->join('pmsm_pmpssm PM on P.pmodel_id=PM.pmodel_id')
-	->where("PM.pmodelset_id=$v->{al_ms_sel}");
-}
-
-if (exists $v->{al_prospect2}) {
-  my @models = map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{al_ms_sel}" ) };
-  @models = sort { $a<=>$b } @models;
-  $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
-	->where("T.svm>=$v->{al_prospect2_svm}::real")
-	->where("T.run_id=$v->{al_prospect2_run_id}")
-	->where('T.pmodel_id in (' . join(',',@models) . ')');
-
-#  $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
-#	->where("T.svm>=$v->{al_prospect2_svm}::real")
-#	->join('pmsm_prospect2 PT on T.pmodel_id=PT.pmodel_id')
-#	->where("PT.pmodelset_id=$v->{al_ms_sel}");
-}
-
-
-my $sql = "$s_sql";
-if (exists $v->{x_set}) {
-  $sql .= " except select pseq_id from pseqset where pset_id=$v->{x_set_sel}";
-}
-
-$sql = "select X1.pseq_id,best_annotation(X1.pseq_id) from ($sql) X1";
-
-
-
-my $results = "<p>(SQL only requested -- go back and hit vroom! for results)\n";
-if ($v->{submit} !~ m/^sql/) {
-  my @fields = ( 'pseq_id', 'origin:alias (description)' );
-  my $ar;
-  $ar = $u->selectall_arrayref($sql);
-  for(my $i=0; $i<=$#$ar; $i++) {
-	$ar->[$i][0] = sprintf('<a href="pseq_summary.pl?pseq_id=%d">%d</a>',
-						   $ar->[$i][0],$ar->[$i][0]);
-  }
-  $results = $p->group(sprintf("%d results",$#$ar+1),
-					   Unison::WWW::Table::render(\@fields,$ar));
-}
-
+exit(0);
 
 
