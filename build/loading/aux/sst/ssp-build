@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use DBI;
 
-print(STDERR '$Id: ssp-build,v 1.4 2004/06/10 22:04:47 rkh Exp $ ', "\n");
+print(STDERR '$Id: ssp-build,v 1.5 2004/06/18 17:39:41 rkh Exp $ ', "\n");
 
 my @GB = 
   (
@@ -20,6 +20,9 @@ my @GB =
    'PatinUpload'
   );
 
+(defined $ENV{SSTPASS})
+  || die("$0: SSTPASS not defined\n");
+
 my $dsn = 'dbi:Oracle:bioprd1';
 my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
@@ -31,7 +34,7 @@ open(GS, "| xargs -tn100 /usr/local/seq/bin/getseq -F")
 my $sql = 
   'SELECT DISTINCT proid FROM dna D,prodna PD'
   .' WHERE D.dnaid=PD.dnaid and ('
-  .join(' or ', map {"D.generatedby='$_'"} @GB)
+  .join(' or ', 'D.generatedby is NULL', map {"D.generatedby='$_'"} @GB)
   .') ORDER BY proid';
 my @proids = map {$_->[0]} @{$dbh->selectall_arrayref($sql)};
 
@@ -49,23 +52,40 @@ __END__
 rkh@bioprd1> select generatedby,count(distinct proid)
           -> from dna D,prodna PD where D.dnaid=PD.dnaid
           -> group by generatedby order by 2 desc;
- 
+
 GENERATEDBY            COUNT(DISTINCTPROID)
 ---------------------- --------------------
-Virtual                               51852
+Virtual                               56560
 Fragment                              24593
 OrigeneFLS                            20027
 Full Length Screen                    19972
-Gene Exons                             8297
+Gene Exons                             8294
 Genomic Celera                         8026
-Construct                              4926
-Hybridoma                              3212
+Construct                              5076
+Hybridoma                              3211
 PatinUpload                            2635
 IMGT                                    544
 Amylase Screen                          156
 Genomic NCBI                             64
-.
-.
-.
- 
-34 rows selected (4.57 seconds)
+Predicted Celera                         54
+GEPIS Screen                             49
+ECD Homology                             40
+Signal Algorithm                         18
+NULL                                     18
+ECD H Genomic                            14
+Collaboration                            12
+Sig Genomic                              12
+Bar1 Screen                              11
+HMM Homology                              9
+HMM Signal Pep                            8
+Incyte                                    6
+Origene Virtual                           6
+Other Secretion Screen                    3
+Predicted NCBI                            3
+Amylase Virtual                           2
+Marker Virtual                            2
+Invertase Screen                          2
+Bar1 Virtual                              1
+Curagen                                   1
+Genomic Cloned                            1
+Cluster                                   1
