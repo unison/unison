@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.3 2003/07/10 20:53:39 rkh Exp $
+# $Id: load-pmhmm,v 1.4 2003/08/01 17:27:00 rkh Exp $
 # load pfam HMM summary info (not the HMM itself) into unison
 # $ load-pmhmm <Pfam_fs
 
@@ -7,6 +7,7 @@ use strict;
 use warnings;
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
+use Data::Dumper;
 
 
 my %opts;
@@ -24,7 +25,7 @@ my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
 printf(STDERR "# loading sequences into $opts{origin} (porigin_id=$porigin_id)\n");
 
 my $sth_fetch_by_acc = $u->prepare_cached('select pmodel_id,cksum from pmhmm where acc=?');
-my $sth_update_origin = $u->prepare("update pmhmm set porigin_id=? where pmodel_id=?");
+my $sth_update_pmhmm = $u->prepare("update pmhmm set porigin_id=?,name=? where pmodel_id=?");
 my $sth_insert_pmhmm = $u->prepare("insert into pmhmm (porigin_id,name,acc,descr,len,nseq,cksum) ".
 						"values ($porigin_id,?,?,?,?,?,?)");
 
@@ -49,13 +50,13 @@ while(my $blk = <>) {
   my (@extant) = extant_models_by_acc($u,$acc);
 
   # it's almost inconceivable that there would be more than one model
-  # with a matching checksum and same name, but we'll play it safe...
+  # with a matching checksum and same acc, but we'll play it safe...
   my (@update_ids) = map {$_->[0]} grep {$_->[1]==$cksum} @extant;
 
   if (@update_ids) {
 	printf(STDERR "updating %d ids (%s) for $acc ($name)\n",
 		   $#update_ids+1,join(',',@update_ids) );
-	$sth_update_origin->execute($porigin_id,$_) for @update_ids;
+	$sth_update_pmhmm->execute($porigin_id,$name,$_) for @update_ids;
   } else {
 	printf(STDERR "inserting $acc ($name)\n");
 	$sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum);
