@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.10 2004/04/20 21:51:27 rkh Exp $>
+S<$Id: pseq.pm,v 1.11 2004/04/21 18:18:15 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -238,13 +238,13 @@ return the pseq_id for a given sequence
   'sql-only' => boolean for sql output only (no loading in Unison)
   'incl-subex' => boolean for whether to include subex gene predictions
   'verbose' => boolean for whether to output more information
- RETURNS: hash with process info keys: nseen, nskipped, nadded
+ RETURNS: hash with process info keys: nseen, nskipped, nadded, nfailed
 
 =cut
 
 sub process_stream {
   my ($u,$in,$opts) = @_;
-  my %rv = ( nseen => 0, nskipped => 0, nadded => 0 );
+  my %rv = ( nseen => 0, nskipped => 0, nfailed => 0, nadded => 0, naliases => 0 );
   $opts->{porigin_id} = $u->porigin_si_porigin_id($opts->{origin});
 
   # build a hash of tax_ids in tax.spspec only load tax_id if found in this
@@ -286,7 +286,6 @@ sub process_seq  {
 
   (defined $seq)
 	|| throw Unison::Exception::RuntimeError("$id: sequence not defined");
-
 
   my $tax_id;
   my $descr = $bs->desc();
@@ -361,10 +360,12 @@ sub process_seq  {
 	try {
 	  $pseq_id = $u->pseq_si_pseq_id( $seq );
 	} catch Unison::Exception with {
+	  $rv->{nfailed}++;
 	  throw Unison::Exception::RuntimeError( "Failed to load sequence $ids[0] ($descr)",
 											 $_[0] );
 	};
     $md5{ $md5 } = $pseq_id;
+	$rv->{nadded}++;
   }
 
 
@@ -380,11 +381,11 @@ sub process_seq  {
 
   foreach my $upd_id (@ids)  {
 	$u->add_palias($pseq_id,$opts->{porigin_id},$upd_id,$descr,$tax_id);
+	$rv->{naliases}++;
   }
 
   printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
 		 length($seq), $descr) if $opts->{verbose};
-  $rv->{nadded}++;
 
   return;
 }
