@@ -1,19 +1,18 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.7 2003/09/16 23:24:46 rkh Exp $
+# $Id: get-seq,v 1.8 2003/10/28 21:51:28 rkh Exp $
 
 use warnings;
 use strict;
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
-use Data::Dumper;
+
 
 my %opts = 
   (
    'best-alias' => 0,
    'best-annotation' => 0,
    'all-aliases' => 0,
-   'dnaid' => [],
    'proid' => [],
    'verbose' => 0,
   );
@@ -21,20 +20,16 @@ GetOptions( \%opts,
 			'best-alias|best-oa|b+',
 			'best-annotation|best-oad|B+',
 			'all-aliases|a+',
-			'dnaid|D=s@',
 			'proid|P=s@',
 			'verbose|v+'
 		  )
   || die("$0: you got usage issues, homey\n");
 
-my $u = new Unison( username => 'PUBLIC' );
+my $u = new Unison();
 die( "! couldn't open a connection to unison\n" ) unless $u;
 
 @{$opts{proid}} = map {split(/,/,$_)} @{$opts{proid}};
 unshift(@ARGV, SPDI_lookup('PRO',@{$opts{proid}}));
-
-@{$opts{dnaid}} = map {split(/,/,$_)} @{$opts{dnaid}};
-unshift(@ARGV, SPDI_lookup('DNA',@{$opts{dnaid}}));
 
 if (@ARGV) {
   while( my $r = shift ) {
@@ -112,7 +107,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.7 2003/09/16 23:24:46 rkh Exp $>
+S<$Id: get-seq,v 1.8 2003/10/28 21:51:28 rkh Exp $>
 
 =head1 SYNOPSIS
 
