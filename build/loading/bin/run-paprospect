@@ -1,5 +1,16 @@
 #!/usr/bin/env perl
 # run p2 and insert into Unison
+#-------------------------------------------------------------------------------
+# name: run-p2
+# purpose: run prospect locally and insert the results into Unison
+# arguments: 
+#   --p2params_id|-p <p2params_id>: p2params_id for loading (required)
+#   --tfile|-t <template file>: file containing a list of templates (optional)
+#   --update|-u: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
+# usage: run-p2 [psql options] --p2params_id <p2params_id> [--tfile <template file>] [--update]
+#
+# $Id$
+#-------------------------------------------------------------------------------
 
 use warnings;
 use strict;
@@ -10,85 +21,177 @@ select STDOUT; $|++;
 use Unison;
 use Prospect2::Options;
 use Prospect2::LocalClient;
+use Prospect2::Exceptions;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
+use Error qw(:try);
+$ENV{'DEBUG'} = 0;
 
 my %uf =
   (
    'raw' => 'raw_score',
    'svm' => 'svm_score',
    'zscore' => 'z_score',
-   'mutation' => 'mut',
-   'singleton' => 'sing',
-   'pairwise' => 'pair',
-   'ssfit' => 'ssfit',
-   'gap' => 'gap',
-   'nident' => 'nident',
-   'nalign' => 'nalign',
+   'mutation' => 'mutation_score',
+   'singleton' => 'singleton_score',
+   'pairwise' => 'pair_score',
+   'ssfit' => 'ssfit_score',
+   'gap' => 'gap_score',
+   'nident' => 'identities',
+   'nalign' => 'align_len',
    'rgyr' => 'rgyr',
+   'start' => 'qstart',
+   'stop' => 'qend',
   );
 
-
 my %options;
-GetOptions(\%options,
-		   @Unison::options,
-		   'p2params_id|p=i',
-		   #'update|u+'						# force update (delete rows before insert)
-		  )
-  || die("$0: bad usage\n");
+my ($p2params_id,$tfile, $update);
+GetOptions(
+       \%options,@Unison::options,
+       'p2params_id=i',\$p2params_id,
+       'tfile=s',\$tfile,     # name of template file
+       'update',\$update      # force update (delete rows before insert)
+      )
+  or die("$0: bad usage\n");
 
-my $u = new Unison;
-my $po = $u->get_p2options_by_p2params_id($options{p2params_id});
-# FIX: make this a command line option
-$po->{tfile} = '/home/rkh/prospect/tfiles/all';
+die( "--p2params_id|-p parameter missing\n" ) if ( ! defined $p2params_id || $p2params_id eq '' );
+my $u;
+if ( defined $ENV{'PGPASSWD'} ) {
+	$u = new Unison( 'password' => $ENV{'PGPASSWD'} );
+} else {
+	$u = new Unison();
+}
+$u->do( 'set search_path=public,unison' );
+my $po = $u->get_p2options_by_p2params_id($p2params_id);
+$po->{tfile} = $tfile;
 my $pc = new Prospect2::LocalClient( options=>$po );
 
-
-while( my $pseq_id = shift )
-  {
+PSEQ_ID: while( my $pseq_id = shift ) {
+  print "pseq_id .. $pseq_id\n";
+  print "\tthreading ...\n";
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  my ($t) = $pc->thread( $seq );
-  print(STDERR "done threading...\n") if $ENV{DEBUG};
-  my ($h,@f) = $pc->summary( $seq );
-  print(STDERR "done summary...\n") if $ENV{DEBUG};
-  foreach my $modn (keys %$h)
-	{
-    insert1($u,$pseq_id,$options{p2params_id},$modn,$h->{$modn},@f);
-	}
+  my (@summaries);
+  try {
+    print "trying to thread ...\n" if $ENV{'DEBUG'};
+    (@summaries) = $pc->thread_summary( $seq );
+  } catch Prospect2::RuntimeError with {
+    my $e = shift;
+    print STDERR "Caught Prospect2::RuntimeError: " . $e->detail() . "\n";
+    print STDERR "Skipping this pseq_id ($pseq_id)\n";
+    next PSEQ_ID;
+  } catch Prospect2::Exception with {
+    my $e = shift;
+    print STDERR "Caught Prospect2::Exception: " . $e->detail() . "\n";
+    print STDERR "Skipping this pseq_id ($pseq_id)\n";
+    next PSEQ_ID;
+  };
+  print "\tloading ...\n";
+  foreach my $ts ( @summaries ) {
+    deleteThread($u,$pseq_id,$p2params_id,$ts) if $update;
+    insertThread($u,$pseq_id,$p2params_id,$ts);
+  }
+}
+
+
+#-------------------------------------------------------------------------------
+# name: insertThread
+# purpose: insert 1 thread summary into the database
+# arguments: Unison connection, pseq_id, p2params_id, template name, 
+#   Prospect2::ThreadSummary or Prospect2::Thread
+# returns: mada
+#-------------------------------------------------------------------------------
+
+sub insertThread {
+  my ($u,$pseq_id,$p2params_id,$t) = @_;
+
+  # check parameters
+  if      ( !defined $pseq_id or $pseq_id !~ m/^\d+$/ ) {
+    die( "insertThread() pseq_id provided is missing or invalid" );
+  } elsif ( !defined $p2params_id or $p2params_id !~ m/^\d+$/ ) {
+    die( "insertThread() p2params_id provided is missing or invalid" );
+  } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
+    die( "insertThread() thread provided is missing or invalid" );
   }
 
+  # get the model id for the template name given
+  my $pmodel_id = pmodel_id_lookup($u,$t->tname);
+  if ( !defined $pmodel_id or $pmodel_id eq '' ) {
+    die( "insertThread() pmodel_id doesn't exist for template name: " . $t->name() );
+  }
 
+  # build key/values for sql insert
+  my @keys = ('pseq_id','p2params_id','pmodel_id',keys %uf );
+  my @values = ( $pseq_id,$p2params_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf ); 
 
-sub insert1
-  {
-  my ($u,$pseq_id,$p2params_id,$modn,$ar,@f) = @_;
-  my %fi = map { $f[$_] => $_ } 0..$#f;
-  my (@uf) = keys %uf;
-  my (@i) = map { $fi{$uf{$_}} } @uf;	  # array indicies in insert order
-  my @af = ('pseq_id','p2params_id','pmodel_id',@uf);
-  my $pmodel_id = pmodel_id_lookup($u,$modn);
-  my $sql = 'insert into p2thread ('
-	 . join(',',map { "\"$_\"" } @af)
-	 . ') values ('
-	 . join(',',map { '?' } @af)
-	 . ')' ;
+  die( "keys (" . $#keys+1 . ") != values (" . $#values+1 . ")\n" ) if $#keys != $#values;
+
+  my $sql = 'insert into p2thread (' .  join(',',@keys) .  ') values (' .
+    join(',',map { '?' } @keys) .  ')';
+  my $show_sql = "insert into p2thread (" .  join(',',@keys) .  ") values (" .
+     join(',',map { defined $_ ? $_ : '' } @values) . ")";
+  print "insertThread(): $show_sql\n" if $ENV{'DEBUG'};
   my $sth = $u->prepare_cached($sql);
-  my @v = ($pseq_id, $p2params_id, $pmodel_id, @$ar[@i]);
-  $sth->execute( @v );
+  $sth->execute( @values );
   $sth->finish();
+}
+
+
+#-------------------------------------------------------------------------------
+# name: deleteThread
+# purpose: delete 1 thread summary from the database
+# arguments: Unison connection, pseq_id, p2params_id, 
+#   Prospect2::ThreadSummary or Prospect2::Thread
+# returns: mada
+#-------------------------------------------------------------------------------
+
+sub deleteThread {
+  my ($u,$pseq_id,$p2params_id,$t) = @_;
+
+  # check parameters
+  if      ( !defined $pseq_id or $pseq_id !~ m/^\d+$/ ) {
+    die( "deleteThread() pseq_id provided is missing or invalid" );
+  } elsif ( !defined $p2params_id or $p2params_id !~ m/^\d+$/ ) {
+    die( "deleteThread() p2params_id provided is missing or invalid" );
+  } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
+    die( "deleteThread() thread provided is missing or invalid" );
   }
+
+  # get the model id for the template name given
+  my $pmodel_id = pmodel_id_lookup($u,$t->tname);
+  if ( !defined $pmodel_id or $pmodel_id eq '' ) {
+    die( "deleteThread() pmodel_id doesn't exist for template name: " . $t->name() );
+  }
+
+  # build key/values for sql insert
+  my @keys = ('pseq_id','p2params_id','pmodel_id',keys %uf );
+  my @values = ( $pseq_id,$p2params_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf ); 
+
+  my $sql = 'delete from p2thread where pseq_id=? and p2params_id=? and pmodel_id=?';
+  my $show_sql = "delete from p2thread where pseq_id=$pseq_id and p2params_id=$p2params_id and pmodel_id=$pmodel_id";
+  print "deleteThread(): $show_sql\n" if $ENV{'DEBUG'};
+
+  my $sth = $u->prepare_cached($sql);
+  $sth->execute( $pseq_id,$p2params_id, $pmodel_id );
+  $sth->finish();
+}
 
 
 my %pmodel_id;
+#-------------------------------------------------------------------------------
+# name: pmodel_id_lookup
+# purpose: retrieve the pmodel_id for a given model name (e.g. template name)
+# arguments: model name
+# returns: pmodel_id
+#-------------------------------------------------------------------------------
 sub pmodel_id_lookup
   {
   my ($u,$modn) = @_;
   if (not exists $pmodel_id{$modn})
-	{
-	my $sth = $u->prepare_cached('select pmodel_id from p2template where name=?');
-	$sth->execute($modn);
-	($pmodel_id{$modn}) = $sth->fetchrow_array();
-	$sth->finish();
-	}
+  {
+  my $sth = $u->prepare_cached('select pmodel_id from p2template where name=?');
+  $sth->execute($modn);
+  ($pmodel_id{$modn}) = $sth->fetchrow_array();
+  $sth->finish();
+  }
   return $pmodel_id{$modn};
   }
