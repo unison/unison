@@ -1,15 +1,12 @@
 #!/usr/bin/env perl
-# $Id$
+# $Id: load-pmhmm,v 1.1 2003/06/18 22:39:15 rkh Exp $
 # load pfam HMM summary info (not the HMM itself) into unison
-# $ load-pmhmm -o origin <fastafile
+# $ load-pmhmm <Pfam_fs
 
 use strict;
 use warnings;
-use Bio::SeqIO;
-use Getopt::Long;
-use XML::Simple;
-use Data::Dumper;
 use Unison;
+
 
 my $udb = new Unison;
 
