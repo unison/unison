@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.9 2004/01/08 02:17:38 rkh Exp $
+# $Id: run-paprospect2,v 1.10 2004/02/24 19:20:57 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -103,6 +103,11 @@ PSEQ_ID: while( my $pseq_id = shift ) {
   foreach my $o (defined $opts{porigin_id} ? @{$opts{porigin_id}} : undef) {
 	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$o,$m);
 	if (defined $ran_on and not $opts{update}) {
+	  ## IMPORTANT NOTE: This is arguably broken when running with
+	  ## multiple pmodelset_id and/or porigin_id arguments. Specifically,
+	  ## this conservatively skips running this entire sequence if ANY of
+	  ## the m/o compbinations are present. This may leave some m/o
+	  ## combinations un-run.
 	  print(STDERR "$leader: run with these options on $ran_on; skipping\n");
 	  next PSEQ_ID;
 	}
@@ -152,6 +157,9 @@ PSEQ_ID: while( my $pseq_id = shift ) {
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.10  2004/02/24 19:20:57  rkh
+# periodic sync
+#
 # Revision 1.9  2004/01/08 02:17:38  rkh
 # sync with DEV
 #
