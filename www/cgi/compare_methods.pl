@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.4 2005/01/25 23:49:06 mukhyala Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.5 2005/03/20 03:36:16 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -14,7 +14,7 @@ use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::SQL;
 use Unison::Exceptions;
-use Unison::compare_scores;
+use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -25,6 +25,7 @@ my ($scores,$data);
 my %defaults = 
   (
    pmodelset_id => 3,
+   pcontrolset_id => 52,
    tag => '',
   );
 
@@ -46,16 +47,15 @@ sub main {
     if (exists $v->{submit}) {	
 	my (@ys);
 	foreach my $s(@{$p->{score}}) {
-	    ($scores) = Unison::compare_scores::get_p2_scores($u,$v,$s);
-	    my ($y1,$y2)=  Unison::compare_scores::compute_stats($s,$p->{score});
+	    ($scores) = Unison::Utilities::compare_scores::get_p2_scores($u,$v,$s);
+	    my ($y1,$y2)=  Unison::Utilities::compare_scores::compute_stats($s);
 	    push @ys, ($y1, $y2) if($y1 != 0 and $y2 != 0);
 	  }
+	Unison::Utilities::compare_scores::reorganize_stats($p->{score});
 	if(scalar keys %$scores < 1) {$v->{tag} = "NO DATA";}
-
 	elsif($#ys < 0) {$v->{tag} = "NO DATA";}
-
 	else {
-	  Unison::compare_scores::plot_stats($p->{score},$png_fh);
+	  Unison::Utilities::compare_scores::plot_stats($p->{score},$png_fh);
 	  $v->{tag} = sprintf('<IMG SRC="%s"',$png_urn);
 	}
     }
@@ -66,7 +66,7 @@ sub main {
 
 
     #get the control sets in pset
-    my @controls = @{ $u->selectall_arrayref('select ps.pset_id,ps.name from pset ps join pcontrolset cs on cs.pset_id=ps.pset_id order by ps.pset_id') };
+    my @controls = @{ $u->selectall_arrayref('select ps.pset_id,ps.name from pset ps where ps.pset_id = '.$v->{pcontrolset_id}.' order by ps.pset_id') };
     my %cs = map { $_->[0] => "$_->[1] (set $_->[0])" } @controls;
 
     #get params
