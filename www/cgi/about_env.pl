@@ -20,38 +20,46 @@ my $v = $p->Vars();
 print $p->render
   ("Unison Environment",
 
-   '<hr>Unison host information:',
+   '<hr><u>Unison host information:</u>',
    '<br>platform: <code>', `uname -a`, '</code>',
    '<br>uptime: <code>', `uptime`, '</code>',
    '<br>running jobs:<br><pre>', 
       `ps --sort=-pcpu r -wopid,ppid,stime,etime,cputime,pcpu,pmem,cmd -ucompbio 2>&1`,
    '</pre>',
 
-   '<hr>PostgreSQL information:',
+
+   '<hr><u>PostgreSQL information:</u>',
    pg_info(),
 
-   '<hr>Unison connection information:',
+
+   '<hr><u>Unison connection information:</u>',
    (map { "<br><code>$_: "
 			. ((defined $p->{unison} and defined $p->{unison}->{$_}) ? $p->{unison}->{$_} : '<i>undef</i>')
 			  . "</code>\n" }
 	qw(username host dbname)),
 
-   '<hr>Kerberos and user information:',
-   (map { "<br><code>$_: ".(defined $ENV{$_}?$ENV{$_}:'<i>undef</i>')."</code>\n" }
-	qw(REMOTE_USER KRB5CCNAME)),
+
+   '<hr><u>Kerberos and user information:</u>',
+   '<br><pre>', `klist -5`, '</pre>',
+
 
    "<hr><u>Perl:</u>\n",
-   "<br>path: $^X\n",
+   "<br>perl binary: <code>$^X</code>\n",
    join("\n&nbsp;&nbsp;", '<pre>@INC = (', @INC, ");</pre>\n\n"),
 
-   "<hr>Unison modules found in:\n<pre>",
-   (map { sprintf("$_ => $INC{$_}\n") } sort grep {/^Unison/} keys %INC), "</pre>\n\n",
+   '<ul>',
+   "<li>Unison modules found in:\n",
+   '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
+			sort grep {/^Unison/} keys %INC), '</pre>',
 
-   "<hr>Bioperl modules found in:\n<pre>",
-   (map { sprintf("$_ => $INC{$_}\n") } sort grep {/^Bio/} keys %INC), "</pre>\n\n",
+   "<li>Bioperl modules found in:\n",
+   '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
+			sort grep {/^Bio/} keys %INC), '</pre>',
 
-   "<hr>Other modules found in:\n<pre>",
-   (map { sprintf("$_ => $INC{$_}\n") } sort grep {not (/^Unison/ or /^Bio/)} keys %INC), "</pre>\n\n",
+   "<li>Other modules found in:\n<pre>",
+   '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
+			sort grep {not (/^Unison/ or /^Bio/)} keys %INC), '</pre>',
+   '</ul>',
 
   );
 
