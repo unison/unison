@@ -15,6 +15,8 @@ my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+my @statevars = qw(pseq_id run_id offset limit);
+
 $p->ensure_required_params(qw(pseq_id run_id));
 
 $v->{run_id} = 1 unless defined $v->{run_id}; # should be required?
@@ -30,11 +32,11 @@ my @cols = (['aln?',					],
 			['%ide',		'pide'		],
 			['raw', 		'raw'		],
 			['svm', 		'svm'		],
-			['mutation',				],
-			['pairwise',	'pairwise'	],
-			['singleton',	'singleton'	],
-			['gap',						],
-			['SCOP&nbsp;fold/superfamily/family'  ]
+			['sing.',		'singleton'	],
+			['pair.',		'pairwise'	],
+			['mut.',		'mut'		],
+			['gap',			'gap'		],
+			['SCOP',		'scop'		]
 		   );
 my @f = map { $_->[0] } @cols;
 my %colnum = map {$cols[$_]->[1] => $_} grep {defined $cols[$_]->[1]} 0..$#cols;
@@ -43,14 +45,17 @@ my $ob = {
 		  pide => '"%ide" desc',
 		  raw => 'raw desc',
 		  svm => 'svm desc',
+		  mut => 'mutation',
 		  pairwise => 'pairwise',
 		  singleton => 'singleton',
+		  gap => 'gap',
+		  scop => 'SCOP'
 		 }->{$v->{sort}};
 
 
 my $N = $u->selectrow_array("select count(*) from paprospect2 where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}");
 
-my $sql = "select acc,\"%ide\",raw,svm,mutation,pairwise,singleton,gap,\"SCOP fold class / superfamily / family\"   from v_paprospect2_scop where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}  order by $ob  limit $v->{limit} offset $v->{offset}";
+my $sql = "select acc,\"%ide\",raw,svm,singleton,pairwise,mutation,gap,scop   from v_paprospect2_scop where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}  order by $ob  limit $v->{limit} offset $v->{offset}";
 my $ar = $u->selectall_arrayref($sql);
 for(my $i=0; $i<=$#$ar; $i++)
   {
@@ -78,14 +83,39 @@ for(my $fi=0; $fi<=$#f; $fi++) {
 }
 
 
-print $p->render("threading summary for unison:$v->{pseq_id} (run_id=$v->{run_id})",
-				 sprintf("%d threads returned (%d threads total for this sequence and params)", $#$ar+1, $N),
+
+
+my @ctl;
+if ($v->{offset}>=$v->{limit}) {
+  push(@ctl, 
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>0},@statevars), '<span class="button">|&lt;&lt;</span>'),
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$v->{offset}-$v->{limit}},@statevars), '<span class="button">&lt;</span>' )
+	   );
+}
+push(@ctl,
+	 sprintf("%d-%d of %d</a>",
+			 $v->{offset}+1,$v->{offset}+$v->{limit},$N)
+	);
+if ($N-1-$v->{offset}>=$v->{limit}) {
+  push(@ctl, 
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$v->{offset}+$v->{limit}},@statevars), '<span class="button">&gt</span>' ),
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$N-$v->{limit}},@statevars), '<span class="button">&gt;&gt;|</span>')
+	  );
+}
+
+#my $ctl = join(' | ',@ctl)
+my $ctl = '<table border=0><tr>' . join('',map {"<td>$_</td>"} @ctl) . '</tr></table>';
+
+
+print $p->render("threading summary for Unison:$v->{pseq_id} (run_id=$v->{run_id})",
+				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
+				 sprintf("<br>%d threads returned (%d threads total for this sequence and params)", $#$ar+1, $N),
 				 $p->tip('clicking some column headings will dynamically sort by that column'),
 				 $p->start_form(-action=>'p2alignment.pl'),
 				 $p->submit(-value=>'align checked'),
 				 $p->hidden('pseq_id',$v->{pseq_id}),
 				 $p->hidden('run_id',$v->{run_id}),
-				 $p->group('Prospect2 Threadings',
+				 $p->group(['Prospect2 Threadings',$ctl],
 						   Unison::WWW::Table::render(\@f,$ar,{highlight_column=>$hc})),
 				 $p->submit(-value=>'align checked'),
 				 $p->end_form(), "\n",
