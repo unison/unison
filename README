@@ -1,0 +1,34 @@
+This directory contains source code and data for unison, a database of
+protein annotation information.  The goals are to provide easy access to:
+
+immediate:
+  - a non-redundant protein database with references to
+    the (perhaps multiple) origins of each sequence
+  - sets of protein sequences, possibly overlapping
+  - prospect2 threading results, including separation
+	of those obtained with various runtime options
+  - miscellaneous sequence features, including sigpeptide, 
+   	transmembrane, gpi, pI, scores
+
+eventual:
+  - sequence-sequence relationships
+  - other method results, including Pfam,
+    Interpro, Proceryon, BLAST/PSI-BLAST
+  - annotations linked to results (i.e., /interpretations/
+	of results) with qualities, to a small set
+    of normalized domains (e.g., GO categories)
+
+The current implementation is a compromise between the design that I
+wanted and the design that I could actually implement in reasonable time.
+Expect flux.  For example, annotations should really be handled
+equivalently as localized sequence features (i.e., with start/stop) than
+as full-length sequence annotations.
+
+The database was designed using PostgreSQL (www.us.postgresql.org).
+PostgreSQL was chosen because I wanted the database accissible inside and
+outside the cluster; doing so with Oracle is impossible in the current
+setup and onerous in any case.
+
+
+-Reece Hart <rkh@gene.com>
+2002/11/21
