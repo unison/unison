@@ -287,7 +287,8 @@ sub navbar {
 
 	  [ # browse menu
 	   ['Browse', 'browse curated sets of sequences (unimplemented)'],
-	  # ['Sets', undef, 'browse_sets.pl'],
+	   ['Sets', 'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
+	   ['Views', 'browse dynamic queries of protein sequences', 'browse_views.pl'],
 	  # ['SCOP', undef, 'browse_scop.pl'],
 	  # ['Origins', undef, 'browse_origins.pl']
 	  ],
