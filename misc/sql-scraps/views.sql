@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id: views.sql,v 1.3 2002/12/10 19:48:12 rkh Exp $
+\echo $Id: views.sql,v 1.4 2002/12/10 20:18:14 rkh Exp $
 
 -- views
 
@@ -12,14 +12,17 @@
 
 /* drop view pseqsummary; */
 create view pseqsummary as
-	select q.pseq_id,q.len,q.md5,o.origin,a.alias,q.seq
+	select q.pseq_id,o.origin,a.alias,a.descr,q.len,q.md5,q.seq
 	from pseq as q  
 	full join palias as a on q.pseq_id=a.pseq_id
 	left join porigin as o on a.porigin_id=o.porigin_id
 	order by q.pseq_id,o.origin,a.alias;
 
 
-create view redundant_spdi as
-	select distinct pseq_id,porigin_id,count(porigin_id)
-	from palias group by pseq_id,porigin_id
-	having count(porigin_id)>3 order by count(porigin_id);
+-- create view redundant_spdi as
+-- 	select distinct a.pseq_id,o.origin,count(a.porigin_id)
+-- 	from palias as a
+-- 	join porigin as o on 
+-- 	where o.origin='SPDI'
+-- 	group by pseq_id,porigin_id
+-- 	having count(porigin_id)>3 order by count(porigin_id);

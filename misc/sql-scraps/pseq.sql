@@ -1,15 +1,15 @@
 \echo =======================================================================
-\echo $Id$
+\echo $Id: pseq.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
 -- pseq -- stores UNIQUE sequences
 
 create table pseq (
-	pseq_id			serial,
+	pseq_id			serial unique,
 	palias_id		integer							default null,
 	seq				text			not null,
 	md5				char(32)		not null		default null, -- set automatically by
 	len				smallint		not null		default null, --   pseq_iu_trigger
 
-	constraint md5_len_uniqueness unique (md5,len)
+	constraint md5_len_uniqueness unique (len,md5)
 	);
 
 create index pseq_md5_idx on pseq (md5);
@@ -17,7 +17,7 @@ create index pseq_len_idx on pseq (len);
 
 
 -- pseq_iu_trigger - insert & update trigger computes md5 and length
-create function pseq_iu_trigger () returns opaque as '
+create function pseq_iu_trigger () returns trigger as '
 	declare
 		origmd5 text;
 	begin
@@ -28,10 +28,10 @@ create function pseq_iu_trigger () returns opaque as '
 			raise notice ''ignoring provided sequence md5'';
 		end if;
 
-		origmd5 = md5(new.seq);
-		new.seq = clean_sequence(new.seq);
-		new.md5 = md5(new.seq);
-		new.len = length(new.seq);
+		origmd5 := md5(new.seq);
+		new.seq := clean_sequence(new.seq);
+		new.md5 := md5(new.seq);
+		new.len := length(new.seq);
 		if NOT new.md5 = origmd5 then
 			raise notice ''whitespace and/or symbols were removed during insert/update'';
 		end if;
