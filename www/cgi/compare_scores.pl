@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################
 # compare_scores.pl -- compare scoring systems for pmodelsets
-# $ID = q$Id$;
+# $ID = q$Id: compare_scores.pl,v 1.2 2005/01/25 23:43:22 mukhyala Exp $;
 #############################################################
 use strict;
 use warnings;
@@ -165,14 +165,14 @@ sub _render_page {
 					     -linebreak=>'true',
 					     -default=>'Scatter'),
 		     '</th>',						
-		     '</tr>',"\n",
+		     '</tr>',
 		   '<tr>',
-		   '<td align="center" colspan="5">', $v->{tag} ,'</td>',
+		   '<td align="center" colspan="5">', $v->{tag},'</td>',
 		   '</tr>',
 		
-		   "</table>\n",
+		   "</table>",
 
-		     $p->end_form(), "\n",
+		     $p->end_form(),
 		    );#end page rendering
 }
 
@@ -184,13 +184,13 @@ sub _footnote {
   my $ret = "'</td>','</tr>','<td align=\"center\" colspan=\"5\">";
 
   if($plot eq 'Clustered') {
-    $ret .= "Note : Data for the selected model set are seperated from the rest by an inserted gap in the plot.";
+    $ret .= "Note : Data for the selected model set are seperated from the rest by an inserted row.";
   }
   elsif($plot eq 'Scatter') {
-    $ret .= "Note : Data for the selected model set are seperated from the rest by an inserted gap in the plot. Some sequence_ids might not be labelled due to lack of space";
+    $ret .= "Note : Data for the selected model set are seperated from the rest by a dashed line in the plot. Some sequence_ids might not be labelled due to lack of space";
   }
   elsif($plot eq 'Range') {
-    $ret .= "Note : Data for the selected model set are seperated from the rest by an inserted gap in the plot. Some sequence_ids might not be labelled due to lack of space";
+    $ret .= "Note : Data for the selected model set are seperated from the rest by a black line in the plot. Some sequence_ids might not be labelled due to lack of space";
   }
   return $ret;
 }
