@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id: p2thread.sql,v 1.1 2002/12/10 19:48:11 rkh Exp $
+\echo $Id: p2thread.sql,v 1.2 2002/12/13 23:27:01 rkh Exp $
 -- p2thread -- one sequence-structure threading result
 
 create table p2thread (
@@ -48,7 +48,7 @@ create index p2thread_svm on p2thread (svm);
 create index p2thread_rgyr on p2thread (rgyr);
 
 create function p2thread_i_trigger () returns trigger as 
-	'BEGIN NEW.pftype_id=pftype_id_lookup(prospect2); return new; END;' language 'plpgsql';
+	'BEGIN NEW.pftype_id=pftype_id_lookup(''p2thread''); return new; END;' language 'plpgsql';
 create trigger p2thread_i_trigger 
 	BEFORE insert on p2thread for each row
 	execute procedure p2thread_i_trigger ();
