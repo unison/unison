@@ -5,7 +5,7 @@
 # PURPOSE: parse BLAT psl output for protein-to-genome alignments. load
 #          output into set of unison tables.
 # 
-# $Id: load-blat,v 1.7 2004/06/09 18:44:00 cavs Exp $
+# $Id: load-blat,v 1.8 2004/06/10 18:04:02 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -33,9 +33,6 @@ GetOptions(\%opts,
 
 usage() if ($#ARGV != 0 || ! defined $opts{genasm_id} );
 
-
-$opts{score_cutoff}         = 50 if ! defined $opts{score_cutoff};
-$opts{pct_ident_cutoff}     = 80 if ! defined $opts{pct_ident_cutoff};
 
 my $uni = new Unison();
 my $aln_sth = $uni->prepare( 'select assign_p2gblataln( ?, ?, ?, ?, ?, ? )' );
@@ -68,8 +65,8 @@ while( my $r = $bio->next_result() ){
   if ( $r->score < $opts{score_cutoff} 
 	   or $pct_ident[0] <= $opts{pct_ident_cutoff} ) {
 	if ( $opts{verbose} ) {
-	  printf "Unison:%-10d BLAT alignment failed cutoffs (ident: %5d (%d), score: %4.2f (%4.2f))\n",
-		$pseq_id,$ident[0],$opts{pct_ident_cutoff},$r->score,$opts{score_cutoff};
+	  printf(STDERR "Unison:%-10d BLAT alignment failed cutoffs (ident: %5d (%d), score: %4.2f (%4.2f))\n",
+			 $pseq_id,$ident[0],$opts{pct_ident_cutoff},$r->score,$opts{score_cutoff});
 	}
 	next;
   }
@@ -98,8 +95,8 @@ while( my $r = $bio->next_result() ){
   my $hsp_str = join (':', @hsp_ids );
 
   # load the alignment
-  printf( "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",
-		  $pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1) );
+  printf(STDERR "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",
+		 $pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1));
   try {
 	$aln_sth->execute( $hsp_str, $ident[0], $qgap_cnt[0], $qgap_bases[0],
 					   $tgap_cnt[0], $tgap_bases[0] );
