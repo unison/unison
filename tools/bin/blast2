@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+# blast2 -- blasts 2 unison pseq_ids
+# $Id$
+
+# This script is very immature.  Error handling is shoddy, features like
+# user-specifiable substitution matrices are completely absent, and it's
+# been poorly tested.  Have a nice day.
+
+
+use strict;
+use warnings;
+use Unison;
+use Bio::PrimarySeq;
+use Bio::Tools::Run::StandAloneBlast;
+use Bio::Tools::BPbl2seq;
+
+my ($id1,$id2) = @ARGV;
+
+# temp output file & cleanup
+my $bo = "/tmp/bl2seq-$$.out";
+sub cleanup () { unlink($bo); print(STDERR "cleanup $bo\n") };
+$SIG{$_} = sub { cleanup(); exit 1; } for qw(HUP INT QUIT);
+
+
+my $u = new Unison( username => 'PUBLIC' );
+my $s1 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id1 ),
+								-id  => "Unison:$id1",
+								-alphabet => 'protein' );
+my $s2 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id2 ),
+								-id  => "Unison:$id2",
+								-alphabet => 'protein' );
+
+my $factory = Bio::Tools::Run::StandAloneBlast->new(program => 'blastp',
+													outfile => $bo);
+$factory->bl2seq($s1,$s2);
+
+
+
+my $report = Bio::Tools::BPbl2seq->new(-file => $bo);
+$report->sbjctName;
+$report->sbjctLength;
+while(my $hsp = $report->next_feature) {
+  printf("I/+/len=%3d(%3d%%)/%3d(%3d%%)/%3d, S=%3d, E=%6.2g\n",
+		 $hsp->match(), $hsp->percent(),
+		 $hsp->positive(), $hsp->positive()/$hsp->length()*100,
+		 $hsp->length(), $hsp->score(), $hsp->P() );
+}
+
+
+cleanup();
+exit(0);
+
