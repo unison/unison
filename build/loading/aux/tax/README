@@ -1,0 +1,4 @@
+This directory contains utilities to implement a taxonomy schema based on
+NCBI taxonomy and the SwissProt species list.
+
+* 2003/04/12 (Sat) 15:24 Reece Hart <reece@in-machina.com, rkh@gene.com>
