@@ -156,7 +156,7 @@ sub render {
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-		  '<a title="Unison home page" href=".."><img class="logo" src="../av/unison.png"></a>',
+		  '<a title="Unison home page" href=".."><img class="logo" src="../av/unison.gif"></a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $p->navbar(), '</td>', "\n",
 		  '</tr>', "\n",
@@ -185,7 +185,7 @@ sub render {
 
 		  "\n<!-- ========== begin footer ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" src="../av/poweredby_postgresql.png"></a></td>', "\n",
+		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" src="../av/poweredby_postgresql.gif"></a></td>', "\n",
 		  '  <td class="contact">Please contact <a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a> with suggestions or problems</td>', "\n",
 		  '</tr>', "\n",
 		  "\n<!-- ========== end footer ========== -->\n",
