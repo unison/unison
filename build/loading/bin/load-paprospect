@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id$
+# $Id: load-p2thread,v 1.2 2002/12/31 02:48:28 rkh Exp $
 # load-p2thread -- load prospect2 thread results into unison
 # from xml files (optionally with svm scores from sort files)
 
@@ -49,7 +49,7 @@ while( my $t = $pf->next_thread() )
   {
   if (not defined $pseq_id)
 	{
-	$pseq_id = $u->si_pseq_id( $t->qseq() );
+	$pseq_id = $u->pseq_si_pseq_id( $t->qseq() );
 	defined $pseq_id
 	  || die("pseq_id not provided and couldn't be generated\n");
 	}
@@ -62,6 +62,8 @@ while( my $t = $pf->next_thread() )
 
   my $template_name = $t->tname();
   my $p2template_id = $u->get_p2template_id_by_name( $template_name );
+  if (not defined $p2template_id)
+	{ die("! can't find p2template_id for $template_name -- I guess you haven't loaded the template\n");
 
   # create hash of data to be inserted, with unison field names as keys
   my %data = map  { $scorekeymap{$_} => @{ %{$t->{scoreInfo}} }{$_} }  (keys %scorekeymap);
