@@ -37,7 +37,7 @@ for(my $i=0; $i<=$#$ar; $i++)
   splice( @a,0,2 );
   my $c = ($a[1]<=-1000 or $a[7]=~m/TNF-like/) ? ' checked="TRUE"' : '';
   unshift(@a, "<input type=\"checkbox\" name=\"templates\" value=\"$a[0]\"$c>");
-  $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id}&p2params_id=$v->{p2params_id}&template=$a[1]\">$a[1]</a>";
+  $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id}&p2params_id=$v->{p2params_id}&templates=$a[1]\">$a[1]</a>";
   $ar->[$i] = \@a;
   }
 
@@ -46,7 +46,6 @@ my @f = ('ckbox','name','raw','svm','mutation',
 
 print $p->render("threading summary for unison:$v->{pseq_id} (p2arams_id=$v->{p2params_id})",
 				 sprintf("%d threads returned (%d threads total for this sequence and params)", $#$ar+1, $N),
-				 '<br>', $sql,
 				 $p->start_form(-action=>'p2alignment.pl'),
 				 $p->submit(-value=>'align checked'),
 				 $p->hidden('pseq_id',$v->{pseq_id}),
@@ -54,6 +53,7 @@ print $p->render("threading summary for unison:$v->{pseq_id} (p2arams_id=$v->{p2
 				 $p->group('Prospect2 Threadings',
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->submit(-value=>'align checked'),
-				 $p->end_form()
+				 $p->end_form(),
+				 '<br><span class="sql">', '<b>SQL query:</b>', $sql, '</span>'
 				 );
 

@@ -1,0 +1,138 @@
+#!/usr/bin/env perl
+
+=head1 NAME
+
+getfragments -- fragment sequences from a fasta file
+S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+
+=head1 SYNOPSIS
+
+seqfragment [opts] <in.fasta >out.fasta
+
+=head1 DESCRIPTION
+
+B<seqfragment> fragment sequences from a fasta file into multiple
+subsequences of specified length and overlap (or offset).
+
+=head1 OPTIONS AND ARGUMENTS
+
+=over
+
+=item B<-l> n, B<--length> n
+
+fragment sequences into subsequences of length n (n>0)
+
+=item B<-v> n, B<--overlap> n
+
+overlap subsequences by n residues (default = 0)
+
+=item B<-o> n, B<--offset> n
+
+offset subsequences by n residues (instead of specifying overlap).  If
+offset is greater than length, skip gaps will be created between
+subsequences.
+
+=item B<-z>, B<--zero>
+
+begin residue numbering at zero (default is to start at 1)
+
+=item B<-i> n, B<--id-format> n
+
+use one of the following id tag formats for fasta sequence identifiers:
+
+	1   id -> id[b:e] /fragment=<n>/<N> /len=<len>
+	2   id -> idN /coordinates=[b:e] /len=<len>
+
+=item B<-V>, B<--constant-overlap>
+
+=back
+
+=cut
+
+
+
+use strict;
+use warnings;
+use Getopt::Long qw(:config gnu_getopt);
+use Bio::SeqIO;
+use Bio::Seq;
+use Pod::Usage;
+
+my %options =
+  (
+   zero => 0,
+   length => undef,  # 'constant-length' => 1,
+   overlap => 0,  'constant-overlap' => 0,
+   offset => undef,
+   'id-format' => 1,
+   debug => 0,
+   );
+GetOptions(
+		   \%options,
+		   'length|l=i', # 'constant-length|L',
+		   'overlap|v=i', 'constant-overlap|V',
+		   'offset|o=i',
+		   'id-format|i=i',
+		   'zero|z',
+		   'debug|d+',
+		   'help|h',
+		  )
+  || die("$0: bad usage; try --help\n");
+
+exists $options{help}
+  && pod2usage( { -verbose => 1 } );
+
+
+# setup
+$options{zero} = 1-$options{zero};
+my $si = new Bio::SeqIO( -format => 'Fasta' );
+my $so = new Bio::SeqIO( -format => 'Fasta' );
+my $s0 = $si->next_seq();
+
+
+while( my $spec = shift )
+  {
+  my ($b,$e) = $spec =~ m/(\d+)(?::|..)(\d+)/;
+  $b -= $options{zero};
+  $e -= $options{zero};
+  my $l = $e-$b+1;
+  my $id = $s0->display_id();
+  my $s = new Bio::Seq( -seq => substr($s0->seq(),$b,$l) );
+  annotate_seq($s,\%options,$id,$b,$e,$l);
+  $so->write_seq($s);
+  }
+
+exit(0);
+
+
+
+sub annotate_seq
+  {
+  my ($s,$options,$id,$b,$e,$l) = @_;
+  $b += $options{zero};
+  $e += $options{zero};
+  if ($options{'id-format'} == 1)
+	{ $s->display_id("$id\[$b:$e]"); }
+  $s->desc("/coords=[$b:$e] /len=$l");
+  return $s;
+  }
+
+
+=pod
+
+=head1 BUGS
+
+I'm (like so) sure.
+
+=head1 SEE ALSO
+
+=head1 AUTHOR
+
+ Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
+ Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
+ Bioinformatics Department             
+ 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
+ South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+
+=cut
+

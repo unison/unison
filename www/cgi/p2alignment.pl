@@ -21,26 +21,20 @@ use Prospect2::Align;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$v->{p2params_id} = 1 unless defined $v->{p2params_id};
 
-if (not exists $v->{pseq_id})
-  { $p->die("The pseq_id parameter wasn't defined ($v->{pseq_id})"); }
+$p->ensure_required_params(qw(pseq_id p2params_id templates));
 
 my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 if (not defined $seq)
   { $p->die("couldn't fetch sequence for pseq_id=$v->{pseq_id}"); }
 
-if (not exists $v->{p2params_id})
-  { $p->die("The p2params_id parameter wasn't defined"); }
-
-if (not exists $v->{templates} or not defined $v->{templates})
-  { $p->die("The templates parameter wasn't defined"); }
-my @templates;
-@templates = split("\0",$v->{templates});
-
+my @templates = split(/[\0,]/,$v->{templates});
 
 my $po = $u->get_p2options_by_p2params_id( $v->{p2params_id} );
+if (not defined $po)
+  { $p->die("The p2params_id parameter ($v->p2params_id) is invalid."); }
 $po->{templates} = \@templates;
+
 my $pf = new Prospect2::LocalClient( {options=>$po} );
 
 my @threads = $pf->thread( $seq );

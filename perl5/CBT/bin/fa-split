@@ -3,11 +3,29 @@
 =head1 NAME
 
 fa-split -- split a fasta file into individual sequences
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id: fa-split,v 1.1 2003/05/14 00:20:11 rkh Exp $>
 
 =head1 SYNOPSIS
 
 fa-split <seq.fasta
+
+=head1 OPTIONS
+
+=item B<--help|-h>
+
+=over
+
+Display help and exit.
+
+=back
+
+=item B<--verbose|-v>
+
+=over
+
+Be verbose.
+
+=back
 
 =head1 DESCRIPTION
 
@@ -37,9 +55,21 @@ B<fa-extract>
 use strict;
 use warnings;
 use Bio::SeqIO;
+use Getopt::Long qw(:config gnu_getopt);
+use Pod::Usage;
 
-my $in  = Bio::SeqIO->new(-file => shift, '-format' => 'Fasta');
+my %opts =
+  (
+   verbose => 0,
+   help => 0,
+  );
+GetOptions( \%opts,
+			'verbose|v+',
+			'help|h+')
+  || pod2usage(-verbose=>1, -exitval=>2);
 
+
+my $in  = Bio::SeqIO->new('-format' => 'Fasta');
 while( my $seq = $in->next_seq() )
   {
   my $id = $seq->display_id();
@@ -53,7 +83,7 @@ while( my $seq = $in->next_seq() )
 	{ die("$fn: $!\n"); }
   $out->write_seq($seq);
 
-  print(STDERR "# wrote $fn\n");
+  print(STDERR "# wrote $fn\n") if $opts{verbose};
 
   # $out just falls out of scope wo/closing (no close() method)
   }

@@ -1,18 +1,36 @@
 #!/usr/bin/env perl
-# run prospect on specified sequence ids with specified params
+# -- run prospect specified sequence ids (unison pseq_id) using
+# -- a specified parameter set (p2params_id)
 
 use warnings;
 use strict;
-
-select STDERR; $|++;
-select STDOUT; $|++;
-
 use Unison;
 use Prospect2::Options;
 use Prospect2::LocalClient;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 
+my %options;
+GetOptions(\%options,
+		   @Unison::options,
+		   'p2params_id|p=i',
+		  )
+  || die("$0: bad usage\n");
+
+my $u = new Unison;
+my $po = $u->get_p2options_by_p2params_id($options{p2params_id});
+$po->{tfile} = '/apps/compbio/share/prospect2/tfiles/tnf'; #all';
+my $pc = new Prospect2::LocalClient( options=>$po );
+
+while( my $pseq_id = shift )
+  {
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  my $xfn = $pc->thread_to_file( $seq );
+  print `cat $xfn`;
+  }
+
+
+__END__
 my %uf =
   (
    'raw' => 'raw_score',
@@ -29,25 +47,9 @@ my %uf =
   );
 
 
-my %options;
-GetOptions(\%options,
-		   @Unison::options,
-		   'p2params_id|p=i',
-		  )
-  || die("$0: bad usage\n");
-
-my $u = new Unison;
-my $po = $u->get_p2options_by_p2params_id($options{p2params_id});
-$po->{tfile} = '/home/rkh/prospect/tfiles/all';
-my $pc = new Prospect2::LocalClient( options=>$po );
 
 
-while( my $pseq_id = shift )
-  {
-  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  my ($t) = $pc->thread( $seq );
-  print $t; next;
-  print(STDERR "done threading...\n") if $ENV{DEBUG};
+  print(STDERR "done threading $xfn...\n"); next;
   my ($h,@f) = $pc->summary( $seq );
   print(STDERR "done summary...\n") if $ENV{DEBUG};
   foreach my $modn (keys %$h)

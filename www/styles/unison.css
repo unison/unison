@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.1 2003/05/21 06:15:34 rkh Exp $ */
+/* $Id: unison.css,v 1.2 2003/05/21 23:40:28 rkh Exp $ */
 
 /* #C4C0E2 */
 /* #9e9efa */
@@ -42,5 +42,8 @@ SPAN.error {
 	color: red
 	}
 SPAN.debug {
-	background-color: yellow
+	background-color: yellow;
+	}
+SPAN.sql {
+	background-color: #55ff55;
 	}

@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison -- interface to the Unison database
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id: Unison.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -29,6 +29,7 @@ d28 1
 
 package Unison;
 use Unison::DBI;
+use Unison::Exceptions;
 use Unison::pseq;
 use Unison::p2params;
 use Unison::porigin;

@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+# load-pmpssm -- loads psiblast profiles (PSSMs)into unison
+# $Id: load-pmprofile,v 1.1 2003/04/30 21:09:34 rkh Exp $
+
+
+use strict;
+use warnings;
+use Digest::MD5;
+use Getopt::Long qw(:config gnu_getopt);
+use IO::File;
+use Unison;
+
+GetOptions( @Unison::options )
+  || die("options");
+
+
+my $fh = new IO::File;
+my $u = new Unison;
+my $porigin = 'psiblast_sbp';
+my $porigin_id = $u->porigin_si_porigin_id($porigin);
+print(STDERR "# loading into $porigin (porigin_id=$porigin_id)\n");
+
+my $sth;
+$sth = $u->prepare("insert into pmpssm(porigin_id,name,md5) values ($porigin_id,?,?)")
+  || die($u->errstr());
+
+while( my $fn = shift )
+  {
+  my ($name) = $fn =~ m%(\d{4}/.+)\.chk%;
+  if (not defined $name)
+	{ warn("# can't parse name from $fn; skipping\n"); next; }
+  $fh->open("<$fn")
+	|| die("$fn: $!\n");
+  my $md5 = Digest::MD5->new->addfile($fh)->hexdigest;
+  $sth->execute($name,$md5);
+  print(STDERR "# loaded $fn (name=$name, md5=$md5)\n");
+  }
+
+$u->disconnect();
