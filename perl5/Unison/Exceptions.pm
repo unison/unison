@@ -13,4 +13,11 @@ use base 'Unison::Exception';
 package Unison::Exception::ConnectionFailed;
 use base 'Unison::Exception';
 
+package Unison::BadUsage;
+use base 'Unison::Exception';
+ 
+package Unison::RuntimeError;
+use base 'Unison::Exception';
+
+
 1;
