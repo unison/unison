@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.8 2003/10/28 21:51:28 rkh Exp $
+# $Id: get-seq,v 1.9 2004/05/04 05:10:34 rkh Exp $
 
 use warnings;
 use strict;
@@ -13,23 +13,36 @@ my %opts =
    'best-alias' => 0,
    'best-annotation' => 0,
    'all-aliases' => 0,
-   'proid' => [],
+   'pro_id' => undef,
    'verbose' => 0,
+   'pset_id' => undef
   );
 GetOptions( \%opts,
 			'best-alias|best-oa|b+',
 			'best-annotation|best-oad|B+',
 			'all-aliases|a+',
-			'proid|P=s@',
-			'verbose|v+'
+			'pro_id|proid|P=s@',
+			'verbose|v+',
+			'pset_id|S=i',
 		  )
   || die("$0: you got usage issues, homey\n");
 
 my $u = new Unison();
 die( "! couldn't open a connection to unison\n" ) unless $u;
 
-@{$opts{proid}} = map {split(/,/,$_)} @{$opts{proid}};
-unshift(@ARGV, SPDI_lookup('PRO',@{$opts{proid}}));
+if (defined $opts{pset_id} and (defined $opts{pro_id} or @ARGV)) {
+  die("$0: cannot specify pset_id with other sequence selection options\n");
+}
+
+if (defined $opts{pro_id}) {
+  @{$opts{pro_id}} = map {split(/,/,$_)} @{$opts{pro_id}};
+  unshift(@ARGV, SPDI_lookup('PRO',@{$opts{pro_id}}));
+} elsif (defined $opts{pset_id}) {
+  my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from pseqset where pset_id=$opts{pset_id}")};
+  unshift(@ARGV, @Q);
+  printf(STDERR "# %d sequence ids in pset_id=%d\n", $#Q+1, $opts{pset_id});
+}
+
 
 if (@ARGV) {
   while( my $r = shift ) {
@@ -107,7 +120,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.8 2003/10/28 21:51:28 rkh Exp $>
+S<$Id: get-seq,v 1.9 2004/05/04 05:10:34 rkh Exp $>
 
 =head1 SYNOPSIS
 
