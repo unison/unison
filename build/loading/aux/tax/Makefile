@@ -1,4 +1,5 @@
-
+default all:
+	@echo "make what, dude?  There ain't no stinkin' default" 1>&2; exit 1
 
 ncbi/taxdump.tar.gz:
 	@mkdir -p ${@D}

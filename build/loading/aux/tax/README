@@ -1,4 +1,10 @@
 This directory contains utilities to implement a taxonomy schema based on
 NCBI taxonomy and the SwissProt species list.
 
-* 2003/04/12 (Sat) 15:24 Reece Hart <reece@in-machina.com, rkh@gene.com>
+The grand unified schema (schema.sql, schema2.sql, and init.sql) are
+close, but incomplete.  
+
+As a stop gap to get tax info in csb pronto, I'm currently using only
+swiss-prot.  See ./sp-schema.sql and ./bin/sp-import.
+
+
