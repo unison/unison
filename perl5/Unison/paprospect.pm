@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::paprospect2 -- Unison paprospect2 table utilities
-S<$Id: paprospect2.pm,v 1.5 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: paprospect2.pm,v 1.6 2004/02/25 20:47:49 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -74,18 +74,19 @@ sub insert_thread {
   }
 
   # build key/values for sql insert
-  my @keys = ('pseq_id','params_id','pmodel_id',keys %uf );
-  my @values = ( $pseq_id,$params_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
+  my @ufs = keys %uf;
+  my @k = ('pseq_id','params_id','pmodel_id',@ufs );
+  my @v = ( $pseq_id,$params_id, $pmodel_id, map { $t->{$uf{$_}} } @ufs );
 
-  throw Unison::BadUsage( "keys (" . $#keys+1 . ") != values (" . $#values+1 . ")\n" ) if $#keys != $#values;
+  throw Unison::BadUsage( "keys (" . $#k+1 . ") != values (" . $#v+1 . ")\n" ) if $#k != $#v;
 
-  my $sql = 'insert into paprospect2 (' .  join(',',@keys) .  ') values (' .
-    join(',',map { '?' } @keys) .  ')';
-  my $show_sql = "insert into paprospect2 (" .  join(',',@keys) .  ") values (" .
-     join(',',map { defined $_ ? $_ : '' } @values) . ")";
+  my $sql = 'insert into paprospect2 (' .  join(',',@k) .  ') values (' .
+    join(',',map { '?' } @k) .  ')';
+  my $show_sql = "insert into paprospect2 (" .  join(',',@k) .  ") values (" .
+     join(',',map { defined $_ ? $_ : '' } @v) . ")";
   print "insertThread(): $show_sql\n" if $ENV{'DEBUG'};
   my $sth = $u->prepare_cached($sql);
-  $sth->execute( @values );
+  $sth->execute( @v );
   $sth->finish();
 }
 
@@ -120,10 +121,6 @@ sub delete_thread {
   if ( !defined $pmodel_id or $pmodel_id eq '' ) {
     throw Unison::RuntimeError( "deleteThread() pmodel_id doesn't exist for template name: " . $t->name() );
   }
-
-  # build key/values for sql insert
-  my @keys = ('pseq_id','params_id','pmodel_id',keys %uf );
-  my @values = ( $pseq_id,$params_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
 
   my $sql = 'delete from paprospect2 where pseq_id=? and params_id=? and pmodel_id=?';
   my $show_sql = "delete from paprospect2 where pseq_id=$pseq_id and params_id=$params_id and pmodel_id=$pmodel_id";
