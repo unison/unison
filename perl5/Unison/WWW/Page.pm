@@ -99,10 +99,12 @@ sub page_connect ($) {
   # choose database based on port unless explicitly set
   # SERVER_PORT is always set, EXCEPT when debugging from the command line
   if (not exists $v->{dbname}) {
-	my ($port) = $ENV{SERVER_PORT} || 8080;
-	$v->{dbname} = ($port == 8000) ? 'csb'
-	  			 : ($port == 8040) ? 'csb-stage'
-	             :                   'csb-dev';
+	$v->{dbname} = 'csb';
+	if (defined $ENV{SERVER_PORT}) {
+	  $v->{dbname} =  ($ENV{SERVER_PORT} == 8080) ? 'csb-dev'
+					: ($ENV{SERVER_PORT} == 8040) ? 'csb-stage'
+					:      				            'csb';
+	}
   }
 
   # establish session authentication, preferably via kerberos
