@@ -1,18 +1,12 @@
-/* $Id: unison.css,v 1.7 2003/07/31 22:50:53 rkh Exp $     emacs: -*-c-*-  */
-
+/* $Id: unison.css,v 1.8 2003/08/20 22:40:00 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFEB;
 }
 
-
 /* page layout */
 TABLE.page {
  border: grey thin dashed;
-}
-TABLE.page TD {
- border: grey thin dashed;
- padding: 0px;
 }
 TABLE.page TD.logo {
  border: grey thin dashed;
@@ -20,12 +14,21 @@ TABLE.page TD.logo {
  align: center;
  vertical-align: center;
 }
-IMG.logo {
- border: 0;
+TABLE.page TD.navbar {
+ border: grey thin dashed;
+ padding: 0px;
 }
 TABLE.page TD.cnav {
  border: grey thin dashed;
  vertical-align: top;
+}
+TABLE.page TD.body {
+ border: grey thin dashed;
+ padding: 0px;
+}
+TABLE.page TD.contact {
+ border: grey thin dashed;
+ padding: 0px;
 }
 
 
@@ -109,6 +112,11 @@ TABLE.uwtable TH {
  font-size: 100%;
  background-color: #BDB6F3;
 }
+TABLE.uwtable TH.highlighted {
+ border: black thin solid;
+ font-size: 100%;
+ background-color: yellow;
+}
 TABLE.uwtable TD {
  background-color: white;
 }
@@ -118,29 +126,44 @@ TABLE.uwtable TD.highlighted {
 
 
 
+TR.tablesep {
+  background-color: orange;
+}
+
 
 
 
 /* miscellany */
+IMG.logo {
+ border: 0;
+}
 SPAN.error {
- color: red
-		  }
+ color: red;
+}
 SPAN.debug {
   background-color: #FFFFCC;
 }
-div.sql {
-  background-color: #55ff55;
-  border: none;
-  padding: 2px;
-  margin: 20px;
-  font-family: monospace;
-}
-div.tip {
- background-color: lightgrey;
- border: none;
- padding: 10px;
+div.warning {
+ border: red medium solid;
+ padding: 2px;
  margin: 20px;
  align: center;
+ color: red;
+}
+div.sql {
+ border: black thin solid;
+ padding: 2px;
+ margin: 20px;
+ align: center;
+ background-color: #55ff55;
+ font-family: monospace;
+}
+div.tip {
+ border: black thin solid;
+ padding: 2px;
+ margin: 20px;
+ align: center;
+ background-color: lightgrey;
 }
 
 
