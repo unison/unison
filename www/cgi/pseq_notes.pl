@@ -21,9 +21,9 @@ $p->ensure_required_params(qw(pseq_id));
 
 
 if ( defined $v->{action} && $v->{action} eq 'submit' ) {
-  $sql = "insert into pnote (pseq_id,note) values ($v->{pseq_id},'$v->{note}')";
+  $sql = "insert into pnote (pseq_id,note) values (?,?)";
   my $sth = $u->prepare($sql);
-  $sth->execute();
+  $sth->execute($v->{pseq_id},$v->{note});
   if ( defined $u->errstr ) {
     $p->die('Unable to insert pnote: ',$u->errstr);
   }
