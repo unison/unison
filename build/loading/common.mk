@@ -61,6 +61,10 @@ ggi.ids:
 	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@.tmp
 	/bin/mv $@.tmp $@
 	@wc -l $@
+ggi1.ids:
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1/'" >$@.tmp
+	/bin/mv $@.tmp $@
+	@wc -l $@
 
 
 # get sequences for a set of ids
@@ -90,7 +94,7 @@ qsub/%:
 
 
 %-split100: %.ids
-	mkdir "$*"
+	mkdir  "$*"
 	split -l100 "$<" "$*/"
 	${HOME}/opt/bin/rename 's/$$/.ids/' "$*"/??
 %-split250: %.ids
@@ -101,6 +105,23 @@ qsub/%:
 	mkdir "$*"
 	split -l500 "$<" "$*/"
 	${HOME}/opt/bin/rename 's/$$/.ids/' "$*"/??
+%-split1000: %.ids
+	mkdir "$*"
+	split -l1000 "$<" "$*/"
+	${HOME}/opt/bin/rename 's/$$/.ids/' "$*"/??
+
+%-load: %
+	@for f in $*/??.ids; do echo "$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE}
+%-qload: %
+	@for f in $*/??.ids; do echo "qsub/$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE}
+
+
+
+# set handling
+# wanted.ids and done.ids files (or rules) must exist
+todo.ids: wanted.ids done.ids
+	comm -23 $^ >$@.tmp
+	/bin/mv -f $@.tmp $@
 
 
 
