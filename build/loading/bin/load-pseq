@@ -14,7 +14,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.6 2004/04/21 21:26:01 rkh Exp $
+# $Id: load-pseq,v 1.7 2004/05/14 00:15:54 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -67,8 +67,7 @@ GetOptions( \%opts,
 
 
 my $u = new Unison;
-my $fh = new IO::File;
-my %totals;
+my %totals = map { $_=>0 } qw(nseen nadded nskipped nfailed naliases);
 
 foreach my $fn ( @ARGV ) {
   my $fh;
@@ -98,12 +97,15 @@ if ($totals{nfailed} > 0) {
   die("! WARNING: Some sequence and/or aliases failed; origin.last_updated NOT tickled\n");
 }
 
-$opts{porigin_id} = $u->porigin_porigin_id_by_origin($opts{origin});
-print( "update porigin set last_updated='",
-	   $u->porigin_last_updated($opts{porigin_id},1),
-	   "' where porigin_id=$opts{porigin_id}\n");
+if ($totals{nadded} > 0) {
+  $opts{porigin_id} = $u->porigin_porigin_id_by_origin($opts{origin});
+  print( "update porigin set last_updated='",
+		 $u->porigin_last_updated($opts{porigin_id},1),
+		 "' where porigin_id=$opts{porigin_id}\n");
+} else {
+  warn("! WARNING: No sequences loaded; origin.last_updated NOT tickled\n");
+}
 
-exit(0);
 
 
 
