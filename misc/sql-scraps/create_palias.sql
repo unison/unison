@@ -4,7 +4,7 @@
 -- PURPOSE: sql statements and PL/pgSQL commands for creating a 
 --          palias versioning system
 --
--- $Id: create_palias.sql,v 1.1 2003/04/09 21:45:23 cavs Exp $
+-- $Id: create_palias.sql,v 1.2 2003/04/10 23:32:01 cavs Exp $
 --
 -- -----------------------------------------------------------------------------
 
@@ -201,7 +201,6 @@ COMMENT ON VIEW palias IS 'backwardly compatible - joins paliasorigin and pseqal
 --
 CREATE OR REPLACE RULE ins_palias AS ON INSERT TO palias DO INSTEAD
 (
-select ins_paliasorigin( NEW.porigin_id, NEW.alias, NEW.descr );
 select assign_alias( NEW.porigin_id, NEW.alias, NEW.descr, NEW.pseq_id, NEW.ref_pseq_id );
 )
 -- -----------------------------------------------------------------------------
