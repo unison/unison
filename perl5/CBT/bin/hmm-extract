@@ -1,0 +1,20 @@
+#!/usr/bin/env perl
+# hmm-extract -- extract named HMMs from a hammer HMM library
+# usage: hmm-extract <hmmfile [names ...]
+# $Id$
+
+use strict;
+use warnings;
+
+my %wanted = map { $_=>1 } @ARGV;
+undef @ARGV;
+
+$/ = "\n//\n";
+while(<>) {
+  if (not m/^NAME\s+(.+)/m)
+	{ die("Got a block that didn't look like a hmmer HMM (block $.): $_\n"); }
+  next unless $wanted{$1};
+  delete $wanted{$1};
+  chomp;
+  print $_, "\n//\n";
+}
