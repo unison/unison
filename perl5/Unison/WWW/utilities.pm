@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use base 'Exporter';
 our @EXPORT_OK = qw
-  (alias_link alias_gglink alias_splink alias_reflink text_wrap coalesce );
+  (pseq_summary_link alias_link alias_gglink alias_splink alias_reflink text_wrap coalesce );
 our @EXPORT = ();
 
 use Text::Wrap;
@@ -25,6 +25,11 @@ sub alias_link {
   } else {
 	return( $_[0] );
   }
+}
+
+sub pseq_summary_link {
+  my ($pseq_id,$tag) = @_;
+	return( "<a href=\"pseq_summary.pl?pseq_id=$pseq_id\">$tag</a>" );
 }
 
 
