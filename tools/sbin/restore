@@ -28,8 +28,8 @@ grant create on database "$PGDATABASE" to cavs;
 EOF
 
 case "$1" in
-	*.gz) GZIP= gzip -cd "$1" | psql -qaf -;;
-	*)  psql -qaf $1;;
+	*.gz) GZIP= gzip -cd "$1" | /usr/bin/time -p psql -qaf -;;
+	*) /usr/bin/time -p psql -qaf $1;;
 esac
 
 exit $?
