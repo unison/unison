@@ -1,4 +1,4 @@
-$Id$
+$Id: README,v 1.1 2003/07/01 04:37:47 rkh Exp $
 
 Files in this directory assist with loading Gene Ontology data into a
 PostgreSQL database from GO-distributed mysql dumps.  It requires:
@@ -31,3 +31,7 @@ the 200306 release.
 Good luck. 
 
 Reece <rkh@gene.com>
+
+
+
+For more info on PostgreSQL, see http://www.postgresql.org/ .
