@@ -1,0 +1,4 @@
+<DAProject Version="1.0" >
+ <Properties PromptUserID="1" PromptDataSourceName="0" Password="" UserID="rkh" DataSourceName="csb" AutoConnect="1" Name="csb/unison" SavePassword="1" PromptPassword="1" />
+ <Child Class="PGModel" Location="csb.PGModel" />
+</DAProject>
