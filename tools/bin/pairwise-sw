@@ -1,0 +1,39 @@
+#!/usr/bin/env perl
+# pairwise-sw -- do a pairwise Smith-Waterman alignment on Unison
+# sequences.
+#
+# This requires Bio::Tools::pSW in the bioperl-ext package (i.e., it's
+# not yet part of bioperl itself)
+
+use strict;
+use warnings;
+use Unison;
+use Bio::Tools::pSW;
+use Bio::AlignIO;
+
+my $matrix_fn = "$ENV{BLASTMAT}/BLOSUM62.bla";
+
+my ($id1,$id2) = (shift,shift);
+(defined $id1 and defined $id2)
+  || die("I need two Unison pseq_ids to align\n");
+
+
+my $factory = new Bio::Tools::pSW( '-matrix' => $matrix_fn,
+								   '-gap' => 12,
+								   '-ext' => 2,
+								 );
+
+
+my $u = new Unison( );
+my $s1 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id1 ),
+								-id  => "Unison:$id1",
+								-desc => $u->best_annotation($id1),
+								-alphabet => 'protein' );
+my $s2 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id2 ),
+								-id  => "Unison:$id2",
+								-desc => $u->best_annotation($id2),
+								-alphabet => 'protein' );
+
+$factory->align_and_show($s1,$s2,\*STDOUT);
+
+exit(0);
