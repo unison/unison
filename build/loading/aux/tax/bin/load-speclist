@@ -9,13 +9,16 @@ use Unison;
 use Data::Dumper;
 
 my $u = new Unison;
+#my $del = $u->prepare_cached('delete from tax.spspec where tax_id=?');
+my $dep = $u->prepare_cached("update tax.spspec set gs=gs||' [deprecated]',latin=latin||' [deprecated]' where tax_id=?");
 my $upd = $u->prepare_cached('update tax.spspec set k=?,gs=?,latin=?,common=?,synonyms=? 
 								where tax_id=? and not (k=? and gs=? and latin=? and common=? and synonyms=?)');
 my $ins = $u->prepare_cached('insert into tax.spspec (k,gs,latin,common,synonyms,tax_id) values (?,?,?,?,?,?)');
 
+
 my $go = 0;
-my %act;
-my %ids;
+my $id;
+my %recs;									# $recs{tax_id}{<key>}
 while( my $line = <> ) {
   if (!$go) {
 	$go++ if $line =~ m/^__/;
@@ -34,54 +37,78 @@ while( my $line = <> ) {
   ## for the species: 5letter, tax_id, kingdom, latin, common, and
   ## synonyms.  There may be more than one common name or synonyms for
   ## each species.
+  chomp($line);
   if ( $line =~ m/^(\w+) \s+ ([ABEVP]) \s+ (\d+)[:;] \s N=(.*)/x ) {
-	flush();
-	$act{gs} = $1;
-	$act{k} = $2;
-	$act{id} = $3;
-	$act{latin} = $4;
+	$id = $3;
+	if (exists $recs{$id}) {
+	  warn("$.: $line: duplicate tax_id\n");
+	  undef $id;
+	  next;
+	}
+	$recs{$id}{gs} = $1;
+	$recs{$id}{k} = $2;
+	$recs{$id}{tax_id} = $3;
+	$recs{$id}{latin} = $4;
   } elsif ( $line =~ m/C=(.*)/ ) {
-	push( @{$act{common}}, $1 );			# can there be more than one CN?
+	die("$.: $line: tax_id not defined\n") unless defined $id;
+	push( @{$recs{$id}{common}}, $1 );		# more than one CN?
   } elsif ( $line =~ m/S=(.*)/ ) {
-	push( @{$act{synonyms}}, $1 );
-  } elsif ( $line =~ m/^\s*$/ ) {			# exit on empty line (and ignore rest of file)
-	flush();
+	die("$.: $line: tax_id not defined\n") unless defined $id;
+	push( @{$recs{$id}{synonyms}}, $1 );
+  } elsif ( $line =~ m/^\s*$/ ) {			# empty line; exit and ignore rest
 	last;
   } else {
-	die("missed $.:$line");
+	die("missed $.: $line");
   }
 }
 
 
 
-sub flush {
-  my %rec = %act;
-  undef %act;				 # no matter how we return, main::act is undef
+my @cur_ids = sort {$a<=>$b} keys %recs;
+my @uni_ids = map {@$_} @{ $u->selectall_arrayref("select tax_id from tax.spspec where latin !~ '\\\\[deprecated\\\\]'") };
+my @dep_ids = grep {not exists $recs{$_}} @uni_ids;
+printf(STDERR "# %d tax_ids read; %d in unison; %d now deprecated\n",
+	   $#cur_ids+1, $#uni_ids+1, $#dep_ids+1);
 
-  return unless exists $rec{id};
+for(my $i=0; $i<=$#dep_ids; $i++) {
+  my $tax_id = $dep_ids[$i];
+  eval { $dep->execute($tax_id) };
+  if ($@) {
+	warn("couldn't deprecate tax_id $tax_id\n");
+	next;
+  }
+  print(STDERR "deprecated tax_id $tax_id\n");
+}
+
+
+for(my $i=0; $i<=$#cur_ids; $i++) {
+  my $tax_id = $cur_ids[$i];
+  my %rec = %{ $recs{$tax_id} };
 
   $rec{common} = exists $rec{common} ? join('; ',@{$rec{common}}) : undef;
   $rec{synonyms} = exists $rec{synonyms} ? join('; ',@{$rec{synonyms}}) : undef;
   my @args = map {$rec{$_}} qw(k gs latin common synonyms);
   my @pargs = map {defined $_ ? $_ : 'undef>'} @args;
-  print( "$rec{id}: @pargs\n") if defined $rec{common} and $rec{common} =~ m/;/;
 
-  if ($ids{$rec{id}}++) {
-	warn("$rec{id} (@pargs): duplicated tax_id\n");
-	return;
-  }
-
-  my $nr = eval { $upd->execute(@args,$rec{id},@args) };
+  my $nr = eval { $upd->execute(@args,$rec{tax_id},@args) };
   if ($@) {
-	eval { $ins->execute(@args,$rec{id}) };
+	# update failed: the row may not exist, try inserting
+	warn("! update ($rec{tax_id} @pargs): ", DBI->errstr, "\n");
+	eval { $ins->execute(@args,$rec{tax_id}) };
 	if ($@) {
-	  die("insert ($rec{id} @pargs): ", DBI->errstr, "\n");
+	  # latin and gs are occasionally moved to new tax_ids; insertion of a
+	  # new tax_id may fail if its name is the same as that of an existing
+	  # tax_id which hasn't yet been renamed. Thjs merely an order of
+	  # operations problem, which I don't handle except by telling the user to rerun
+	  # the script to convergence.
+	  warn("! insert ($rec{tax_id} @pargs): ", DBI->errstr, "; may need to rerun\n");
+	  next;
 	}
-	print(STDERR "inserted $rec{id} ($rec{gs}; $rec{latin})\n");
-  } else {
-	if ($nr != 0) {
-	  print(STDERR "updated $rec{id} (@pargs)\n");
-	}
+	print(STDERR "inserted $rec{tax_id} ($rec{gs}; $rec{latin})\n");
+	next;
   }
 
+  if ($nr != 0) {
+	print(STDERR "updated $rec{tax_id} (@pargs)\n");
+  }
 }
