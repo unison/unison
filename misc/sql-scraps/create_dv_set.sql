@@ -10,12 +10,25 @@
 -- -------------------------------------------------------------------------------
 DROP VIEW dv_set_uni;
 CREATE VIEW dv_set_uni AS
-  SELECT DISTINCT pseq_id FROM palias_wo_sort WHERE
+  SELECT DISTINCT pseq_id FROM palias WHERE
     porigin_id = porigin_id_lookup('SPDI'::text) OR porigin_id = porigin_id_lookup('Swiss-Prot'::text) OR 
     porigin_id = porigin_id_lookup('Proteome'::text) OR porigin_id = porigin_id_lookup('Refseq'::text) 
     except select pseq_id from pseqset where pset_id=0;
 GRANT SELECT ON dv_set_uni TO PUBLIC;
 COMMENT ON VIEW dv_set_uni IS 'defines set of pseq_ids to keep up-to-date';
+
+-- -------------------------------------------------------------------------------
+-- name: dv_set_uni_h
+-- purpose: subset of the dv_set_uni view for only human seqs
+-- pset.name='uni_h'
+-- -------------------------------------------------------------------------------
+DROP VIEW dv_set_uni_h;
+CREATE VIEW dv_set_uni_h AS
+ SELECT pseq_id FROM pseqset where pset_id=name2pset_id('uni'::text) intersect
+   SELECT pseq_id FROM palias WHERE 
+     tax_id=gs2tax_id('HUMAN'::text);
+GRANT SELECT ON dv_set_uni TO PUBLIC;
+COMMENT ON VIEW dv_set_uni IS 'defines a subset of dv_set_uni with only human seqs';
 
 -- ------------------------------------------------------------------------------
 -- name: dv_set_uni_hmr
@@ -24,7 +37,7 @@ COMMENT ON VIEW dv_set_uni IS 'defines set of pseq_ids to keep up-to-date';
 DROP VIEW dv_set_uni_hmr;
 CREATE VIEW dv_set_uni_hmr AS
  SELECT pseq_id FROM pseqset where pset_id=name2pset_id('uni'::text) intersect
-   SELECT pseq_id FROM palias_wo_sort WHERE 
+   SELECT pseq_id FROM palias WHERE 
      tax_id=gs2tax_id('HUMAN'::text) OR tax_id=gs2tax_id('MOUSE'::text) OR tax_id=gs2tax_id('RAT'::text);
 GRANT SELECT ON dv_set_uni_hmr TO PUBLIC;
 COMMENT ON VIEW dv_set_uni_hmr IS 'defines a subset of dv_set_uni with only human/mouse/rat seqs';
@@ -88,6 +101,17 @@ BEGIN
     delete from pseqset where pset_id=v_pset_id;
     RAISE WARNING ''insert into pseqset select %,* from dv_set_uni'',v_pset_id;
     insert into pseqset select v_pset_id,* from dv_set_uni;
+  END IF;
+
+  -- clean-out and repopulate uni_h pseqset
+  select into v_pset_id name2pset_id(''uni_h''::text);
+  IF v_pset_id is null THEN
+    RAISE EXCEPTION ''no pset_id in pset for name=uni_h'';
+  ELSE
+    RAISE WARNING ''delete from pseqset where pset_id=%'',v_pset_id;
+    delete from pseqset where pset_id=v_pset_id;
+    RAISE WARNING ''insert into pseqset select %,* from dv_set_uni_h'',v_pset_id;
+    insert into pseqset select v_pset_id,* from dv_set_uni_h;
   END IF;
 
   -- clean-out and repopulate uni_hmr pseqset
