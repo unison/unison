@@ -1,4 +1,4 @@
--- $Id: sp-schema.sql,v 1.1 2003/04/16 21:20:45 rkh Exp $
+-- $Id: sp-schema.sql,v 1.2 2003/07/09 19:36:58 rkh Exp $
 -- schema for swissprot species codes
 
 create table tax.spspec
@@ -32,5 +32,16 @@ DECLARE
 	rv text;
 BEGIN
 	select into rv name from tax.spspec where tax_id=v_id;
+	return rv;
+END;';
+
+create or replace function tax.tax_id2gs(integer)
+returns text
+language plpgsql as '
+DECLARE
+	v_id alias for $1;
+	rv text;
+BEGIN
+	select into rv gs from tax.spspec where tax_id=v_id;
 	return rv;
 END;';
