@@ -1,0 +1,45 @@
+* Unison:1 (Swiss-Prot:LSHB_HUMAN); 0 hmm alignments
+* Unison:2 (Swiss-Prot:THRB_HUMAN); 0 hmm alignments
+* Unison:3 (Proteome:NP_000445.1); 1 hmm alignments
+  [srt,stp]  score      eval  acc         name             descr
+  [  2,154]    335  1.1e-103  PF00080.8   Sod_Cu           Copper/zinc superoxide dismutase (SODC)
+* Unison:4 (Proteome:NP_001873.1); 0 hmm alignments
+* Unison:5 (<no alias>); 0 hmm alignments
+* Unison:6 (Swiss-Prot:CERU_HUMAN); 0 hmm alignments
+* Unison:7 (Swiss-Prot:A2HS_HUMAN); 0 hmm alignments
+* Unison:8 (Swiss-Prot:A1AG_HUMAN); 0 hmm alignments
+* Unison:9 (Swiss-Prot:BTC_HUMAN); 0 hmm alignments
+* Unison:10 (Swiss-Prot:HBGF_HUMAN); 0 hmm alignments
+* Unison:11 (Proteome:NP_000124.1); 0 hmm alignments
+* Unison:12 (Swiss-Prot:NRTN_HUMAN); 0 hmm alignments
+* Unison:13 (Swiss-Prot:FL3L_HUMAN); 3 hmm alignments
+  [srt,stp]  score      eval  acc         name             descr
+  [ 27,159]    376  3.1e-123  PF02947.4   Flt3_lig         flt3 ligand
+  [191,212]      7     0.036  PF01002.8   Flavi_NS2B       Flavivirus non-structural protein NS2B
+  [199,207]      3      0.25  PF06532.1   DUF1109          Protein of unknown function (DUF1109)
+* Unison:14 (Swiss-Prot:TGF3_HUMAN); 2 hmm alignments
+  [srt,stp]  score      eval  acc         name             descr
+  [ 27,255]    250   4.1e-72  PF00688.8   TGFb_propeptide  TGF-beta propeptide
+  [312,412]    162   1.1e-48  PF00019.8   TGF_beta         Transforming growth factor beta like domain
+* Unison:15 (Swiss-Prot:IGF2_HUMAN); 3 hmm alignments
+  [srt,stp]  score      eval  acc         name             descr
+  [ 30, 84]     85   1.5e-22  PF00049.7   Insulin          Insulin/IGF/Relaxin family
+  [ 24, 39]      4       0.7  PF04377.3   ATE_C            Arginine-tRNA-protein transferase, C terminus
+  [ 49, 55]      2      0.91  PF00563.9   EAL              EAL domain
+* Unison:16 (Proteome:NP_001145.1); 0 hmm alignments
+* Unison:17 (Swiss-Prot:SMDF_HUMAN); 0 hmm alignments
+* Unison:18 (GenenGenes:PRO20079); 0 hmm alignments
+* Unison:19 (Swiss-Prot:CO5_HUMAN); 0 hmm alignments
+* Unison:20 (Swiss-Prot:C4BP_HUMAN); 0 hmm alignments
+* Unison:21 (GenenGenes:PRO9934); 1 hmm alignments
+  [srt,stp]  score      eval  acc         name             descr
+  [ 31, 98]     86     1e-24  PF00048.8   IL8              Small cytokines (intecrine/chemokine), interleukin-8 like
+* Unison:22 (Swiss-Prot:NESM_HUMAN); 0 hmm alignments
+* Unison:23 (Swiss-Prot:SYD1_HUMAN); 0 hmm alignments
+* Unison:24 (Swiss-Prot:GDNF_HUMAN); 0 hmm alignments
+* Unison:25 (GenenGenes:PRO106); 0 hmm alignments
+* Unison:26 (Swiss-Prot:ET3_HUMAN); 0 hmm alignments
+* Unison:27 (Swiss-Prot:ET1_HUMAN); 0 hmm alignments
+* Unison:28 (Refseq:NP_006341.1); 0 hmm alignments
+* Unison:29 (Swiss-Prot:NT5_HUMAN); 0 hmm alignments
+* Unison:30 (GenenGenes:PRO98); 0 hmm alignments
