@@ -1,16 +1,18 @@
 package Unison::WWW::Page;
+use warnings;
+
 use base Exporter;
 use CGI qw( -debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
-
-
 BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
-use strict;
-use warnings;
+
 use Unison::Exceptions;
 use Unison;
-use Data::Dumper;
-use Unison::WWW::utils qw( text_wrap );
+
+
+#WARNING: strict must be last, unsure why
+use strict;
+
 
 
 sub page_connect ($);
@@ -471,7 +473,8 @@ sub sql {
   my $self = shift;
   return '' unless $self->{userprefs}->{'show_sql'};
   return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
-		  (map {CGI::escapeHTML($_)} text_wrap(@_)), '</div>', "\n" );
+		  @_,
+		  '</div>', "\n" );
 }
 
 sub tip {
