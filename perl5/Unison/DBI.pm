@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.12 2004/05/06 22:39:56 rkh Exp $>
+S<$Id: DBI.pm,v 1.13 2004/05/06 22:56:10 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -10,12 +10,23 @@ S<$Id: DBI.pm,v 1.12 2004/05/06 22:39:56 rkh Exp $>
  $u->prepare( ... );
  $u->execute( ....);
 
+ use Unison::pseq;
+ use Unison::Exceptions;
+ my $sequence;
+ try {
+   $sequence = $u->get_sequence_by_pseq_id( 22 );
+ } catch Unison::Exception with {
+   warn($_[0]);                             # print Exception and continue
+ };
+
 =head1 DESCRIPTION
 
 B<Unison::DBI> provides an object-oriented interface to the Unison
-database.  It provides connection defaults for public access.  It
-autoloads DBI functions on-the-fly so that it can be used anywhere that a
-standard DBI handle can be used.
+database.  It provides connection defaults for public access.  Unison
+objects may be used anywhere that a standard DBI handle can be used.
+
+B<Unison::DBI> handles throw exceptions when SQL queries cause an
+error. These errors should be trapped with Unison::Exceptions.
 
 =head1 ROUTINES & METHODS
 
@@ -39,8 +50,8 @@ use Unison::Exceptions;
 # it here, we get standardized options but at the expense of prohibiting
 # the use of these flags for other meanings.
 use Getopt::Long;
-my $p = new Getopt::Long::Parser;
-$p->configure( qw(gnu_getopt pass_through) );
+my $parser = new Getopt::Long::Parser;
+$parser->configure( qw(gnu_getopt pass_through) );
 
 my $thishost = `hostname`; $thishost =~ s/\n$//;
 
@@ -71,33 +82,62 @@ our @options;
 push( @options, 'dbname|d=s' => \$opts{dbname},
 				'host|h=s' => \$opts{host},
 				'username|U=s' => \$opts{username} );
-$p->getoptions( @options );
+$parser->getoptions( @options );
 
 
 
 
+######################################################################
+## new
 sub new {
+
+=pod
+
+=head2 ::new( {<DBI options>} );
+
+=over
+
+Creates a new instance of Unison::DBI.  A connection is attempted
+immediately and an exception thrown if unsuccessful. See
+B<Unison::connect()>. DBI options may be passed in the form of a hash, as
+in:
+
+  my $u = new Unison( username=>'rkh', dbname=>'csb-dev' );
+
+=back
+
+=cut
+
   my $type = shift;
   my %self = (%opts, @_);
   my $self = bless(\%self,$type);
   $self->connect();
   return $self;
+}
+
+
+
+
+######################################################################
+## connect
+sub connect {
+
 =pod
+
+=head2 ::connect( )
 
 =over
 
-=item ::new( {<options>} );
+Establishes a connection to the Unison database.
 
-Creates a new instance of Unison::DBI.  A connection is attempted
-immediately and an exception thrown if unsuccessful.
+The PGUSER, PGPASSWORD, PGHOST, PGPORT, and PGDATABASE environment
+variables are honored if set. If not, reasonable defaults for the
+Genentech environment are used.
 
 =back
 
 =cut
-}
 
-
-sub connect {
   my $self = shift;
   if (not defined $self->{dbname}) {
 	throw Unison::Exception::ConnectionFailed
@@ -137,35 +177,90 @@ sub connect {
   $self->{dbh} = $dbh;
 
   return($self);
+}
+
+
+
+
+######################################################################
+## connect
+sub DESTROY {
 
 =pod
 
+=head2 ::DESTROY( )
+
 =over
 
-=item ::connect()
-
-Establishes a connection to the Unison database.
+disconnects from the database before destroying the database handle.
 
 =back
 
 =cut
-}
 
-
-sub DESTROY {
   $_[0]->dbh()->disconnect() if $_[0]->dbh();
 }
 
+
+######################################################################
+## dbh
 sub dbh {
+
+=pod
+
+=head2 ::dbh( )
+
+=over
+
+returns the internal database handle
+
+=back
+
+=cut
+
   $_[0]->{dbh};
 }
 
+
+
+######################################################################
+## is_open
 sub is_open {
+
+=pod
+
+=head2 ::is_open( )
+
+=over
+
+returns true if a connection to the database is open.
+
+=back
+
+=cut
+
   defined $_[0]->{'dbh'}
 };
 
 
+
+
+######################################################################
+## AUTOLOAD
 sub AUTOLOAD {
+
+=pod
+
+=head2 ::AUTOLOAD( )
+
+=over
+
+autoloads any unresolved method calls to DBI.
+
+=back
+
+=cut
+
   my $self = $_[0];
   my $method = our $AUTOLOAD;
   $method =~ s/^.*:://;
@@ -195,10 +290,6 @@ EOF
 
 
 =pod
-
-=head1 BUGS
-
-=head1 SEE ALSO
 
 =head1 AUTHOR
 
