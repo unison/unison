@@ -1,0 +1,55 @@
+#! /usr/bin/env perl
+
+use warnings;
+use Genentech::Sigpredict;
+use Genentech::Unison;
+use strict;
+
+#my $uni = new Genentech::Unison( 'user' => 'admin', 'dbname' => 'csb' );
+my $uni = new Genentech::Unison( 'dbname' => 'csbdev' );
+my $gs = new Genentech::Sigpredict( 'file' => $ARGV[0] );
+$gs->verbose(1);
+while (my %r = $gs->next_sigpredict() ){
+  &addSigpredictScore( 
+    $uni->{'dbh'}, 
+    $r{'id'},
+    $r{'prob'},
+    $r{'sensor_score'},
+    $r{'hmm_score'}
+  );
+}
+
+
+
+#-------------------------------------------------------------------------------
+# NAME: addSigpredictScore()
+# PURPOSE: update pseqprop table with sigpredict score
+# ARGUMENTS: pseq_id, score
+# RETURNS: nada
+#-------------------------------------------------------------------------------
+sub addSigpredictScore {
+    my $dbh = shift;
+    my $pseq_id = shift;
+    my $prob = shift;
+    my $sensor = shift;
+    my $hmm = shift;
+
+  die( "addSigpredict(): one of the required parameters is undefined" ) if
+    ( !defined $pseq_id || !defined $prob || !defined $sensor || !defined $hmm );
+
+    #
+    # decide whether todo insert or update
+    #
+    my $sql = "select * from pseqprop where pseq_id=$pseq_id";
+    my $sth = $dbh->prepare( $sql );
+    $sth->execute();
+    my @row  = $sth->fetchrow_array();
+    if ( @row ) {
+        $sql = "update pseqprop set sigpredict=$prob, sigsensor=$sensor, sighmm=$hmm where pseq_id=$pseq_id";
+    } else {
+        $sql = "insert into pseqprop ( pseq_id, sigpredict, sigsensor, sighmm ) values ( $pseq_id, $prob, $sensor, $hmm )";
+    }
+    print "sql: [$sql]\n";
+    $dbh->do( $sql );
+    return();
+}
