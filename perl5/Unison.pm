@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison -- interface to the Unison database
-S<$Id: Unison.pm,v 1.7 2003/11/04 01:10:33 rkh Exp $>
+S<$Id: Unison.pm,v 1.8 2004/02/24 19:25:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -28,6 +28,11 @@ d28 1
 
 
 package Unison;
+if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
+our $RELEASE = '$Name$';
+use Unison::common;
+use Unison::utilities;
+
 use Unison::DBI;
 use Unison::Exceptions;
 
@@ -41,11 +46,7 @@ use Unison::params;
 use Unison::run_history;
 use Unison::userprefs;
 
-#use Unison::p2params;
-#use Unison::p2template;
-#use Unison::p2thread;
 =pod
-use Unison::deprecated;
 =head1 SEE ALSO
 =over
 =pod
