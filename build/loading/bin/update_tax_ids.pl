@@ -1,10 +1,6 @@
 #!/usr/bin/env perl
 ## assign_tax_ids -- minimally update paliasorigin with newly-inferred
 ## tax_ids per infer_tax_id (see infer_tax_id.sql).
-##
-## NOTE: I originally wanted to make this a function. Unfortunately,
-## postgresql's pl/pgsql improperly caches select results which involve
-## tables created inside functions.
 
 
 use strict;
@@ -17,7 +13,7 @@ my %opts =
   (
    'increment' => 1000,
    'update-increment' => 100,
-   'palias-id-min' => 0,
+   'palias-id-min' => undef,
    'palias-id-max' => undef,
 
    'drop-paotax' => 0,
@@ -28,6 +24,18 @@ my %opts =
 
    'origin' => undef,
   );
+
+
+
+sub create_paotax ($);
+sub assign_tax_ids ($);
+sub reassign_tax_ids ($);
+sub nullify_tax_ids ($);
+
+select(STDERR); $|++;
+select(STDOUT); $|++;
+print(STDERR '# $Id: update_tax_ids.pl,v 1.6 2004/04/08 23:39:20 rkh Exp $ ', "\n");
+
 
 
 GetOptions(\%opts,
@@ -51,26 +59,23 @@ GetOptions(\%opts,
   || die("$0: aye, you've got usage issues, mate\n");
 
 
-sub create_paotax ($);
-sub assign_tax_ids ($);
-sub reassign_tax_ids ($);
-sub nullify_tax_ids ($);
+if ($opts{assign}+$opts{reassign}+$opts{nullify} == 0) {
+  die("$0: You've not indicated which actions to take\n");
+}
 
-select(STDERR); $|++;
-select(STDOUT); $|++;
-
-
-print(STDERR '$Id: update_tax_ids.pl,v 1.5 2004/04/07 21:55:08 rkh Exp $ ', "\n");
-print(STDERR '# ', join(', ', grep { $opts{$_} } qw(drop-paotax create-paotax assign reassign nullify)), "\n");;
+print(STDERR '# ', join(', ', grep { $opts{$_} } qw(drop-paotax
+	  create-paotax assign reassign nullify)), "\n");;
 
 
 my $u = new Unison;
 
-if (not defined $opts{'palias-id-max'}) {
-  my $sql = 'select max(palias_id) from paliasorigin';
-  $sql .= " WHERE AO.porigin_id=$opts{origin}" if (defined $opts{origin});
-  $opts{'palias-id-max'} = $u->selectrow_array( $sql );
-  printf(STDERR "# palias-id-max=%d\n", $opts{'palias-id-max'});
+if (not defined $opts{'palias-id-min'} or not defined $opts{'palias-id-max'}) {
+  my $sql = 'select min(palias_id),max(palias_id) from paliasorigin';
+  $sql .= " WHERE porigin_id=$opts{origin}" if (defined $opts{origin});
+  my ($b,$e) = $u->selectrow_array( $sql );
+  $opts{'palias-id-min'} = $b unless defined $opts{'palias-id-min'};
+  $opts{'palias-id-max'} = $e unless defined $opts{'palias-id-max'};
+  printf(STDERR "# palias-id-{min,max}=%d,%d\n", $opts{'palias-id-min'}, $opts{'palias-id-max'});
 }
 
 
@@ -115,7 +120,7 @@ sub create_paotax ($) {
   ## create a temp table with palias_id, current tax_id, inferred tax_id
   my $u = shift;
   my $sql = qq/
-	INSERT INTO PAOTAX
+	INSERT INTO paotax
 	SELECT AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr)
     FROM paliasorigin AO
     JOIN porigin O ON AO.porigin_id=O.porigin_id
