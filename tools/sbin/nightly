@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: nightly,v 1.6 2003/10/02 17:36:37 rkh Exp $
+# $Id: nightly,v 1.7 2004/01/08 02:17:38 rkh Exp $
 
 # nightly -- tasks to perform nightly
 # you must set PGPASSWORD before running this script
@@ -11,9 +11,9 @@ if [ -z "$PGPASSWORD" ]; then
 	die "PGPASSWORD not set"
 fi
 
+V=`type -p vacuumdb`
 
 logger "vacuum analyze started"
-logger `type -p vacuumdb`
-dothis vacuumdb -Ucompbio -dcsb -z  # -f
-dothis vacuumdb -Ucompbio -dcsb-dev -z  # -f
+dothis "$V" -Ucompbio -dcsb -z
+dothis "$V" -Ucompbio -dcsb-dev -z
 logger "vacuum analyze done"
