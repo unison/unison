@@ -14,7 +14,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.9 2004/06/02 23:05:38 rkh Exp $
+# $Id: load-pseq,v 1.10 2004/06/04 00:04:07 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -226,6 +226,9 @@ sub process_seq ($$$$) {
     # $ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
     # $ids{$id}++;
     @ids = sort keys %ids;
+  } elsif ($opts{origin} =~ m/Swiss-Prot/i) {
+  	@ids = ( $id );
+	push (@ids, $bs->accession());
   } else {
     @ids = ( $id );
   }
