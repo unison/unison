@@ -1,8 +1,8 @@
 #!/bin/sh -e
 # copy dev database to stage
-# $Id: dev2stage,v 1.4 2004/05/04 05:59:34 rkh Exp $
+# $Id: dev2stage,v 1.5 2004/05/10 21:54:12 rkh Exp $
 
-echo '# $Id: dev2stage,v 1.4 2004/05/04 05:59:34 rkh Exp $' 1>&2
+echo '# $Id: dev2stage,v 1.5 2004/05/10 21:54:12 rkh Exp $' 1>&2
 
 if [ $# != 1 -o -z "$1" ]; then
 	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
@@ -31,7 +31,8 @@ createlang plperlu
 
 
 # restore selected schemas; order is important
-SCHEMAS="gong scop tax unison"
+SCHEMAS="gong scop tax compbio unison"
+echo "WARNING: I'm staging these schemas ONLY: $SCHEMAS" 1>&2
 for s in $SCHEMAS; do
 	pg_dump $DUMP_OPTS -n "$s" "csb-dev" \
 	| psql -qaf-
@@ -39,8 +40,8 @@ done
 
 psql -qaf- <<EOF
 alter database "$PGDATABASE" set search_path = unison,gong,scop,tax;
-select  meta_update_kv('release timestamp',now());
 analyze verbose;
+select unison.release();
 EOF
 
 echo `date +'%Y-%m-%d %H:%M:%S'`: $0 done
