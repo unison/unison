@@ -1,7 +1,19 @@
 #!/bin/bash
+# $Id$
+
+# backup -- backup the csb database
+# you must set PGPASSWORD before running this script
+# any user with write permission in /home/rkh/csb-db/backups/$PGDATABASE
+# should be able to run this script.
+
+
+source `dirname $0`/utils
+exec >>"$LOGDIR/$JEMAPPELLE" 2>&1
+
+
 PATH=/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
 case `hostname` in
-    svc*|td-svc*)
+    svc*|td-svc*|interceptor*|td-interceptor*)
     	PGHOST=;;
     *) 
     	PGHOST=td-svc;;
@@ -9,12 +21,16 @@ esac
 
 export PGHOST
 export PGDATABASE=${1:-csb}
-export PGPASSWORD=marge
 
-DIR=/home/rkh/csb-db/backups/$PGDATABASE
+
+DIR="/home/rkh/csb-db/backups/$PGDATABASE"
 mkdir -p "$DIR"
 DATE=`date +%Y-%m-%d-%H:%M`;
 R="$DIR/$DATE.pgdump"
 
-(time -p pg_dump -X use-set-session-authorization -Uadmin "$PGDATABASE" \
- | gzip -c) >"$R".gz 2>"$R".err
+
+logger "starting backup (PGHOST=$PGHOST; PGDATABASE=$PGDATABASE)"
+(time -p pg_dump -t porigin -X use-set-session-authorization -Uadmin "$PGDATABASE" \
+ | gzip -cq) >"$R".gz 2>"$R".err
+logger "backup completed; status $?;" "time: `tr '\012' , <"$R".err`"
+logger "backup log in $R.err"
