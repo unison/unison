@@ -11,8 +11,16 @@ PMODELSET_ID=10
 	&& /bin/mv -f $@.err $@.log && touch $@
 
 
-cleaner: clean
+
+done.ids:
+	psql -Atc 'select pseq_id from run_history where params_id=1 and pmodelset_id=10' >$@.tmp
+	sort -u -o $@.tmp $@.tmp
+	/bin/mv -f $@.tmp $@
+	@wc -l $@
+
+
+cleaner:: clean
 	/bin/rm -fr *.bak
-cleanest: cleaner
+cleanest:: cleaner
 	/bin/rm -f  *.mt *.ids
 	/bin/rm -fr *.d no
