@@ -31,7 +31,7 @@ else
 	mkdir -p "$XLINK_DIR"
 fi
 
-echo '# $Id: xlink,v 1.5 2004/05/05 03:20:56 rkh Exp $' 1>&2
+echo '# $Id: xlink,v 1.6 2004/05/05 03:43:16 rkh Exp $' 1>&2
 echo '# started' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
 echo "# XLINK_DIR=$XLINK_DIR; CREATE=$CREATE; LOAD=$LOAD" 1>&2
 echo "# PSEQ_LIMIT=$PSEQ_LIMIT" 1>&2
@@ -55,15 +55,18 @@ if [ "$CREATE" = 1 ]; then
 	echo "# creating table-building SQL..." 1>&2
 	cat <<EOSQL >$tables_sql
 drop table pseq cascade constraints;
-drop table aliases cascade constraints;
 create table pseq (
 	pseq_id integer primary key,
 	md5 char(32) not null,
 	len integer not null
 );
+GRANT SELECT ON pseq TO PUBLIC;
+COMMENT ON TABLE pseq IS 'summary sequence information from Unison';
 create unique index pseq_md5_idx on pseq(md5);
 create index pseq_len_idx on pseq(len);
 
+
+drop table aliases cascade constraints;
 create table aliases (
 	pseq_id integer not null, -- references pseq(pseq_id),
     ann_pref integer,
@@ -72,10 +75,26 @@ create table aliases (
 	descr char($DESCR_SIZE),
 	gs char(20)
 );
+GRANT SELECT ON aliases TO PUBLIC;
+COMMENT ON TABLE aliases IS 'aliases for identical sequences (pseq_ids) from Unison';
 create index aliases_pseq_id_idx on aliases(pseq_id,ann_pref);
-create index aliases_origin_idx on aliases(upper(origin));
-create index aliases_alias_idx on aliases(upper(alias));
+create index aliases_alias_idx on aliases(alias);
+create index aliases_origin_alias_idx on aliases(origin,alias);
 create index aliases_gs_idx on aliases(gs);
+
+
+CREATE OR REPLACE VIEW pro_pseq AS
+SELECT
+	TO_NUMBER(SUBSTR(alias,4)) AS "PROID",
+	aliases.pseq_id,
+	md5
+FROM aliases, pseq
+WHERE
+	origin='SPDI' AND alias NOT LIKE '%\_' ESCAPE '\'
+	AND aliases.pseq_id=pseq.pseq_id;
+GRANT SELECT ON pro_pseq TO PUBLIC;
+COMMENT ON TABLE pro_pseq IS 'proid <-> pseq_id mapping with md5s';
+
 
 quit
 EOSQL
