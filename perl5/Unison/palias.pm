@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.11 2004/04/21 21:15:36 rkh Exp $>
+S<$Id: palias.pm,v 1.12 2004/05/04 04:52:13 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -52,11 +52,13 @@ sub add_palias {
 	   or not defined $porigin_id
 	   or not defined $alias 
 	   or not defined $descr) {
-	confess(sprintf("<pseq_id,porigin_id,alias,descr>=<%s,%s,%s,%s>",
-					defined $pseq_id ? $pseq_id : 'undef',
-					defined $porigin_id ? $porigin_id : 'undef',
-					defined $alias ? $alias : 'undef',
-					defined $descr ? $descr : 'undef' ));
+	die("Assertion failed\n",
+		sprintf("<pseq_id,porigin_id,alias,descr>=<%s,%s,%s,%s>",
+				defined $pseq_id ? $pseq_id : 'undef',
+				defined $porigin_id ? $porigin_id : 'undef',
+				defined $alias ? $alias : 'undef',
+				defined $descr ? $descr : 'undef' )
+	   );
   }
 
   my $sql = "insert into palias (pseq_id,porigin_id,alias,descr,tax_id) "

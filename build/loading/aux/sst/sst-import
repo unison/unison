@@ -2,17 +2,27 @@
 # This script writes a file which loads Unison's mirror of the sst
 # unqproform (sigh) table
 
+use strict;
+use warnings;
 use DBI;
 
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
+print(STDERR '$Id: ssp-build,v 1.3 2004/06/04 22:16:43 rkh Exp $ ', "\n");
+
+
+my $sql;
+my $sth;
 my $dsn = 'dbi:Oracle:bioprd1';
 my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
 
 print("TRUNCATE sst.unqproform;\n");
-print("COPY sst.unqproform (unqid, proid) FROM stdin;\n");
-my $sql = 'select unqid,proid from unqproform';
-my $sth = $dbh->prepare($sql);
+print("COPY sst.unqpro (unqid, proid) FROM stdin;\n");
+$sql = 'select unqid,proid from unqproform';
+$sth = $dbh->prepare($sql);
 $sth->execute()
   || die("$sql: ", $dbh->errstr());
 while( my @row = $sth->fetchrow_array() ) {
@@ -20,6 +30,17 @@ while( my @row = $sth->fetchrow_array() ) {
 }
 print("\\.\n");
 
+
+print("TRUNCATE sst.prodna;\n");
+print("COPY sst.prodna (proid, dnaid) FROM stdin;\n");
+$sql = 'select proid,dnaid from prodna ';
+$sth = $dbh->prepare($sql);
+$sth->execute()
+  || die("$sql: ", $dbh->errstr());
+while( my @row = $sth->fetchrow_array() ) {
+  print( join("\t", map {sql_escape($_)} @row), "\n" );
+}
+print("\\.\n");
 
 
 

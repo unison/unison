@@ -8,7 +8,7 @@ use DBI;
 select(STDERR); $|++;
 select(STDOUT); $|++;
 
-print(STDERR '$Id$ ', "\n");
+print(STDERR '$Id: ssp-build,v 1.3 2004/06/04 22:16:43 rkh Exp $ ', "\n");
 
 my @GB = 
   (
@@ -24,7 +24,7 @@ my $dsn = 'dbi:Oracle:bioprd1';
 my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
-open(GS, "| xargs -tn25 /usr/local/seq/bin/getseq -F")
+open(GS, "| xargs -tn100 /usr/local/seq/bin/getseq -F")
   || die("couldn't open pipe to getseq\n");
 
 
