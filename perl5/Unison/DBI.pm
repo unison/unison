@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.5 2003/07/31 23:56:48 rkh Exp $>
+S<$Id: DBI.pm,v 1.6 2003/09/20 00:35:54 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -93,15 +93,19 @@ sub connect {
 						 $self->{username},
 						 $self->{password},
 						 $self->{attr});
-  if (defined $dbh)	{
-	$self->{dbh} = $dbh;
-	return($self);
+  if (not defined $dbh)	{
+	throw Unison::Exception::ConnectionFailed( "couldn't connect to unison",
+											   "dsn=$dsn\n" .
+											   'username='.$self->{username}."\n" .
+											   'password='.(defined $self->{password} ?
+															'<hidden>' : '<undef>'),
+											   'Perhaps your need to set PGHOST or use -h?'
+											 );
   }
-  throw Unison::Exception::ConnectionFailed( "couldn't connect to unison",
-											 "dsn=$dsn\n" .
-											 'username='.$self->{username}."\n" .
-											 'password='.(defined $self->{password} ?'<hidden>':'<undef>') );
-  return undef;
+
+  $self->{dbh} = $dbh;
+  return($self);
+
 =pod
 
 =over
