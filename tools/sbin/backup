@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: backup,v 1.16 2004/01/08 02:42:58 rkh Exp $
+# $Id: backup,v 1.17 2004/01/09 20:06:51 rkh Exp $
 
 # backup -- backup the csb database
 # you must set PGPASSWORD before running this script
@@ -34,7 +34,7 @@ export PGHOST
 DIR="/home/rkh/adm/csb-db/backups/$PGDATABASE"
 mkdir -p "$DIR"
 DATE=`date +%Y-%m-%d-%H:%M`;
-R="$DIR/$DATE.pgdump$PGD_SOPTS"
+R="$DIR/$DATE.pgdump$PGD_SOPT"
 
 
 
