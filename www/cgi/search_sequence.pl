@@ -10,17 +10,17 @@ use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 
+
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 my $min_len = 15;
 
 
-
 if (defined $v->{query} and $v->{query} ne '') {
   $v->{query} = uc($v->{query});
 
-  if ($v->{query} =~ m/([^A-Z0-9%+*^$\.\\])/ ) {
+  if ($v->{query} =~ m/([^A-Z0-9%+*^\$\.\\])/ ) {
 	$p->die('Bad query expression',
 			"Your query $v->{query} contains inappropriate characters ($1)");
   }
