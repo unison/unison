@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-p2thread,v 1.5 2003/03/25 22:43:39 rkh Exp $
+# $Id: load-p2thread,v 1.6 2003/04/12 00:37:22 rkh Exp $
 # load-p2thread -- load prospect2 thread results into unison
 # from xml files (optionally with svm scores from sort files)
 
@@ -7,8 +7,7 @@
 use warnings;
 use strict;
 use lib ('.', "$ENV{HOME}/unison/perl5");
-use Genentech::Unison;
-use Genentech::Unison::Prospect2;
+use Unison;
 use IO::File;;
 use File::Temp;
 use Getopt::Long qw(:config gnu_getopt);
@@ -25,7 +24,7 @@ GetOptions(
   || die("$0: bad usage\n");
 
 die("prospect xml filename required (-x)\n") unless defined $xml_fn;
-warn("prospect sort filename recommended (-s)\n") unless defined $svm_fn;
+die("-s is obsolete\n") if defined $svm_fn;
 
 
 $Data::Dumper::Indent = 0;
