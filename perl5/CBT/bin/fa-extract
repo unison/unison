@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+# extract sequences from a fasta file
+# usage: fa-extract <fastafile [ids ...]
+# * 2003/05/13 (Tue) 15:56 Reece Hart <reece@in-machina.com, rkh@gene.com>
+
+use warnings;
+use strict;
+use Bio::SeqIO;
+use IO::File;
+use Getopt::Long qw(:config gnu_getopt);
+
+
+# prototypes:
+sub any_match($$);
+
+
+# defaults and option parsing
+my %opts =
+  (
+   regexp => 0,
+   'match-description' => 0,
+   'criteria-from-file' => undef
+  );
+GetOptions( \%opts,
+			'regexp|r+',
+			'match-description|d+',
+			'criteria-from-file|f=s'
+			);
+
+
+# assemble array of criteria
+my @criteria = @ARGV;
+if (defined $opts{'criteria-from-file'})
+  {
+  my $fh = new IO::File;
+  if ( not $fh->open($opts{'criteria-from-file'},'r') )
+	{ die($opts{'criteria-from-file'}, ": $!\n"); }
+  push( @criteria, map {chomp;$_;} $fh->getlines() );
+  $fh->close();
+  }
+my %criteria = map {$_=>1} @criteria;
+
+
+# begin the filter
+my $in  = Bio::SeqIO->new('-format' => 'Fasta');
+my $out = Bio::SeqIO->new('-format' => 'Fasta');
+
+while( my $seq = $in->next_seq() )
+  {
+  my $id = $seq->display_id();
+  if (    ( exists $criteria{$id} )
+	   or ( $opts{regexp} and any_match($id,\@criteria) )
+	   or ( $opts{'match-description'} and any_match($seq->desc(),\@criteria) ) )
+	{ $out->write_seq($seq) }
+  }
+
+
+exit(0);
+
+
+# it's probably faster to dynamically define a match function using
+# eval... see below
+sub any_match($$)
+  {
+  my ($s,$cr) = @_;
+  for( my $i=0; $i<=$#$cr; $i++)
+	{ return 1 if $s=~/$$cr[$i]/; }
+  return 0;
+  }
+
+
+__END__
+sub any_match_generator(@);
+sub any_match_generator(@)
+  {
+  my $def = "sub any_match(\$\$) {\n";
+  for( my $i=0; $i<=$#_; $i++)
+	{ $def .= "  return 1 if \$_[0]=~/$_[$i]/\n"; }
+  $def .= "return 0;}\n";
+  return $def;
+  }
