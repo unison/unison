@@ -7,7 +7,7 @@ use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison;
-use Unison::features;
+use Unison::pseq_features;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
