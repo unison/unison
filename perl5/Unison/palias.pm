@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.4 2003/10/09 19:49:10 rkh Exp $>
+S<$Id: palias.pm,v 1.5 2003/10/18 00:11:03 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -127,7 +127,7 @@ sub get_pseq_id_from_alias {
 	return(@ids) if @ids;
   }
 
-  if (length($alias) >= 5) {				# short regexps will take a long time
+  if (length($alias) >= 5 or $alias =~ /^[~^]/) {
 	(@ids) = $u->get_pseq_id_from_alias_regexp( $alias );
 	return(@ids);
   }
