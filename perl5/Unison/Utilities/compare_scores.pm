@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.1 2005/03/20 19:05:39 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -25,7 +25,7 @@ use Statistics::Basic::StdDev;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::SQL;
-use Cluster;
+use Unison::Utilities::Cluster;
 
 sub compute_stats($);
 sub plot_stats($$);
@@ -303,7 +303,7 @@ sub display_table($) {
 
   my ($u) = @_;
   my ($cols,$rows);
-  my $c = Cluster::new(%params);
+  my $c = Unison::Utilities::Cluster::new(%params);
   my $cluster_arr = $c->cluster_2dhash($scores);
   return "CLUSTERING OF THREADING SCORES FAILED!" if(!defined($cluster_arr));
 
