@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.10 2004/02/24 19:20:57 rkh Exp $
+# $Id: run-paprospect2,v 1.11 2004/02/24 21:49:08 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -113,6 +113,9 @@ PSEQ_ID: while( my $pseq_id = shift ) {
 	}
   }}
 
+  
+
+
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   if (length($seq)>2000) {
 	print("$leader: skipping because it's >2000 AA\n");
@@ -157,6 +160,9 @@ PSEQ_ID: while( my $pseq_id = shift ) {
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.11  2004/02/24 21:49:08  rkh
+# * added ran_on check IMPORTANT NOTE for clarification
+#
 # Revision 1.10  2004/02/24 19:20:57  rkh
 # periodic sync
 #
