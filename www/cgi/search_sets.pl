@@ -3,6 +3,10 @@
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
@@ -197,7 +201,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.11.2.1 2004/01/07 00:02:12 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.12 2004/01/08 02:17:39 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select

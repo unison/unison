@@ -2,10 +2,15 @@
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
+use Unison;
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
-use Unison::WWW::utils qw(alias_link pseq_summary_link);
+use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 use Unison::pseq_features;
 use File::Temp qw(tempfile);
 
@@ -168,10 +173,11 @@ sub features_group ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
+  my $dr = defined $ENV{'DOCUMENT_ROOT'} ? $ENV{'DOCUMENT_ROOT'} : '';
 
-  my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => "$ENV{'DOCUMENT_ROOT'}/tmp/pseq-features/",
+  my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => "$dr/tmp/pseq-features",
 											   SUFFIX => '.png' );
-  my ($urn) = $png_fn =~ m%^$ENV{'DOCUMENT_ROOT'}(.+)%;
+  my ($urn) = $png_fn =~ m%^$dr(.+)%;
   $png_fh->print( $u->features_graphic($v->{pseq_id}) );
   $png_fh->close( );
 

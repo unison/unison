@@ -2,9 +2,13 @@
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
 use CGI( -debug );
 use CGI::Carp qw(fatalsToBrowser);
-use Data::Dumper;
+
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;

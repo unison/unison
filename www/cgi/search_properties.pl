@@ -2,6 +2,10 @@
 
 use warnings;
 use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
@@ -20,7 +24,7 @@ my $v = $p->Vars();
 
 if (not exists $v->{submit}) {
   print $p->render("Property Mining",
-				   '$Id: search_by_properties.pl,v 1.4.2.1 2004/01/07 00:02:12 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.5 2004/01/08 02:17:39 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
@@ -116,7 +120,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.4.2.1 2004/01/07 00:02:12 rkh Exp $',
+				 '$Id: search_by_properties.pl,v 1.5 2004/01/08 02:17:39 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 

@@ -2,11 +2,14 @@
 
 use strict;
 use warnings;
-use CGI( -debug );
-use Data::Dumper;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
+
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};

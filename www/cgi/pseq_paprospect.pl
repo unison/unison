@@ -2,8 +2,12 @@
 
 use strict;
 use warnings;
-use Unison::WWW;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
 use Unison::WWW::Page;
+use Unison::WWW;
 use Unison::WWW::Table;
 use Unison::pseq_features;
 
@@ -24,18 +28,19 @@ $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort};
 
 
-#            colname        sort_ob
-my @cols = (['aln?',          ],
-      ['acc',     'acc'    ],
-      ['pct_ident',    'pide'    ],
-      ['raw',     'raw'    ],
-      ['svm',     'svm'    ],
-      ['singleton',    'singleton'  ],
-      ['pairwise',    'pairwise'  ],
-      ['mutation',    'mut'    ],
-      ['gap',      'gap'    ],
-      ['SCOP (sf|dm)',  ]
-       );
+my @cols =
+  (# colname        sort_ob
+   ['aln?',			         	],
+   ['acc',   		'acc'    	],
+   ['pct_ident',    'pide'   	],
+   ['raw',     		'raw'    	],
+   ['svm',     		'svm'    	],
+   ['singleton',    'singleton' ],
+   ['pairwise',    	'pairwise'  ],
+   ['mutation',    	'mut'    	],
+   ['gap',      	'gap'    	],
+   ['SCOP (sf&nbsp;>&nbsp;dm)', ]
+  );
 
 my @f = map { $_->[0] } @cols;
 my %colnum = map {$cols[$_]->[1] => $_} grep {defined $cols[$_]->[1]} 0..$#cols;
@@ -52,7 +57,8 @@ my $ob = {
      }->{$v->{sort}};
 
 
-my $N = $u->selectrow_array("select count(*) from paprospect2 where pseq_id=$v->{pseq_id} and params_id=$v->{params_id}");
+my $N = $u->selectrow_array("select count(*) from paprospect2 where pseq_id=$v->{pseq_id} and
+		params_id=$v->{params_id}");
 
 my $sql = "SELECT * FROM v_paprospect2_scop WHERE pseq_id=$v->{pseq_id} AND params_id=$v->{params_id} " .
   "ORDER BY $ob OFFSET $v->{offset} LIMIT $v->{limit} ";
@@ -61,7 +67,7 @@ $sth->execute();
 my @raw_data;
 while ( my $row = $sth->fetchrow_hashref() ) { push @raw_data,$row; }
 my $feats = $u->coalesce_scop( \@raw_data );
-#print Data::Dumper->Dump([$feats],['feats']);
+
 
 # build ar array which will store row data
 my @ar;
@@ -81,11 +87,9 @@ foreach my $row ( @{$feats} ) {
   # build scop decription
   my $scop='';
   for (my $i=0;$i<scalar(@{$row->{scop}});$i++) {
-    
     $row->{scop}[$i]->{sfname} =~ s/ /&nbsp;/g;
     $row->{scop}[$i]->{dmname} =~ s/ /&nbsp;/g;
-      
-    $scop .= "<LI><A HREF='$scopURL$row->{scop}[$i]->{sfid}'>$row->{scop}[$i]->{sfname}</A>&nbsp;|&nbsp;" .
+    $scop .= "<LI><A HREF='$scopURL$row->{scop}[$i]->{sfid}'>$row->{scop}[$i]->{sfname}</A>&nbsp;>&nbsp;" .
       "<A HREF='$scopURL$row->{scop}[$i]->{dmid}'>$row->{scop}[$i]->{dmname}</A>";
   }
   $scop .= '';
