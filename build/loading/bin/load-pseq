@@ -1,19 +1,23 @@
 #! /usr/bin/env perl
 
+my $usage = <<'EOU';
 #-------------------------------------------------------------------------------
 # NAME: load-pseq
 # PURPOSE: load sequence files into Unison
-# USAGE: load-pseq <seq files ...>
-# ARGUMENTS:
+# USAGE: load-pseq ARGUMENTS OPTIONS <seq files ...>
+# ARGUMENTS (required):
 #   --origin|-o <origin>: name of origin
 #   --format|-f <format>: name of input file format (any format allowed by Bio::SeqIO)
+# OPTIONS:
 #   --start-after|--startafter <acc>: start parsing input file after this acc
 #   --sql-only|--sqlonly: flag to output only sql commands
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.1 2004/04/13 21:19:32 cavs Exp $
+# $Id: load-pseq,v 1.2 2004/04/13 21:36:31 cavs Exp $
 #------------------------------------------------------------------------------
+
+EOU
 
 use warnings;
 use strict;
@@ -45,13 +49,12 @@ GetOptions( \%opts,
   'sql-only|sqlonly',
   'verbose|v',
   'incl-subex|inclsubex' )
-  || die("$0: bad usage\n");
+  || die("$0: bad usage:\n$usage\n");
 
-  print Data::Dumper->Dump([\%opts],['opts']);
 
-(defined $opts{origin}) || die("$0: --origin (-o) is mandatory\n");
+(defined $opts{origin}) || die("$0: --origin (-o) is mandatory\n$usage\n");
 (defined $opts{format} && $af{lc($opts{format})}) || 
-  die("$0: --format (-f) is mandatory and must be one of (",join(',',sort {$a cmp $b} keys %af),")\n");
+  die("$0: --format (-f) is mandatory and must be one of (",join(',',sort {$a cmp $b} keys %af),")\n$usage\n");
 my $u = new Unison;
 
 foreach my $fn ( @ARGV ) {
@@ -59,3 +62,5 @@ foreach my $fn ( @ARGV ) {
   my $rv = $u->process_stream($stream, \%opts);
   print "fn: $fn, nseen: $rv->{nseen}, nskipped: $rv->{nskipped}, nadded: $rv->{nadded}\n";
 }
+$opts{porigin_id} = $u->porigin_porigin_id_by_origin($opts{origin});
+print "update porigin set last_updated='",$u->porigin_last_updated($opts{porigin_id},1),"' where porigin_id=$opts{porigin_id}\n";
