@@ -1,3 +1,6 @@
+\echo =======================================================================
+\echo $Id$
+
 create table pseqset (
 	pset_id			integer,
 	pseq_id			integer,

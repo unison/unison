@@ -1,3 +1,6 @@
+\echo =======================================================================
+\echo $Id$
+
 CREATE OR REPLACE FUNCTION digest(text,text) RETURNS bytea AS
  '/home/rkh/unison/lib/libpgcrypto.so','pg_digest' LANGUAGE 'C';
 

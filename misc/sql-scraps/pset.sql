@@ -1,4 +1,5 @@
--- pseqset.sql
+\echo =======================================================================
+\echo $Id$
 -- non-exclusive (i.e., overlapping) sets of pseqs
 
 create table pset (

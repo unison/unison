@@ -1,5 +1,7 @@
--- ===========================================================================
--- palias table -- names of pseq entries
+\echo =======================================================================
+\echo $Id$
+-- palias -- names of pseq entries
+
 create table palias (
 	palias_id			serial,
 	pseq_id				integer		not null,
@@ -16,7 +18,9 @@ create table palias (
 		foreign key (porigin_id)
 		references porigin (porigin_id)
 		on delete cascade
-		on update cascade
+		on update cascade,
 
-	-- constraint one_alias_per_seq_per_ori unique (pseq_id,porigin_id)
+	-- each alias must be unique within that origin
+	constraint alias_must_be_unique_for_origin unique (porigin_id,alias)
+
 	);

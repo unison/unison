@@ -1,3 +1,6 @@
+\echo =======================================================================
+\echo $Id$
+
 create table pprop (
 	pseq_id				integer		primary key default null 
 		references pseq (pseq_id) on delete cascade on update cascade,

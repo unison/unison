@@ -1,3 +1,5 @@
+\echo =======================================================================
+\echo $Id$
 -- pfeature -- tables for storing abstract protein sequence features
 
 create table pfeature (

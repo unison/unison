@@ -1,3 +1,6 @@
+\echo =======================================================================
+\echo $Id$
+
 -- additional constraint for circular reference between pseq and palias
 
 alter table pseq
