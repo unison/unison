@@ -2,48 +2,63 @@
 
 use strict;
 use warnings;
+use Data::Dumper;
+
 
 my @pending;
 my %users;
 my %hosts;
 my %user_database;
 my %user_host;
+my %dates;
+my %date_user;
 
+
+my $ts_date_re = qr/200\d-\d\d-\d\d/;
+my $ts_time_re = qr/\d\d:\d\d:\d\d/;
 
 while(<>) {
   #2004-07-14 09:00:43 [26233] LOG:  connection received: host=tallac.gene.com port=34485
   #2004-07-14 09:00:43 [26233] LOG:  connection authorized: user=rkh database=csb-dev
 
-  if (m/^(200.+) \[(\d+)\] LOG:  connection received: host=(\S+)/) {
-	$pending[$2] = { ts=>$1, host=>$3 };
-  } elsif (m/^(200.+) \[(\d+)\] LOG:  connection authorized: user=(\S+) database=(\S+)/) {
-	if (not defined $pending[$2]) {
+  if (m/^($ts_date_re) ($ts_time_re) \[(\d+)\] LOG:  connection received: host=(\S+)/) {
+	$pending[$3] = { ts=>"$1 $2", host=>$4 };
+  } elsif (m/^($ts_date_re) ($ts_time_re) \[(\d+)\] LOG:  connection authorized: user=(\S+) database=(\S+)/) {
+	if (not defined $pending[$3]) {
 	  die("$.: connection not received!\n");
 	}
 
-	my %conn = (%{$pending[$2]}, user=>$3, database=>$4);
-	undef $pending[$2];
+	my %conn = (%{$pending[$3]}, user=>$4, database=>$5);
+	undef $pending[$3];
 
 	my ($h,$u,$d) = @conn{qw(host user database)};
-	$h =~ s/^comp\d+/comp*/
-	  || $h =~ s/^(vpn-pc)-\d+/$1-*/
-		|| $h =~ s/^(dhcp187)-\d+/$1-*/;
+	$h =~ s/^comp\d+/comp*/					# group connections into
+	  or $h =~ s/^(vpn-pc)-\d+/$1-*/		# comp, vpn-pc, or dhcpNN- bins
+	  or $h =~ s/^(dhcp\d+)-\d+/$1-*/;
 
 	push(@{$users{$u}}, \%conn);
 	push(@{$hosts{$h}}, \%conn);
 	push(@{$user_host{$u}{$h}},\%conn);
 	push(@{$user_database{$u}{$d}},\%conn);
+
+	my ($date) = $conn{ts} =~ m/^($ts_date_re)/;
+	$date =~ s/-\d\d$//; 					# trim to month
+	push(@{$dates{$date}}, \%conn);
+	push(@{$date_user{$date}{$u}}, \%conn);
   }
 }
 
 
-print("connections by user:\n");
+
+print('$Id$ ', "\n\n");
+
+printf("connections by %d user(s):\n", scalar keys %users);
 foreach my $u (sort keys %users) {
   my $uc = $users{$u};
   my $earliest = $uc->[0]->{ts};
   my $latest = $uc->[$#$uc]->{ts};
 
-  printf("%-10s: %4d conn, %2d hosts, %2d dbs; %s..%s\n",
+  printf("  %-10s: %4d conn, %2d hosts, %2d dbs; %s..%s\n",
 		 $u,
 		 $#{$users{$u}}+1, 
 		 (scalar keys %{$user_host{$u}}),
@@ -53,7 +68,14 @@ foreach my $u (sort keys %users) {
 }
 
 
-print("\n\nconnections by host:\n");
+printf("\nconnections by %d host(s):\n", scalar keys %hosts);
 foreach my $h (sort keys %hosts) {
-  printf("%4d $h\n", $#{$hosts{$h}}+1);
+  printf("  %4d $h\n", $#{$hosts{$h}}+1);
+}
+
+
+printf("\nuser connections by month:\n", scalar keys %dates);
+foreach my $date (sort keys %dates) {
+  my @users = keys %{$date_user{$date}};
+  printf("  %4d $date (%s)\n", $#users+1, join(',',sort @users));
 }
