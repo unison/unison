@@ -11,7 +11,7 @@ my $sth = $u->prepare(<<EOSQL);
 	SELECT A.start, A.stop, A.score, A.eval, M.acc, M.name, M.descr
 	FROM pahmm A
 	JOIN pmhmm M on A.pmodel_id=M.pmodel_id
-	WHERE A.params_id=params_id('Pfam 14.0') AND A.eval<=1 AND A.pseq_id=?
+	WHERE A.params_id=params_id('Pfam_fs 14.0') AND A.eval<=1 AND A.pseq_id=?
 	ORDER BY eval
 EOSQL
 

@@ -2,9 +2,8 @@
 
 # Change these for your site:
 MY2PG:=/apps/compbio/src/postgresql-7.3.2/contrib/mysql/my2pg.pl
-export PGHOST=td-svc
-export PGDATABASE=go
-export PGUSER=admin
+
+# Set PGHOST, PGDATABASE, PGUSER before running this script
 
 
 default all:

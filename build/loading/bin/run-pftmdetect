@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-pftmdetect,v 1.6 2004/07/27 16:33:53 rkh Exp $
+# $Id: run-pftmdetect,v 1.7 2004/07/27 17:41:54 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -24,6 +24,8 @@ use Bio::Prospect::Exceptions;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use Error qw(:try);
+use IO::Pipe;
+
 
 my %opts = (
 			'debug' => 0,
@@ -35,7 +37,7 @@ my %opts = (
 		   );
 
 
-print(STDERR '$Id: gltop,v 1.6 2004/06/10 00:31:29 rkh Exp $ ', "\n");
+print(STDERR '$Id: run-pftmdetect,v 1.7 2004/07/27 17:41:54 rkh Exp $ ', "\n");
 
 GetOptions(\%opts,
        'debug+',
@@ -124,6 +126,13 @@ my $status = $? >> 8;
 ($status == 0)
   || die("$0: @cl: exit $?");
 print STDERR "cmdline=@cl\n" if $opts{verbose};
+
+
+my $pipe = new IO::Pipe;
+$pipe->reader( @cl )
+  || die("couldn't do @cl\n");
+
+
 
 # parse the results
 # we should do this in a pipe without the temp file...

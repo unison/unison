@@ -7,7 +7,7 @@ use strict;
 use warnings;
 use DBI;
 
-print(STDERR '$Id: ssp-build,v 1.5 2004/06/18 17:39:41 rkh Exp $ ', "\n");
+print(STDERR '$Id: ssp-build,v 1.6 2004/07/14 23:18:03 rkh Exp $ ', "\n");
 
 my @GB = 
   (
@@ -20,11 +20,25 @@ my @GB =
    'PatinUpload'
   );
 
-(defined $ENV{SSTPASS})
-  || die("$0: SSTPASS not defined\n");
+my $fn;
+
+my %wanted_dnaids;
+$fn = 'wanted.dnaids';
+if (-f $fn) {
+  open(F,"<$fn")
+	|| die("$fn: $!\n");
+  %wanted_dnaids = map { chomp; $_=~s/^DNA//; $_=>1 } (<F>);
+  close(F);
+  printf(STDERR "# restricting to %d DNA ids (%s...)\n", 
+		 scalar keys %wanted_dnaids,
+		 join(',',(sort keys %wanted_dnaids)[0..3]) );
+}
+
+#(defined $ENV{SSTPASS})
+#  || die("$0: rkh's SSTPASS not defined\n");
 
 my $dsn = 'dbi:Oracle:bioprd1';
-my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
+my $dbh = DBI->connect($dsn, '/',)
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
 open(GS, "| xargs -tn100 /usr/local/seq/bin/getseq -F")
@@ -32,13 +46,23 @@ open(GS, "| xargs -tn100 /usr/local/seq/bin/getseq -F")
 
 
 my $sql = 
-  'SELECT DISTINCT proid FROM dna D,prodna PD'
-  .' WHERE D.dnaid=PD.dnaid and ('
-  .join(' or ', 'D.generatedby is NULL', map {"D.generatedby='$_'"} @GB)
+  "SELECT DISTINCT D.dnaid,proid FROM dna D,prodna PD\n"
+  ." WHERE D.dnaid=PD.dnaid\n AND ("
+  .join("  \n or ", 'D.generatedby IS NULL', map {"D.generatedby='$_'"} @GB)
   .') ORDER BY proid';
-my @proids = map {$_->[0]} @{$dbh->selectall_arrayref($sql)};
+#print("# $sql\n");
 
-printf(STDERR "# selected %d proids\n", $#proids+1);
+
+my @rows = @{$dbh->selectall_arrayref($sql)};
+my $N = $#rows+1;
+printf(STDERR "# %d rows returned\n", $N);
+if (%wanted_dnaids) {
+  @rows = grep {exists $wanted_dnaids{$_->[0]}} @rows;
+  printf(STDERR "# %d rows remain after dnaid restriction\n", $#rows+1);
+}
+my %proids = map {$_->[1] => 1} @rows;
+my @proids = keys %proids;
+printf(STDERR "# %d proids selected\n", $#proids+1);
 
 print(GS map {"ssp.PRO$_\n"} @proids);
 close(GS);

@@ -5,7 +5,7 @@
 # PURPOSE: parse BLAT psl output for protein-to-genome alignments. load
 #          output into set of unison tables.
 # 
-# $Id: load-blat,v 1.9 2004/06/10 22:18:24 rkh Exp $
+# $Id: load-blat,v 1.10 2004/06/18 03:29:07 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -20,7 +20,7 @@ my %opts =
   (
    genasm_id => undef,
    pct_ident_cutoff => 80,
-   score_cutoff => 50,
+   score_cutoff => 80,
    verbose => 0,
   );
 
@@ -57,7 +57,6 @@ while( my $r = $bio->next_result() ){
   my @tgap_bases = $r->get_tag_values('tgap_bases');
   my $pseq_id;
 
-
   if ( not defined $r->seq_id ) {
 	warn( "ERROR: line $.: result seq_id is undefined; skipping.\n",
 		  $_, "\n" );
@@ -73,7 +72,7 @@ while( my $r = $bio->next_result() ){
   # insertion criteria: score >= score_cutoff and pct_ident >= pct_ident_cutoff
   if ( not ($r->score >= $opts{score_cutoff} 
 			and $pct_ident[0] >= $opts{pct_ident_cutoff} ) ) {
-	if ( $opts{verbose}>2 ) {
+	if ( $opts{verbose} ) {
 	  printf(STDERR "Unison:%-10d BLAT alignment failed cutoffs (ident: %5d (%d), score: %4.2f (%4.2f))\n",
 			 $pseq_id,$ident[0],$opts{pct_ident_cutoff},$r->score,$opts{score_cutoff});
 	}

@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.14 2004/06/04 00:04:07 rkh Exp $
+# $Id: run-paprospect2,v 1.15 2004/06/25 00:20:27 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -22,28 +22,32 @@ use Data::Dumper;
 use Error qw(:try);
 
 
-my %opts = (
-			'debug' => 0,
-			'dry-run' => 0,
-			'params_id' => undef,
-			'pmodelset_id' => undef,
-			'porigin_id' => undef,
-			'template-file' => undef,		# file of template names
-			'templates' => undef,				# template names
-			'update' => 0,					# try update before insert
-			'verbose' => 1,
-		   );
-GetOptions(\%opts,
-		   'debug+',
-		   'params_id|p=i',
-		   'pmodelset_id|M=i@',
-		   'porigin_id|o=i@',
-		   'template-file|tfile|T=s',
-		   'templates|t=s@',
-		   'update',
-		   'verbose!',
-		   'dry-run|n'
-		  )
+
+my %opts = 
+  (
+   'debug' => 0,
+   'dry-run' => 0,
+   'params_id' => undef,
+   'pmodelset_id' => undef,
+   'porigin_id' => undef,
+   'template-file' => undef,				# file of template names
+   'templates' => undef,					# template names
+   'update' => 0,							# try update before insert
+   'verbose' => 1,
+  );
+GetOptions
+  (
+   \%opts,
+   'debug+',
+   'params_id|p=i',
+   'pmodelset_id|M=i@',
+   'porigin_id|o=i@',
+   'template-file|tfile|T=s',
+   'templates|t=s@',
+   'update',
+   'verbose!',
+   'dry-run|n'
+  )
   or die("$0: bad usage\n");
 
 
@@ -67,7 +71,7 @@ my @pseq_ids = map {eval "$_"} @ARGV;
 my $N = $#pseq_ids+1;
 
 
-my $u = new Unison( dbname=>'csb-dev' );
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
 my $po = $u->get_p2options_by_params_id($opts{params_id});
 
@@ -125,14 +129,9 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 	}
   }}
 
-  
 
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  if (length($seq)>2000) {
-	print("$leader: skipping because it's >2000 AA\n");
-    next PSEQ_ID;
-  }
   $leader .= " (" . length($seq) . " AA)";
 
   my (@summaries);
@@ -166,17 +165,20 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 	};
   }
 
-  foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
-  foreach my $o (defined $opts{porigin_id} ? @{$opts{porigin_id}} : undef) {
-	$u->upd_run_history($pseq_id,$opts{params_id},$o,$m);
-  }}
+  my $z = $u->upd_run_histories($pseq_id,
+								$opts{params_id},
+								$opts{porigin_id},
+								$opts{pmodelset_id});
 
-  print(STDERR "done\n");
+  print(STDERR "done; history tickled ($z)\n");
 }
 
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.15  2004/06/25 00:20:27  rkh
+# periodic sync
+#
 # Revision 1.14  2004/06/04 00:04:07  rkh
 # periodic sync
 #
@@ -187,7 +189,7 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 # added exception handling
 #
 # Revision 1.11  2004/02/24 21:49:08  rkh
-# * added ran_on check IMPORTANT NOTE for clarification
+# * added ran_on; check IMPORTANT NOTE for clarification
 #
 # Revision 1.10  2004/02/24 19:20:57  rkh
 # periodic sync

@@ -1,78 +1,64 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.5 2004/02/27 08:33:48 rkh Exp $
-# load pfam HMM summary info (not the HMM itself) into unison
-# $ load-pmhmm <Pfam_fs
+# $Id: load-pmhmm,v 1.6 2004/04/02 00:34:05 rkh Exp $
+# load pfam HMM into unison
+# eg$ load-pmhmm /path/to/pfam-14.0/Pfam_fs
+
 
 use strict;
 use warnings;
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
+use IO::File;
 
+my $fn;
+($fn = shift)
+  || die("$0: I need that Pfam file name, homey\n");
 
-my %opts =
-  (
-   'origin' => undef,
-  );
-GetOptions( \%opts,
-			'origin|o=s' )
-  || die("Sarge, you've got usage problems; see code\n");
+my ($pfam_version,$fl) = $fn =~ m%pfam-([\.\d]+)/Pfam_([lf]s)%;
+(defined $fl)
+  || die("$0: couldn't parse origin (pfam-<version>/Pfam_([fl]s) from $fn\n");
+my $origin = "Pfam_$fl $pfam_version";		# e.g., Pfam_fs 12.0
 
+my $in = new IO::File;
+$in->open("<$fn")
+  || die("$fn: $!\n");
 
-if (not defined $opts{origin}) {
-  die("$0: missing required --origin option\n");
-}
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+my $porigin_id = $u->porigin_si_porigin_id($origin);
+(defined $porigin_id)
+  || die("$0: origin $origin: $@\n");
 
-my $u = new Unison;
-my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
-printf(STDERR "# loading sequences into $opts{origin} (porigin_id=$porigin_id)\n");
+my $sth = $u->prepare("update porigin set url=?,descr=? where porigin_id=? and url is null");
+$sth->execute('http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s',
+			  "Pfam_$fl version $pfam_version",
+			  $porigin_id)
+  || die("$0: update porigin: $@\n");
 
-my $sth_fetch_by_acc = $u->prepare_cached('select pmodel_id,cksum from pmhmm where acc=?');
-my $sth_update_pmhmm = $u->prepare("update pmhmm set porigin_id=?,name=? where pmodel_id=?");
-my $sth_insert_pmhmm = $u->prepare("insert into pmhmm (porigin_id,name,acc,descr,len,nseq,cksum) ".
-						"values ($porigin_id,?,?,?,?,?,?)");
+printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 
+my $sth_insert_pmhmm = $u->prepare("insert into pmhmm (porigin_id,name,acc,descr,len,nseq,cksum,hmm) ".
+						"values ($porigin_id,?,?,?,?,?,?,?)");
+my $sth_update_pmhmm = $u->prepare('update pmhmm set hmm=? where porigin_id=? and acc=?');
 
-$/ = "\nHMMER2.0";
-while(my $blk = <>) {
+$/ = "\n//\n";
+while(my $blk = <$in>) {
   my ($name,$acc,$descr,$len,$nseq,$cksum) 
 	= map {$blk =~ m/^$_\s+(.+)/m}  qw(NAME ACC DESC LENG NSEQ CKSUM);
+  chomp($blk);
+  my $hmm = $blk . $/;
 
-  # cases:
-  # given a new Pfam acc and cksum (from file being read):
-  # 1) model acc in db?  Yes:
-  #   a) cksums equal? Yes:
-  #     update origin
-  #   b) else:
-  #     insert as new
-  # 2) model acc not in db?
-  #   insert
-  # 3) model acc in db, not in 
-  #   nothing (we wouldn't know about it solely from input file)
-
-  my (@extant) = extant_models_by_acc($u,$acc);
-
-  # it's almost inconceivable that there would be more than one model
-  # with a matching checksum and same acc, but we'll play it safe...
-  my (@update_ids) = map {$_->[0]} grep {$_->[1]==$cksum} @extant;
-
-  if (@update_ids) {
-	printf(STDERR "updating %d ids (%s) for $acc ($name)\n",
-		   $#update_ids+1,join(',',@update_ids) );
-	$sth_update_pmhmm->execute($porigin_id,$name,$_) for @update_ids;
-  } else {
-	printf(STDERR "inserting $acc ($name)\n");
-	$sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum);
+  ## update hmm to fix a parse error.
+  if ( not eval {$sth_update_pmhmm->execute($hmm,$porigin_id,$acc)} ) {
+	die("$acc: $@\n");
   }
+  print(STDERR "updated $acc: $name ($descr)\n");
+  next;
+
+  if ( not eval {$sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum,$hmm)} ) {
+	warn("$acc: $@; skipping\n");
+  }
+  print(STDERR "loaded $acc: $name ($descr)\n");
 }
 
 printf("done; last updated=%s\n", $u->porigin_last_updated($porigin_id,1));
-
-
-sub extant_models_by_acc {
-  my ($u,$acc) = @_;
-  $sth_fetch_by_acc->execute($acc);
-  my $rv = $sth_fetch_by_acc->fetchall_arrayref();
-  $sth_fetch_by_acc->finish();
-  return(@$rv);
-}

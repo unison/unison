@@ -1,9 +1,7 @@
 create or replace function unison.release() returns void
 language plpgsql as '
 BEGIN
---	perform p2thread_create_indices();
-	
-	delete from meta;
+	delete from unison.meta;
 	perform meta_stats_update();
 	perform meta_update_kv(''release timestamp'',now());
 
@@ -22,20 +20,20 @@ BEGIN
 	ts:=now(); raise notice ''meta_stats_update: started %'',ts;
 
 	-- sequence stats
---	select into n count(*) from pseq;
---	perform meta_update_kv(''unique sequences'',n);
---	select into n count(*) from pseq where added>=now()-''30 days''::interval;
---	perform meta_update_kv(''new sequences in last 30 days'',n);
---	select into n count(*) from pseq where added>=now()-''60 days''::interval;
---	perform meta_update_kv(''new sequences in last 60 days'',n);
---	select into n count(*) from pseq where added>=now()-''180 days''::interval;
---	perform meta_update_kv(''new sequences in last 180 days'',n);
---
---	-- alias and origin stats
---	select into n count(*) from palias;
---	perform meta_update_kv(''aliases'',n);
---	select into n count(distinct tax_id) from palias;
---	perform meta_update_kv(''species'',n);
+	select into n count(*) from pseq;
+	perform meta_update_kv(''unique sequences'',n);
+	select into n count(*) from pseq where added>=now()-''30 days''::interval;
+	perform meta_update_kv(''new sequences in last 30 days'',n);
+	select into n count(*) from pseq where added>=now()-''60 days''::interval;
+	perform meta_update_kv(''new sequences in last 60 days'',n);
+	select into n count(*) from pseq where added>=now()-''180 days''::interval;
+	perform meta_update_kv(''new sequences in last 180 days'',n);
+
+	-- alias and origin stats
+	select into n count(*) from palias;
+	perform meta_update_kv(''aliases'',n);
+	select into n count(distinct tax_id) from palias;
+	perform meta_update_kv(''species'',n);
 
 	-- number of distinct sequences in an origin and 
 	-- number of distinct sequences unique to an origin
@@ -107,8 +105,8 @@ comment on function meta_stats_update() is 'update database statistics in meta';
 create or replace function meta_update_kv(text,text) returns void
 language plpgsql as '
 BEGIN
-	delete from meta where key=$1;
-	insert into meta (key,value) values ($1,$2);
+	delete from unison.meta where key=$1;
+	insert into unsion.meta (key,value) values ($1,$2);
 	raise notice ''meta_update_kv: % = %'',$1,$2;
 	return;
 END;';

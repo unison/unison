@@ -1,12 +1,27 @@
 #!/bin/bash
-# $Id: backup,v 1.19 2004/04/02 18:12:07 rkh Exp $
-
-# backup -- backup the csb database you must set PGPASSWORD before running
+# csb-db/sbin/backup -- backup the csb database
+# $Id: backup,v 1.20 2004/04/28 17:46:13 rkh Exp $
+#
+# you must set PGPASSWORD before running
 # this script any user with write permission in BACKUPDIR (below) should
 # be able to run this script.
+# 
+# crontab invocation:
+### MAILTO=me
+### PATH=/path/to/pg/bin:/usr/bin:/usr/sbin:/bin
+### PGPASSWORD=blahblahblah
+### PGDATA=/services/postgresql
+### HOME=/gne/compbio
+### 
+### #M  H  m  d  day        command
+### 20  0  *  *  *          /services/csb-db/sbin/nightly
+### 20  1  *  *  0,3        /services/csb-db/sbin/backup csb-dev
+### 20  1  *  *  1,2,4,5    /services/csb-db/sbin/backup -s csb-dev
 
-BACKUPDIR="$HOME/adm/backups"
-PATH=/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
+
+
+BACKUPDIR="$HOME/csb-db/backups"
+PATH=/gne/compbio/i686-linux-2.4/bin:/usr/bin:/bin
 PGD_OPTS="-X disable-triggers -X use-set-session-authorization -Ucompbio"
 
 source `dirname $0`/utils

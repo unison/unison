@@ -6,6 +6,21 @@
 ## - reassign (extant tax_id is not null)
 ## - nullify (current not null, infer_tax_id thinks it should be null)
 
+## NOTE: This works much better when one wants recent additions:
+## unison@csb-dev=> insert into paotax select
+##   AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr) from
+##   paliasorigin AO join (select * from pseqalias where added>='yesterday')
+##   SA on SA.palias_id=AO.palias_id join porigin O on
+##   O.porigin_id=AO.porigin_id;
+## INSERT 0 111990
+## Time: 53411.295 ms
+
+## and this is a huge win for updates:
+## => update paliasorigin set tax_id=infer_tax_id from paotax where
+##   paotax.palias_id=paliasorigin.palias_id and paotax.tax_id is null and
+##   paotax.infer_tax_id is not null;
+
+
 
 use strict;
 use warnings;
@@ -39,7 +54,7 @@ sub nullify_tax_ids ($);
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '# $Id: update_tax_ids.pl,v 1.8 2004/04/29 16:25:34 rkh Exp $ ', "\n");
+print(STDERR '# $Id: update_tax_ids.pl,v 1.9 2004/10/04 22:03:22 rkh Exp $ ', "\n");
 
 
 GetOptions(\%opts,
@@ -87,7 +102,7 @@ if (not defined $opts{'palias-id-min'} or not defined $opts{'palias-id-max'}) {
   my ($b,$e) = $u->selectrow_array( $sql );
   $opts{'palias-id-min'} = $b unless defined $opts{'palias-id-min'};
   $opts{'palias-id-max'} = $e unless defined $opts{'palias-id-max'};
-  printf(STDERR "# palias_id range = [%d,%d]\n", $opts{'palias-id-min'}, $opts{'palias-id-max'});
+  printf(STDERR "# palias_id range (selection) = [%d,%d]\n", $opts{'palias-id-min'}, $opts{'palias-id-max'});
 }
 
 
@@ -95,6 +110,14 @@ if ($opts{'create-paotax'}) {
   create_paotax($u);
   print(STDERR "created paotax table\n");
 }
+
+
+# set min and max to the empirical min and max from the paotax table
+my $sql = 'select min(palias_id),max(palias_id) from paotax';
+($opts{'palias-id-min'},$opts{'palias-id-max'}) = $u->selectrow_array( $sql );
+printf(STDERR "# palias_id range (empirical) = [%d,%d]\n",
+	   $opts{'palias-id-min'}, $opts{'palias-id-max'});
+
 
 my $nrows_changed = 0;
 $nrows_changed += assign_tax_ids($u)	if $opts{'assign'};
@@ -147,7 +170,7 @@ sub create_paotax ($) {
   eval { $u->do('drop table paotax') }
 	|| die("couldn't drop paotax table\n");
   eval { $u->do(qq/create table paotax (palias_id integer not null,
-			tax_id integer, infer_tax_id integer) without oids/) }
+            tax_id integer, infer_tax_id integer) without oids/) }
 	|| die("couldn't drop paotax table\n");
   my $sth = $u->prepare( $sql );
   execute_sth((caller(0))[3], $sth, $opts{'increment'});

@@ -1,5 +1,5 @@
 # -*- sh -*-
-# $Id: utils,v 1.8 2004/01/08 02:17:38 rkh Exp $
+# $Id: utils,v 1.9 2004/02/19 23:06:43 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 JEMAPPELLE=`basename $0`
@@ -14,26 +14,28 @@ logger () {
 }
 
 
-# pipe_logger -- send all lines on stdin to logger
-# NOTE: while sed or similar might seem to be better,
-# that would result in a static datestamp
+# pipe_logger -- send lines on stdin to logger, line-by-line
+# NOTE: while piping through sed or similar might seem to be better,
+# that would result in a static datestamp. 
 pipe_logger () {
 	while read f; do [ -n "$f" ] && logger "  $f"; done
 }
 
 
-# die -- log (as with logger), then exit
+# die -- log error (with logger), then exit
 die () {
 	logger "! ERROR:"
 	logger "!  $@";
 	exit 1;
 }
 
-# warn -- log (as with logger), then exit
+
+# warn -- log error (with logger), and continue
 warn () {
 	logger "! WARNING:"
 	logger "!  $@";
 }
+
 
 # dothis -- execute a command and log stdout+stderr
 dothis () {
@@ -43,6 +45,7 @@ dothis () {
 
 
 
+# startup notification
 if [ -t 0 ]; then
 	logger "logging to stdout/stderr (`tty`)"
 else
@@ -50,4 +53,6 @@ else
 	exec >>"$LOG_DIR/$JEMAPPELLE" 2>&1
 fi
 
-source /apps/compbio/setup.sh
+
+# Hmm... this is a dubious hack to set up env -- this should be assumed
+source /gne/compbio/setup.sh
