@@ -2,18 +2,20 @@
 -- NAME: create_pfsignalp.sql
 -- PURPOSE: sql statements to create pfsignalp table
 --
--- $Id: create_papseq.sql,v 1.1 2003/07/14 23:35:29 cavs Exp $
+-- $Id: create_pfsignalp.sql,v 1.1 2003/10/16 18:23:07 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 DROP TABLE pfsignalp;
 CREATE TABLE pfsignalp (
     pftype_id integer DEFAULT pftype_id_lookup('SignalP-2.0'::text),
-    siganchor_prob real
+    siganchor_prob real,
+    max_cleavage_prob real
 )
 INHERITS (pfeature) WITHOUT OIDS;
 COMMENT ON TABLE pfsignalp IS 'signal sequence prediction from SignalP';
 COMMENT ON COLUMN pfsignalp.confidence IS 'signal sequence probability';
 COMMENT ON COLUMN pfsignalp.siganchor_prob IS 'signal anchor probability';
+COMMENT ON COLUMN pfsignalp.max_cleavage_prob IS 'max cleavage site probability';
 
 -- permissions
 REVOKE ALL ON TABLE pfsignalp FROM PUBLIC;
@@ -28,6 +30,7 @@ CREATE INDEX pfsignalp_start_idx ON pfsignalp USING btree ("start");
 CREATE INDEX pfsignalp_stop_idx ON pfsignalp USING btree (stop);
 CREATE INDEX pfsignalp_quality_idx ON pfsignalp USING btree (confidence);
 CREATE INDEX pfsignalp_siganchor_idx ON pfsignalp USING btree (siganchor_prob);
+CREATE INDEX pfsignalp_max_idx ON pfsignalp USING btree (max_cleavage_prob);
 
 -- foreign keys
 ALTER TABLE ONLY pfsignalp
