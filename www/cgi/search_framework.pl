@@ -12,30 +12,43 @@ use Unison::WWW::Table;
 use IO::Pipe;
 
 my $cmd = '/gne/compbio/opt/unison/bin/framework-search';
-$cmd = '/home/rkh/csb-db/unison/bin/framework-search';
 
 my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
-print $p->render("Framework Search",
-				 (defined $v->{frameworks}
-				  ? results($p)
-				  : form($p) )
-				 );
+if (defined $v->{frameworks}) {
+  print $p->render("Framework Search Results",
+				   results($p))
+} else {
+  print $p->render("Framework Search",
+				   form($p))
+}
 
+exit(0);
+
+
+	
 sub form {
   my $p = shift;
   return (
-		  $p->warn('Searches on this page may take several minutes to complete.'),
+		  $p->warn('Searches on this page may take several minutes to
+		  complete.'),
 
 		  $p->start_form(-method => 'GET',
 						 -action => $p->make_url()),
-		  'Enter Framework regions, one per line:',
+
+		  'Search title:',
+		  $p->textfield(-name=>'title',
+						-size=>40,
+					   ),
+		  
+		  '<p>Framework regions (one per line, or fasta, or p1 file):',
 		  '<br>',
 		  $p->textarea(-name=>'frameworks',
 					   -columns=>80,
 					   -rows=>5,
 					  ),
+
 		  '<br>',
 		  $p->submit(-value=>'vroom!'),
 		  $p->end_form(), "\n",
@@ -46,10 +59,16 @@ sub form {
 sub results {
   my $p = shift;
   my $v = $p->Vars();
-  my (@args) = grep {m/\w/} split(/\s+/m,$v->{frameworks});
   my ($fh,$fn,$urn) = $p->tempfile(SUFFIX=>'.html');
+  my @fr = map {s/\s+//;$_} grep {m/^\w/} split(/\n/m,$v->{frameworks});
 
-  #$fh->print($cmd, join('<br>', @args), "<br>\n\n");
+  if (not @fr) {
+	$p->die("You didn't provide any framework regions");
+  }
+
+  my (@args); # = qw(--testing);
+  push(@args, "--title=$v->{title}") if defined $v->{title};
+  push(@args, @fr);
 
   my $pipe = new IO::Pipe;
   if (not $pipe->reader($cmd, @args)) {
