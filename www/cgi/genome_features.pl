@@ -6,7 +6,7 @@
 # USAGE: genome_features.pl?genasm_id=<genasm_id>&[(chr=<chr>&gstart=<gstart>&gstop=<gstop>)||(pseq_id=<pseq_id>)]
 # NOTE: web wrapper around the genome-features command-line scripto
 #
-# $Id: genome_features.pl,v 1.3 2004/02/20 19:00:45 cavs Exp $
+# $Id: genome_features.pl,v 1.4 2004/02/20 22:02:38 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -30,8 +30,14 @@ my ($imap_fh, $imap_fn) = File::Temp::tempfile(DIR => "$ENV{'DOCUMENT_ROOT'}/tmp
 
 # run genome-features, pass in temp filenames
 my $cmd = "../../bin/genome-features -d$p->{unison}->{dbname} -UPUBLIC -w750 -q$v->{genasm_id} -f$png_fn -i$imap_fn";
+if ( defined $v->{margin} ) {
+  $cmd .= " -m$v->{margin} ";
+}
 if ( defined $v->{pseq_id} ) {
   $cmd .= " -p$v->{pseq_id}";
+  if ( defined $v->{show_all} && $v->{show_all} ) {
+    $cmd .= ' -a ';
+  }
 } else {
   $cmd .= " -c$v->{chr} -b$v->{gstart} -e$v->{gstop}";
 }
