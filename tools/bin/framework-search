@@ -3,37 +3,35 @@
 # framework-search -- identify and report on sequences which match a set
 # of antibody framework regions.
 #
-# $Id$
+# $Id: framework-search,v 1.1 2004/10/14 00:34:40 rkh Exp $
+#
 
 
 use strict;
 use warnings;
 use Unison;
-use HTML::Template;
-use Data::Dumper;
 
 
 # Sequences of all origins will be searched. @origins is the
 # list of origins whose name, description, and last_update will be
 # included in the report.
-my (@origins) = qw(Uniprot GenenGenes IPI Kabat GGI Geneseq MGC/Human
-				MGC/Mouse Proteome RefSeq);
-
-my $title = 'Antibody Fragment Search';
+my (@origins) = qw(GGI GenenGenes Geneseq IPI Incyte Kabat MGC/Human
+				MGC/Mouse PDB Proteome RefSeq Uniprot);
 
 
 ## PROTOTYPES
-sub html_header($);
+sub html_header();
 sub html_footer();
-sub fragment_summary(@);
+sub framework_summary(@);
 sub origins_table($@);
 sub results_table($@);
+sub fr_re(@);
 
 
-my @fr = ();								# array of fragments
+my @fr = ();								# array of framework regions
 
 
-# get fragments from command line if exists, else stdin
+# get framework regions from command line if exists, else stdin
 if (@ARGV) {
   @fr = @ARGV;
 } else {
@@ -44,13 +42,14 @@ if (@ARGV) {
 	}
   }
 }
-print(STDERR join("\n  ", (1+$#fr)." framework fragments:", @fr), "\n");
+print(STDERR '# ', $#fr+1, " framework regions:\n",
+	  map { "#   $_\n" } @fr);
 
 
 my $u = new Unison(dbname=>'csb-dev');
 
-print html_header($title);
-print fragment_summary(@fr);
+print html_header();
+print framework_summary(@fr);
 print origins_table($u,@origins);
 print results_table($u,@fr);
 print html_footer();
@@ -62,9 +61,9 @@ exit(0);
 ###########################################################################
 ## INTERNAL FUNCTIONS
 
-sub html_header($) {
-  my $title = shift;
-  my $Id = '$Id: wlproxy.pl,v 1.5 2004/09/21 21:29:00 rkh Exp rkh $ ';
+sub html_header() {
+  my $title = 'Antibody Framework Search';
+  my $Id = '$Id: framework-search,v 1.1 2004/10/14 00:34:40 rkh Exp $ ';
   my $date = `date +"%Y-%m-%d %H:%M"`;
 
   my $html = <<EOHTML;
@@ -77,22 +76,39 @@ sub html_header($) {
 <body>
 
 <h1>$title</h1>
-<br>$Id
-<br>Generated on $date
-<hr>
+
+This report identifies sequences which are matched by a set antibody
+framework regions.  Specifically, a sequence matches a set of framework
+regions if it contains all specified regions identically and in order,
+with intervening gaps of any length (including zero-length gaps).
+
+<p>The sequence search was performed in Unison, a compilation of sequences
+from many source databases.  Please contact Reece Hart for more information
+about how the search was performed.
+
+<p>Version $Id
+<br>Report generated on $date
 EOHTML
 
   return $html;
 }
 
 
-sub fragment_summary(@) {
+sub framework_summary(@) {
   my @fr = @_;
-  my $html = '<br>' . (1+$#fr) . " framework fragments:\n"
-	. "<ul>\n"
-    . join('',map { "  <li>$_\n" } @fr)
-    . "</ul>\n"
-    . '<br>regexp: ' . join('.+',@fr);
+  my $nfr = $#fr+1;
+  my $li_block = join('',map { "  <li>$_\n" } @fr);
+  my $fr_re = fr_re(@fr);
+
+  my $html = <<EOHTML;
+<hr><h2>Framework Regions</h2>
+<ul>
+$li_block
+</ul>
+EOHTML
+
+  #$html .= "<blockquote>(regexp: <code>$fr_re</code>)</blockquote>\n";
+
   return $html;
 }
 
@@ -101,7 +117,7 @@ sub origins_table($@) {
   my $u = shift;
   my @origins = @_;
   my $html = '';
-  my $sql = "select origin,url,descr,to_char(last_updated, 'YYYY-MM-DD HH24:MI'::text) as last_updated"
+  my $sql = "select origin,url,descr,to_char(last_updated, 'YYYY-MM-DD&nbsp;HH24:MI'::text) as last_updated"
  	. ' from porigin where origin in (' . join(',', map {"'$_'"} @origins) . ') '
 	. ' order by upper(origin)';
   my $sth = $u->prepare($sql);
@@ -112,17 +128,18 @@ sub origins_table($@) {
   }
 
   $html .= <<EOHTML;
-<h2>Database Sources</h2>
+<hr><h2>Database Sources</h2>
 Sequences originating from the following major databases were searched.
 Additional minor databases were searched but are not listed below.
 
-<table width="100%" border=1>
+<p><table width="100%" border=1>
   <tr><th>origin</th><th>description</th><th>last updated</th></tr>
 EOHTML
 
   while ( my $data = $sth->fetchrow_hashref() ) {
-	$html .= sprintf('<tr><td align="left"><a href="%s">%s</a></td><td align="left">%s</td><td align="left">%s</td></tr>',
-					@$data{qw(url origin descr last_updated)}) ."\n" ;
+	#XXX null or %s origins need trimming
+	$html .= sprintf('<tr><td align="left"><a href="%s">%s</a></td><td align="left">%s</td><td align="center">%s</td></tr>',
+					(map {defined $_ ? $_ : ''} @$data{qw(url origin descr last_updated)})) ."\n" ;
   }
 
   $html .= <<EOHTML;
@@ -136,29 +153,57 @@ EOHTML
 sub results_table($@) {
   my $u = shift;
   my @fr = @_;
-  my $fr = join('.+',@fr);
-  my $pseq_url_fmt = 'http://csb:8000/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
+  my $fr = fr_re(@fr);
   my $html = '';
-#  my $sql = 'select pseq_id,best_annotation(pseq_id) as best_annotation from pseq where seq ~ ?';
-  my $sql = 'select pseq_id,best_annotation(pseq_id) as best_annotation from palias where alias ~ ?';
-  $sql .= ' order by pseq_id';
-  my $sth = $u->prepare($sql);
 
+  my $sql = <<EOSQL;
+SELECT
+  DISTINCT ON (S.pseq_id)
+  S.pseq_id,
+  canonical_oad_fmt(O.origin,AO.alias,AO.descr) as "best_annotation"
+
+FROM
+  pseq S
+  LEFT JOIN pseqalias SA on S.pseq_id = SA.pseq_id
+  LEFT JOIN paliasorigin AO on SA.palias_id = AO.palias_id
+  LEFT JOIN porigin O on O.porigin_id = AO.porigin_id
+
+WHERE
+  S.seq ~ ?
+  AND SA.iscurrent = TRUE
+  AND O.porigin_id != porigin_id('Geneseq')
+
+ORDER BY
+  S.pseq_id, O.ann_pref
+EOSQL
+
+  my $sth = $u->prepare($sql);
   eval { $sth->execute($fr) };
   if ($@) {
 	die( $u->errstr() );
   }
 
 
-
   $html .= <<EOHTML;
-<h2>Results</h2>
+<hr><h2>Results</h2>
 
-<table width="100%" border=1>
-  <tr><th>Unison pseq_id</th><th>best_annotation</th></tr>
+The following sequences contain the framework regions shown above.
+Although source databases are redundant, Unison stores sequences
+non-redundantly. Each row of the following results is a unique sequence.
+
+<p>Clicking the Unison "pseq_id" will show the sequence, source
+information, patents, and any precomputed results available for the
+sequence. The "best annotation" is Unison's best guess for the most
+appropriate annotation for that sequence from among all annotations for
+that sequence from all source databases.
+
+<p><table width="100%" border=1>
+  <tr><th>Unison pseq_id</th><th width="42%">best annotation</th></tr>
 EOHTML
 
+  my $pseq_url_fmt = 'http://csb:8000/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
   while ( my $data = $sth->fetchrow_hashref() ) {
+	#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
 	$html .= sprintf('<tr><td align="right"><a href="'.$pseq_url_fmt.'">%s</a></th><td align="left">%s</th></tr>',
 					@$data{qw(pseq_id pseq_id best_annotation)}) ."\n" ;
   }
@@ -170,10 +215,98 @@ EOHTML
   return $html;
 }
 
-
 sub html_footer() {
   return <<EOHTML;
 <body>
 </html>
 EOHTML
 }
+
+
+sub fr_re(@) {
+  join('.*',@_);
+}
+
+
+
+#########################################################################
+### DEAD CODE
+
+sub results_table2($@) {
+  ## BROKEN BROKEN BROKEN
+  ## sequences which don't have geneseqs are omitted with the SQL below
+  ## (test: ^MAE and pseq_id<=100 should give 2 seqs, 1 of which has a pat)
+  ## left joins don't work. I'm confused.
+
+  my $u = shift;
+  my @fr = @_;
+  my $fr = fr_re(@fr);
+  my $html = '';
+
+  my $sql = <<EOSQL;
+SELECT
+  DISTINCT ON (S.pseq_id)
+  S.pseq_id,
+  canonical_oad_fmt(O.origin,AO.alias,AO.descr) as "best_annotation",
+  canonical_oad_fmt('Geneseq',GSAO.alias,GSAO.descr) as "patent_annotation"
+
+FROM
+  pseq S
+  LEFT JOIN pseqalias SA on S.pseq_id = SA.pseq_id
+  JOIN paliasorigin AO on SA.palias_id = AO.palias_id
+  JOIN porigin O on O.porigin_id = AO.porigin_id
+  LEFT JOIN pseqalias GSSA on S.pseq_id = GSSA.pseq_id
+  JOIN paliasorigin GSAO on GSSA.palias_id = GSAO.palias_id
+
+WHERE
+  S.seq ~ ?
+  AND S.pseq_id <= 100
+  AND SA.iscurrent = TRUE
+  AND O.porigin_id != porigin_id('Geneseq')
+  AND GSSA.iscurrent = TRUE
+  AND GSAO.porigin_id = porigin_id('Geneseq')
+
+ORDER BY
+  S.pseq_id, O.ann_pref, GSAO.palias_id
+EOSQL
+
+  $sql =~ s/\s+/ /gs; $sql =~ s/~ \?/~ '$fr'/; die("$sql\n");
+  
+  my $sth = $u->prepare($sql);
+  eval { $sth->execute($fr) };
+  if ($@) {
+	die( $u->errstr() );
+  }
+
+
+  $html .= <<EOHTML;
+<hr><h2>Results</h2>
+
+The following sequences contain the framework regions shown above.
+Although source databases are redundant, Unison stores sequences
+non-redundantly. Each row of the following results is a unique sequence.
+
+<p>Clicking the Unison "pseq_id" will show the sequence, source
+information, patents, and any precomputed results available for the
+sequence. The "best annotation" is Unison's best guess for the most
+appropriate annotation for that sequence from among all annotations for
+that sequence from all source databases.
+
+<p><table width="100%" border=1>
+  <tr><th>Unison pseq_id</th><th width="42%">best annotation</th><th width="42%">patent info (if any; only one listed)</th></tr>
+EOHTML
+
+  my $pseq_url_fmt = 'http://csb:8000/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
+  while ( my $data = $sth->fetchrow_hashref() ) {
+	#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
+	$html .= sprintf('<tr><td align="right"><a href="'.$pseq_url_fmt.'">%s</a></th><td align="left">%s</th></tr>',
+					@$data{qw(pseq_id pseq_id best_annotation patent_annotation)}) ."\n" ;
+  }
+
+  $html .= <<EOHTML;
+</table>
+EOHTML
+
+  return $html;
+}
+
