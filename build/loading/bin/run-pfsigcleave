@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsigcleave [pseq_ids]
 #
-# $Id: run-pfsigcleave,v 1.2 2003/10/09 22:27:33 cavs Exp $
+# $Id: run-pfsigcleave,v 1.3 2003/10/13 21:02:55 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -30,6 +30,10 @@ GetOptions( \%opts,
 
 
 $ENV{DEBUG}=1;
+
+# cutoffs:
+my $score_cutoff = '3.5';
+my $end_cutoff = '50';
 
 my $run_id = 5;                # hardwired for now
 my $temp_in_fn =  "/tmp/run-pfsigcleave-$$.fa";
@@ -56,7 +60,6 @@ for(my $i=0; $i<=$#list; $i++) {
     return;
   }
   $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq, -id  => "Unison:$pseq_id") );
-
 }
 $seqio->close();
 
@@ -67,18 +70,22 @@ system(join(' ',@cmd));
 
 my $parser = new Genentech::EmbossSimple( 'file' => $temp_out_fn );
 
-while(my $r = $parser->next_result) {
-  if ( defined $r->[0] ) {
-    my $pseq_id = $r->[0]->{'Name'};
-    my $score = $r->[0]->{'Score'};
-    my $start = $r->[0]->{'Start'};
-    my $end = $r->[0]->{'End'};
+RESULT: while(my $r = $parser->next_result) {
+  foreach my $ref ( @{$r} ) {
+    my $pseq_id = $ref->{'Name'};
+    my $score = $ref->{'Score'};
+    my $start = $ref->{'Start'};
+    my $end = $ref->{'End'};
+
+    next if $score < $score_cutoff;
+    next if $end > $end_cutoff;
+
     printf(STDOUT "\rloading Unison:%-8s (score: %.2f, start: %d, end: %d)\n",
        $pseq_id,$score,$start,$end);
     $sth->execute($pseq_id,$start,$end,$score,$run_id);
     $u->last_run_update($pseq_id,$run_id);
-  } else {
-    printf(STDOUT "\rno sigcleave value");
+
+    next RESULT;
   }
 }
 
