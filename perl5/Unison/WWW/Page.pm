@@ -15,17 +15,20 @@ sub new {
   my $host;
 
   # establish session authentication, preferably via kerberos
-  if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
+  if (exists $v->{username}) {
+	$username = $v->{username};
+  } elsif (exists $ENV{REMOTE_USER}
+		   and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
 	$username = $ENV{REMOTE_USER};
 	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$username";
-	$host = 'svc';
+	$host = 'svc';							# must be svc for krb5 auth
   }
 
   try {
 	$self->{unison} = new Unison( username => $username,
 								  password => undef,
 								  host => $host,
-								  dbname => $v->{dbname} || 'csb' ); 
+								  dbname => $v->{dbname} || 'csb' );
   }
   catch Unison::Exception with {
 	my $msg = escapeHTML($_[0]);
@@ -38,21 +41,59 @@ sub new {
 					);
   };
 
+
+  # Most pages should refer to sequences by pseq_id. If pseq_id isn't defined,
+  # then we attempt to infer it from seq, md5, or alias (in that order).
+  if (not exists $v->{pseq_id}) {
+	my @ids;
+
+	if (exists $v->{seq}) {
+	  (@ids) = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
+	  if ($#ids == -1) {
+		$self->die('sequence not found',
+				   'The sequence you provided wasn\'t found in Unison.');
+	  }
+	} elsif (exists $v->{md5}) {
+	  (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
+	  if ($#ids == -1) {
+		$self->die('md5 checksum not found',
+				   'The md5 checksum you provided wasn\'t found in Unison.');
+	  } elsif ($#ids > 0) {
+		# md5 collision! (hasn't happened yet and I don't expect it), but just in case...
+		$self->die('md5 collision!',
+				   'The md5 checksum you provided corresponds to more than one sequence.');
+	  }
+	} elsif (exists $v->{alias}) {
+	  (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
+	  if ($#ids == -1) {
+		$self->die('alias not found',
+				   'The alias you provided wasn\'t found in Unison (case insensitive).');
+	  } elsif ($#ids > 0) {
+		# multiple aliases
+		$self->die('alias collision',
+				   'The alias you provided corresponds to more than one sequence.');
+	  }
+	}
+
+	$v->{pseq_id} = $ids[0];
+  }
+
+  undef $v->{md5};
+  undef $v->{seq};
+
   $self->start_html;
   return $self;
   }
 
 
 
-sub header
-  {
+sub header {
   my $p = shift;
   return '' if $p->{already_did_header}++;
   return $p->SUPER::header();
-  }
+}
 
-sub start_html
-  {
+sub start_html {
   my $self = shift;
   return $self->SUPER::start_html( @_,
 								   -head => [
@@ -273,15 +314,13 @@ sub tip {
 		  join(' ',@_), '</div>', "\n" );
 }
 
-sub warn
-  {
+sub warn {
   shift;
   return( "\n",'<p><div class="warning"><b>Warning:</b> ', 
 		  join(' ',@_), '</div>', "\n" );
-  }
+}
 
-sub ensure_required_params
-  {
+sub ensure_required_params {
   my $p = shift;
   my @ud = grep { not defined $p->param($_) or $p->param($_) eq '' } @_;
   return 0 unless @ud;
@@ -291,8 +330,7 @@ sub ensure_required_params
   # doesn't return
 }
 
-sub die
-  {
+sub die {
   my $p = shift;
   my $t = shift;
   print $p->render( "Error: $t",
@@ -301,7 +339,7 @@ sub die
 					join(' ',@_), 
 					'</div>', "\n" );
   exit(0);
-  }
+}
 
 sub debug {
   my $p = shift;
