@@ -18,7 +18,7 @@ Datum pg_clean_sequence(PG_FUNCTION_ARGS)
     { PG_RETURN_NULL(); }
 
   t0 = PG_GETARG_TEXT_P(0);
-  t1 = (text*) palloc( VARSIZE(t0)-VARHDRSZ );
+  t1 = (text*) palloc( VARSIZE(t0) ); /* -VARHDRSZ ); */
   if (!t1)
     { elog( ERROR, "couldn't palloc (%d)", VARSIZE(t0)-VARHDRSZ ); }
 
@@ -50,7 +50,7 @@ char* clean_sequence(const char* in, char* out, int32 n)
   for( i=0; i<=n-1; i++ )
     {
     char c = toupper(in[i]);
-    if ( ! isspace(c) )
+    if ( isseq(c) )
       { *oi++ = c; }
     }
   *oi = '\0';
