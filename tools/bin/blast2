@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id: blast2,v 1.5 2004/01/08 02:17:38 rkh Exp $
+# $Id: blast2,v 1.6 2004/04/02 00:27:43 rkh Exp $
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
@@ -19,10 +19,13 @@ select(STDERR); $|++;
 select(STDOUT); $|++;
 
 my %opts =
-  ( 'show-report' => 0 );
+  (
+   'show-report' => 0,
+  );
 
-GetOptions( \%opts,
-			'show-report|r+' )
+GetOptions(\%opts,
+		   'show-report|r+',
+		  )
   || die("$0: you are horribly misguided about my arguments\n");
 
 (@ARGV == 2)
@@ -41,9 +44,11 @@ $SIG{$_} = sub { cleanup(); exit 1; } for qw(HUP INT QUIT);
 my $u = new Unison( username => 'PUBLIC' );
 my $s1 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id1 ),
 								-id  => "Unison:$id1",
+								-desc => $u->best_annotation($id1),
 								-alphabet => 'protein' );
 my $s2 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id2 ),
 								-id  => "Unison:$id2",
+								-desc => $u->best_annotation($id2),
 								-alphabet => 'protein' );
 
 my $factory = Bio::Tools::Run::StandAloneBlast->new(program => 'blastp',
