@@ -2,13 +2,19 @@ Let's migrate options to the following standard:
 
 options:
 Unison::DBI opts: -d, -U, -h
--Q pset_id
--m pmodel_id
--M modelset_id
--o porigin_id (capital "oh", not zero)
+
+-q pseq_id      -Q pset_id
+-m pmodel_id    -M pmodelset_id (pmodelset name?)
+-o porigin_id (or name?)
 -p params_id
 
+--pseq_ids-from-file
+--force -- run despite run_history
+--delete -- delete existing row first
 
-The basic rationale is that "things" are lowercase, sets of things are
-uppercase
+The basic rationale is that "things" are lowercase, SETS of things are
+uppercase. 
+
+Where possible, CGI args should have the same names and semantics as the
+command line args above.
 
