@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################
 # compare_scores.pl -- compare scoring systems for pmodelsets
-# $ID = q$Id: compare_scores.pl,v 1.4 2005/03/20 03:36:16 rkh Exp $;
+# $ID = q$Id: compare_scores.pl,v 1.5 2005/03/20 19:11:16 mukhyala Exp $;
 #############################################################
 use strict;
 use warnings;
@@ -14,7 +14,7 @@ use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::SQL;
 use Unison::Exceptions;
-use Unison::Utils::compare_scores;
+use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -44,25 +44,25 @@ sub main {
 ##
 
     if (exists $v->{submit}) {
-      ($scores) = Unison::Utils::compare_scores::get_p2_scores($u,$v,$v->{score});
+      ($scores) = Unison::Utilities::compare_scores::get_p2_scores($u,$v,$v->{score});
 
       if(scalar keys %$scores < 1) {$v->{tag} = "NO DATA" ;}
       else {
 
 	#get scop and pdb codes for all pmodels in pmodelset;
-	Unison::Utils::compare_scores::get_scop_pdb($u);
+	Unison::Utilities::compare_scores::get_scop_pdb($u);
 	
 	if($v->{Plot} eq 'Clustered') {
-	  $v->{tag} = Unison::Utils::compare_scores::display_table($u);
+	  $v->{tag} = Unison::Utilities::compare_scores::display_table($u);
 	}
 	elsif($v->{Plot} eq 'Scatter') {
 
-	    my ($data,$map) = Unison::Utils::compare_scores::display_points($png_fh);
+	    my ($data,$map) = Unison::Utilities::compare_scores::display_points($png_fh);
 	    $v->{tag} = sprintf('<IMG SRC="%s" usemap="#scattermap">%s',$png_urn,$map->imagemap($png_fn, $data));
 	  }
 	elsif($v->{Plot} eq 'Range') {
 
-	  Unison::Utils::compare_scores::display_bars($png_fh);
+	  Unison::Utilities::compare_scores::display_bars($png_fh);
 	  $v->{tag} = sprintf('<IMG SRC="%s"',$png_urn);
 	}
 	$v->{tag} .= _footnote($v->{Plot});
