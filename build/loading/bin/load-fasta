@@ -8,6 +8,7 @@ use IO::File;
 use Bio::SeqIO;
 use Getopt::Long qw(:config gnu_getopt);
 use DBI;
+use Digest::MD5  qw(md5_hex);
 
 use lib ('./perl5', '/home/rkh/unison/perl5', "$ENV{HOME}/unison/perl5");
 use Genentech::Unison;
@@ -17,10 +18,14 @@ my $origin;
 my $filelist;
 my $startafter;
 my $maxlen = 10000;
+my $md5fn;
+my $sqlonly;
 GetOptions( 'origin|o=s' => \$origin,
 			'filelist|f=s' => \$filelist,
 			'startafter|A=s' => \$startafter,
 			'maxlen|L=s' => \$maxlen,
+			'sqlonly' => \$sqlonly,
+			'md5|m=s' => \$md5fn,
 			@Genentech::Unison::OPTS
 		  )
   || die("$0: bad usage\n");
@@ -30,12 +35,17 @@ defined $origin
 
 # whee... globals
 my $udb = new Genentech::Unison;
-my $porigin_id = $udb->si_porigin_id($origin);
-my %extant = map {$_=>1} $udb->get_alias_in_porigin_id($porigin_id);
+my $porigin_id = $udb->porigin_si_porigin_id($origin);
+my %alias; # = map {$_=>1} $udb->get_alias_in_porigin_id($porigin_id);
+my %md5 = $udb->pseq_md5map();
+
 printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+#printf(STDERR "# %d extant sequence aliases from $origin\n", scalar keys %alias);
+printf(STDERR "# %d sequence md5s from pseq\n", scalar keys %md5);
 
 
 
+my $nloaded = 0;
 if (defined $filelist)
   {
   my $fh = new IO::File;
@@ -44,7 +54,7 @@ if (defined $filelist)
   while( my $fn = <$fh> )
 	{
 	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>$fn );
-	process_stream($in);
+	$nloaded += process_stream($in);
 	}
   $fh->close();
   }
@@ -53,25 +63,35 @@ elsif (@ARGV)
   while( @ARGV )
 	{
 	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>shift );
-	process_stream($in);
+	$nloaded += process_stream($in);
 	}
   }
 else
   {
   my $in = Bio::SeqIO->new('-format' => 'Fasta');
-  process_stream($in);
+  $nloaded += process_stream($in);
   }
+
+printf(STDERR "# %d extant aliases, %d extant md5s, %d new sequences added\n",
+	   scalar keys %alias, scalar keys %md5, $nloaded);
+#printf(STDERR "# %d md5s added to $md5fn\n",
+#	   $nloaded);
+#$md5fh->close() if defined $md5fh;
 
 exit(0);
 
 
 
+# ________________________________________________________________________ #
+# ________________________________________________________________________ #
 
 sub process_stream
   {
   my $in = shift;
+  my $nloaded = 0;
   while( my $seq = $in->next_seq() )
-	{ process_seq($seq); }
+	{ $nloaded += process_seq($seq); }
+  return $nloaded;
   }
 
 sub process_seq
@@ -80,6 +100,16 @@ sub process_seq
   my $id = $bs->display_id();
   my $descr = $bs->desc();
   my $seq = $bs->seq();
+  my $oseq = $seq;
+  $seq =~ s/[^-\*\?A-Z]//g;
+  my $md5 = md5_hex($seq);
+
+  if ($seq ne $oseq)
+	{
+	warn("! $id: sequence modified by s/^[-\*\?A-Z]//g\n",
+		 "orig: $seq\n",
+		 "strp: $oseq\n");
+	}
 
   # description reformatting
   $descr = '' unless defined $descr;
@@ -101,8 +131,10 @@ sub process_seq
 	$skip = "haven't reached $startafter yet";
 	undef $startafter if ($id eq $startafter);
 	}
-  elsif (defined %extant and exists $extant{$id})
-	{ $skip = "extant"; }
+  elsif (defined %alias and exists $alias{$id})
+	{ $skip = 'extant alias (pseq_id='.$alias{$id}.')'; }
+  elsif (defined %md5 and exists $md5{ $md5 })
+	{ $skip = 'sequence md5 in database (pseq_id='.$md5{$md5}.')'; }
   elsif (defined $maxlen and length($seq)>$maxlen)
 	{ $skip = sprintf("too long (%d AA; maxlen=$maxlen",length($seq)); }
   elsif (length($seq) == 0)
@@ -110,29 +142,42 @@ sub process_seq
   elsif ($descr =~ m%/type=(\w+)% and $1 ne 'gene')
 	{ $skip = "non-gene genescan transcript"; }
   if (defined $skip)
-	{ warn("# skipping $id: $skip ($descr)\n"); return; }
+	{ warn("# skipping $id: $skip ($descr)\n"); return 0; }
 
   # @ids is the SET of ids to which we'll link this sequence
   my @ids = ();
+
   if ($origin eq 'SPDI')
 	{
 	push(@ids,$1) if $descr =~ s/(UNQ\d+)\s+//;
 	push(@ids,$1) if $descr =~ s/(PRO\d+)\s+//;
-	push(@ids,$1) if $descr =~ s/(DNA\d+)\s+//;
-	warn("$id: didn't match 3 SPDI identifiers (@ids)\n") unless $#ids=2;
+	push(@ids,$id);
+	warn("$id: didn't match 3 SPDI identifiers (@ids)\n") unless $#ids==2;
     }
   else
 	{
 	@ids = ( $id );
 	}
 
+  if ($sqlonly)
+	{
+	printf("insert into pseq (seq,len) values ('$seq',%d);\n",
+		   length($seq)); return 1;
+	}
+
   # select/insert sequences, then link aliases
-  my $pseq_id = $udb->si_pseq_id($bs->seq());
+  my $pseq_id;
+  my $pseq_id = $udb->pseq_i_pseq_id($bs->seq());
+
   if (not defined $pseq_id)
-	{ warn("failed to add $id"); return; }
+	{ warn("failed to add $id"); return 0; }
+
+  $md5{ $md5 } = $pseq_id;
+
   foreach my $upd_id (@ids)
 	{ $udb->add_palias($pseq_id,$porigin_id,$upd_id,$descr); }
 
-  printf(STDERR "# added pseq_id=$pseq_id, len=%d, aliases={@ids}, descr=%s\n",
+  printf(STDERR "# added pseq_id=$pseq_id, len=%d, aliases={@ids}, md5=$md5, descr=%s\n",
 		length($seq), $descr);
+  return 1;
   }
