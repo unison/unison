@@ -1,19 +1,18 @@
 =head1 NAME
 
-Unison::p2params -- Unison p2params table utilities
-S<$Id: params.pm,v 1.8 2004/05/04 04:51:18 rkh Exp $>
+Unison::params -- Unison params table utilities
+S<$Id: params.pm,v 1.9.2.2 2004/12/24 00:09:54 rkh Exp $>
 
 =head1 SYNOPSIS
 
-use Unison;
-
-my $u = new Unison;
+ use Unison::DBI;
+ use Unison::params;
+ my $u = new Unison;
+ $u->get_params_id_by_name();
 
 =head1 DESCRIPTION
 
 B<> is a
-
-=head1 ROUTINES AND METHODS
 
 =cut
 
@@ -26,25 +25,76 @@ use warnings;
 use Unison::Exceptions;
 use Bio::Prospect::Options;
 
+
+=pod
+
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## run_commandline_by_params_id()
+
+=pod
+
+=item B<< $u->run_commandline_by_params_id( C<params_id> ) >>
+
+Returns the command line for a params_id.
+
+=cut
+
 sub run_commandline_by_params_id($$) {
   my ($self,$params_id) = @_;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   my $cl = $self->selectrow_array('select commandline from params where params_id=?',
                   undef,$params_id);
   return $cl;
 }
 
-sub get_params_id_by_name($$) {
+
+######################################################################
+## params_id_by_name()
+
+=pod
+
+=item B<< $u->params_id_by_name( C<params_name> ) >>
+
+=item B<< $u->get_params_id_by_name( C<params_name> ) >>
+
+Returns the params_id for a parameter set name.
+
+=cut
+
+sub params_id_by_name($$) {
   my ($self,$params_name) = @_;
   $self->is_open()
   || croak("Unison connection not established");
-  my $id = $self->selectrow_array('select params_id from params where upper(name)=?',
-                  undef,uc($params_name));
+  my $id = $self->selectrow_array('select params_id(?)',undef,uc($params_name));
   return $id;
 }
+sub get_params_id_by_name($$) {
+  goto &params_id_by_name;
+}
 
-sub get_p2options_by_params_id($) {
+
+######################################################################
+## get_p2options_by_params_id()
+
+=pod
+
+=item B<< $u->get_p2options_by_params_id( C<params_id> ) >>
+
+fetches a single protein sequence from the pseq table.
+
+=back
+
+=cut
+
+sub get_p2options_by_params_id($$) {
   my ($self,$run_id) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -59,20 +109,11 @@ sub get_p2options_by_params_id($) {
 	 seq=>1,
 	);
   return $po;
-=pod
-
-=over
-
-=item B<::get_p2options_by_params_id( C<params_id> )>
-
-fetches a single protein sequence from the pseq table.
-
-=back
-
-=cut
   }
 
 
+
+### DEPRECATED FUNCTIONS
 
 sub get_p2options_by_run_id($) {
   warn_deprecated();
@@ -88,17 +129,23 @@ sub get_p2options_by_p2params_id($) {
 
 =pod
 
+=back
+
 =head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
 
 =head1 SEE ALSO
 
+=over 4
+
+=item * perldoc Unison
+
+=back
+
 =head1 AUTHOR
 
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department             
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+see C<perldoc Unison> for contact information
 
 =cut
 

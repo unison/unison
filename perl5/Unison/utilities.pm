@@ -2,7 +2,7 @@
 
 Unison::utilities -- general Unison utilities
 
-S<$Id: utilities.pm,v 1.8 2004/06/04 00:04:31 rkh Exp $>
+S<$Id: utilities.pm,v 1.9 2004/06/25 00:20:44 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -15,11 +15,7 @@ primarily for use within B<Unison::> modules. However, none of these
 routines are called with Unison object references (i.e., they're not
 methods) and may used outside of B<Unison::>.
 
-=head1 ROUTINES AND METHODS
-
 =cut
-
-
 
 package Unison::utilities;
 use CBT::debug;
@@ -38,12 +34,21 @@ use Digest::MD5 qw(md5_hex);
 
 
 
+=pod
 
-## ==========================================================================
-
-=head2 warn_deprecated( )
+=head1 ROUTINES AND METHODS
 
 =over
+
+=cut
+
+
+######################################################################
+## warn_deprecated
+
+=pod
+
+=item B<< warn_deprecated() >>
 
 warns about the usage of a deprecated function by printing the name of the
 deprecated function and backtrace.  It warns about each instance
@@ -54,8 +59,6 @@ elsewhere in perlspace are indicated separately.
 C<warn_deprecated()> takes no arguments and infers everything it prints
 from C<caller()>. It is subject to caveats in C<caller()> regarding
 missing stack frame info due to optimization.
-
-=back
 
 =cut
 
@@ -80,18 +83,15 @@ sub warn_deprecated(;$) {
 
 
 
-## ==========================================================================
+######################################################################
+=pod
 
-=head2 range_to_enum( range_strings )
-
-=over
+=item B<< range_to_enum( C<range-strings> ) >>
 
 converts an array of perl-formatted ranges as strings to an array of
 individual items (typically integers). For example
 
 range_to_enum('1..3','4,5,6..10')) returns (1,2,3,4,5,6,7,8,9,10)
-
-=back
 
 =cut
 
@@ -102,11 +102,10 @@ sub range_to_enum (@) {
 
 
 
-## ==========================================================================
+######################################################################
+=pod
 
-=head2 clean_sequence( C<sequence> )
-
-=over
+=item B<< clean_sequence( C<sequence> ) >>
 
 returns the sequence in a canonical format by removing non-IUPAC
 characters and upcasing. This is done primarily for the purposes of
@@ -120,8 +119,6 @@ unison/src/unison.c).  If you want the authoritative result, you may open
 a database connection and use SQL like C<SELECT clean_sequence(...)>
 yourself.
 
-=back
-
 =cut
 
 sub clean_sequence($) {
@@ -132,11 +129,10 @@ sub clean_sequence($) {
 
 
 
-## ==========================================================================
+######################################################################
+=pod
 
-=head2 sequence_md5( C<sequence> )
-
-=over
+=item B<< sequence_md5( C<sequence> ) >>
 
 "cleans" the sequences and returns the md5 checksum.
 
@@ -153,15 +149,12 @@ sub sequence_md5 ($) {
 }
 
 
-## ==========================================================================
+######################################################################
+=pod
 
-=head2 wrap( C<sequence> )
-
-=over
+=item B<< wrap( C<sequence> ) >>
 
 wraps the sequence at 60 columns
-
-=back
 
 =cut
 
@@ -173,6 +166,26 @@ sub wrap ($) {
 
 
 
+=pod
 
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see C<perldoc Unison> for contact information
+
+=cut
 
 1;

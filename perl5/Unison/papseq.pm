@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::papseq -- Unison papseq table utilities
-S<$Id: papseq.pm,v 1.7 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: papseq.pm,v 1.8 2004/05/04 04:51:36 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -16,8 +16,6 @@ S<$Id: papseq.pm,v 1.7 2004/02/24 19:23:02 rkh Exp $>
 B<Unison::papseq> is a module with methods for loading
 BLAST reports into the papseq table in the Unison database.
 
-=head1 ROUTINES AND METHODS
-
 =cut
 
 package Unison;
@@ -30,16 +28,24 @@ use warnings;
 
 use Bio::Tools::BPlite;
 
-#-------------------------------------------------------------------------------
-# load_blast_report()
-#-------------------------------------------------------------------------------
 
-=head2 load_blast_report()
+=pod
 
- Name:      load_blast_report()
- Purpose:   load a BLAST report into the UNISON database
- Arguments: BLAST output file
- Returns:   nada
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## load_blast_report()
+
+=pod
+
+=item B<< load_blast_report( B<BLAST filename> ) >>
+
+load a BLAST report into the UNISON database
 
 =cut
 
@@ -73,17 +79,15 @@ sub load_blast_report {
 }
 
 
-#-------------------------------------------------------------------------------
-# insert_hsp()
-#-------------------------------------------------------------------------------
+######################################################################
+## insert_hsp()
 
-=head2 insert_hsp()
+=pod
 
- Name:      insert_hsp()
- Purpose:   insert 1 Bio::Tools::BPlite::HSP
- Arguments: query pseq_id, target pmodel_id, Bio::Tools::BPlite::HSP
- Returns:   nada
-                                                                                                                                              
+=item B<< insert_hsp(query pseq_id, target pmodel_id, Bio::Tools::BPlite::HSP) >>
+
+insert 1 Bio::Tools::BPlite::HSP
+
 =cut
 
 sub insert_hsp {
@@ -95,17 +99,15 @@ sub insert_hsp {
 }
 
 
-#-------------------------------------------------------------------------------
-# insert_hsp_swap()
-#-------------------------------------------------------------------------------
+######################################################################
+## new insert_hsp_swap()
 
-=head2 insert_hsp_swap()
+=pod
 
- Name:      insert_hsp_swap()
- Purpose:   insert 1 Bio::Tools::BPlite::HSP allow for swapping of query and
-            target information.
- Arguments: query pseq_id, target pmodel_id, Bio::Tools::BPlite::HSP, swap flag
- Returns:   nada
+=item B<< insert_hsp_swap(query pseq_id, target pmodel_id, Bio::Tools::BPlite::HSP, swap flag) >>
+
+insert 1 Bio::Tools::BPlite::HSP allow for swapping of query and target
+information.
 
 =cut
 
@@ -146,16 +148,16 @@ sub insert_hsp_swap {
 }
 
 
-#-------------------------------------------------------------------------------
-# get_pseq_id_from_FASTA_name()
-#-------------------------------------------------------------------------------
+######################################################################
+## new get_pseq_id_from_FASTA_name()
+## XXX: This has no business being here, but I won't move it until
+## I understand where Dave used this.
 
-=head2 get_pseq_id_from_FASTA_name()
+=pod
 
- Name:      get_pseq_id_from_FASTA_name()
- Purpose:   retrieve pseq_id from a FASTA header
- Arguments: FASTA header
- Returns:   pseq_id (or undef if not found)
+=item B<< get_pseq_id_from_FASTA_name(B<FASTA header text>) >>
+
+returns pseq_id (or undef if not found)
 
 =cut
 
@@ -170,16 +172,14 @@ sub get_pseq_id_from_FASTA_name {
 }
 
 
-#-------------------------------------------------------------------------------
-# _get_pmodel_id_from_pseq_id()
-#-------------------------------------------------------------------------------
+######################################################################
+## _get_pmodel_id_from_pseq_id()
 
-=head2 _get_pmodel_id_from_pseq_id()
+=pod
 
- Name:      _get_pmodel_id_from_pseq_id()
- Purpose:   retrieve pmodel_id given a pseq_id
- Arguments: pseq_id
- Returns:   pmodel_id (or undef if not found)
+=item B<< _get_pmodel_id_from_pseq_id(pseq_id) >>
+
+Returns pmodel_id for the given pseq_id. Lookups are cached for speed.
 
 =cut
 
@@ -191,7 +191,7 @@ sub _get_pmodel_id_from_pseq_id {
   return $pmodel_id_cache{ $pseq_id } if 
     defined $pmodel_id_cache{ $pseq_id };
 
-  throw Unison::RuntimeError( 'Unison connection is not open' ) if ! $u->is_open();
+  throw Unison::RuntimeError( 'Unison connection is not open' ) unless $u->is_open();
 
   my $sql = "select pmodel_id from pmpseq where pseq_id=?";
   my $sth = $u->prepare_cached($sql);
@@ -207,5 +207,27 @@ sub _get_pmodel_id_from_pseq_id {
   return;
 }
 
+
+=pod
+
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see C<perldoc Unison> for contact information
+
+=cut
 
 1;
