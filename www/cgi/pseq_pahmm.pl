@@ -17,6 +17,7 @@ my $ar = edit_rows( $u->selectall_arrayref($sql) );
 my @f = ('name', 'start-stop', 'mstart-mstop', '[]', 'score', 'eval');
 
 print $p->render("HMM alignments to Unison:$v->{pseq_id}",
+				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
 				 $p->group("HMM alignments",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)

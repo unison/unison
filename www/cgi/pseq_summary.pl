@@ -3,11 +3,11 @@
 use strict;
 use warnings;
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::Utils qw(alias_link);
 
-my $p = new Unison::WWW::Page;
+my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
 my $v = $p->Vars();
 
@@ -27,6 +27,7 @@ my $seq = $u->get_sequence_by_pseq_id($v->{pseq_id});
 $seq =~ s/.{60}/$&\n/g;
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
+				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
 
 				 $p->group("Sequence",
 						   '<pre>', 
@@ -41,7 +42,5 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 
 
 				 $p->group("Features",
-						   "<img src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\">"),
-
-#				 $p->sql($sql)
+						   "<center><img src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\"></center>")
 				);

@@ -25,6 +25,7 @@ my @f = ( 'target',"$v->{pseq_id}<br>qstart-qstop",'target<br>stop-start','len',
 		  'HSP coverage (%)','coverage (%)' );
 
 print $p->render("Near-identity BLASTs of Unison:$v->{pseq_id}",
+				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
 				 $p->tip('hover over entries in the target column to see annotations'),
 				 $p->group("BLASTS Unison:$v->{pseq_id}",
 						   Unison::WWW::Table::render(\@f,$ar)),
