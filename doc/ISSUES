@@ -15,15 +15,15 @@ IMPORTANT:
   wipes out corresponding paliasorigin & pseqalias rows
   (or, just set not current?)
 
-* load-fasta
-  option to generate tax_id with alias from tagline
-
-* Unison::DBI should use wrap DBI to use exceptions.
 
 
 TO-DO AT NEXT BACKUP/RESTORE:
 * standardize on timestampe WITHOUT timezone
   no issue, just for consistency
+* w/o oids
+  fix 4 tables made by cavs
+* pseq.len: smallint -> int 
+
 
 
 BACKBURNER:
@@ -35,6 +35,14 @@ will change over time, thereby making run_history data incorrect. The
 options are to make such sets immutable (not possible for porigin), or
 better, attach time stamps to pmodelset and porigin rows, or to simply
 remove run_history rows when a pmodelset or porigin set is changed.
+
+* params_prospect2
+Simplify inheritance and inherited triggers by folding this back into
+params. If the Unison perl API really needs this (for options like
+global_local), then we should create a view which shadows params and
+augments with the params_prospect2 data. If not, then we can simply drop
+params_prospect2. Either way, params needs to be the /single/ table with
+the params_id primary key.
 
 
 * pftypes, params, run_history
@@ -98,3 +106,7 @@ DONE
 * p2thread -> pfp2thread
   rename for conformity (pfeatures have prefix pf)
 
+* Unison::DBI should use wrap DBI to use exceptions.
+
+* load-fasta
+  option to generate tax_id with alias from tagline
