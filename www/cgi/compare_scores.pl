@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################
 # compare_scores.pl -- compare scoring systems for pmodelsets
-# $ID = q$Id: compare_scores.pl,v 1.2 2005/01/25 23:43:22 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pl,v 1.3 2005/02/03 00:23:29 mukhyala Exp $;
 #############################################################
 use strict;
 use warnings;
@@ -34,8 +34,7 @@ my %v = (%defaults, %$v);
 $v = \%v;
 
 # get tempfiles for the comparison graph's png files
-my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.png');
-my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
+my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX=>'.png');
 
 
 sub main {

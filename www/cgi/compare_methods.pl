@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id$;
+# $ID = q$Id: compare_methods.pl,v 1.4 2005/01/25 23:49:06 mukhyala Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -33,8 +33,7 @@ my %v = (%defaults, %$v);
 $v = \%v;
 
 # get tempfiles for the comparison graph's png files
-my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.png');
-my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
+my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX=>'.png');
 
 
 sub main {
