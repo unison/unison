@@ -1,14 +1,19 @@
 #!/bin/bash
-# $Id: backup,v 1.7 2003/05/07 23:30:47 rkh Exp $
+# $Id: backup,v 1.8 2003/05/07 23:31:21 rkh Exp $
 
 # backup -- backup the csb database
 # you must set PGPASSWORD before running this script
 # any user with write permission in /home/rkh/csb-db/backups/$PGDATABASE
 # should be able to run this script.
 
-
 source `dirname $0`/utils
-exec >>"$LOGDIR/$JEMAPPELLE" 2>&1
+
+
+# after this point and until `trap' below, all exits
+# are unexpected
+cleanup ()
+  { logger "! exited abnormally (status=$?)"; }
+trap cleanup EXIT
 
 
 PATH=/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
@@ -21,7 +26,10 @@ esac
 
 export PGHOST
 export PGDATABASE=${1:-csb}
-
+if [ -n "$DEBUG" ]; then
+	logger 
+	TABLE="-t porigin";
+fi
 
 DIR="/home/rkh/csb-db/backups/$PGDATABASE"
 mkdir -p "$DIR"
@@ -29,10 +37,15 @@ DATE=`date +%Y-%m-%d-%H:%M`;
 R="$DIR/$DATE.pgdump"
 
 
-logger "starting backup (PGHOST=$PGHOST; PGDATABASE=$PGDATABASE)"
-(time -p pg_dump -X use-set-session-authorization -Uadmin "$PGDATABASE" \
+# do the backup
+logger "starting backup (PGHOST=$PGHOST; PGDATABASE=$PGDATABASE; TABLE=$TABLE)"
+(time -p pg_dump $TABLE -X use-set-session-authorization -Uadmin "$PGDATABASE" \
  | gzip -cq) >"$R".gz 2>"$R".err
 E="$?"
 S=`perl -le 'printf( "%.2f", (-s $ARGV[0]) / 2**20)' "$R".gz`
 logger "backup completed; status $E; size: $S MB; time: `tr '\012' , <"$R".err`"
 logger "backup log in $R.err"
+
+
+# reset signal trap to exit gracefully
+trap '' EXIT
