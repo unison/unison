@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.10 2004/04/27 04:35:02 rkh Exp $>
+S<$Id: DBI.pm,v 1.11 2004/05/04 04:54:32 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -49,13 +49,16 @@ our %opts =
    # on csb (local), comp* (cvs), else exo-cluster (csb)
    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
    host => ( (exists $ENV{PGHOST}) and ($ENV{PGHOST} ne '')
-			 ? $ENV{PGHOST}
+			 ? $ENV{PGHOST}					# PGHOST if specified
 			 : ( $hostname eq 'csb'
-				 ? undef
-				 : ( $hostname =~ m/^comp\d/ ? 'svc' : 'csb' ))),
+				 ? undef					# local connection when possible
+				 : ( $hostname =~ m/^comp\d/
+					 ? 'svc'				# intra-cluster (192.168/16)
+					 : 'csb'				# everywhere else
+				   ))),
    dbname => $ENV{PGDATABASE} || 'csb',
-   username => $ENV{PGUSER} || 'PUBLIC',
-   password => $ENV{PGPASSWORD} || undef,
+   username => $ENV{PGUSER},
+   password => $ENV{PGPASSWORD},
    attr => {
 			PrintError => 0,
 			RaiseError => 0,
