@@ -9,8 +9,8 @@ use CGI qw( -debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
 #BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
 
-use Unison::Exceptions;
 use Unison;
+use Unison::Exceptions;
 use Unison::WWW::utilities qw( text_wrap );
 use Error qw(:try);
 
@@ -235,6 +235,7 @@ sub render {
 					   ('select value::date from meta where key=\'release timestamp\'')],
 
 					  ['API<br>release', $Unison::RELEASE],
+
 					  ['WWW<br>release', $Unison::WWW::RELEASE]
 					)
 				);
