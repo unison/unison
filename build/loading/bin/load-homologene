@@ -4,12 +4,14 @@
 # NAME: load-homologene
 # PURPOSE: script to parse homologene data files and load the homologene table
 #
-# $Id$
+# $Id: load-homologene,v 1.1 2004/04/13 23:21:51 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
 use strict;
 use Unison;
+use Unison::Exceptions;
+use Error qw(:try);
 
 my $u = new Unison();
 my $sql = 'insert into homologene (hid,tax_id,gene_id,gene_symbol,gi,acc,pseq_id) ' .
@@ -21,21 +23,34 @@ my $sth = $u->prepare( 'insert into homologene ' .
 	'(?,?,?,?,?,?,?)' );
 die( "USAGE: load-homologene homologene.data\n" ) if $#ARGV!=0;
 
-my ($skipped,$loaded) = (0,0);
-open(FP,$ARGV[0]) or die( "can't open $ARGV[0] for reading" );
+my ($seen,$skipped,$loaded) = (0,0,0);
+open(FP,$ARGV[0])
+  or die( "$ARGV[0]: $!\n" );
 while(<FP>) {
-	my @fld = split;
-	my @pseq_id = $u->get_pseq_id_from_alias_exact($fld[5]);
-	if      ( $#pseq_id < 0 ) {  # no match - skip
-		printf( "get_pseq_id_from_alias_exact() return no pseq_id for alias='$fld[5]' - skip\n" );
-		$skipped++;
-		next;
-	} elsif ( $#pseq_id > 0 ) { # multiple matches - take lower pseq_id (hack around proteome bug)
-		@pseq_id = sort { $a <=> $b } @pseq_id;
-	} 
-	printf ($sqlf,@fld,$pseq_id[0]);
-	$sth->execute(@fld,$pseq_id[0]);
-	$loaded++;
+  $seen++;
+
+  my @fld = split;
+
+  my @pseq_id = $u->get_pseq_id_from_alias_exact($fld[5], 'RefSeq');
+  if ( $#pseq_id < 0 ) {
+	# no match - skip
+	warn("! get_pseq_id_from_alias_exact($fld[5]) returned NULL; skipping\n");
+	$skipped++;
+	next;
+  } elsif ( $#pseq_id > 0 ) {
+	die("Eek! Multiple distinct pseq_ids for RefSeq $fld[5]!\n");
+  }
+  push(@fld, $pseq_id[0]);
+
+  printf( "# $sqlf", @fld );
+  try {
+	$sth->execute( @fld );
+  } catch Unison::Exception with {
+	warn($_[0]);
+	$skipped++;
+  };
+
+  $loaded++;
 }
 
-print "\n\nLoaded: $loaded\nSkipped: $skipped\n";
+print(STDERR "$seen seen, $loaded loaded, $skipped skipped\n");
