@@ -24,3 +24,12 @@ UPDATE palias SET tax_id=gs2tax_id('MOUSE')
 
 UPDATE palias SET tax_id=gs2tax_id('RAT') 
       WHERE porigin_id=porigin_id_lookup('SPDI'::text) AND descr ~ '^Rat'::text AND tax_id IS NULL;
+
+UPDATE palias SET tax_id=gs2tax_id('MOUSE') 
+	WHERE porigin_id=porigin_id_lookup('mus'::text) AND tax_id IS NULL;
+
+UPDATE palias SET tax_id=gs2tax_id('HUMAN') 
+	WHERE porigin_id=porigin_id_lookup('MGC/Human'::text) AND tax_id IS NULL;
+
+UPDATE palias SET tax_id=gs2tax_id('MOUSE') 
+	WHERE porigin_id=porigin_id_lookup('MGC/Mouse'::text) AND tax_id IS NULL;
