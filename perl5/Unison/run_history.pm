@@ -2,6 +2,10 @@ package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+use strict;
+use warnings;
+
+
 sub upd_run_history(@) {
   my $u = shift;
   return $u->selectrow_array("select upd_run_history(?,?,?,?)",undef,@_);

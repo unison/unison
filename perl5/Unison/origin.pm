@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::porigin -- Unison porigin table utilities
-S<$Id: porigin.pm,v 1.3 2003/09/20 00:36:21 rkh Exp $>
+S<$Id: porigin.pm,v 1.4 2004/02/24 19:23:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -21,6 +21,8 @@ package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+use strict;
+use warnings;
 
 
 =pod
