@@ -8,7 +8,7 @@
 # eg2$ framework-search <framwork.fa >file.html
 # eg3$ framework-search region1 region2 ... regionN >file.html
 #
-# $Id: framework-search,v 1.3 2004/10/14 22:46:18 rkh Exp $
+# $Id: framework-search,v 1.4 2004/10/20 18:51:09 rkh Exp $
 #
 
 
@@ -44,7 +44,7 @@ if (@ARGV) {
   while(my $line = <>) {
 	if ($line =~ m/^[A-Z]/i) {
 	  chomp($line);
-	push(@fr,$line);
+	  push(@fr,$line);
 	}
   }
 }
@@ -77,7 +77,7 @@ exit(0);
 
 sub html_header() {
   my $title = 'Antibody Framework Search';
-  my $Id = '$Id: framework-search,v 1.3 2004/10/14 22:46:18 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.4 2004/10/20 18:51:09 rkh Exp $ ';
   my $date = `date +"%Y-%m-%d %H:%M"`;
 
   my $html = <<EOHTML;
@@ -222,7 +222,7 @@ that sequence from all source databases.
   <tr><th>Unison pseq_id</th><th>best annotation</th></tr>
 EOHTML
 
-  my $pseq_url_fmt = 'http://csb:8000/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
+  my $pseq_url_fmt = 'http://csb/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
   while ( my $data = $sth->fetchrow_hashref() ) {
 	#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
 	$html .= sprintf('<tr><td align="right"><a href="'.$pseq_url_fmt.'">%s</a></th><td align="left">%s</th></tr>',
@@ -237,7 +237,7 @@ EOHTML
 }
 
 sub html_footer($) {
-  my $Id = '$Id: framework-search,v 1.3 2004/10/14 22:46:18 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.4 2004/10/20 18:51:09 rkh Exp $ ';
   return <<EOHTML;
 <hr>
 Report generated in $_[0] seconds.
@@ -321,7 +321,7 @@ that sequence from all source databases.
   <tr><th>Unison pseq_id</th><th width="42%">best annotation</th><th width="42%">patent info (if any; only one listed)</th></tr>
 EOHTML
 
-  my $pseq_url_fmt = 'http://csb:8000/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
+  my $pseq_url_fmt = 'http://csb/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
   while ( my $data = $sth->fetchrow_hashref() ) {
 	#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
 	$html .= sprintf('<tr><td align="right"><a href="'.$pseq_url_fmt.'">%s</a></th><td align="left">%s</th></tr>',
