@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.9 2003/09/19 18:51:24 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.10 2003/09/20 00:01:43 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -12,24 +12,26 @@ TABLE.page {
 }
 TABLE.page TD.logo {
  border: #150067 thin dashed;
- align: center;
- vertical-align: center;
+ text-align: center;
+ vertical-align: middle;
 }
 TABLE.page TD.navbar {
  border: #150067 thin dashed;
  padding: 0px;
 }
 TABLE.page TD.cnav {
- border: #150067 thin dashed;
  vertical-align: top;
+ background: lightgrey;
+ border: #150067 thin dashed;
 }
 TABLE.page TD.body {
+ vertical-align: top;
  border: #150067 thin dashed;
- padding: 0px;
+ padding: 5px;
 }
 TABLE.page TD.contact {
  border: #150067 thin dashed;
- vertical-align: center;
+ vertical-align: middle;
  padding: 0px;
 }
 
@@ -64,11 +66,11 @@ TABLE.nav TD.spc {
  width: 5px;
 }
 TABLE.nav TD.selected:hover {
- background: #CCCCCC;
+ background: lightgrey;
  cursor:pointer;cursor:hand;
 }
 TABLE.nav TD.unselected:hover {
- background: #CCCCCC;
+ background: lightgrey;
  cursor:pointer;cursor:hand;
 }
 TABLE.nav TD.selected A {
@@ -100,7 +102,7 @@ TABLE.group TH.grouptag {
 
 TABLE.group TD {
  border: black thin solid;
- background-color: #cccccc;
+ background-color: white;
 }
 
 
@@ -136,6 +138,21 @@ TR.tablesep {
 
 
 
+/* cheap text buttons */
+SPAN.button {
+ background: lightgrey;
+ border: black thin solid;
+}
+SPAN.button:hover {
+ background: darkgrey;
+}
+SPAN.button A {
+ color: #ffffff;
+ font-weight: bold;
+ text-decoration: none;
+}
+
+
 
 /* miscellany */
 IMG.logo {
@@ -151,14 +168,12 @@ div.warning {
  border: red medium solid;
  padding: 2px;
  margin: 20px;
- align: center;
  color: red;
 }
 div.sql {
  border: black thin solid;
  padding: 2px;
  margin: 20px;
- align: center;
  background-color: #55ff55;
  font-family: monospace;
 }
@@ -166,7 +181,6 @@ div.tip {
  border: black thin solid;
  padding: 2px;
  margin: 20px;
- align: center;
  background-color: lightgrey;
 }
 
