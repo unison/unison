@@ -1,3 +1,6 @@
+\echo =======================================================================
+\echo $Id$
+
 create table pftype (
 	pftype_id		serial,
 	name			text

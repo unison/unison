@@ -1,3 +1,5 @@
+\echo =======================================================================
+\echo $Id$
 -- prospect2 -- prospect v2 threading results
 
 
@@ -28,7 +30,6 @@ create table p2template (
 
 -- p2thread -- one sequence-structure threading result
 create table p2thread (
-	p2thread_id		serial,
 	p2params_id		integer			not null default null,
 	p2template_id	integer			not null default null,
 

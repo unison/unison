@@ -1,3 +1,5 @@
+\echo =======================================================================
+\echo $Id$
 -- meta -- unison database meta information
 
 create table meta (

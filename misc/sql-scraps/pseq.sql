@@ -1,4 +1,6 @@
--- pseq table -- stores UNIQUE sequences
+\echo =======================================================================
+\echo $Id$
+-- pseq -- stores UNIQUE sequences
 
 create table pseq (
 	pseq_id			serial,
