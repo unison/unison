@@ -4,7 +4,7 @@
 # NAME: load-pcluster
 # PURPOSE: cluster a set of hsps into representative sets
 # 
-# $Id: load-pcluster,v 1.1 2004/05/05 17:32:58 cavs Exp $
+# $Id: load-pcluster,v 1.2 2004/06/10 17:59:20 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -15,12 +15,12 @@ use strict;
 my $uni = new Unison();
 
 # clear out the tables and reset the pcluster_id sequence
-$uni->do( "delete from cavs.pcluster_member; delete from cavs.pcluster; select setval('cavs.pcluster_pcluster_id_seq'::text,1);" );
+$uni->do( "delete from pcluster_member; delete from pcluster; select setval('pcluster_pcluster_id_seq'::text,1);" );
 
 # build the pclusters from uni_h seqs with blat hits that have 90% or better pct_identity.
 # get better pclusters by using high quality seqs and high identity blat hits.
 my $sth = $uni->prepare( 'select * from blatloci where pseq_id in ' .
-  '(select distinct pseq_id from pseqset where pset_id=42) and ' .
+  '(select distinct pseq_id from pseqset where pset_id in (42)) and ' .
   'pct_ident>=90 order by chr,plus_strand,gstart' );
 $sth->execute();
 
@@ -68,16 +68,14 @@ while( my $r = $sth->fetchrow_hashref() ) {
 $c{$chr}{$str}{$start}{stop} = $stop;
 
 
-my $s_sth  = $uni->prepare('select nextval(\'cavs.pcluster_pcluster_id_seq\'::text)');
-my $c_sth  = $uni->prepare('insert into cavs.pcluster (pcluster_id,genasm_id, gstart, gstop, chr, plus_strand) values (?,?,?,?,?,?)');
-my $cm_sth = $uni->prepare('insert into cavs.pcluster_member (pcluster_id, pseq_id, gstart, gstop) values (?,?,?,?)');
+my $s_sth  = $uni->prepare('select nextval(\'pcluster_pcluster_id_seq\'::text)');
+my $c_sth  = $uni->prepare('insert into pcluster (pcluster_id,genasm_id, gstart, gstop, chr, plus_strand) values (?,?,?,?,?,?)');
+my $cm_sth = $uni->prepare('insert into pcluster_member (pcluster_id, pseq_id, gstart, gstop) values (?,?,?,?)');
 
 # load the clusters
 foreach $chr ( sort { $a cmp $b } keys %c ) {
   foreach $str ( sort { $a <=> $b } keys %{$c{$chr}} ) {
     foreach $start ( sort { $a <=> $b } keys %{$c{$chr}{$str}} ) {
-      my $m = '';
-
       $s_sth->execute();
       my $row = $s_sth->fetchrow_arrayref();
       my $pcluster_id = $row->[0];
@@ -87,16 +85,16 @@ foreach $chr ( sort { $a cmp $b } keys %c ) {
       if ( $ENV{DEBUG} ) {
         printf ("insert pcluster_id: %d, genasm_id: %d, start: %d, stop: %d, chr: %s, plus_strand: %s\n",@data);
       }
-      $c_sth->execute($pcluster_id,$genasm_id,$start,$c{$chr}{$str}{$start}{stop},$chr,($str == 0) ? 'false' : 'true');
+      $c_sth->execute(@data);
 
       # insert into pcluster_member
       for (my $i=0; $i<scalar(@{$c{$chr}{$str}{$start}{pseq_ids}}); $i++) { 
-          @data = ($pcluster_id,$c{$chr}{$str}{$start}{pseq_ids}->[$i],
+          my @mdata = ($pcluster_id,$c{$chr}{$str}{$start}{pseq_ids}->[$i],
             $c{$chr}{$str}{$start}{gstarts}->[$i], $c{$chr}{$str}{$start}{gstops}->[$i]);
           if ( $ENV{DEBUG} ) {
-            printf ("insert pcluster_id: %d, pseq_id: %d, start: %d, stop: %d\n",@data);
+            printf ("insert pcluster_id: %d, pseq_id: %d, start: %d, stop: %d\n",@mdata);
           }
-          $cm_sth->execute(@data);
+          $cm_sth->execute(@mdata);
       }
     }
   }
