@@ -5,21 +5,31 @@
 # PURPOSE: parse BLAT psl output for protein-to-genome alignments. load
 #          output into set of unison tables.
 # 
-# $Id: load-blat,v 1.1 2004/01/28 00:32:34 cavs Exp $
+# $Id: load-blat,v 1.2 2004/01/28 00:55:58 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
 use Bio::Tools::ProteinToGenomeBlat;
+use Getopt::Long;
 use Unison;
 use strict;
 
-die( "USAGE: load-blat output.psl\n" ) if $#ARGV != 0;
+my ($help,$score_cutoff,$pct_ident_cutoff,$genasm_id);
+
+GetOptions( 
+  'help|h' => \$help,
+  'pct_ident_cutoff|p=s' => \$pct_ident_cutoff,
+  'genasm_id|g=s' => \$genasm_id,
+  'score_cutoff|s=s' => \$score_cutoff
+) || &usage();
+
+&usage() if ($#ARGV != 0 || ! defined $genasm_id );
+
+$score_cutoff         = 50 if ! defined $score_cutoff;
+$pct_ident_cutoff     = 50 if ! defined $pct_ident_cutoff;
+
 my $bio = new Bio::Tools::ProteinToGenomeBlat( -file => $ARGV[0] );
 my $uni = new Unison();
-
-my $genasm_id = 1;   # hard-code for now
-my $score_cutoff = 50;
-my $pct_ident_cutoff = 50;
 
 my $aln_sth = $uni->prepare( 'select assign_p2gblataln( ?, ?, ?, ?, ?, ? )' );
 my $hsp_sth = $uni->prepare( 'select ins_p2gblathsp( ?, ?, ?, ?, ?, ?, ?, ? )' );
@@ -62,4 +72,17 @@ while( my $r = $bio->next_result() ){
     printf "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",$pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1);
     $aln_sth->execute( $hsp_str, $ident[0], $qgap_cnt[0], $qgap_bases[0], $tgap_cnt[0], $tgap_bases[0] );
   }
+}
+
+
+#-------------------------------------------------------------------------------
+# NAME: usage
+# PURPOSE: output usage message and then exit
+#-------------------------------------------------------------------------------
+sub usage {
+  die( "USAGE: load-blat [OPTIONS] -g <genasm_id> |--genasm_id <genasm_id> output.psl\n" ,
+    "\tOPTIONS:\n",
+    "\t\t-h|--help: output USAGE statement and exit\n",
+    "\t\t-p <cutoff> | --pct_ident_cutoff=<cutoff>: only accept HSPs with percent identity greater than cutoff\n",
+    "\t\t-s <cutoff> | --score_cutoff=<cutoff>: only accept HSPs with score greater than cutoff\n" );
 }
