@@ -11,6 +11,9 @@ use Unison;
 use Data::Dumper;
 use Unison::WWW::utils qw( text_wrap );
 
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
 
 our $infer_pseq_id = 0;
 
