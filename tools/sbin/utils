@@ -1,5 +1,5 @@
 # -*- sh -*-
-# $Id: utils,v 1.7 2003/10/02 17:36:57 rkh Exp $
+# $Id: utils,v 1.8 2004/01/08 02:17:38 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 JEMAPPELLE=`basename $0`
@@ -18,7 +18,7 @@ logger () {
 # NOTE: while sed or similar might seem to be better,
 # that would result in a static datestamp
 pipe_logger () {
-	while read f; do [ -n "$f" ] && logger "$f"; done
+	while read f; do [ -n "$f" ] && logger "  $f"; done
 }
 
 
@@ -29,10 +29,15 @@ die () {
 	exit 1;
 }
 
+# warn -- log (as with logger), then exit
+warn () {
+	logger "! WARNING:"
+	logger "!  $@";
+}
 
 # dothis -- execute a command and log stdout+stderr
 dothis () {
-	logger "cmd: $@"
+	logger "running: $@"
 	eval "$@; echo exit status is \$?" 2>&1 | pipe_logger
 }
 
