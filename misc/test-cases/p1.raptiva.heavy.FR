@@ -1,0 +1,12 @@
+< /home/ruby/va/Proteng/hbl/dna/CD11a/ss.psvsdmhm-h.sv-l (8102 bases)
+< VH domain
+< FR regions according to Kabat, Sequences of Immunological Interest
+<FR1:
+EVQLVESGGGLVQPGGSLRLSCAASGYSFT
+<FR2:
+WVRQAPGKGLEWVG
+<FR3:
+RFTISVDKSKNTLYLQMNSLRAEDTAVYYCAR
+<FR4:
+WGQGTLVTVSS
+
