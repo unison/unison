@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.4 2003/06/03 00:40:11 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.5 2003/06/03 22:09:51 rkh Exp $     emacs: -*-c-*-  */
 
 
 BODY {
@@ -20,6 +20,9 @@ TABLE.page TD.logo {
  align: center;
  vertical-align: center;
 }
+IMG.logo {
+ border: 0;
+}
 TABLE.page TD.cnav {
  border: grey thin dashed;
  vertical-align: top;
@@ -35,7 +38,7 @@ TABLE.nav TR TD.unselected {
  border-top: black thin solid;
  border-left: black thin solid;
  border-right: black thin solid;
- background: #EAFFE6;
+ background: #E2E0F3;
  width: 50px;
  padding-left: 5px;
  padding-right: 5px;
@@ -44,14 +47,13 @@ TABLE.nav TD.selected {
  border-top: black thin solid;
  border-left: black thin solid;
  border-right: black thin solid;
- background: #2BFF00;
+ background: #9F94F3;
  width: 50px;
  padding-left: 5px;
  padding-right: 5px;
 }
-TABLE.nav TD.vbar {
+TABLE.nav TD.spc {
  border: none;
- background: #0;
  width: 5px;
 }
 TABLE.nav TD.selected:hover {
@@ -62,10 +64,13 @@ TABLE.nav TD.unselected:hover {
  background: #CCCCCC;
  cursor:pointer;cursor:hand;
 }
-TABLE.nav TD A {
+TABLE.nav TD.selected A {
+ color: #ffffff;
+ font-weight: bold;
  text-decoration: none;
 }
-TABLE.nav A:visited, A:link {
+TABLE.nav TD.unselected A {
+ color: #000000;
  text-decoration: none;
 }
 
