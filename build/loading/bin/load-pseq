@@ -1,0 +1,59 @@
+#! /usr/bin/env perl
+
+#-------------------------------------------------------------------------------
+# NAME: load-pseq
+# PURPOSE: load sequence files into Unison
+# USAGE: load-pseq <seq files ...>
+# ARGUMENTS:
+#   --origin|-o <origin>: name of origin
+#   --format|-f <format>: name of input file format (any format allowed by Bio::SeqIO)
+#   --
+#
+# $Id$
+#------------------------------------------------------------------------------
+
+use warnings;
+use strict;
+use Bio::SeqIO;
+use Getopt::Long qw(:config gnu_getopt);
+use Unison;
+
+my %af = ( fthelper => 1,
+  multifile => 1, abi => 1, ace => 1, alf => 1,
+  asciitree => 1, bsml => 1, chadoxml => 1, ctf => 1,
+  embl => 1, exp => 1, fasta => 1, fastq => 1,
+  game => 1, gcg => 1, genbank => 1, kegg => 1,
+  largefasta => 1, locuslink => 1, metafasta => 1, phd => 1,
+  pir => 1, pln => 1, qual => 1, raw => 1,
+  scf => 1, swiss => 1, tab => 1, tigr => 1,
+  ztr => 1);
+my %opts = (
+  origin => undef,
+  format => undef,
+  filelist => undef,
+  'start-after' => undef,
+  'sql-only' => 0,
+  'include-subex' => 0,
+  'verbose' => 0
+);
+GetOptions( \%opts,
+  'origin|o=s',
+  'format|f=s',
+  'start-after|startafter|A=s',
+  'sql-only|sqlonly',
+  'verbose|v',
+  'incl-subex|inclsubex' )
+  || die("$0: bad usage\n");
+
+  print Data::Dumper->Dump([\%opts],['opts']);
+
+(defined $opts{origin}) || die("$0: --origin (-o) is mandatory\n");
+(defined $opts{format} && $af{lc($opts{format})}) || 
+  die("$0: --format (-f) is mandatory and must be one of (",join(',',sort {$a cmp $b} keys %af),")\n");
+my $u = new Unison;
+
+foreach my $fn ( @ARGV ) {
+  my $stream = Bio::SeqIO->new(-file => $fn, -format => $opts{format});
+  my $rv = $u->process_stream($stream, \%opts);
+  print "fn: $fn, nseen: $rv->{nseen}, nskipped: $rv->{nskipped}, nadded: $rv->{nadded}\n";
+}
