@@ -1,0 +1,53 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+use lib ('.', "$ENV{HOME}/unison/perl5");
+use Genentech::Unison;
+use Getopt::Long qw(:config gnu_getopt);
+
+my $options = {};
+GetOptions( $options,
+			'with-aliases|A'
+		  )
+  || die("$0: you got usage issues, homey\n");
+
+
+
+my $u = new Genentech::Unison;
+die( "! couldn't open a connection to unison\n" ) unless $u;
+
+
+if (@ARGV)
+  {
+  while( my $r = shift )
+	{ eval "process1(\$_) for $r" }
+  }
+else
+  { while (my $id=<>) { get1($id) } }
+
+
+exit(0);
+
+
+sub process1
+  {
+  my $pseq_id = shift;
+  my $seq = get1($pseq_id);
+  if (not defined $seq)
+	{ warn("Unison:$pseq_id not found\n"); return; }
+  print $seq;
+  }
+
+sub get1
+  {
+  my $pseq_id = shift;
+  my $seq = $u->get_seq($pseq_id);
+  return unless defined $seq;
+  my (@aliases) = ();
+  @aliases = $u->pseq_get_aliases($pseq_id) if $options->{'with-aliases'};
+  my $rv = ">Unison:$pseq_id " . join(' ',@aliases) . "\n";
+  while( length($seq) )
+	{ $rv .= substr($seq,0,60,'')."\n"; }
+  return $rv;
+  }

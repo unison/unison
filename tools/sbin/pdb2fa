@@ -1,18 +1,8 @@
 #!/usr/bin/env perl
 
-$^W++;
+use warnings;
 use strict;
 use lib ('./perl5','/home/rkh/unison/perl5');
-use Unison;
-
-$|++; select(STDERR); $|++; select(STDOUT);
-
-
-my $udb = new Unison;
-my $origin = 'pdb';
-my $porigin_id = $udb->si_porigin_id($origin);
-printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
-
 
 my %ONECODE =
   ('ALA' => 'A', 'ASX' => 'B', 'CYS' => 'C', 'ASP' => 'D',
@@ -25,24 +15,33 @@ my %ONECODE =
   );
 
 
-while (my $fn = shift)
+if (@ARGV)
+  { 
+  while(my $fn = shift) 
+	{ chomp($fn); process1($fn); }
+  }
+else
   {
+  while(my $fn = <>)
+	{ chomp($fn); process1($fn); }
+  }
+
+
+
+sub process1
+  {
+  my $fn = shift;
   my ($sr,$len,$desc) = read1($fn);
   my $id = $fn;
   $id =~ s%.*/%%; $id =~ s/^pdb//; $id =~ s/\.(ent|pdb).*//;
-  printf(STDERR "$id: %d chains={%s}; %s\n",
+  printf(STDERR "# $id: %d chains={%s}; %s\n",
 		 scalar keys %$sr, join(',',keys %$sr), $desc);
   for my $c (sort keys %$sr)
 	{
-	if ( $len->{$c} != length($sr->{$c}) )
-	  { warn("! $id$c: sequence doesn't match provided sequence length\n"); }
-	if ( length($sr->{$c}) < 20 )
-	  { warn("! $id$c: discarding short sequence (",length($sr->{$c})," AA)\n"); next; }
 	my $dc = $c ne ' ' ? $c : '';
-	add1($udb,$porigin_id,$sr->{$c},"$id$dc",$desc);
+	print(">$id$dc $desc\n", $sr->{$c}, "\n");
 	}
   }
-
 
 
 sub read1
@@ -81,13 +80,4 @@ sub xl
   my $s = shift;
   $s =~ s/(...)/exists $ONECODE{$1} ? $ONECODE{$1} : 'X'/ge;
   return $s;
-  }
-
-sub add1
-  {
-  my ($udb,$ori,$seq,$id,$desc) = @_;
-  my $pseq_id = $udb->si_pseq_id($seq);
-  if (not defined $pseq_id)
-	{ warn("sequence add for $id failed"); return; }
-  $udb->add_palias($pseq_id,$ori,$id,$desc);
   }

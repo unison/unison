@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-p2thread,v 1.2 2002/12/31 02:48:28 rkh Exp $
+# $Id: load-p2thread,v 1.3 2003/01/08 18:23:36 rkh Exp $
 # load-p2thread -- load prospect2 thread results into unison
 # from xml files (optionally with svm scores from sort files)
 
@@ -18,6 +18,7 @@ use Data::Dumper;
 my $svm_fn;
 my $xml_fn;
 GetOptions(
+		   @Genentech::Unison::OPTS,
 		   'svm|s=s' => \$svm_fn,
 		   'xml|x=s' => \$xml_fn,
 		  )
@@ -47,23 +48,26 @@ my $p2params_id;							# determined once!  don't concat
 my $pseq_id;								#   xml files from separate runs!
 while( my $t = $pf->next_thread() )
   {
-  if (not defined $pseq_id)
+  if (not defined $pseq_id)					# once per file
 	{
 	$pseq_id = $u->pseq_si_pseq_id( $t->qseq() );
 	defined $pseq_id
 	  || die("pseq_id not provided and couldn't be generated\n");
+	printf(STDERR "# loading threading for pseq_id=$pseq_id\n");
 	}
-  if (not defined $p2params_id)
-	{ 
+  if (not defined $p2params_id)				# once per file
+	{
 	$p2params_id = $u->get_p2params_id_from_settings( %{$t->{settings}} );
 	defined $p2params_id
 	  || die("p2params_id not provided and couldn't be found in unison\n");
+	printf(STDERR "# loading threading for p2params_id=$p2params_id\n");
 	}
 
   my $template_name = $t->tname();
   my $p2template_id = $u->get_p2template_id_by_name( $template_name );
   if (not defined $p2template_id)
-	{ die("! can't find p2template_id for $template_name -- I guess you haven't loaded the template\n");
+	{ die("! can't find p2template_id for $template_name -- I guess you haven't loaded the template\n") };
+  #  print(STDERR "# loading into $p2template_id\r");
 
   # create hash of data to be inserted, with unison field names as keys
   my %data = map  { $scorekeymap{$_} => @{ %{$t->{scoreInfo}} }{$_} }  (keys %scorekeymap);
@@ -77,7 +81,8 @@ while( my $t = $pf->next_thread() )
   $data{nident} = $t->{alignmentInfo}->{nident};
   $data{nalign} = $t->{alignmentInfo}->{nalign};
 
-  print(STDERR "# added thread for $template_name (", Dumper(\%data), "\n");
+  print(STDERR "# added thread for $template_name\n");
+#  print(STDERR "# added thread for $template_name (", Dumper(\%data), "\n");
   $u->add_p2thread( %data );
   }
 

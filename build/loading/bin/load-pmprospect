@@ -1,0 +1,77 @@
+#!/usr/bin/env perl
+# load fasta sequences into unison
+# $ load-fasta -o origin <fastafile
+
+$^W++;
+use strict;
+use Bio::SeqIO;
+use Getopt::Long;
+use XML::Simple;
+use Data::Dumper;
+use Digest::MD5  qw(md5_hex);
+use Genentech::Unison;
+use Genentech::Unison::Prospect2;
+
+my $udb = new Genentech::Unison;
+
+my $origin = 'Prospect2';
+my $porigin_id = $udb->porigin_si_porigin_id($origin);
+printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+
+my %p2template = map { $_->[0]=>1 } @{$udb->selectall_arrayref('select name from p2template')};
+printf(STDERR "# %d template names read from p2template\n", scalar keys %p2template);
+
+my %md5;
+#%md5 = $udb->pseq_md5map();
+printf(STDERR "# %d md5s read from pseq\n", scalar keys %md5);
+
+my $xs = new XML::Simple;
+
+
+
+while(my $fn = <>)
+  {
+  chomp $fn;
+  process1($fn);
+  }
+
+
+sub process1
+  {
+  my $fn = shift;
+
+  # ideally, id would be the template name
+  # unfortunately, prospect scop template names are NOT the scop ids
+  # my $id = $r->{name};
+  my $id = $fn;  $id =~ s%^.*/%%; $id =~ s/\.xml$//;
+  if (exists $p2template{$id})
+	{
+	warn("template $id exists...skipping\n");
+	return;
+	}
+
+  my $r = $xs->XMLin($fn);
+  if (not defined $r)
+	{ warn("XMLin failed on $fn\n"); return; }
+  my $seq = $r->{seq};
+  my ($len) = $r->{fsspData} =~ m/with (\d+) residues/;
+  my ($ncores) = $r->{fsspData} =~ m/and (\d+) cores/;
+  my $desc = sprintf("%d residues; %d cores", $len, $ncores);
+
+  my $pseq_id;
+  my $md5 = md5_hex($seq);
+  if (defined %md5 and exists $md5{ $md5 })
+	{ $pseq_id = $md5{ $md5 }; }
+  else
+	{
+	$pseq_id = $udb->pseq_si_pseq_id( $seq );
+	$md5{ $md5 } = $pseq_id;
+	}
+  if (not defined $pseq_id)
+	{ die("! sequence for $fn not in unison and couldn't be added"); return; }
+
+  $udb->add_palias($pseq_id,$porigin_id,$id,$desc);
+  $udb->add_p2template($pseq_id,$id,$len,$ncores);
+
+  printf(STDERR "# added $id (pseq_id=$pseq_id) to Prospect templates\n");
+  }
