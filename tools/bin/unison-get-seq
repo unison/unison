@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.16 2004/12/24 00:09:54 rkh Exp $
+# $Id: get-seq,v 1.17 2005/03/17 00:44:16 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.16 2004/12/24 00:09:54 rkh Exp $>
+S<$Id: get-seq,v 1.17 2005/03/17 00:44:16 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ sub map_args_to_pseq_ids($@);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.16 2004/12/24 00:09:54 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.17 2005/03/17 00:44:16 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -153,10 +153,10 @@ sub map_args_to_pseq_ids($@) {
 
   if ($or->{'select-by-unison-id'}) {
 	# expand ranges like 1..5 to (1,2,3,4,5)
-	if (my @bad = grep {/^[^-\d]$/} @_) {
+	if (my @bad = grep {not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/} @_) {
 	  die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
 	}
-	@pseq_ids = map { eval "$_" } @_;
+	@pseq_ids = map { s/-/../; eval "$_" } @_;
 	printf(STDERR "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};
   }
 
