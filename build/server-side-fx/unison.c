@@ -3,8 +3,9 @@
 #include <ctype.h>
 #include <string.h>
 
+#ifdef DEBUG
 static char* begin_end_hex(char* buf, char* seq, int len);
-
+#endif
 
 static char* clean_sequence(const char* in, int32 n);
 
@@ -138,6 +139,7 @@ char* clean_sequence_broken(const char* in, char* out, int32 n)
 
 
 
+#ifdef DEBUG
 char*
 begin_end_hex(char* buf, char* seq, int len) {
   int end = len-1;
@@ -147,3 +149,4 @@ begin_end_hex(char* buf, char* seq, int len) {
 		  seq[end-4],seq[end-3],seq[end-2],seq[end-1],seq[end-0]);
   return buf;
 }
+#endif
