@@ -1,3 +1,20 @@
+=head1 NAME
+
+Unison::blat -- BLAT-related functions for Unison
+
+S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
+
+=head1 SYNOPSIS
+
+ use Unison;
+ use Unison::pseq_features;
+ my $u = new Unison(...);
+
+=head1 DESCRIPTION
+
+=cut
+
+
 package Unison::pseq_features;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -14,7 +31,6 @@ use Bio::Graphics::Feature;
 use Unison::utilities qw( warn_deprecated );
 
 
-
 my %opts = 
   (
    pseq_id => undef,
@@ -25,6 +41,31 @@ my %opts =
   );
 
 sub pseq_features_panel($%);
+
+
+
+
+=pod
+
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## pseq_features_panel
+
+=pod
+
+=over
+
+=item B<< pseq_features_panel( C<Unison>, C<%opts> ) >>
+
+=back
+
+=cut
 
 sub pseq_features_panel($%) {
   my $u = shift;
@@ -68,7 +109,7 @@ sub pseq_features_panel($%) {
   add_paprospect2( $u, $panel, $opts{pseq_id} );
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.6 2004/07/21 23:25:31 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.7 2004/07/22 16:43:31 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -90,12 +131,17 @@ sub pseq_features_panel($%) {
 
 
 
-#-------------------------------------------------------------------------------
-# NAME: add_pfsignalp
-# PURPOSE: add pfsignalp features to a panel
-# ARGUMENTS: Unison object, Bio::Graphics::Feature object, pseq_id
-# RETURNS: count of features added
-#-------------------------------------------------------------------------------
+######################################################################
+## add_pfsignalp
+
+=pod
+
+=item B<< add_pfsignalp( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pfsignalp features to a panel and return the number of features added.
+
+=cut
+
 sub add_pfsignalp {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
@@ -149,7 +195,16 @@ sub add_pfsignalp {
 
 
 
-#####################################################################################
+######################################################################
+## add_pftmdetect
+
+=pod
+
+=item B<< add_pftmdetect( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pftmdetect features to a panel and return the number of features added.
+
+=cut
 
 sub add_pftmdetect {
   my ($u, $panel, $q) = @_;
@@ -186,11 +241,23 @@ sub add_pftmdetect {
 
 
 
+######################################################################
+## add_paprospect2
+
+=pod
+
+=item B<< add_paprospect2( C<Bio::Graphics::Panel>, C<pseq_id>, C<params_id> ) >>
+
+Add paprospect2 features to a panel and return the number of features added.
+
+=cut
+
 sub add_paprospect2 {
-  my ($u, $panel, $q) = @_;
+  my ($u, $panel, $q, $params_id) = @_;
   my ($svm_thr,$topN) = (7,5);
   my $nadded = 0;
-
+  ## XXX: add support for params_id
+  my $params_clause = defined $params_id ? " AND params_id=$params_id " : '';
   my $sql = "SELECT * FROM v_paprospect2_scop WHERE pseq_id=$q AND svm >= $svm_thr";
   my $sth = $u->prepare($sql);
   $sth->execute();
@@ -249,13 +316,23 @@ sub add_paprospect2 {
   return $nadded;
 }
 
-#-------------------------------------------------------------------------------
-# NAME: coalesce_scop
-# PURPOSE: coalesce scop information for duplicate pseq_id and acc hits. handles
-#          the duplicate rows generated from the v_paprospect_scop view
-# ARGUMENTS: arrayref (row) of hashrefs (columns)
-# RETURNS: arrayref (new reference) with the scop information coalesced
-#-------------------------------------------------------------------------------
+
+######################################################################
+## coalesce_scop
+
+=pod
+
+=item B<coalesce_scop( C<aref> )>
+
+aref := arrayref (row) of hashrefs (columns)
+
+Coalesce scop information for duplicate pseq_id and acc hits. handles
+the duplicate rows generated from the v_paprospect_scop view
+
+arrayref (new reference) with the scop information coalesced
+
+=cut
+
 sub coalesce_scop {
   my ($u,$featref) = @_;
 
@@ -294,14 +371,27 @@ sub coalesce_scop {
 }
 
 
+######################################################################
+## add_pahmm
+
+=pod
+
+=item B<< add_pahmm( C<Bio::Graphics::Panel>, C<pseq_id>, C<params_id> ) >>
+
+Add pahmm features to a panel and return the number of features added.
+
+=cut
+
 sub add_pahmm {
-  my ($u, $panel, $q) = @_;
+  my ($u, $panel, $q, $params_id) = @_;
   my ($eval_thr,$topN) = (5,4);
   my $nadded = 0;
+  ## XXX: don't hardwire the following
+  $params_id = 15 unless defined $params_id;
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
 FROM v_pahmm
-WHERE pseq_id=? AND params_id=15 AND eval<=1
+WHERE pseq_id=? AND params_id=$params_id AND eval<=1
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql, undef, $q );
@@ -337,6 +427,17 @@ EOSQL
   return $nadded;
 }
 
+
+######################################################################
+## add_pappsm
+
+=pod
+
+=item B<< add_pappsm( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pappsm features to a panel and return the number of features added.
+
+=cut
 
 sub add_papssm {
   my ($u, $panel, $q) = @_;
@@ -382,6 +483,17 @@ sub add_papssm {
 
 
 
+######################################################################
+## add_pfantigenic
+
+=pod
+
+=item B<< add_pfantigenic( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pfantigenic features to a panel and return the number of features added.
+
+=cut
+
 sub add_pfantigenic {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
@@ -413,6 +525,17 @@ sub add_pfantigenic {
 
 
 
+######################################################################
+## add_pfsigcleave
+
+=pod
+
+=item B<< add_pfsigcleave( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pfsigcleave features to a panel and return the number of features added.
+
+=cut
+
 sub add_pfsigcleave {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
@@ -443,6 +566,17 @@ sub add_pfsigcleave {
 }
 
 
+
+######################################################################
+## add_pfregexp
+
+=pod
+
+=item B<< add_pfregexp( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pfregexp features to a panel and return the number of features added.
+
+=cut
 
 sub add_pfregexp {
   my ($u, $panel, $q) = @_;
@@ -482,6 +616,26 @@ sub features_graphic($$;$) {
 }
 
 
+=pod
 
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see C<perldoc Unison> for contact information
+
+=cut
 
 1;
