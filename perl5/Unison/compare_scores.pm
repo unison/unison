@@ -1,3 +1,9 @@
+############################################################
+# compare_scores.pm
+# Methods for Assess TAB, compare scores and compare methods
+# $ID = q$Id$;
+############################################################
+
 package Unison::compare_scores;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -21,11 +27,13 @@ use Unison::WWW::Table;
 use Unison::SQL;
 use Cluster;
 
-sub get_p2_scores($$);
+sub compute_stats($$);
+sub plot_stats($$);
+sub get_p2_scores($$$);
 sub get_scop_pdb($);
 sub display_points($);
 sub display_bars($);
-sub display_table();
+sub display_table($);
 
 my %params =
  (
@@ -38,7 +46,7 @@ my $scopURL = 'http://scop.berkeley.edu/search.cgi?sunid=';
 my $pdbURL = 'http://www.rcsb.org/pdb/cgi/explore.cgi?pdbId=';
 
 my ($pmodel_scop,$pmodel_pdb);
-my ($scores,$sp,$data);
+my ($scores,$sp,$data,@stats);
 
 ##
 ## 1. get pseqs,pmodels of pmodelset
@@ -48,9 +56,9 @@ my ($scores,$sp,$data);
 ## {model}{sequence} => score
 ##
 
-sub get_p2_scores($$) {
+sub get_p2_scores($$$) {
 
-  my ($u,$v) = @_;
+  my ($u,$v,$score) = @_;
   my (%test);
   my (@ms,@ps,@uniq,@univ);
   %params = (%params,%$v);
@@ -74,15 +82,17 @@ sub get_p2_scores($$) {
     if (%ms) {
       my $sql = Unison::SQL->new()
 	->table('paprospect2')
-	  ->columns($params{score})
+	  ->columns($score)
 	    ->columns('pmodel_id')
 	      ->columns('pseq_id')
-		->where('pseq_id in (' . join(',',@univ) . ')')
-		  #the 0 x 100 is a hack to force PG to choose a better execution plan!
-		  ->where('pmodel_id in (' . join(',',(values %ms, (0) x 100)) . ')');
+		->where('params_id = ' . $params{params_id})
+		  ->where('pseq_id in (' . join(',',@univ) . ')')
+		    #the 0 x 100 is a hack to force PG to choose a better(aka faster) execution plan!
+		    ->where('pmodel_id in (' . join(',',(values %ms, (0) x 100)) . ')');
 
       my @sc = @{ $u->selectall_arrayref("$sql") };
       map {$$scores{$_->[1]}{$_->[2]} = $_->[0]} @sc;
+
     }
     foreach my $i (keys %$scores) {
       $$scores{$i}{'0'}=undef;
@@ -98,7 +108,7 @@ sub get_p2_scores($$) {
 sub display_points($) {
 
   my ($png_fh) = @_;
-  my ($cols,$rows,$temp,$imagerefs,$labelrefs);
+  my ($cols,$rows,$temp,$imagerefs,$labelrefs,$label_legends);
 
   push @$cols, keys %$scores;
   foreach my $pseq(sort {$$sp{$a} <=> $$sp{$b}} keys %$sp) {
@@ -118,7 +128,7 @@ sub display_points($) {
     push @$imagerefs, $url;
     push @$labelrefs, $pdbURL.substr($$pmodel_pdb{$model},0,4);
   }
-  my $map = _plot_points($imagerefs,$labelrefs,$png_fh);
+  my $map = _plot_points($imagerefs,$labelrefs,$label_legends,$png_fh);
   return ($data,$map);
 }
 
@@ -127,7 +137,7 @@ sub display_points($) {
 ##
 sub _plot_points() {
 
-  my ($imagerefs,$labelrefs,$png_fh) = @_;
+  my ($imagerefs,$labelrefs,$label_legends,$png_fh) = @_;
   my $points_graph = GD::Graph::points->new(800, 500);
 
   $points_graph->set(
@@ -143,7 +153,6 @@ sub _plot_points() {
 
   #legend needs to be in the same order as data
   $points_graph->set_legend(map {$$pmodel_pdb{$_}} sort keys %$pmodel_pdb);
-  $points_graph->set_legend_font(GD::Font->MediumBold);
   _print_graph($points_graph,$png_fh);
 
   #create an imagemap for the graph
@@ -152,7 +161,8 @@ sub _plot_points() {
 			   lhrefs=>$labelrefs,
         noImgMarkup=>1,
         mapName=>"scattermap",
-        info => 'pseq= %x,  model = %l, score = %y'
+        info => 'pseq= %x,  model = %l, score = %y',
+	legend => [(map {$$pmodel_scop{$_}{'name'}."::".$$pmodel_scop{$_}{'descr'} if(defined($$pmodel_scop{$_}{'name'}))} sort keys %$pmodel_pdb)]
     );
   return $map;
 }
@@ -179,6 +189,7 @@ sub display_bars($) {
       }
       my $mo = new Statistics::Basic::Mean($row);
       my $sd = new Statistics::Basic::StdDev($row);
+
       push @$mins, $min;
       push @$maxs, $max;
       push @$err_mins, (defined($min) ? ($mo->query - $sd->query > $min ? $mo->query - $sd->query : $min) : undef);
@@ -207,15 +218,16 @@ sub _plot_bars {
 		types         => ['bars','bars','bars','bars','points'],
 		x_label       => 'Sequence_ids',
 		y_label       => $params{score}." score",
-		title         => 'Scoring Range for known and Known-NOT sequences against known Models',
+		title         => 'Scoring Range for Known and Known-NOT sequences against known Models',
 		markers       => [1],
 		marker_size   => 1,
 		x_label_skip  => ($#{$$data[0]}/20)+1,#skipping a label for every 20, X values.
 		x_all_ticks   => 1,
 		y_tick_number => 10,
 		cumulate      => 1,
-		error_bars    => 1,
+		error_bars    => 1
 	       ) or warn $bar_graph->error;
+  $bar_graph->set_legend('', 'Total Scoring Range', '', '1 Std. Dev Range', 'Mean Score');
   $bar_graph->set(dclrs => [('','blue','','lred','green')]);
   _print_graph($bar_graph,$png_fh);
 }
@@ -226,11 +238,12 @@ sub _print_graph {
 
   my($mygraph,$png_fh) = @_;
 
-  $mygraph->set_x_label_font(GD::Font->MediumBold);
-  $mygraph->set_y_label_font(GD::Font->MediumBold);
-  $mygraph->set_x_axis_font(GD::Font->Small);
-  $mygraph->set_y_axis_font(GD::Font->Small);
-  $mygraph->set_title_font(GD::Font->Giant);
+  $mygraph->set_x_label_font(GD::Font->Large);
+  $mygraph->set_y_label_font(GD::Font->Large);
+  $mygraph->set_x_axis_font (GD::Font->Small);
+  $mygraph->set_y_axis_font (GD::Font->Small);
+  $mygraph->set_title_font  (GD::Font->Giant);
+  $mygraph->set_legend_font (GD::Font->MediumBold);
   $mygraph->set(
 		axislabelclr  => 'red',
 		labelclr      => 'dgreen',
@@ -251,42 +264,47 @@ sub _print_graph {
 ## with approp. bg colours
 ##
 
-sub display_table {
+sub display_table($) {
 
+  my ($u) = @_;
   my ($cols,$rows);
   my $c = Cluster::new(%params);
   my $cluster_arr = $c->cluster_2dhash($scores);
   return "CLUSTERING OF THREADING SCORES FAILED!" if(!defined($cluster_arr));
 
-  my $ret = '<table border=1><tr>';
+  my $ret = '<STYLE>h1 {font-size:60%} </STYLE><FONT size="1"><table border=1><tr>';
   $ret .= '<th>seq/model</th>';
 
-  push @$cols, keys %$scores;
+  #first row
   foreach (keys %$scores) {
     my $link = $_;
     if(exists($$pmodel_scop{$_})) {
-      $link =  "<a href=\"$scopURL$$pmodel_scop{$_}{'sunid'}\">$$pmodel_scop{$_}{'name'}</a>";
+      $link =  "<a href=\"$scopURL$$pmodel_scop{$_}{'sunid'}\" title=\"$$pmodel_scop{$_}{'name'}:$$pmodel_scop{$_}{'descr'}\">$$pmodel_scop{$_}{'name'}</a>";
     }
     else {
-      $link =  "<a href=\"$pdbURL".substr($$pmodel_pdb{$_},0,4)."\">$$pmodel_pdb{$_}</a>";
+      $link =  "<a href=\"$pdbURL".substr($$pmodel_pdb{$_},0,4)."\"title=\"$$pmodel_pdb{$_}>$$pmodel_pdb{$_}\"</a>";
     }
     $ret .= '<th>'.$link.'</th>';#models on first row
   }
 
+  #scores rows
+  push @$cols, keys %$scores;
   foreach my $i(sort {$$sp{$a} <=> $$sp{$b}} keys %$sp) {
-    if(exists($$scores{$$cols[0]}{$i})) {
+    next unless exists($$scores{$$cols[0]}{$i});
 
-      my $link = "<a href=\"pseq_summary.pl?pseq_id=$i\">$i</a>";
-      $ret .= '</tr><tr><th>'.$link.'</th>';#first col in each row is a pseq link
+    if($i == 0) {$ret .= '</tr><tr>' x 3;}#seperation between knowns and known-nots
+    else {
+      my $link = "<a href=\"pseq_summary.pl?pseq_id=$i\" title=\"".$u->best_annotation($i)."\">$i</a>";
+      $ret .= '</tr><tr><td height=10 ALIGN=center>'.$link.'</td>';#first col in each row is a pseq link
 
       foreach my $j(keys %$scores) {
 	my $order = ($params{score} eq 'raw' ? -1 : 1);
 	my $clr = $c->get_association($$scores{$j}{$i},$order);
-	$ret .= sprintf("<th bgcolor=%s>%2.1f</th>",$clr,$$scores{$j}{$i}) if(defined($$scores{$j}{$i}));
+	$ret .= sprintf("<td height=10 ALIGN=center bgcolor=%s><h1 title=%.2f>%.".($order == 1 ? 1 : 0)."f</h1></td>",$clr,$$scores{$j}{$i},$$scores{$j}{$i}) if(defined($$scores{$j}{$i}));
       }
     }
   }
-  $ret .= '</tr></table>';
+  $ret .= '</tr></table></FONT>';
   return $ret;
 }
 
@@ -295,14 +313,90 @@ sub get_scop_pdb($) {
 
   my ($u) = @_;
 
-  my @pm_scop = @{ $u->selectall_arrayref('select pmodel_id,sp,pdb from mukhyala.v_scop_pmodel where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
+  my @pm_scop = @{ $u->selectall_arrayref('select pmodel_id,sp,pdb,descr from mukhyala.v_scop_pmodel where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
 
   map {$$pmodel_scop{$_->[0]}{'sunid'} = $_->[1]} @pm_scop;
   map {$$pmodel_scop{$_->[0]}{'name'}  = $_->[2]} @pm_scop;
+  map {$$pmodel_scop{$_->[0]}{'descr'} = $_->[3]} @pm_scop;
 
   my @pm_pdb = @{ $u->selectall_arrayref('select pmodel_id,acc from pmprospect2 where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
 
   map {$$pmodel_pdb{$_->[0]} = $_->[1]} @pm_pdb;
 }
 
+sub compute_stats($$) {
+
+  my ($score,$xref) = @_;
+  my $flag=0;
+  my (@known_nots);
+
+  foreach my $pseq(sort {$$sp{$a} <=> $$sp{$b}} keys %$sp ) {
+    foreach my $model (sort keys %$scores) {
+      $flag=1 if ($pseq eq '0');
+      next unless defined( $$scores{$model}{$pseq} );
+      push @{$known_nots[$flag]}, $$scores{$model}{$pseq};
+    }
+  }
+
+  return if($#{$known_nots[0]} < 0 || $#{$known_nots[0]} < 0);
+
+  @{$known_nots[0]} = sort {$a<=>$b} @{$known_nots[0]};
+  @{$known_nots[1]} = sort {$a<=>$b} @{$known_nots[1]};
+
+  my ($tp,$tn,$fp,$fn) = (0,0,0,0);
+
+  if($score eq 'raw') {
+    foreach my $i(@{$known_nots[0]}) {
+      $fn++ if($i >= ${$known_nots[1]}[0]);
+      $tp++ if($i  < ${$known_nots[1]}[0]);
+    }
+    foreach my $i(@{$known_nots[1]}) {
+      $fp++ if($i  < ${$known_nots[0]}[$#{$known_nots[0]}]);
+      $tn++ if($i >= ${$known_nots[0]}[$#{$known_nots[0]}]);
+    }
+  }
+  else {
+    foreach my $i(@{$known_nots[0]}) {
+      $fn++ if($i <= ${$known_nots[1]}[$#{$known_nots[1]}]);
+      $tp++ if($i  > ${$known_nots[1]}[$#{$known_nots[1]}]);
+    }
+    foreach my $i(@{$known_nots[1]}) {
+      $fp++ if($i  > ${$known_nots[0]}[0]);  
+      $tn++ if($i <= ${$known_nots[0]}[0]);
+    }
+  }
+
+  my $sensitivity = $tp/($tp+$fn);
+  my $specificity = $tn/($tn+$fp);
+
+  push @{$stats[0]},$sensitivity;
+  push @{$stats[1]},$specificity;
+
+  return ($sensitivity,$specificity);
+}
+
+##
+## creates a xy points graph
+##
+sub plot_stats($$) {
+
+    my ($xref,$png_fh) = @_;
+    my $points_graph = GD::Graph::points->new(800, 500);
+
+    push @$data, $xref;
+    push @$data, $stats[0];
+    push @$data, $stats[1];
+
+    $points_graph->set(
+		     x_label       => 'Scoring Method',
+		     y1_label      => 'Value',
+		     title         => 'Specificity and Sensitivity Values',
+		     x_all_ticks   => 1,
+		     marker_size   => 3,
+		     legend_placement => 'BC',
+		     ) or warn $points_graph->error;
+    $points_graph->set( markers => [5, 7] );
+    $points_graph->set_legend(('sensitivity','specificity'));
+    _print_graph($points_graph,$png_fh);
+}
 1;
