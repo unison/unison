@@ -1,12 +1,24 @@
--- $Id$
+-- $Id: gong.sql,v 1.1 2003/07/01 06:08:08 rkh Exp $
 -- GOng -- next generation GO tables
+
 -- This sql creates new tables based on the GO term data.  I find these
 -- tables to be easier to navigate than the distributed tables, but YMMV.
 -- This code is intended to be run after loading the (converted) GO mysql
 -- data.  THIS CODE CONVERTS ONLY THE TERM DATA.
 
+-- (The name GOng is not intended in any way to indicate that the current
+-- schema is broken. It supposed to be almost funny, which, like many of
+-- my jokes, is probably all that it is.)
 
-set search_path = go;
+
+
+drop schema GOng;
+create schema GOng;
+grant usage on schema GOng to public;
+comment on schema gong is 'Gene Ontology next generation -- simplified GO access';
+
+set search_path = gong;
+
 
 create or replace function acc2id (text) returns integer
 language plpgsql as '
@@ -22,6 +34,11 @@ BEGIN
 	return substr(acc,pos+1)::integer;
 END';
 	
+create or replace function id2acc (integer) returns text
+language plperl as 'return sprintf("GO:%06d",$_[0])';
+--language plpgsql as 'BEGIN return ''GO:'' || to_char($1,''0000''); END';
+
+
 
 drop table is_a;
 drop table part_of;
@@ -58,9 +75,27 @@ alter table node add constraint alias_id_exists
 	foreign key (alias_id) references alias(alias_id);
 
 
-insert into node (go_id,is_obsolete) select acc2id(acc),is_obsolete=1 from term where acc~'^GO:[0-9]';
-insert into alias(go_id,alias) select acc2id(acc),name from term where acc~'^GO:[0-9]';
-update node set alias_id=(select alias_id from alias where alias.go_id=node.go_id);
-insert into is_a select acc2id(T2.acc),acc2id(T1.acc) from term2term  join term T1 on T1.id=term1_id  join term T2 on T2.id=term2_id  where relationship_type_id=5;
-insert into part_of select acc2id(T2.acc),acc2id(T1.acc) from term2term  join term T1 on T1.id=term1_id  join term T2 on T2.id=term2_id  where relationship_type_id=3;
-insert into alias (go_id,alias) select acc2id(acc),term_synonym as "alias" from term_synonym join term on term.id=term_synonym.term_id;
+
+-- populate nodes: pkey is go id; the term name is just another alias
+insert into node (go_id,is_obsolete)
+	select acc2id(acc),is_obsolete=1 from go.term where acc~'^GO:[0-9]';
+-- insert aliases 
+insert into alias(go_id,alias)
+	select acc2id(acc),name from go.term where acc~'^GO:[0-9]';
+-- make the just-loaded term names the primary alias (node.alias_id)
+update node set alias_id=(select alias_id from alias
+							 where alias.go_id=node.go_id);
+-- load the remaining synonyms
+insert into alias (go_id,alias) 
+	select acc2id(acc),term_synonym as "alias" from go.term_synonym S
+	join go.term T on T.id=S.term_id;
+-- extract the is_a links
+insert into is_a select acc2id(T2.acc),acc2id(T1.acc) from go.term2term 
+	join go.term T1 on T1.id=term1_id  
+	join go.term T2 on T2.id=term2_id
+	where relationship_type_id=5;
+-- extract the part_of links
+insert into part_of select acc2id(T2.acc),acc2id(T1.acc) from go.term2term
+	join go.term T1 on T1.id=term1_id
+	join go.term T2 on T2.id=term2_id
+	where relationship_type_id=3;
