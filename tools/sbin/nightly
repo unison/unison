@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: nightly,v 1.2 2003/04/30 21:09:24 rkh Exp $
+# $Id: nightly,v 1.3 2003/07/31 22:42:23 rkh Exp $
 
 # nightly -- tasks to perform nightly
 # you must set PGPASSWORD before running this script
@@ -8,5 +8,5 @@ source `dirname $0`/utils
 #exec >>"$LOGDIR/$JEMAPPELLE" 2>&1
 
 logger "vacuum analyze started"
-psql -q -Uadmin -dcsb -c 'vacuum analyze verbose'
+vacuumdb -Uadmin -dcsb -z  # -f
 logger "vacuum analyze done"
