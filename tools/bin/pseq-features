@@ -96,14 +96,15 @@ sub add_paprospect2 {
   my ($u, $panel, $q) = @_;
   my ($svm_thr,$topN) = (7,4);
   my $nadded = 0;
-  my $featref = $u->selectall_arrayref(
+  my $sql =
 	'select tmp.*,best_annotation(tmp.pseq_id)
     from (SELECT t.start,t.stop, t.raw, t.svm, b.acc, b.pseq_id, sfdes.descr
 	      FROM paprospect2 t
 		  JOIN pmprospect2 b ON t.pmodel_id=b.pmodel_id
           LEFT JOIN cla ON b.sunid = cla.sunid
           LEFT JOIN des sfdes ON sfdes.sunid = cla.sf
-          WHERE t.pseq_id='.$q.' and t.svm>'.$svm_thr.' ORDER BY t.svm DESC) tmp');
+          WHERE t.pseq_id='.$q.' and t.svm>'.$svm_thr.' ORDER BY t.svm DESC) tmp';
+  my $featref = $u->selectall_arrayref($sql);
   my $nfeat = $#$featref+1;
   splice(@$featref,$topN) if $#$featref>$topN;
   my $track = $panel->add_track( -glyph => 'graded_segments',
@@ -117,8 +118,8 @@ sub add_paprospect2 {
 								 -description => 1,
 								 -height => 4,
 								 -bgcolor => 'green',
-								 -min_score => 7,
-								 -max_score => 14,
+								 -min_score => 5,
+								 -max_score => 11,
 								 -sort_order => 'high_score'
 							   );
   foreach my $r (@$featref) {
