@@ -17,7 +17,9 @@ sub alias_link {
   if ($origin eq 'GenenGenes') {
 	return( alias_gglink($alias) );
   } elsif ($origin eq 'Swiss-Prot') {
-	return( alias_splink($alias) ) 
+	return( alias_splink($alias) )
+  } elsif ($origin =~ m/^Uniprot/) {
+	return( alias_uniprot_link($alias) )
   } elsif ($origin eq 'Ensembl') {
 	return( alias_enslink($alias) )
   } elsif ($origin eq 'Proteome') {
@@ -47,6 +49,12 @@ sub alias_proteome_link {
   #</form>
 }
 
+
+
+#### NOTE:
+#### The URL formats /should/ come from the porigin table (porigin.url),
+#### but they don't currently.
+
 sub alias_gglink {
   $_[0] =~ s%^(UNQ|PRO|DNA)(\d+)$%<a tooltip=\"link to GenenGenes:$_[0]\" href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;
   $_[0];
@@ -54,6 +62,10 @@ sub alias_gglink {
 
 sub alias_splink {
   "<a tooltip=\"link to SwissProt:$_[0]\" href=\"http://us.expasy.org/cgi-bin/niceprot.pl?$_[0]\">$_[0]</a>";
+  }
+
+sub alias_uniprot_link {
+  "<a tooltip=\"link to Uniprot:$_[0]\" href=\"http://www.uniprot.org/entry/$_[0]\">$_[0]</a>";
   }
 
 sub alias_reflink {
