@@ -1,25 +1,20 @@
 =head1 NAME
 
 Unison::paprospect2 -- Unison paprospect2 table utilities
-S<$Id: paprospect2.pm,v 1.7 2004/03/31 18:02:38 cavs Exp $>
+S<$Id: paprospect2.pm,v 1.8 2004/05/04 04:51:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
  use Unison;
-
  my $u = new Unison;
-
- my $seq = $u->delete1thread( 
-
-(etc.)
+ my $seq = $u->delete1thread()
 
 =head1 DESCRIPTION
 
 B<> is a
 
-=head1 ROUTINES AND METHODS
-
 =cut
+
 
 package Unison;
 use CBT::debug;
@@ -46,16 +41,25 @@ my %uf = (
 );
 
 
-#-------------------------------------------------------------------------------
-# insert_thread()
-#-------------------------------------------------------------------------------
-=head2 insert_thread()
+=pod
 
- Name:      insert_thread()
- Purpose:   insert 1 Bio::Prospect::Thread object into the database
- Arguments: Unison connection, pseq_id, params_id, 
-            Bio::Prospect::ThreadSummary or Bio::Prospect::Thread
- Returns:   nada
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## insert_thread()
+
+=pod
+
+=item B<< $u->insert_thread(pseq_id, params_id, Bio::Prospect::ThreadSummary) >>
+
+=item B<< $u->insert_thread(pseq_id, params_id, Bio::Prospect::Thread) >>
+
+inserts 1 Bio::Prospect::Thread object into the database
 
 =cut
 
@@ -95,17 +99,19 @@ sub insert_thread {
 }
 
 
-#-------------------------------------------------------------------------------
-# delete_thread()
-#-------------------------------------------------------------------------------
 
-=head2 delete_thread()
+######################################################################
+## delete_thread( )
 
- Name:      delete_thread()
- Purpose:   delete 1 Bio::Prospect::Thread object into the database
- Arguments: Unison connection, pseq_id, params_id, 
-            Bio::Prospect::ThreadSummary or Bio::Prospect::Thread
- Returns:   nada
+=pod
+
+=item B<< $u->delete_thread(pseq_id, params_id, Bio::Prospect::ThreadSummary) >>
+
+=item B<< $u->delete_thread(pseq_id, params_id, Bio::Prospect::Thread) >>
+
+  deletes the alignment for the given pseq_id, params_id, and model
+
+  BUG/MISFEATURE: This does not reset the run_history!
 
 =cut
 
@@ -136,16 +142,14 @@ sub delete_thread {
 }
 
 
-#-------------------------------------------------------------------------------
-# get_pmodel_id()
-#-------------------------------------------------------------------------------
+######################################################################
+## get_pmodel_id()
 
-=head2 get_pmodel_id()
+=pod
 
- Name:      get_pmodel_id()
- Purpose:    retrieve the pmodel_id for a given model name (e.g. template name)
- Arguments: model name
- Returns:   pmodel_id
+=item B<< $u->get_pmodel_id(C<model name>) >>
+
+retrieves the pmodel_id for a given model name (e.g. template name)
 
 =cut
 
@@ -165,6 +169,26 @@ sub get_pmodel_id {
 
 
 
+=pod
 
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see C<perldoc Unison> for contact information
+
+=cut
 
 1;
