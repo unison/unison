@@ -1,2 +1,52 @@
-- sequences may be "anonymous", meaning not referenced by any alias
+-*-outline-*-
 
+issues / todo:
+
+IMPORTANT:
+
+* Gene Ontology
+  link models and sequences to GO, with interpro2go, spkw2go
+
+* species
+  add tax table from NCBL (~rkh/tax/).  I'd like to see this as an
+  ontology too, but I can't find any reference to such.  Propose to GO?
+
+* sequence insertion too slow 
+  pseq_si_pseq_id too slow... (len,md5) instead of (md5,len)?
+
+* p2thread -> pfp2thread
+  rename for conformity (pfeatures have prefix pf)
+
+* `model' table
+  hmm, p2template, sbprofile (for structure-based p.), etc are all models
+  they should inherit from a general models table which contains links
+  to GO, etc.
+  drag: migrate current p2template to inherited version of p2template 
+
+* hmm, pfhmm tables
+  hmm and features based on hmms
+
+* sequence representatives
+  Currently, all sequences in pseq are equal.  In reality, sequences may
+  be usefully related by: 1) subsequences, 2) alternative splicing, 3)
+  paralogs, 4) orthologs, 5) homology (not 3 or 4), and probably others as
+  well.  Ex: given a good thread to pseq_id 333, how does one determine that
+  333 is really a sigcleave'd fragment of 222 (case 1 above).
+
+
+
+BACKBURNER:
+
+* pftype2pftype_id( ) lookup function
+
+* sequences may be "anonymous", meaning not referenced by any alias
+  do we care?
+
+* It's currently hard to tell which analyses have been run on some sequences.
+  For analyses which may legitimately have no return value (e.g., tmdetect
+  returns no S, N, or M region), it's impossible to distinguish sequences
+  for which the analysis returned nothing from those which haven't yet been run.
+
+* add current_user to pseq, palias tables
+
+* order in concat aggregate
