@@ -4,27 +4,43 @@ use warnings;
 use strict;
 
 my $go = 0;
-while( my $line = <> )
-  {
-  if (!$go)
-	{
+my %act;									# active record
+while( my $line = <> ) {
+  if (!$go) {
 	$go++ if $line =~ m/^__/;
 	next;
-	}
-
-  if ( $line =~ m/^(\w+) \s+ ([ABEV]) \s+ (\d+)[:;] \s N=(.*)/x )
-	{
-	printf("insert into tax.spspec (id,k,gs,name) values (%s,%s,%s,%s);\n",
-		   sql_quote($3,$2,$1,$4));
-	}
-  elsif ( $line =~ m/[CS]=/ )
-	{}
-  elsif ( $line =~ m/^\s*$/ )
-	{ last; }
-  else
-	{ die("missed $.:$line") }
   }
 
+  if ( $line =~ m/^(\w+) \s+ ([ABEV]) \s+ (\d+)[:;] \s N=(.*)/x ) {
+	flush(\%act);
+	$act{gs} = $1;
+	$act{k} = $2;
+	$act{id} = $3;
+	$act{name} = $4;
+	}
+  elsif ( $line =~ m/[CS]=(.*)/ ) {
+	push( @{$act{cs}}, $1 );
+	}
+  elsif ( $line =~ m/^\s*$/ ) {
+	last; 
+  }
+  else {
+	die("missed $.:$line");
+  }
+}
+
+
+sub flush {
+  return unless exists $act{id};
+  printf("insert into tax.spspec (id,k,gs,name) values (%s,%s,%s,%s);\n",
+		 sql_quote($act{id},$act{k}, $act{gs}, name_fmt($act{name},$act{cs}) ));
+  undef %act;
+}
+
+sub name_fmt {
+  my ($name,$csr) = @_;
+  return $name . (defined $csr and @$csr ? sprintf(" [%s]",join('; ',@$csr)) : '');
+  }
 
 sub sql_quote
   { map { defined $_ ? q1($_) : 'NULL' } @_ }
