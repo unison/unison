@@ -3,6 +3,7 @@ use base Exporter;
 use CGI qw( -debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
 
+
 BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
 use strict;
 use warnings;
@@ -11,11 +12,14 @@ use Unison;
 use Data::Dumper;
 use Unison::WWW::utils qw( text_wrap );
 
-select(STDERR); $|++;
-select(STDOUT); $|++;
+
+sub page_connect ($);
+sub infer_pseq_id ($);
+
 
 
 our $infer_pseq_id = 0;
+
 
 sub import {
   my $self = shift;
@@ -28,34 +32,12 @@ sub import {
 sub new {
   my $class = shift;
   my $self = $class->SUPER::new( @_ );
-  my $username = 'PUBLIC';
+  $self->{starttime} = time;
   my $v = $self->Vars();
-
-  # choose database based on url unless explicitly set
-  # (:80=csb, :8080=csb-dev)
-  if (not exists $v->{dbname}) {
-	my ($port) = $self->url(-base=>1) =~ m/:(\d+)/;
-	$v->{dbname} = (defined $port and $port == 8080) ? 'csb-dev' : 'csb';
-	#$v->{dbname} = 'csb';
-  }
-
-  # establish session authentication, preferably via kerberos
-  if (exists $v->{username}) {
-	$username = $v->{username};
-  } elsif (exists $ENV{REMOTE_USER}
-		   and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
-	$username = $ENV{REMOTE_USER};
-	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$username";
-	$v->{host} = 'svc';						# must be svc for krb5 auth
-  }
-
   $v->{debug} = 0 unless defined $v->{debug};
 
   try {
-	$self->{unison} = new Unison( username => $username,
-								  password => undef,
-								  host => $v->{host},
-								  dbname => $v->{dbname} );
+	page_connect($self);
   }	catch Unison::Exception with {
 	my $msg = CGI::escapeHTML($_[0]);
 	__PACKAGE__->die('Unison Connection Failed', 
@@ -68,80 +50,137 @@ sub new {
   };
 
 
+  if (not exists $v->{pseq_id} and $infer_pseq_id) {
+	my @st = grep {exists $v->{$_}} qw(q pseq_id seq md5 alias);
+	if (@st > 1) {
+	  $self->die("please don't provide more than one search term",
+				 sprintf('You provided criteria for %d terms (%s)',
+						 $#st+1, join(',',@st) ));
+	}
+	$v->{pseq_id} = infer_pseq_id($self);
+	if (not defined $v->{pseq_id}) {
+	  $self->die("couldn't infer pseq_id from arguments");
+	}
+  }
+
   $self->{userprefs} = $self->{unison}->get_userprefs();
 
-  $self->{starttime} = time;
+  # hereafter, we don't want these polluting our variables
+  delete $v->{'q'};
+  delete $v->{alias};
+  delete $v->{md5};
+  delete $v->{seq};
 
+  # if we've made it this far, we'll eventually get a page out
+  $self->start_html;
+
+  return $self;
+  }
+
+
+
+
+sub page_connect ($) {
+  my $self = shift;
+  my $v = $self->Vars();
+
+  # choose database based on port unless explicitly set
+  # SERVER_PORT is always set, EXCEPT when debugging from the command line
+  if (not exists $v->{dbname}) {
+	my ($port) = $ENV{SERVER_PORT} || 80;
+	$v->{dbname} = ($port == 8080) ? 'csb-dev'
+	  			 : ($port == 8040) ? 'csb-stage'
+	             :                   'csb';
+  }
+
+  # establish session authentication, preferably via kerberos
+  #$v->{username} = 'PUBLIC' unless defined $v->{username};
+  if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
+	$v->{username} = $ENV{REMOTE_USER};
+	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$v->{username}";
+	  $v->{host} = 'svc';						# must be svc for krb5 auth
+  }
+
+  # NOTE: password=>undef works for PUBLIC and krb auth
+  $self->{unison} = new Unison( username => $v->{username},
+								password => undef,
+								host => $v->{host},
+								dbname => $v->{dbname} );
+
+  return $self->{unison};
+}
+
+
+
+sub infer_pseq_id ($$) {
   # Most pages should refer to sequences by pseq_id. If pseq_id isn't
   # defined, then we attempt to infer it from given 'seq', 'md5', or
   # 'alias' (in that order).  Furthermore, if none of those are defined
   # but 'q' is, then we heuristically attempt to guess whether q is a
   # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
   # right thing' lookups (e.g., from a browswer toolbar)
-  if (exists $v->{'q'}
-	  and not exists $v->{pseq_id}
-	  and not exists $v->{seq}
-	  and not exists $v->{md5}
-	  and not exists $v->{alias}) {
-	
+
+  my $self = shift;
+  my $v = $self->Vars();
+
+  if ( exists $v->{'q'} ) {
 	my $q = $v->{'q'};
-	if ($q !~ m/\D/) {						# all digits => is a pseq_id
-	  $v->{pseq_id} = $q;
-	} elsif ($q =~ m/Unison:(\d+)/)	{		# explicit Unison: id
-	  $v->{pseq_id} = $1;
-	} elsif (length($q)==32 and $q!~m/[^0-9a-f]/i) { # md5 checksum
+
+	if ($q !~ m/\D/)				{ return $q; };
+
+	if ($q =~ m/Unison:(\d+)/)		{ return $1; };
+
+	if (length($q)==32 and $q!~m/[^0-9a-f]/i) {
 	  $v->{md5} = $q;
 	} else {
 	  $v->{alias} = $q;
 	}
   }
 
-  if (not exists $v->{pseq_id}
-	  and $infer_pseq_id) {
-	my @ids;
 
-	if (exists $v->{seq}) {
-	  (@ids) = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
-	  if ($#ids == -1) {
-		$self->die('sequence not found',
-				   'The sequence you provided wasn\'t found in Unison.');
-	  }
-	} elsif (exists $v->{md5}) {
-	  (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
-	  if ($#ids == -1) {
-		$self->die('md5 checksum not found',
-				   'The md5 checksum you provided wasn\'t found in Unison.');
-	  } elsif ($#ids > 0) {
-		# md5 collision! (hasn't happened yet and I don't expect it), but just in case...
-		$self->die('md5 collision!',
-				   'The md5 checksum you provided corresponds to more than one sequence.');
-	  }
-	} elsif (exists $v->{alias}) {
-	  (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
-	  if ($#ids == -1) {
-		$self->die('alias not found',
-				   'The alias you provided wasn\'t found in Unison (case insensitive).');
-	  } elsif ($#ids > 0) {
-		# this should be moved to a general search CGI
-		print CGI::redirect("search_by_alias.pl?alias=$v->{alias}");
-		exit(0);
-		$self->die('alias collision',
-				   'The alias you provided corresponds to more than one sequence.');
-	  }
+  if (exists $v->{seq}) {
+	my (@ids) = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
+	if ($#ids == -1) {
+	  $self->die('sequence not found',
+				 'The sequence you provided wasn\'t found in Unison.');
 	}
-
-	$v->{pseq_id} = $ids[0];
-
-	# hereafter, we don't want these polluting our variables
-	delete $v->{'q'};
-	delete $v->{alias};
-	delete $v->{md5};
-	delete $v->{seq};
+	# REMINDER: can't be more than 1
+	return $ids[0];
   }
 
-  $self->start_html;
-  return $self;
+
+
+  if (exists $v->{md5}) {
+	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
+	if ($#ids == -1) {
+	  $self->die('md5 checksum not found',
+				 'The md5 checksum you provided wasn\'t found in Unison.');
+	} elsif ($#ids > 0) {
+	  # md5 collision! (hasn't happened yet and I don't expect it), but just in case...
+	  $self->die('md5 collision!',
+				 'The md5 checksum you provided corresponds to more than one sequence.');
+	}
+	return $ids[0];
   }
+
+  if (exists $v->{alias}) {
+	my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
+	if ($#ids == -1) {
+	  $self->die('alias not found',
+				 'The alias you provided wasn\'t found in Unison (case insensitive).');
+	} elsif ($#ids > 0) {
+	  # this should be moved to a general search CGI
+	  print CGI::redirect("search_by_alias.pl?alias=$v->{alias}");
+	  #exit(0);
+	  #$self->die('alias collision',
+	  #		   'The alias you provided corresponds to more than one sequence.');
+	}
+	return $ids[0];
+  }
+
+  return undef;
+}
+
 
 
 sub header {
