@@ -2,18 +2,7 @@
 
 use strict;
 use warnings;
-use Error qw(:try);
-use CGI ( -debug );
-use CGI::Carp qw(fatalsToBrowser);
-use Bio::Structure::IO;
 
-# use's below here might come from ../perl5 if available
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
 use Unison::WWW::Page;
 
 
