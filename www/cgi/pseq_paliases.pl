@@ -21,6 +21,9 @@ my @f = qw( origin alias description );
 
 do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
 
+# break really log "words" into fragments
+do { $_->[2] =~ s/(\S{30,}?)(?=\S+)/$1-- /g;} for @$ar;
+
 print $p->render("Aliases of Unison:$v->{pseq_id}",
 				 $p->group("Aliases of Unison:$v->{pseq_id}",
 						   Unison::WWW::Table::render(\@f,$ar)),
