@@ -1,0 +1,12 @@
+#!/bin/sh
+# $Id$
+
+# nightly -- tasks to perform nightly
+# you must set PGPASSWORD before running this script
+
+source `dirname $0`/utils
+exec >>"$LOGDIR/$JEMAPPELLE" 2>&1
+
+logger "vacuum analyze started"
+psql -q -Uadmin -c 'vacuum analyze unison.porigin'
+logger "vacuum analyze done"
