@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.6 2004/04/02 00:34:05 rkh Exp $
+# $Id: load-pmhmm,v 1.7 2004/12/24 00:09:46 rkh Exp $
 # load pfam HMM into unison
 # eg$ load-pmhmm /path/to/pfam-14.0/Pfam_fs
 
@@ -10,6 +10,8 @@ use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use IO::File;
+use IO::Pipe;
+
 
 my $fn;
 ($fn = shift)
@@ -20,45 +22,46 @@ my ($pfam_version,$fl) = $fn =~ m%pfam-([\.\d]+)/Pfam_([lf]s)%;
   || die("$0: couldn't parse origin (pfam-<version>/Pfam_([fl]s) from $fn\n");
 my $origin = "Pfam_$fl $pfam_version";		# e.g., Pfam_fs 12.0
 
-my $in = new IO::File;
-$in->open("<$fn")
-  || die("$fn: $!\n");
+my $in;
+if ($fn =~ m/.gz/) {
+  $in = new IO::Pipe;
+  $in->reader( 'gzip', '-cd', $fn );
+} else {
+  $in = new IO::File;
+  $in->open($fn,'rb')
+	|| die("$fn: $!\n");
+}
 
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+
+my $u = new Unison( dbname=>'csb-dev', username=>'unison' );
 my $porigin_id = $u->porigin_si_porigin_id($origin);
 (defined $porigin_id)
   || die("$0: origin $origin: $@\n");
-
-my $sth = $u->prepare("update porigin set url=?,descr=? where porigin_id=? and url is null");
+my $sth = $u->prepare('update porigin set url=?,descr=? where porigin_id=?');
 $sth->execute('http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s',
 			  "Pfam_$fl version $pfam_version",
 			  $porigin_id)
   || die("$0: update porigin: $@\n");
+printf(STDERR "# loading models into $origin (porigin_id=$porigin_id)\n");
 
-printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 
 my $sth_insert_pmhmm = $u->prepare("insert into pmhmm (porigin_id,name,acc,descr,len,nseq,cksum,hmm) ".
 						"values ($porigin_id,?,?,?,?,?,?,?)");
-my $sth_update_pmhmm = $u->prepare('update pmhmm set hmm=? where porigin_id=? and acc=?');
 
 $/ = "\n//\n";
+$u->begin_work();
 while(my $blk = <$in>) {
+  chomp($blk);
   my ($name,$acc,$descr,$len,$nseq,$cksum) 
 	= map {$blk =~ m/^$_\s+(.+)/m}  qw(NAME ACC DESC LENG NSEQ CKSUM);
-  chomp($blk);
   my $hmm = $blk . $/;
 
-  ## update hmm to fix a parse error.
-  if ( not eval {$sth_update_pmhmm->execute($hmm,$porigin_id,$acc)} ) {
-	die("$acc: $@\n");
-  }
-  print(STDERR "updated $acc: $name ($descr)\n");
-  next;
+  $sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum,$hmm);
 
-  if ( not eval {$sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum,$hmm)} ) {
-	warn("$acc: $@; skipping\n");
-  }
   print(STDERR "loaded $acc: $name ($descr)\n");
 }
 
 printf("done; last updated=%s\n", $u->porigin_last_updated($porigin_id,1));
+
+print("Committing...\n");
+$u->commit();
