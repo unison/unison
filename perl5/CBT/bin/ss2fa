@@ -1,54 +1,55 @@
-#!/usr/local/tools/bin/perl -w
-# ss2fa -- convert ss (or p1) files to fasta
-# * 2002/02/05 (Tue) 09:36 PST Reece
-
+#!/usr/bin/env perl
+# ss2fa -- convert ss or p1 files to fasta
+# $Id$
+#
 # usage:
-# ss2fa [files ...]
+# ss2fa [ss-or-p1-files] >out.fa
+#
+# This program makes a mild effort to extract meaningful tags from ss/p1
+# files, but this is not trivial.
 
+
+use warnings;
 use strict;
 use IO::File;
-use Env qw( DEBUG );
-#use Getopt::Long;
 
 my $jemappelle = $0;  $jemappelle =~ s%^.+/%%;
 my $fh = new IO::File;						# global, for better speed
-$DEBUG=0 unless defined $DEBUG;
 
 
-unshift(@ARGV, '-') unless @ARGV;			# read from stdin unless specified
+unshift(@ARGV, '-') unless @ARGV;			# read from stdin unless filename given
 
-while ( @ARGV )
-  {
+
+while ( @ARGV ) {
   my $fn = shift;
+  my ($seq, $tag) = read1($fn,$fh);
 
-  dprint(3, "# >> read1($fn)\n");
-  my ($seq, $tag) = read1($fn);
-  dprint(3, "# << read1($fn)\n");
+  if (not defined $seq)	{
+	warn("$fn: $!\n"); next;
+  }
 
-  if (not defined $seq)
-	{ warn("$fn: $!\n"); next; }
-
-  if (not defined $tag)
-	{ $tag = $fn; }
+  if (not defined $tag)	{
+	$tag = $fn;
+  }
 
 #  $tag =~ s%^.+/%%;
   $tag =~ s%\.p1%%;
 #  $tag .= ' [' . length($seq) . ' ' . ($fn=~/\Wss\W/?'NA':'AA') . ']';
 
-  print( join( "\n", ">$tag  # converted by $jemappelle", wrap($seq), '' ) );
+  print( join("\n", ">$tag  # converted by $jemappelle", wrap($seq)), "\n" );
   }
 
 
 
 
-# read1: read one sequence from one file
+# read1: read one sequence from one ss or p1 file
 # in: filename (may be - for stdin)
 # out: ($seq, $tag)
 # $seq is undef if err (and $! will be set)
-# $tag is a heuristic attempt grok ids from the input, but MAY BE UNDEF
-sub read1
-  {
+# $tag is a heuristic attempt to grok ids from the input, but MAY BE UNDEF
+sub read1 {
   my $fn = shift;
+  my $fh = shift || new IO::File;
   my $seq = '';
   my $tag;
   my $tag1;
@@ -56,27 +57,27 @@ sub read1
 
   return unless $fh->open("<$fn");
 
-  while( <$fh> )
-	{
-	if (m/^[<>]/)
-	  {
+  while( <$fh> ) {
+	if (m/^[<>]/) {
 	  if ( (not defined $tag1)				# snarf first DNA\d+ or PRO\d+
-		   and ( m/((?:DNA|PRO)\d+.*\[(?:min|full)\].*)/ ) )	# as tag
-		{ $tag1 = $1; }
-	  if ( not defined $tag2				# also keep initial >tag line
-		   and ( m/^>(\S+)/ ) )				# as from affy sequences
-		{ $tag2 = $1; }
+		   and ( m/((?:DNA|PRO)\d+.*\[(?:min|full)\].*)/ ) ) {	# as tag
+		$tag1 = $1;
 	  }
-	else
-	  { $seq .= $_; }
+	  if ( not defined $tag2				# also keep initial >tag line
+		   and ( m/^>(\S+)/ ) )	{			# as from affy sequences
+		$tag2 = $1;
+	  }
+	} else {
+	  $seq .= $_;
 	}
-  $fh->close();
+  }
 
   $seq =~ s/\s+//g;
 
   $tag = $tag1 || $tag2;					# prefer tag1, but tag2 okay
-  #dprint(3, "# read1 returns ({",length($seq),"},$tag)\n");
   return ( $seq , $tag );
+
+  # $fh may be closed by falling out of scope
 }
 
 
@@ -84,23 +85,12 @@ sub read1
 # no point in importing Text::Wrap just for this
 # in: sequence (scalar), width
 # out: array of lines (len < $width)
-sub wrap
-  {
+sub wrap {
   my $seq = shift;
   my $width = shift || 60;
   my (@lines) = ();
-  dprint(4, "#wrap({",length($seq),"},$width)\n");
-  while ( length($seq) > 0 )
-	{
-	#dprint(5, sprintf("#  %d %d {%s...}\n", $#lines+1, length($seq), substr($seq,0,5)));
+  while ( length($seq) > 0 ) {
 	push( @lines, substr($seq,0,$width,''));
-	}
+  }
   return ( @lines );
-  }
-
-
-sub dprint
-  {
-  my $level = shift;
-  print(STDERR @_) if ($DEBUG >= $level );
-  }
+}
