@@ -4,40 +4,98 @@
 
 $^W++;
 use strict;
+use IO::File;
 use Bio::SeqIO;
-use Getopt::Long;
+use Getopt::Long qw(:config gnu_getopt);
 use DBI;
 
-use lib '/home/rkh/unison/perl5';
+use lib ('./perl5', '/home/rkh/unison/perl5', "$ENV{HOME}/unison/perl5");
 use Unison;
 
 
-my $cmd;
-
 my $origin;
-GetOptions( 'origin|o=s' => \$origin )
+my $filelist;
+GetOptions( 'origin|o=s' => \$origin,
+			'filelist|f=s' => \$filelist,
+		  )
   || die("$0: bad usage\n");
-
 defined $origin
   || die("$0: --origin (-o) is mandatory\n");
 
 
+# begin icky globals
 my $udb = new Unison;
-
 my $porigin_id = $udb->si_porigin_id($origin);
-printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+#printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+# end icky globals
 
 
-my $in  = Bio::SeqIO->new('-format' => 'Fasta');
-while( my $seq = $in->next_seq() )
+if (defined $filelist)
   {
+  my $fh = new IO::File;
+  $fh->open("<$filelist")
+	|| die("$filelist: $!\n");
+  while( my $fn = <$fh> )
+	{
+	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>$fn );
+	process_stream($in);
+	}
+  $fh->close();
+  }
+elsif (@ARGV)
+  {
+  while( @ARGV )
+	{
+	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>shift );
+	process_stream($in);
+	}
+  }
+else
+  {
+  my $in = Bio::SeqIO->new('-format' => 'Fasta');
+  process_stream($in);
+  }
+
+exit(0);
+
+
+
+
+sub process_stream
+  {
+  my $in = shift;
+  while( my $seq = $in->next_seq() )
+	{ process_seq($seq); }
+  }
+
+sub process_seq
+  {
+  my $seq = shift;
   my $id = $seq->display_id();
+  my $desc = $seq->desc();
+  my @ids;
+
+  if ($origin eq 'SPDI')
+	{
+	$desc =~ s/\[min\]\s+//;
+	$desc =~ s/\# converted.+//;
+	@ids = ();
+	push(@ids,$1) if $desc =~ s/(UNQ\d+)\s+//;
+	push(@ids,$1) if $desc =~ s/(PRO\d+)\s+//;
+	push(@ids,$id);
+	#$desc = "@ids $desc";
+    }
+  else
+	{ @ids = ( $id ); }
+
+  if ($id !~ m/\w/ or length($seq->seq()) == 0)
+	{ warn("$id ($desc) is invalid; skipping\n"); return; }
+
   my $pseq_id = $udb->si_pseq_id($seq->seq());
-
   if (not defined $pseq_id)
-	{ warn("failed to add $id"); next; }
+	{ warn("failed to add $id"); return; }
+  foreach my $upd_id (@ids)
+	{ $udb->add_palias($pseq_id,$porigin_id,$upd_id,$desc); }
 
-  $udb->add_palias($pseq_id,$porigin_id,$id,$desc)
-
-  print(STDERR "added $id (pseq_id=$pseq_id)\n");
+  print(STDERR "# added pseq_id=$pseq_id, w/ aliases @ids ($desc)\n");
   }
