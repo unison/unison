@@ -20,7 +20,7 @@ my $ar = $u->selectall_arrayref($sql);
 my @f = qw( key value );
 
 my $thanks = <<EOF;
-<p>Many thanks to the developers of the follow freely available packages:
+<p>Many thanks to the developers of the following freely available packages:
 <table width="80%">
 <tr>
 	<td align="center"></td>
