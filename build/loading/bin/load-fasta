@@ -20,14 +20,13 @@ my $maxlen = 8200;							# empirical limit
 my $sqlonly = 0;
 my $nomd5 = 0;
 my $noalias = 0;
-GetOptions( 'origin|o=s' => \$origin,
-			'filelist|f=s' => \$filelist,
+GetOptions( @Genentech::Unison::OPTS,
+			'origin|o=s' => \$origin,
 			'startafter|A=s' => \$startafter,
 			'maxlen|L=s' => \$maxlen,
 			'nomd5' => \$nomd5,
 			'noalias' => \$noalias,
 			'sqlonly' => \$sqlonly,
-			@Genentech::Unison::OPTS
 		  )
   || die("$0: bad usage\n");
 defined $origin
@@ -41,6 +40,7 @@ my %alias;
 my %md5;
 
 
+printf(STDERR '# $Id$ ',"\n");
 printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
@@ -55,7 +55,7 @@ if (not $nomd5)
 
 
 
-my $nloaded = 0;
+my ($nseen,$nskipped,$nadded) = (0,0,0);
 if (defined $filelist)
   {
   my $fh = new IO::File;
@@ -64,7 +64,7 @@ if (defined $filelist)
   while( my $fn = <$fh> )
 	{
 	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>$fn );
-	$nloaded += process_stream($in);
+	process_stream($in);
 	}
   $fh->close();
   }
@@ -73,17 +73,20 @@ elsif (@ARGV)
   while( @ARGV )
 	{
 	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>shift );
-	$nloaded += process_stream($in);
+	process_stream($in);
 	}
   }
 else
   {
   my $in = Bio::SeqIO->new('-format' => 'Fasta');
-  $nloaded += process_stream($in);
+  process_stream($in);
   }
 
-printf(STDERR "# %d extant aliases, %d extant md5s, %d new sequences added\n",
-	   scalar keys %alias, scalar keys %md5, $nloaded);
+printf(STDERR "# before: %d extant aliases, %d extant md5s\n"
+	   . "# %d sequences scanned; %d skipped; %d added\n",
+	   scalar keys %alias, scalar keys %md5, 
+	   $nseen, $nskipped, $nadded);
+printf
 
 exit(0);
 
@@ -95,14 +98,13 @@ exit(0);
 sub process_stream
   {
   my $in = shift;
-  my $nloaded = 0;
   while( my $seq = $in->next_seq() )
 	{
-	$nloaded += process_seq($seq);
-	if (not $udb->ready())
-	  {	die("! connection closed prematurely\n"); }
+	process_seq($seq);
+#	if (not $udb->ready())
+#	  {	die("! connection closed prematurely\n"); }
 	}
-  return $nloaded;
+  return;
   }
 
 sub process_seq
@@ -114,6 +116,7 @@ sub process_seq
   my $oseq = $seq;
   $seq = uc($seq); $seq =~ s/[^-\*\?A-Z]//g;
   my $md5 = md5_hex($seq);
+  $nseen++;
 
   if ($seq ne $oseq)
 	{
@@ -143,7 +146,7 @@ sub process_seq
 	undef $startafter if ($id eq $startafter);
 	}
   elsif (defined %alias and exists $alias{$id})
-	{ $skip = 'extant alias (pseq_id='.$alias{$id}.')'; }
+	{ $skip = 'extant alias'; }
   elsif (defined $maxlen and length($seq)>$maxlen)
 	{ $skip = sprintf("too long (%d AA; maxlen=$maxlen",length($seq)); }
   elsif (length($seq) == 0)
@@ -151,17 +154,17 @@ sub process_seq
   elsif ($descr =~ m%/type=(\w+)% and $1 ne 'gene')
 	{ $skip = "non-gene genescan transcript"; }
   if (defined $skip)
-	{ warn("# skipping $id: $skip ($descr)\n"); return 0; }
+	{ warn("# skipping $id: $skip ($descr)\n"); $nskipped++; return; }
 
   # @ids is the SET of ids to which we'll link this sequence
   my @ids = ();
 
-  if ($origin eq 'SPDI')
+  if ($origin =~ m/SPDI/i)
 	{
 	push(@ids,$1) if $descr =~ s/(UNQ\d+)\s+//;
 	push(@ids,$1) if $descr =~ s/(PRO\d+)\s+//;
 	push(@ids,$id) unless $id =~ m/^</;
-	warn("! $id: didn't match 3 SPDI identifiers (@ids)\n") unless $#ids==2;
+	warn("! $id: SPDI sequence didn't match 3 identifiers (@ids)\n") unless $#ids==2;
     }
   else
 	{
@@ -184,11 +187,10 @@ sub process_seq
     }
   else
 	{
-#	printf(STDERR "## about to pseq_i_pseq_id( {%dAA} ) for $id ($descr)...",
-#		   length($seq));
-	$pseq_id = $udb->pseq_i_pseq_id( $seq );
+#	$pseq_id = $udb->pseq_i_pseq_id( $seq );
+	$pseq_id = $udb->pseq_si_pseq_id( $seq );
 	$md5{ $md5 } = $pseq_id;
-	printf(STDERR "got pseq_id=$pseq_id\n");
+#	printf(STDERR "got pseq_id=$pseq_id\n");
 	}
 
   if (not defined $pseq_id)
@@ -197,8 +199,9 @@ sub process_seq
   foreach my $upd_id (@ids)
 	{ $udb->add_palias($pseq_id,$porigin_id,$upd_id,$descr); }
 
-  printf(STDERR "# added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
+  printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
 		length($seq), $descr);
+  $nadded++;
 
-  return 1;
+  return;
   }
