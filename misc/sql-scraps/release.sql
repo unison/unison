@@ -1,4 +1,4 @@
-create or replace function release() returns void 
+create or replace function unison.release() returns NULL
 language plpgsql as '
 BEGIN
 	perform p2thread_create_indices();

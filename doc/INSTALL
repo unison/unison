@@ -1,0 +1,51 @@
+-*-outline-*-
+
+IMPORTANT:
+- The database user is compbio. You must become that user for these to work
+- make sure that you're using the postgresql tools in
+  /apps/compbio/i686-linux-2.4/opt/postgresql/bin/.  It usually suffices
+  to have /a/c/i686-linux-2.4/bin/ in your PATH ahead of system bin/
+  directories.
+
+
+* preparing and starting a database "cluster" (instance of postgresql)
+$ audit compbio
+$ unset PGUSER PGDATABASE PGHOST PGPORT
+$ export PGDATA=/services/postgresql
+$ initdb -U admin -D $PGDATA
+$ psql -dtemplate1 -c "alter user admin password 'blah'";
+$ cp csb-db/conf/{postgresql.conf,pg_hba.conf} $PGDATA/
+$ pg_ctl -l $PGDATA/log start
+$ createuser -Uadmin -A -D -P loader
+$ createuser -Uadmin -A -D PUBLIC
+$ csb-db/bin/passwd2sql </etc/passwd rkh cavs wiw ... | psql -dtemplate1 -Uadmin -qaf-
+
+
+* languages and unison C functions
+$ createlang -dtemplate1 -Uadmin plpgsql
+$ createlang -dtemplate1 -Uadmin plperl
+$ createlang -dtemplate1 -Uadmin plpython
+$ cd csb-db/unison/src
+$ make unison.so
+$ make install
+
+
+* (re-)starting the database
+$ export PGDATA=/services/postgresql
+$ pg_ctl -l$PGDATA/log restart    # works even if not already running
+
+
+* setting the default database schema search path:
+$ psql -Uadmin -c "alter database csb set search_path = '\$user',unison,gong,scop,tax,public";
+
+
+* backups and restoration; csb-dev creation
+backups are kept in ~rkh/csb-db/backups/csb/. Full backups are named
+<timestamp>.pgdump.gz; schema-only backups are named
+<timestamp>-s.pgdump.gz. 
+
+The basic DIY restore is like this:
+$ gzip -cdq backup.sql | psql -dcsb-dev -Uadmin -af- >restore.log 2>&1
+
+Instead, use csb-db/bin/restore, like this:
+$ PGPASSWORD=xxx PGDATABASE=csb-dev restore <timestamp.pgdump.gz>
