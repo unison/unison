@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.9.2.2 2004/12/24 00:09:54 rkh Exp $>
+S<$Id: params.pm,v 1.9.2.3 2005/01/16 00:39:00 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -115,15 +115,17 @@ sub get_p2options_by_params_id($$) {
 
 ### DEPRECATED FUNCTIONS
 
-sub get_p2options_by_run_id($) {
-  warn_deprecated();
-  get_p2options_by_params_id(@_);
-}
+# removed 2005-01-15
+# sub get_p2options_by_run_id($) {
+#   warn_deprecated();						# 2004-09-01
+#   goto &get_p2options_by_params_id;
+# }
 
-sub get_p2options_by_p2params_id($) {
-  warn_deprecated();
-  return get_rprospect2_by_run_id(@_); 
-}
+# removed 2005-01-15
+# sub get_p2options_by_p2params_id($) {
+#   warn_deprecated();						# 2004-09-01
+#   goto &get_p2options_by_params_id;
+# }
 
 
 
