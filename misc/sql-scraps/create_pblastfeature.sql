@@ -1,10 +1,10 @@
 -- -----------------------------------------------------------------------------
 --
--- NAME: create_pblastfeature.sql
+-- NAME: create_unison.pblastfeature.sql
 -- PURPOSE: sql statements and PL/pgSQL commands for creating a
 --          blast feature table and associated procedures
 --
--- $Id: create_pblastfeature.sql,v 1.1 2003/04/09 21:46:20 cavs Exp $
+-- $Id: create_unison.pblastfeature.sql,v 1.2 2003/04/10 16:12:21 cavs Exp $
 --
 -- -----------------------------------------------------------------------------
 
@@ -12,10 +12,10 @@
 
 -- -----------------------------------------------------------------------------
 --
--- create the pblastfeature table as a subclass of pfeature.  add appropriate
+-- create the unison.pblastfeature table as a subclass of pfeature.  add appropriate
 -- indices.
-DROP TABLE pblastfeature;
-CREATE TABLE pblastfeature (
+DROP TABLE unison.pblastfeature;
+CREATE TABLE unison.pblastfeature (
 	t_pseq_id integer NOT NULL,
 	t_start integer NOT NULL,
 	t_stop integer NOT NULL,
@@ -28,43 +28,43 @@ CREATE TABLE pblastfeature (
 	pct_hsp_coverage real NOT NULL,
 	pct_coverage real NOT NULL
 ) INHERITS (pfeature) WITHOUT OIDS;
-COMMENT ON TABLE pblastfeature IS 'stores BLAST features and derived values';
-COMMENT ON COLUMN pblastfeature.pseq_id IS 'query pseq_id';
-COMMENT ON COLUMN pblastfeature.start IS 'starting position (1-based) on the query sequence';
-COMMENT ON COLUMN pblastfeature.stop IS 'ending position (1-based) on the query sequence';
-COMMENT ON COLUMN pblastfeature.t_pseq_id IS 'target pseq_id';
-COMMENT ON COLUMN pblastfeature.t_start IS 'starting position (1-based) on the target sequence';
-COMMENT ON COLUMN pblastfeature.t_stop IS 'ending position (1-based) on the target sequence';
-COMMENT ON COLUMN pblastfeature.e_value IS 'HSP e-value';
-COMMENT ON COLUMN pblastfeature.p_value IS 'HSP p-value';
-COMMENT ON COLUMN pblastfeature.hsp_length IS 'length of HSP including gaps';
-COMMENT ON COLUMN pblastfeature.identities IS 'number of identities';
-COMMENT ON COLUMN pblastfeature.similarities IS 'number of similarities';
-COMMENT ON COLUMN pblastfeature.pct_identity IS 'derived value: identites/hsp_length';
-COMMENT ON COLUMN pblastfeature.pct_hsp_coverage IS 'derived value: hsp_length/length of query sequence';
-COMMENT ON COLUMN pblastfeature.pct_coverage IS 'derived value: length of target sequence/length of query sequence';
+COMMENT ON TABLE unison.pblastfeature IS 'stores BLAST features and derived values';
+COMMENT ON COLUMN unison.pblastfeature.pseq_id IS 'query pseq_id';
+COMMENT ON COLUMN unison.pblastfeature.start IS 'starting position (1-based) on the query sequence';
+COMMENT ON COLUMN unison.pblastfeature.stop IS 'ending position (1-based) on the query sequence';
+COMMENT ON COLUMN unison.pblastfeature.t_pseq_id IS 'target pseq_id';
+COMMENT ON COLUMN unison.pblastfeature.t_start IS 'starting position (1-based) on the target sequence';
+COMMENT ON COLUMN unison.pblastfeature.t_stop IS 'ending position (1-based) on the target sequence';
+COMMENT ON COLUMN unison.pblastfeature.e_value IS 'HSP e-value';
+COMMENT ON COLUMN unison.pblastfeature.p_value IS 'HSP p-value';
+COMMENT ON COLUMN unison.pblastfeature.hsp_length IS 'length of HSP including gaps';
+COMMENT ON COLUMN unison.pblastfeature.identities IS 'number of identities';
+COMMENT ON COLUMN unison.pblastfeature.similarities IS 'number of similarities';
+COMMENT ON COLUMN unison.pblastfeature.pct_identity IS 'derived value: identites/hsp_length';
+COMMENT ON COLUMN unison.pblastfeature.pct_hsp_coverage IS 'derived value: hsp_length/length of query sequence';
+COMMENT ON COLUMN unison.pblastfeature.pct_coverage IS 'derived value: length of target sequence/length of query sequence';
 
-ALTER TABLE ONLY pblastfeature
+ALTER TABLE ONLY unison.pblastfeature
     ADD CONSTRAINT pseq_id_fk FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE NO ACTION;
-ALTER TABLE ONLY pblastfeature
+ALTER TABLE ONLY unison.pblastfeature
     ADD CONSTRAINT t_pseq_id_fk FOREIGN KEY (t_pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE NO ACTION;
-CREATE INDEX pblastfeature_pseq_id ON pblastfeature USING btree (pseq_id);
-CREATE INDEX pblastfeature_t_pseq_id ON pblastfeature USING btree (t_pseq_id);
-CREATE INDEX pblastfeature_pct_identity ON pblastfeature USING btree (pct_identity);
-CREATE INDEX pblastfeature_pct_hsp_coverage ON pblastfeature USING btree (pct_hsp_coverage);
-CREATE INDEX pblastfeature_hsp_length ON pblastfeature USING btree (hsp_length);
+CREATE INDEX pblastfeature_pseq_id ON unison.pblastfeature USING btree (pseq_id);
+CREATE INDEX pblastfeature_t_pseq_id ON unison.pblastfeature USING btree (t_pseq_id);
+CREATE INDEX pblastfeature_pct_identity ON unison.pblastfeature USING btree (pct_identity);
+CREATE INDEX pblastfeature_pct_hsp_coverage ON unison.pblastfeature USING btree (pct_hsp_coverage);
+CREATE INDEX pblastfeature_hsp_length ON unison.pblastfeature USING btree (hsp_length);
 
 
-REVOKE ALL ON TABLE pblastfeature FROM PUBLIC;
-GRANT SELECT ON TABLE pblastfeature TO PUBLIC;
-GRANT INSERT,UPDATE ON TABLE pblastfeature TO loader;
+REVOKE ALL ON TABLE unison.pblastfeature FROM PUBLIC;
+GRANT SELECT ON TABLE unison.pblastfeature TO PUBLIC;
+GRANT INSERT,UPDATE ON TABLE unison.pblastfeature TO loader;
 -- -----------------------------------------------------------------------------
 
 
 -- -----------------------------------------------------------------------------
 --
 -- ins_pblastfeature():
---   purpose: create a pblastfeature record
+--   purpose: create a unison.pblastfeature record
 --   arguments: porigin_id, alias, pseq_id, ref_pseq_id
 --   returns: pfeature_id
 --
@@ -117,7 +117,7 @@ BEGIN
 	v_pct_coverage := ( t_seq_len::real / q_seq_len::real ) * 100.0;
 
 	-- do insert
-	insert into pblastfeature ( pfeature_id, pseq_id, pftype_id, start, stop, t_pseq_id, 
+	insert into unison.pblastfeature ( pfeature_id, pseq_id, pftype_id, start, stop, t_pseq_id, 
 	    t_start, t_stop, e_value, p_value, hsp_length, identities, similarities, pct_identity, 
 	    pct_hsp_coverage, pct_coverage ) values ( v_pfeature_id, v_q_pseq_id, v_pftype_id, v_q_start,
 		v_q_stop, v_t_pseq_id, v_t_start, v_t_stop, v_e_value, v_p_value, v_hsp_length, 
@@ -151,7 +151,7 @@ BEGIN
 	pct_hsp_coverage_min := 90.0;
 	hsp_length_min := 50;
 
-	OPEN ref FOR SELECT t_pseq_id from pblastfeature WHERE pseq_id=v_pseq_id and 
+	OPEN ref FOR SELECT t_pseq_id from unison.pblastfeature WHERE pseq_id=v_pseq_id and 
 	pct_identity>=pct_identity_min and pct_hsp_coverage >= pct_hsp_coverage_min and 
 	hsp_length >= hsp_length_min;
 
