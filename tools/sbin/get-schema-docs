@@ -5,7 +5,7 @@
 # PURPOSE: build schema documentation
 # USAGE: get-schema-docs [schema-name]
 #
-# $Id$
+# $Id: get-schema-docs,v 1.1 2003/11/26 22:33:50 cavs Exp $
 #-------------------------------------------------------------------------------
 
 if [ -n "$1" ]; then
@@ -19,7 +19,7 @@ OUTPUT_DIR=~cavs/public_html/projects/unison
 export CSB_BASE_URL=http://resdev:8080/people/cavs/projects/unison/$SCHEMA.html
 
 cd $OUTPUT_DIR
-PGPASSWORD=homer; postgresql_autodoc -s $SCHEMA -d csb -f $SCHEMA -h td-svc -u compbio
+postgresql_autodoc -s $SCHEMA -d csb -f $SCHEMA -h csb -u compbio
 
 perl -pi -e 's/^digraph g {\n/digraph g {\nURL="$ENV{CSB_BASE_URL}";\n/;' $SCHEMA.dot
 perl -pi -e 's/shape = record, /shape = record, URL="$ENV{CSB_BASE_URL}#$SCHEMA.table.\\N", /g;' $SCHEMA.dot
