@@ -42,7 +42,7 @@ my %colnum = map {$cols[$_]->[1] => $_} grep {defined $cols[$_]->[1]} 0..$#cols;
 my $ob = { 
       acc => 'acc',
       pide => 'pct_ident desc',
-      raw => 'raw desc',
+      raw => 'raw',
       svm => 'svm desc',
       mut => 'mutation',
       pairwise => 'pairwise',
