@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison -- interface to the Unison database
-S<$Id: Unison.pm,v 1.3 2003/06/10 20:45:49 cavs Exp $>
+S<$Id: Unison.pm,v 1.4 2003/06/13 00:28:05 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -31,12 +31,16 @@ package Unison;
 use Unison::DBI;
 use Unison::Exceptions;
 use Unison::pseq;
-use Unison::p2params;
 use Unison::porigin;
-use Unison::p2template;
-use Unison::p2thread;
+use Unison::paprospect2;
+use Unison::pmprospect2;
+use Unison::rprospect2;
 use Unison::palias;
 use Unison::papseq;
+
+#use Unison::p2params;
+#use Unison::p2template;
+#use Unison::p2thread;
 =pod
 use Unison::deprecated;
 =head1 SEE ALSO
