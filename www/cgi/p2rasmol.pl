@@ -48,5 +48,5 @@ my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
 my $thr = ($pf->thread( $seq ))[0];
 
 print("Content-type: application/x-rasmol\n\n",
-	  $pt->outputRasmolScript( $thr, $str ));
+	  $pt->output_rasmol_script( $thr, $str ));
 exit(0);
