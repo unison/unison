@@ -1,7 +1,7 @@
 =head1 NAME
 
  Unison::porigin -- Unison porigin table utilities
- $Id: porigin.pm,v 1.7 2004/07/19 22:20:16 rkh Exp $
+ $Id: porigin.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $
 
 =head1 SYNOPSIS
 
@@ -106,7 +106,7 @@ sub porigin_porigin_id_by_origin($) {
 }
 
 sub get_porigin_id_by_origin {
-  porigin_porigin_id_by_origin(@_);
+  goto &porigin_porigin_id_by_origin;
 }
 
 
