@@ -36,7 +36,7 @@ sub render {
   $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
   foreach(my $i; $i<=$#_; $i++) {
   }
-  $rv .= "</table>\n";
+  $rv .= "</table class=\"uwtable\">\n";
   return($rv);
 }
 
@@ -58,7 +58,7 @@ sub render_compat {
   my $opts = shift;
 
   my $tbl_start = "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
-  my $tbl_end = "</table>\n";
+  my $tbl_end = "</table class=\"uwtable\">\n";
 
   my $rv = $tbl_start;
 
