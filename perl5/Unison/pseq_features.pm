@@ -9,7 +9,7 @@ my %opts =
   (
    pseq_id => undef,
    width => 750,
-   verbose => 0
+   verbose => 1
   );
 
 sub features_graphic {
@@ -56,7 +56,7 @@ sub features_graphic {
   add_paprospect2( $u, $panel, $q );
 
   $panel->add_track( ) for 1..2;         # spacing
-  $panel->add_track( -key => '$Id: features.pm,v 1.2 2004/02/25 21:04:35 cavs Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.3 2004/04/02 00:31:16 rkh Exp $',
            -key_font => 'gdSmallFont',
            -bump => +1,
            );
@@ -179,45 +179,89 @@ sub add_paprospect2 {
   my ($u, $panel, $q) = @_;
   my ($svm_thr,$topN) = (7,5);
   my $nadded = 0;
-  my $sql =
-  'select tmp.*,best_annotation(tmp.pseq_id)
-    from (SELECT t.start,t.stop, t.raw, t.svm, b.acc, b.pseq_id, sfdes.descr
-        FROM paprospect2 t
-      JOIN pmprospect2 b ON t.pmodel_id=b.pmodel_id
-          LEFT JOIN cla ON b.sunid = cla.sunid
-          LEFT JOIN des sfdes ON sfdes.sunid = cla.sf
-          WHERE t.pseq_id='.$q.' and t.svm>'.$svm_thr.' ORDER BY t.svm DESC) tmp';
-  print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $featref = $u->selectall_arrayref($sql);
-  my $nfeat = $#$featref+1;
-  splice(@$featref,$topN) if $#$featref>$topN;
-  my $track = $panel->add_track( -glyph => 'graded_segments',
-                 -bgcolor => 'green',
-                 -key => sprintf('prospect (top %d hits of %d w/svm>=%s)',
-                         ($#$featref+1),$nfeat,$svm_thr),
-                 -bump => +1,
-                 -label => 1,
-                 -fgcolor => 'black',
-                 -font2color => 'red',
-                 -description => 1,
-                 -height => 4,
-                 -bgcolor => 'green',
-                 -min_score => 5,
-                 -max_score => 11,
-                 -sort_order => 'high_score'
-                 );
-  foreach my $r (@$featref) {
-  next unless defined $r->[0];
-  $track->add_feature
-    ( Bio::Graphics::Feature->new( -start => $r->[0],
-                     -end => $r->[1],
-                     -score => $r->[3],
-                     -name => sprintf("%s; raw=%s; svm=%s; (%s)",
-                              @$r[4,2,3], $r->[6]||'<?>')
-                   ) );
-  $nadded++;
+
+  my $sql = "SELECT * FROM v_paprospect2_scop WHERE pseq_id=$q AND svm >= $svm_thr";
+  my $sth = $u->prepare($sql);
+  $sth->execute();
+  my @raw_data;
+  while ( my $row = $sth->fetchrow_hashref() ) { push @raw_data,$row; }
+  my $feats = $u->coalesce_scop( \@raw_data );
+  my $nfeat = scalar(@{$feats});
+  splice(@{$feats},$topN) if $nfeat>$topN;
+  my $track = $panel->add_track( 
+    -glyph => 'graded_segments',
+    -bgcolor => 'green',
+    -key => sprintf('prospect (top %d hits of %d w/svm>=%s)',
+         ($#$feats+1),$nfeat,$svm_thr),
+    -bump => +1,
+    -label => 1,
+    -fgcolor => 'black',
+    -font2color => 'red',
+    -description => 1,
+    -height => 4,
+    -bgcolor => 'green',
+    -min_score => 5,
+    -max_score => 11,
+    -sort_order => 'high_score',
+  );
+  foreach my $row ( @{$feats} ) {
+    my %scop;
+    for( my $i=0; $i<scalar(@{$row->{scop}}); $i++ ) { $scop{$row->{scop}[$i]->{sfname}}++; };
+    my $name = sprintf("%s; raw=%s; svm=%s; (%s)",$row->{acc},$row->{raw},$row->{svm},join(' AND ',sort keys %scop));
+    printf STDERR " add track: $name\n";
+    $track->add_feature( 
+      Bio::Graphics::Feature->new( 
+      -start => $row->{start},
+      -end   => $row->{stop},
+      -score => $row->{svm},
+      -name  => $name
+    ));
+    $nadded++;
+    last if $nadded == $topN;
   }
   return $nadded;
+}
+
+#-------------------------------------------------------------------------------
+# NAME: coalesce_scop
+# PURPOSE: coalesce scop information for duplicate pseq_id and acc hits. handles
+#          the duplicate rows generated from the v_paprospect_scop view
+# ARGUMENTS: arrayref (row) of hashrefs (columns)
+# RETURNS: arrayref (new reference) with the scop information coalesced
+#-------------------------------------------------------------------------------
+sub coalesce_scop {
+  my ($u,$featref) = @_;
+
+  my ($curr_acc,@scop,@retval,%row);
+  my $cnt=0;
+  foreach my $r (@{$featref}) {
+    $cnt++;
+    if (( defined $curr_acc ) && ( $r->{acc} ne $curr_acc )) {
+      $row{scop} = [@scop];
+      # don't return sunids
+      delete $row{clid}; delete $row{clname}; delete $row{sfid};
+      delete $row{sfname}; delete $row{dmid}; delete $row{dmname};
+      push @retval,{ map { $_, $row{$_} } keys %row };
+      @scop = ();
+    }
+    # copy key/value pairs from old ($r) to new (%row) hash
+    foreach my $k (keys %{$r}) { 
+      # skip the scop info in the $r hashref. this will all
+      # go into the scop value of the %row hash
+      next if ( $k eq 'clid' or $k eq 'clname' or 
+        $k eq 'sfid' or $k eq 'sfname' or 
+        $k eq 'dmid' or $k eq 'dmname' );
+      $row{$k} = $r->{$k};
+    }
+    push @scop,{ 
+      'clid' => $r->{clid}, 'clname' => $r->{clname},
+      'sfid' => $r->{sfid}, 'sfname' => $r->{sfname},
+      'dmid' => $r->{dmid}, 'dmname' => $r->{dmname}
+    };
+    $curr_acc = $row{acc};
+    if ( $cnt == scalar(@$featref) ) { $row{scop} = [@scop]; push @retval,\%row; }
+  }
+  return \@retval;
 }
 
 
