@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.4 2004/01/08 02:17:39 rkh Exp $
+# $Id: run-pfsignalp,v 1.5 2004/03/03 16:42:35 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -33,6 +33,13 @@ my $temp_out_fn = "/tmp/run-pfsignalp-$$.out";
 # signalp barfs on really small and large seqs
 my $len_lower_cutoff = '50';
 my $len_upper_cutoff = '3000';
+
+# signalp also barfs on lot'sa sequences and/or long sequence files -
+# limit number of sequences to 250
+my $max_seq_cnt = 250;
+die( "Signalp barfs on many seqs and large seq files.\n" .
+	"Therfore, run-pfsignalp allows only $max_seq_cnt seqs at a time\n" ) if
+	( $#ARGV >  $max_seq_cnt );
 
 my $u = new Unison;
 
