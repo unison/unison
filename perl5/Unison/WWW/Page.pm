@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.39 2005/02/23 19:56:36 rkh Exp $>
+S<$Id: Page.pm,v 1.40 2005/03/19 18:13:21 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -41,7 +41,7 @@ use Error qw(:try);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
 sub _make_temp_dir ();
-sub _cleanup_temp();
+sub _cleanup_temp($);
 
 our $infer_pseq_id = 0;
 
@@ -170,7 +170,7 @@ yet.
 
 sub tempfile {
   my $self = shift;
-  $self->_cleanup_temp();
+  $self->_cleanup_temp() if rand(0)<=0.20;	# try cleanup 20% of the time
   $self->_make_temp_dir(); 					# no return if failure
   my %opts = (								# order is important:
 			  UNLINK=>0, 					# - items before @_ are defaults
@@ -967,11 +967,24 @@ sub _make_temp_dir () {
 }
 
 
-sub _cleanup_temp {
+sub _cleanup_temp ($) {
+  # This is intended to provide self-cleaning for Unison web page temp files
   my $self = shift;
+  return unless defined $ENV{DOCUMENT_ROOT};
+  my $root = "$ENV{DOCUMENT_ROOT}/tmp";
   my @lt = localtime();
   my $ts = sprintf("%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
+  my @old = grep {m/^\d{4}-\d{2}-\d{2}$/ and $_ lt $ts} map {s%$root/%%;$_} <$root/200*>;
+  my @tbd = map {"$root/$_"} @old;
+  foreach my $dir (@tbd) {
+	print(STDERR "temp file cleanup: removing $dir/\n");
+	if (system("/bin/rm -fr $dir")) {
+	  print(STDERR "FAILED: $dir: $!\n");
+	}
+  }
 }
+
+
 
 
 
