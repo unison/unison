@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsigcleave [pseq_ids]
 #
-# $Id: run-pfsigcleave,v 1.3 2003/10/13 21:02:55 cavs Exp $
+# $Id: run-pfsigcleave,v 1.4 2003/10/13 23:50:20 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -91,4 +91,5 @@ RESULT: while(my $r = $parser->next_result) {
 
 print(STDOUT "\n");
 
+unlink $temp_in_fn, $temp_out_fn unless $ENV{'DEBUG'};
 exit(0);
