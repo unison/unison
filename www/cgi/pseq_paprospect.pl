@@ -19,31 +19,21 @@ my @statevars = qw(pseq_id params_id offset limit sort);
 
 
 my @cols =
-  (# colname        sort_ob
-   ['aln?',			         	],
-   ['acc',		   		    	],
-   ['pct_ident',    'pide'   	],
-   ['raw',     		'raw'    	],
-   ['svm',     		'svm'    	],
-   ['singleton',    'singleton' ],
-   ['pairwise',    	'pairwise'  ],
-   ['mutation',    	'mut'    	],
-   ['gap',      	'gap'    	],
-   ['SCOP (sf&nbsp;>&nbsp;dm)', ]
+  (# HTML col    DB col       order tag  sql order by
+   ['aln?',                                              ],
+   ['acc',       'acc',       'acc',     'acc'           ],
+   ['%IDE', 	 'pct_ident', 'pide',    'pct_ident desc'],
+   ['raw',       'raw',       'raw',     'raw'           ],
+   ['svm',       'svm',       'svm',     'svm desc'      ],
+   ['singleton', 'singleton', 'sing', 	 'singleton'     ],
+   ['pairwise',  'pairwise',  'pair',  	 'pairwise'      ],
+   ['mutation',  'mutation',  'mut',     'mutation'      ],
+   ['gap',       'gap',       'gap',     'gap'           ],
+   ['SCOP (sf&nbsp;>&nbsp;dm)',                          ]
   );
-my @f = map { $_->[0] } @cols;
-my %ob = 
-  (
-   acc => 'acc',
-   pide => 'pct_ident desc',
-   raw => 'raw',
-   svm => 'svm',
-   mut => 'mutation',
-   pairwise => 'pairwise',
-   singleton => 'singleton',
-   gap => 'gap',
-   scop => 'sfname,dmname'
-  );
+my @htmlcols = map { $_->[0] } @cols;
+my %order_by = map {$_->[2]=>$_->[3]} grep {defined $_->[2]} @cols;
+my %sort_col = map {$_->[2]=>$_->[1]} grep {defined $_->[2]} @cols;
 
 
 my $p = new Unison::WWW::Page;
@@ -53,22 +43,22 @@ $v->{pmodelset_id} = undef unless defined $v->{params_id};
 $v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
-$v->{sort} = 'svm' unless defined $v->{sort};
+$v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id$ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.16 2004/06/14 23:42:25 rkh Exp $ ');
 
 
 my $u = $p->{unison};
 my $sql = new Unison::SQL;
-my $ob = $ob{$v->{sort}};
-
+my $ob = $order_by{$v->{sort}};
+my $sc = $sort_col{$v->{sort}};
 
 # construct query
 $sql->columns('*')
-  ->distinct($ob, qw(acc clid sfid dmid))
+  ->distinct($sc,($sc eq 'acc'?'':'acc,').'clid,sfid,dmid')
   ->table('v_paprospect2_scop_2')
   ->where("pseq_id=$v->{pseq_id} AND params_id=$v->{params_id}")
-  ->order("$ob,acc,clid,sfid,dmid");
+  ->order($ob,($sc eq 'acc'?'':'acc,').'clid,sfid,dmid');
 if (defined $v->{pmodelset_id}
 	and $v->{pmodelset_id} !~ m/\D/) {
   $sql->where("pmodel_id in (select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{pmodelset_id})");
@@ -105,12 +95,14 @@ my $feats = $u->coalesce_scop( \@raw_data );
 my @ar;
 foreach my $row ( @{$feats} ) {
   # build checkbox for alignment
-  my $aln = "<input type=\"checkbox\" name=\"templates\" value=\"$row->{acc}\">";
-
+  my $aln = "<input type=\"checkbox\" name=\"templates\" "
+	. "value=\"$row->{acc}\">";
   # build rasmol linking
   my $rasmol;
   if ( -f "$pdbDir/$row->{acc}.pdb" ) {
-    $rasmol .= "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id};params_id=$v->{params_id};templates=$row->{acc}\" tooltip=\"show threading alignment with rasmol\">$row->{acc}</a>";
+    $rasmol .= "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id};params_id="
+	  . "$v->{params_id};templates=$row->{acc}\" tooltip=\""
+	  . "show threading alignment with rasmol\">$row->{acc}</a>";
   } else {
     $rasmol .= $row->{acc};
   }
@@ -120,27 +112,30 @@ foreach my $row ( @{$feats} ) {
   for (my $i=0;$i<scalar(@{$row->{scop}});$i++) {
     $row->{scop}[$i]->{sfname} =~ s/ /&nbsp;/g;
     $row->{scop}[$i]->{dmname} =~ s/ /&nbsp;/g;
-    $scop .= "<LI><A HREF='$scopURL$row->{scop}[$i]->{sfid}'>$row->{scop}[$i]->{sfname}</A>&nbsp;>&nbsp;" .
-      "<A HREF='$scopURL$row->{scop}[$i]->{dmid}'>$row->{scop}[$i]->{dmname}</A>";
+    $scop .= "<LI><A HREF='$scopURL$row->{scop}[$i]->{sfid}'>"
+	  . "$row->{scop}[$i]->{sfname}</A>&nbsp;>&nbsp;<A HREF='$scopURL"
+	  . "$row->{scop}[$i]->{dmid}'>$row->{scop}[$i]->{dmname}</A>";
   }
   $scop .= '';
 
-  push @ar,[ $aln, $rasmol, (map { $row->{$_}  } @f[2..8]), $scop];
+  push @ar,[ $aln, $rasmol, (map { $row->{$_->[1]}  } @cols[2..8]), $scop];
 }
 
 
 # determine index of column to highlight
-my %colnum = map {$cols[$_]->[1] => $_} grep {defined $cols[$_]->[1]} 0..$#cols;
+my %colnum = map {$cols[$_]->[1] => $_}
+			  grep {defined $cols[$_]->[1]} 0..$#cols;
 my $hc = $colnum{$v->{sort}};
 
 
-# construct column headings
-for(my $fi=0; $fi<=$#f; $fi++) {
+# construct click-sort column headings
+for(my $fi=0; $fi<=$#htmlcols; $fi++) {
   next if $fi == $hc;
   next unless defined $cols[$fi]->[1];
-  $f[$fi] = sprintf("<a href=\"%s\">%s</a>",
-          $p->make_url({sort=>$cols[$fi]->[1]},qw(pseq_id params_id pmodelset_id)),
-          $f[$fi]);
+  $htmlcols[$fi] = sprintf("<a href=\"%s\">%s</a>",
+						   $p->make_url({sort=>$cols[$fi]->[1]},
+										qw(pseq_id params_id pmodelset_id)),
+						   $htmlcols[$fi]);
 }
 
 
@@ -152,8 +147,10 @@ if ($v->{offset}>0) {
   my $no = $v->{offset}-$v->{limit};
   $no = 0 if $no<0;
   push(@ctl, 
-     sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>0},@statevars), '<span tooltip="first (full) page" class="button">|&lt;&lt;</span>'),
-     sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$no},@statevars), '<span tooltip="back one page" class="button">&lt;</span>' )
+     sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>0},@statevars),
+			 '<span tooltip="first (full) page" class="button">|&lt;&lt;</span>'),
+     sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$no},@statevars), 
+			 '<span tooltip="back one page" class="button">&lt;</span>' )
      );
 }
 push(@ctl,
@@ -205,7 +202,7 @@ print $p->render
    '<p>', $p->submit(-value=>'align checked'),
 
    $p->group(['Prospect2 Threadings',$ctl],
-			 Unison::WWW::Table::render(\@f,\@ar,{highlight_column=>$hc})),
+			 Unison::WWW::Table::render(\@htmlcols,\@ar,{highlight_column=>$hc})),
    $p->submit(-value=>'align checked'),
    $p->end_form(), "\n",
 
