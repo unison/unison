@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: backup,v 1.5 2003/04/25 23:13:44 rkh Exp $
+# $Id: backup,v 1.6 2003/04/30 21:09:24 rkh Exp $
 
 # backup -- backup the csb database
 # you must set PGPASSWORD before running this script
@@ -30,7 +30,9 @@ R="$DIR/$DATE.pgdump"
 
 
 logger "starting backup (PGHOST=$PGHOST; PGDATABASE=$PGDATABASE)"
-(time -p pg_dump -X use-set-session-authorization -Uadmin "$PGDATABASE" \
+(time -p pg_dump -t porigin -X use-set-session-authorization -Uadmin "$PGDATABASE" \
  | gzip -cq) >"$R".gz 2>"$R".err
-logger "backup completed; status $?;" "time: `tr '\012' , <"$R".err`"
+E="$?"
+S=`perl -le 'printf( "%.2f", (-s $ARGV[0]) / 2**20)' "$R".gz`
+logger "backup completed; status $E; size: $S MB; time: `tr '\012' , <"$R".err`"
 logger "backup log in $R.err"
