@@ -44,17 +44,11 @@ try {
 };
 
 
-print $p->render("Unison:$v->{pseq_id} Features Overview",
-		 $p->best_annotation($v->{pseq_id}),
-		 '<hr>',
-		 $p->group("Unison:$v->{pseq_id} Features",
-			   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
-			   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
-		)  if(defined($opts{track_length}));
+print( $p->render("Unison:$v->{pseq_id} Features Overview",
+				  $p->best_annotation($v->{pseq_id}),
+				  '<hr>',
+				  $p->group("Unison:$v->{pseq_id} Features",
+							"<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
+							"\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
+				 ));
 
-print $p->render("Secondary Structure Prediction for Unison:$v->{pseq_id} using Psipred 2.x",  
-		 '<hr>',
-		 $p->group("Unison:$v->{pseq_id} Secondary Structure",
-			   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
-			   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
-		)  unless defined($opts{track_length});
