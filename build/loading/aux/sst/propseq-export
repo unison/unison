@@ -22,6 +22,8 @@ summary="$tmproot-summary"
 truncated_len=`/bin/echo -n "$TRUNCATED" | wc -c`
 descr_max=`echo $DESCR_SIZE-$truncated_len | bc`
 
+PSEQ_LIMIT=
+#PSEQ_LIMIT='where pseq_id<100'
 
 
 # drop and create the Oracle tables
@@ -66,7 +68,7 @@ fields terminated by '	'
 (pseq_id, len, md5)
 BEGINDATA
 EOLDR1
-psql -tAF'	' -c 'select pseq_id,len,md5 from pseq where pseq_id<100'
+psql -tAF'	' -c "select pseq_id,len,md5 from pseq $PSEQ_LIMIT"
 ) >"$ctltmp"
 
 /bin/rm -f "$logtmp" "$badtmp"
@@ -85,7 +87,7 @@ fields terminated by '	'
 (pseq_id,ann_pref,origin,alias,descr,gs)
 BEGINDATA
 EOLDR1
-psql -tAF'	' -c "SELECT pseq_id,ann_pref,origin,alias,CASE WHEN LENGTH(descr)>$DESCR_SIZE THEN SUBSTR(descr,1,$descr_max)||'$TRUNCATED' ELSE descr END as \"descr\",CASE WHEN gs IS NULL THEN 'NULL' ELSE gs END AS \"gs\" from v_aliases where pseq_id<100"
+psql -tAF'	' -c "SELECT pseq_id,ann_pref,origin,alias,CASE WHEN LENGTH(descr)>$DESCR_SIZE THEN SUBSTR(descr,1,$descr_max)||'$TRUNCATED' ELSE descr END as \"descr\",CASE WHEN gs IS NULL THEN 'NULL' ELSE gs END AS \"gs\" from v_aliases $PSEQ_LIMIT"
 ) >"$ctltmp"
 
 /bin/rm -f "$logtmp" "$badtmp"
