@@ -20,6 +20,15 @@ UPDATE palias SET tax_id=gs2tax_id('RAT')
   WHERE porigin_id=porigin_id_lookup('Refseq'::text) AND descr ~ '[[]Rattus norvegicus[]]$'::text AND tax_id IS NULL;
 
 
+-- proteome - key off species identifier in descr
+UPDATE palias SET tax_id=gs2tax_id('HUMAN') 
+  WHERE porigin_id=porigin_id_lookup('Proteome'::text) AND descr ~ '^[[]Human[]]' AND tax_id IS NULL;
+UPDATE palias SET tax_id=gs2tax_id('MOUSE') 
+  WHERE porigin_id=porigin_id_lookup('Proteome'::text) AND descr ~ '^[[]Mouse[]]' AND tax_id IS NULL;
+UPDATE palias SET tax_id=gs2tax_id('RAT') 
+  WHERE porigin_id=porigin_id_lookup('Proteome'::text) AND descr ~ '^[[]Rat[]]' AND tax_id IS NULL;
+
+
 -- dblast - key off the gs in the descr
 UPDATE palias SET tax_id=gs2tax_id('HUMAN') 
   WHERE porigin_id=porigin_id_lookup('dblast'::text) AND descr ~ '- Homo sapiens$' AND tax_id IS NULL;
