@@ -1,0 +1,36 @@
+#!/usr/bin/env perl
+# geneseq2fa -- write fasta file of derwent geneseq patent sequences
+# this is used to load sequences into unison
+# eg$ geneseq2fa AA2003.DAT | load-fasta -oGeneseq
+
+
+use warnings;
+use strict;
+use CBT::Derwent::File;
+use Bio::PrimarySeq;
+use Bio::SeqIO;
+
+my $in = new CBT::Derwent::File;
+my $out = new Bio::SeqIO( -format => 'fasta' );
+
+while(my $fn = shift) {
+  $in->open($fn)
+	|| die("$fn: $!\n");
+
+  while( my $r = $in->read1() ) {
+	my $DT = $r->{DT}; 
+	$DT =~ s/\s+\(/ (/g;
+	$DT =~ s/\)(\w)/)$1/g;
+	$DT =~ s/\n/; /;
+
+	my $descr = sprintf("%s; %s [DT: %s]",
+						$r->{PN}, $r->{PT}, $DT);
+	my $ps = Bio::PrimarySeq->new ( -seq => $r->{SQ},
+									-id  => $r->{AC},
+									-desc => $descr,
+									-alphabet => 'protein' );
+	$out->write_seq( $ps );
+  }
+
+  $in->close();
+}
