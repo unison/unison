@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.3 2003/10/20 23:10:46 cavs Exp $
+# $Id: run-pfsignalp,v 1.4 2004/01/08 02:17:39 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -26,7 +26,7 @@ GetOptions( \%opts,
   || die("$0: usage\n");
 
 
-my $params_id = 6;                # hardwired for now
+$opts{params_id} = 6;                # hardwired for now
 my $temp_in_fn =  "/tmp/run-pfsignalp-$$.fa";
 my $temp_out_fn = "/tmp/run-pfsignalp-$$.out";
 
@@ -36,15 +36,23 @@ my $len_upper_cutoff = '3000';
 
 my $u = new Unison;
 
-my @cmd = ('signalp', split(' ',$u->run_commandline_by_params_id( $params_id )),$temp_in_fn,"1>$temp_out_fn");
+my @cmd = ('signalp', split(' ',$u->run_commandline_by_params_id( $opts{params_id} )),$temp_in_fn,"1>$temp_out_fn");
 my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
 my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,confidence,params_id) values (?,?,?,?,?)' );
 my $sthhmm = $u->prepare( 'insert into pfsignalphmm(pseq_id,start,stop,confidence,siganchor_prob,max_cleavage_prob,params_id) values (?,?,?,?,?,?,?)' );
+my %run_me;  # track pseqs to run
 
 #my @list = Unison::utils::range_to_enum(@ARGV);
 my @list = @ARGV;
-for(my $i=0; $i<=$#list; $i++) {
+PSEQ_ID: for(my $i=0; $i<=$#list; $i++) {
   my $pseq_id = $list[$i];
+
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  if (defined $ran_on and not $opts{update}) {
+    print(STDERR "Unison:$pseq_id: run with these options on $ran_on; skipping\n");
+    next PSEQ_ID;
+  }
+  $run_me{ $pseq_id }++;
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   printf(STDERR "retrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...\n",
@@ -57,33 +65,50 @@ for(my $i=0; $i<=$#list; $i++) {
        $pseq_id, length($seq), $len_lower_cutoff , $len_upper_cutoff);
     next;
   }
-    
+
   $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq, -id  => "Unison:$pseq_id") );
 }
 $seqio->close();
 
 # run signalp
-system(join(' ',@cmd));
+if ( scalar(keys %run_me) > 0 ) {
 
-my $fp = new IO::File $temp_out_fn;
-local $/='----------------------------------------------------------------------';
-while(<$fp>){
-  next if m/SignalP predictions/;
-  if (my($id,$spos,$sprob,$spp,$sap,$mcsp,$hmme) = m/>(\S+).+mean S\s+(\S+)\s+(\S+).+Signal peptide probability:\s+(\S+)\s+Signal anchor probability:\s+(\S+)\s+Max cleavage site probability:\s+(\S+) between pos. (\S+) and/sm) {
-    $id =~ m/^Unison:(\d+)/;
-    my $pseq_id = $1;
-    my ($nn_start,$nn_end) = split/-/,$spos,2;
-    printf(STDERR "loading Unison:%-8s (NN:  sig_pep_prob: %.2f, cleavage_site: %d)\n",
-           $pseq_id,$sprob,$nn_end);
-    printf(STDERR "loading Unison:%-8s (HMM: sig_pep_prob: %.2f, sig_anchor_prob: %.2f, cleavage_site: %d, max_cleavage_prob: %.2f)\n",
-           $pseq_id,$spp,$sap,$hmme,$mcsp);
-    $sthnn->execute($pseq_id,$nn_start,$nn_end,$sprob,$params_id);
-    $sthhmm->execute($pseq_id,'1',$hmme,$spp,$sap,$mcsp,$params_id);
-    $u->last_run_update($pseq_id,$params_id);
-  } else {
-    die("missed $_");
+  system(join(' ',@cmd));
+
+  my $fp = new IO::File $temp_out_fn;
+  local $/='----------------------------------------------------------------------';
+  while(<$fp>){
+    next if m/SignalP predictions/;
+    if (my($id,$spos,$sprob,$spp,$sap,$mcsp,$hmme) = m/>(\S+).+mean S\s+(\S+)\s+(\S+).+Signal peptide probability:\s+(\S+)\s+Signal anchor probability:\s+(\S+)\s+Max cleavage site probability:\s+(\S+) between pos. (\S+) and/sm) {
+      $id =~ m/^Unison:(\d+)/;
+      my $pseq_id = $1;
+      my ($nn_start,$nn_end) = split/-/,$spos,2;
+      printf(STDERR "loading Unison:%-8s (NN:  sig_pep_prob: %.2f, cleavage_site: %d)\n",
+             $pseq_id,$sprob,$nn_end);
+      printf(STDERR "loading Unison:%-8s (HMM: sig_pep_prob: %.2f, sig_anchor_prob: %.2f, cleavage_site: %d, max_cleavage_prob: %.2f)\n",
+             $pseq_id,$spp,$sap,$hmme,$mcsp);
+      $sthnn->execute($pseq_id,$nn_start,$nn_end,$sprob,$opts{params_id});
+      $sthhmm->execute($pseq_id,'1',$hmme,$spp,$sap,$mcsp,$opts{params_id});
+
+      # delete this pseq_id from the run_me hash and then update
+      # the run history table.  any pseqs left in %run_me are pseqs
+      # that signalp'd was run on but had no results.  we'll update
+      # the run_history table below for those fellas.
+      delete $run_me{ $pseq_id };
+      $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+    } else {
+      die("missed $_");
+    }
   }
 }
+
+# update run history for the seqs that were signalp'd but had no results
+# (the above block of code parses the signalp results and updates the
+# run history for those seqs with results).
+foreach my $pseq_id ( keys %run_me ) {
+  $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+}
+
 unlink $temp_in_fn, $temp_out_fn unless $ENV{'DEBUG'};
 
 exit(0);
