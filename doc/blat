@@ -1,0 +1,7 @@
+starting a BLAT server:
+1) rsh trp
+2) cd /usr/seqdb2_nb/blat/nhgd
+3) gfServer -mask -trans start trp.gene.com 17701 *.nib &
+
+running BLAT client:
+1) time gfClient -t=dnax -q=prot trp 17701 /usr/seqdb2_nb/blat/nhgd input.fa output.psl
