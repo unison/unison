@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.3 2003/05/16 00:21:01 rkh Exp $>
+S<$Id: pseq.pm,v 1.4 2003/06/11 00:15:16 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -25,19 +25,7 @@ package Unison;
 
 
 
-sub pseq_si_pseq_id
-  {
-=pod
-
-=over
-
-=item B<::pseq_si_pseq_id( C<sequence> )>
-
-returns the pseq_id for a given sequence, creating it if necessary
-
-=back
-
-=cut
+sub pseq_si_pseq_id {
   my ($self, $seq) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -45,22 +33,22 @@ returns the pseq_id for a given sequence, creating it if necessary
   my $sth = $dbh->prepare_cached("select pseq_si_pseq_id(?)");
   my ($rv) = $dbh->selectrow_array($sth,undef,$seq);
   return $rv;
-  }
 
-
-sub get_sequence_by_pseq_id($)
-  {
 =pod
 
 =over
 
-=item B<::get_sequence_by_pseq_id( C<pseq_id> )>
+=item B<$u-E<gt>>pseq_si_pseq_id( C<sequence> )
 
-fetches a single protein sequence from the pseq table.
+returns the pseq_id for a given sequence, creating it if necessary
 
 =back
 
 =cut
+}
+
+
+sub get_sequence_by_pseq_id($) {
   my ($self,$pseq_id) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -69,25 +57,23 @@ fetches a single protein sequence from the pseq table.
   my ($rv) = $sth->fetchrow_array();
   $sth->finish();
   return $rv;
-  }
 
-
-sub best_alias
-  {
 =pod
 
 =over
 
-=item B<::best_alias( C<pseq_id> )>
+=item B<$u-E<gt>>get_sequence_by_pseq_id( C<pseq_id> )
 
-return the `best_alias' as determined heuristically by Unison.
-Briefly, the best_alias is the one specified by the pseq.palias_id if
-not null, or the first preference-ordered list of aliases based on
-porigin.ann_pref ranking.  See also best_annotation.
+fetches a single protein sequence from the pseq table.
 
 =back
 
 =cut
+}
+
+
+
+sub best_alias {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -98,24 +84,25 @@ porigin.ann_pref ranking.  See also best_annotation.
   my $ba = $sth->fetchrow_array;
   $sth->finish();
   return( $ba );
-  }
 
-
-sub best_annotation
-  {
 =pod
 
 =over
 
-=item B<::best_annotation( C<pseq_id> )>
+=item B<$u-E<gt>>best_alias( C<pseq_id> )
 
-return the "best_annotation" as determined heuristically by Unison.
-Compare with the C<best_alias> method and see that for a definition of
-"best".
+return the `best_alias' as determined heuristically by Unison.
+Briefly, the best_alias is the one specified by the pseq.palias_id if
+not null, or the first preference-ordered list of aliases based on
+porigin.ann_pref ranking.  See also best_annotation.
 
 =back
 
 =cut
+}
+
+
+sub best_annotation {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -126,23 +113,24 @@ Compare with the C<best_alias> method and see that for a definition of
   my $ba = $sth->fetchrow_array;
   $sth->finish();
   return( $ba );
-  }
 
-
-sub pseq_get_aliases
-  {
 =pod
 
 =over
 
-=item B<::pseq_get_aliases( C<pseq_id> )>
+=item B<$u-E<gt>>best_annotation( C<pseq_id> )
 
-return a list of <origin>:<alias> annotations for a given pseq_id, ordered
-by porigin.ann_pref.
+return the "best_annotation" as determined heuristically by Unison.
+Compare with the C<best_alias> method and see that for a definition of
+"best".
 
 =back
 
 =cut
+}
+
+
+sub pseq_get_aliases {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -151,7 +139,68 @@ by porigin.ann_pref.
   my $pseq_id = shift;
   my $sql = "select origin||':'||alias from palias as a join porigin as o on a.porigin_id=o.porigin_id  where pseq_id=$pseq_id  order by o.ann_pref";
   return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
-  }
+
+=pod
+
+=over
+
+=item B<$u-E<gt>>pseq_get_aliases( C<pseq_id> )
+
+return a list of <origin>:<alias> annotations for a given pseq_id, ordered
+by porigin.ann_pref.
+
+=back
+
+=cut
+}
+
+
+sub pseq_id_by_md5 {
+  my $self = shift;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  ($#_==0)
+	|| croak("exactly one md5 needed\n");
+  my $md5 = lc(shift);
+  my $sql = "select pseq_id from pseq where md5='$md5'";
+  return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
+
+=pod
+
+=over
+
+=item B<$u-E<gt>>pseq_id_by_md5( C<md5> )
+
+return a list of pseq_id for a given md5 checksum
+
+=back
+
+=cut
+}
+
+
+sub pseq_id_by_sequence {
+  my $self = shift;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  ($#_==0)
+	|| croak("exactly one sequence needed\n");
+  my $seq = uc(shift);
+  my $sth = "select _pseq_seq_lookup(?)";
+  return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sth,undef,$seq) } );
+
+=pod
+
+=over
+
+=item B<$u-E<gt>>pseq_id_by_sequence( C<sequence> )
+
+return the pseq_id for a given sequence
+
+=back
+
+=cut
+}
 
 
 
