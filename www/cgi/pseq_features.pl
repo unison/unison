@@ -17,16 +17,16 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => "$ENV{'DOCUMENT_ROOT'}/tmp/pseq-features/",
+my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir},
 											 SUFFIX => '.png' );
-my ($urn) = $png_fn =~ m%^$ENV{'DOCUMENT_ROOT'}(.+)%;
+my ($urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
 
 $png_fh->print( $u->features_graphic($v->{pseq_id}) );
 $png_fh->close( );
 
 print $p->render("Unison:$v->{pseq_id} Features Overview",
 				 $p->best_annotation($v->{pseq_id}),
+				 '<hr>',
 				 $p->group("Unison:$v->{pseq_id} Features",
-						   "<center><img src=\"$urn\"></center>",
-						  ),
+						   "<center><img src=\"$urn\"></center>"),
 				);
