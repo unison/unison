@@ -65,7 +65,7 @@ my $panel = Bio::Graphics::Panel->new(
   -gridcolor => 'gainsboro',
   -pad_top => 10,
   -pad_left => 10,
-  -pad_right => 10,
+  -pad_right => 100,
   -pad_bottom => 10,
   -key_style => 'between'
 );
@@ -98,7 +98,7 @@ if ( defined $opts{pseq_id} ) {
 
 $panel->add_track( ) for 1..2;         # spacing
 $panel->add_track( 
-  -key => '$Id: genome-features,v 1.3 2004/02/21 00:55:39 cavs Exp $',
+  -key => '$Id: genome-features,v 1.4 2004/02/25 20:48:40 rkh Exp $',
   -key_font => 'gdSmallFont',
   -bump => +1,
 );
@@ -153,6 +153,14 @@ sub add_blatloci {
     -description => 1,
     -height => 4,
   );
+  my $separator_track = $panel->add_track( Bio::Graphics::Feature->new
+										   (-start => $opts{gstart},
+											-end => $opts{gstop},
+										   -glyph => 'generic',
+										   -fgcolor => 'black',
+										   -double => 0,
+										   -label => 0,
+										 ));
   my $rev_strand_track = $panel->add_track( 
     -glyph => 'graded_segments',
     -min_score => 0,
@@ -193,7 +201,8 @@ sub add_blatloci {
       $p2gblataln_id = $r->{p2gblataln_id};
       $plus_strand = $r->{plus_strand};
       print STDERR "Get a new feature\n" if $opts{verbose};
-      $feat = new Bio::Graphics::Feature->new(-name=>'Unison:'.$r->{pseq_id});
+      $feat = new Bio::Graphics::Feature->new(-name=>sprintf('Unison:%d (%s)',
+															 $r->{pseq_id}, $u->best_alias($r->{pseq_id})));
       print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
       $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
     }
