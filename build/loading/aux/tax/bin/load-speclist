@@ -1,4 +1,7 @@
 #!/usr/bin/env perl
+# load-speclist -- load Swiss-Prot species list into Unison
+# get it from ftp://us.expasy.org/databases/swiss-prot/release/speclist.txt
+
 
 use warnings;
 use strict;
@@ -6,19 +9,33 @@ use Unison;
 use Data::Dumper;
 
 my $u = new Unison;
-my $upd = $u->prepare_cached('update tax.spspec set latin=?,common=?,synonyms=? where tax_id=?');
-
+my $upd = $u->prepare_cached('update tax.spspec set k=?,gs=?,latin=?,common=?,synonyms=? 
+								where tax_id=? and not (k=? and gs=? and latin=? and common=? and synonyms=?)');
+my $ins = $u->prepare_cached('insert into tax.spspec (k,gs,latin,common,synonyms,tax_id) values (?,?,?,?,?,?)');
 
 my $go = 0;
-my %act;									# active record
+my %act;
+my %ids;
 while( my $line = <> ) {
   if (!$go) {
 	$go++ if $line =~ m/^__/;
 	next;
   }
 
-  if ( $line =~ m/^(\w+) \s+ ([ABEV]) \s+ (\d+)[:;] \s N=(.*)/x ) {
-	flush(\%act);
+  ## ABSGL E   4829: N=Absidia glauca
+  ##                 C=Pin mould
+  ## ABUPI E 211679: N=Aburria pipile
+  ##                 C=Common piping guan
+  ##                 S=Trinidad piping guan
+  ## ABUSA E  50731: N=Abudefduf saxatilis
+  ##                 C=Sergeant major
+
+  ## Group multiple lines like those above into a single data structure
+  ## for the species: 5letter, tax_id, kingdom, latin, common, and
+  ## synonyms.  There may be more than one common name or synonyms for
+  ## each species.
+  if ( $line =~ m/^(\w+) \s+ ([ABEVP]) \s+ (\d+)[:;] \s N=(.*)/x ) {
+	flush();
 	$act{gs} = $1;
 	$act{k} = $2;
 	$act{id} = $3;
@@ -27,7 +44,8 @@ while( my $line = <> ) {
 	push( @{$act{common}}, $1 );			# can there be more than one CN?
   } elsif ( $line =~ m/S=(.*)/ ) {
 	push( @{$act{synonyms}}, $1 );
-  } elsif ( $line =~ m/^\s*$/ ) {
+  } elsif ( $line =~ m/^\s*$/ ) {			# exit on empty line (and ignore rest of file)
+	flush();
 	last;
   } else {
 	die("missed $.:$line");
@@ -35,19 +53,35 @@ while( my $line = <> ) {
 }
 
 
+
 sub flush {
-  return unless exists $act{id};
-  $act{common} = exists $act{common} ? join('; ',@{$act{common}}) : undef;
-  $act{synonyms} = exists $act{synonyms} ? join('; ',@{$act{synonyms}}) : undef;
-  my @args = map {$act{$_}} qw(latin common synonyms id);
-  my @nargs = reverse  map {defined $_ ? $_ : '<NULL>'} @args;
-  print( "@nargs\n") if defined $act{common} and $act{common} =~ m/;/;
-  $upd->execute(@args);
+  my %rec = %act;
+  undef %act;				 # no matter how we return, main::act is undef
 
-#  printf("update tax.spspec set latin=%s,common=%s,synonyms=%s where spspec_id=%s;\n",
-#		 sql_quote(name_fmt($act{name},$act{cs})), $act{id} );
+  return unless exists $rec{id};
 
-#  printf("insert into tax.spspec (id,k,gs,name) values (%s,%s,%s,%s);\n",
-#		 sql_quote($act{id},$act{k}, $act{gs}, name_fmt($act{name},$act{cs}) ));
-  undef %act;
+  $rec{common} = exists $rec{common} ? join('; ',@{$rec{common}}) : undef;
+  $rec{synonyms} = exists $rec{synonyms} ? join('; ',@{$rec{synonyms}}) : undef;
+  my @args = map {$rec{$_}} qw(k gs latin common synonyms);
+  my @pargs = map {defined $_ ? $_ : 'undef>'} @args;
+  print( "$rec{id}: @pargs\n") if defined $rec{common} and $rec{common} =~ m/;/;
+
+  if ($ids{$rec{id}}++) {
+	warn("$rec{id} (@pargs): duplicated tax_id\n");
+	return;
+  }
+
+  my $nr = eval { $upd->execute(@args,$rec{id},@args) };
+  if ($@) {
+	eval { $ins->execute(@args,$rec{id}) };
+	if ($@) {
+	  die("insert ($rec{id} @pargs): ", DBI->errstr, "\n");
+	}
+	print(STDERR "inserted $rec{id} ($rec{gs}; $rec{latin})\n");
+  } else {
+	if ($nr != 0) {
+	  print(STDERR "updated $rec{id} (@pargs)\n");
+	}
+  }
+
 }
