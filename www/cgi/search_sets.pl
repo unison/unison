@@ -196,12 +196,12 @@ if ($set) {
 # default case: prepare the form and summary statistics
 
 my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" } 
-  @{ $u->selectall_arrayref("select pset_id,name from pset") }; 
+  @{ $u->selectall_arrayref("select pset_id,name from pset order by pset_id") };
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" }
-  @{ $u->selectall_arrayref('select * from pmodelset') };
+  @{ $u->selectall_arrayref('select * from pmodelset order by pmodelset_id') };
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.4 2003/11/03 18:08:33 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.5 2003/11/03 18:22:04 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. Select
@@ -233,20 +233,22 @@ print $p->render("Sequence Mining Summary",
 				 '</tr>',"\n",
 
 				 '<tr>', 
-				 '<th colspan="2">Select sequences matching models in set:<br>',
+				 '<th align="left" colspan="2">Select sequences matching models in set:<br>',
 				 $p->popup_menu(-name => 'pmodelset_id',
 								-values => [keys %ms],
 								-labels => \%ms,
 								-default => "$v->{pmodelset_id}"),
 				 '</th>',
-				 '<th align="center" colspan="2">SP (',$nSP,' sequences)</th>',
+				 '<th align="center" colspan="2">', $p->tooltip("SP ($nSP sequences)",
+																'Set Positives -- the members of the set (SP=TP+FN)'),
+				 '</th>',
 				 '<th></th>',
 				 '</tr>',"\n",
 
 				 '<tr>',
-				 '<th align="left">method</th>',
+				 '<th align="left">using these methods:</th>',
 				 '<th width="15%">',
-				 $p->tooltip('hits','All hits to any of the selected models/methods'),
+				 $p->tooltip('hits','All hits to any of the selected models/methods. |hits|=TP+UP'),
 				 '</th>',
 				 '<th width="15%">',
 				 $p->tooltip('TP','True Positives -- sequences from the selected set which are correctly matched by the models'),
