@@ -17,11 +17,11 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-my $sql = 'select M.name as "model",A.start,A.stop,A.score,A.eval
+my $sql = 'select M.acc as "model",A.start,A.stop,A.score,A.eval
 		   from papssm A join pmpssm M on A.pmodel_id=M.pmodel_id
 		   where pseq_id='.$v->{pseq_id}.' order by eval';
 my $ar = edit_rows( $u->selectall_arrayref($sql) );
-my @f = ('name', 'start-stop', 'score', 'eval');
+my @f = ('model', 'start-stop', 'score', 'eval');
 
 print $p->render("PSSM/SBP alignments to Unison:$v->{pseq_id}",
 				 $p->group("PSSM/SBP alignments",

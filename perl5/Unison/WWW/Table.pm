@@ -24,6 +24,8 @@ use base 'CBT::Hash';
 
 sub render {
   return render_compat(@_) unless (ref $_[0] eq __PACKAGE__);
+
+  # BELOW THIS POINT IS EXPERIMENTAL
   my $self = shift;
   my $rv = '';
   $rv .= "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
@@ -48,13 +50,28 @@ sub render_th {
 sub render_compat {
   my $fr = shift;
   my $ar = shift;
+  my $opts = shift;
   my $rv = '';
+
   $rv .= "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
   $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
   if ($#$ar > -1) {
-	$rv .= "<tr>" . join('',map {'<td>'.$_.'</td>'} @$_) . "</tr>\n" for @$ar; 
+	if (defined $opts->{highlight_column}) {
+	  for(my $r=0; $r<=$#$ar; $r++) {
+		$rv .= "<tr>";
+		my @row = @{ $ar->[$r] };
+		for(my $c=0; $c<=$#row; $c++) {
+		  $rv .= '<td' . ($c==$opts->{highlight_column} ? ' class="highlighted"' : '') . '>';
+		  $rv .= $row[$c];
+		  $rv .= '</td>';
+		}
+		$rv .= "</tr>\n";
+	  }
+	} else {
+	  $rv .= "<tr>" . join('',map {'<td>'.$_.'</td>'} @$_) . "</tr>\n" for @$ar; 
+	}
   } else {
-	$rv .= sprintf("<tr><td colspan=\"%d\">query returned no data</td></tr>\n",$#$fr+1);
+	$rv .= sprintf("<tr><td bgcolor=\"$highlight_color\" colspan=\"%d\">query returned no data</td></tr>\n",$#$fr+1);
   }
   $rv .= "</table>\n";
   return $rv;

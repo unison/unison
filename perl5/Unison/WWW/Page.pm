@@ -2,6 +2,7 @@ package Unison::WWW::Page;
 use CGI qw( :standard *table -newstyle_urls -debug );
 our @ISA = qw(CGI);
 
+use CGI::Carp qw(fatalsToBrowser);
 use Unison::Exceptions;
 use Unison;
 
@@ -127,7 +128,13 @@ sub debug {
   print $p->render("debug: $_[0]",'<span class="debug">',join('<br>',@_),'</span>');
 }
 
-
+sub Vars {
+  my $p = shift;
+  if (not exists $p->{Vars}) {
+	$p->{Vars} = $p->SUPER::Vars();
+  }
+  return $p->{Vars};
+}
 
 sub navbar {
   my $p = shift;
@@ -251,7 +258,38 @@ sub where {
 }
 
 sub sql {
-  return( '<p><div class="sql"><b>SQL query:</b> ' . $_[1] . '</span>' );
-  # return '<br><span class="sql">', '<b>SQL query:</b>', $_[0], '</span>'
+  return( "\n".'<p><div class="sql"><b>SQL query:</b> ' . $_[1] . '</div>' . "\n" );
 }
+
+sub tip {
+  return( "\n".'<p><div class="tip"><b>Tip:</b> ' . $_[1] . '</div>' . "\n" );
+}
+
+
+# build a url from the CGI query object
+sub make_url {
+  my $p = shift;
+  my $vars = $p->Vars();
+  my $addlvars = ref $_[0] ? shift : {};
+  my %vars = (%$vars, %$addlvars);
+
+  my @keys;
+  if (@_) {									# specified query vars only
+	my %keys = map { $_=>1 } @_, keys %$addlvars;
+	@keys = sort keys %keys;
+  } else {									# or default is all vars
+	@keys = sort keys %vars;
+  }
+
+  my $url = $p->url(-relative=>1);
+
+  my $qargs = join( ';', map {"$_=$vars{$_}"} grep {defined $vars{$_}} @keys);
+  $url .= '?' . $qargs if $qargs ne '';
+
+  return $url;
+}
+
+
+
 1;
+
