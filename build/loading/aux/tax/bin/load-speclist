@@ -2,6 +2,12 @@
 
 use warnings;
 use strict;
+use Unison;
+use Data::Dumper;
+
+my $u = new Unison;
+my $upd = $u->prepare_cached('update tax.spspec set latin=?,common=?,synonyms=? where tax_id=?');
+
 
 my $go = 0;
 my %act;									# active record
@@ -16,15 +22,14 @@ while( my $line = <> ) {
 	$act{gs} = $1;
 	$act{k} = $2;
 	$act{id} = $3;
-	$act{name} = $4;
-	}
-  elsif ( $line =~ m/[CS]=(.*)/ ) {
-	push( @{$act{cs}}, $1 );
-	}
-  elsif ( $line =~ m/^\s*$/ ) {
-	last; 
-  }
-  else {
+	$act{latin} = $4;
+  } elsif ( $line =~ m/C=(.*)/ ) {
+	push( @{$act{common}}, $1 );			# can there be more than one CN?
+  } elsif ( $line =~ m/S=(.*)/ ) {
+	push( @{$act{synonyms}}, $1 );
+  } elsif ( $line =~ m/^\s*$/ ) {
+	last;
+  } else {
 	die("missed $.:$line");
   }
 }
@@ -32,19 +37,17 @@ while( my $line = <> ) {
 
 sub flush {
   return unless exists $act{id};
-  printf("update tax.spspec set name=%s where spspec_id=%s;\n",
-		 sql_quote(name_fmt($act{name},$act{cs})), $act{id} );
+  $act{common} = exists $act{common} ? join('; ',@{$act{common}}) : undef;
+  $act{synonyms} = exists $act{synonyms} ? join('; ',@{$act{synonyms}}) : undef;
+  my @args = map {$act{$_}} qw(latin common synonyms id);
+  my @nargs = reverse  map {defined $_ ? $_ : '<NULL>'} @args;
+  print( "@nargs\n") if defined $act{common} and $act{common} =~ m/;/;
+  $upd->execute(@args);
+
+#  printf("update tax.spspec set latin=%s,common=%s,synonyms=%s where spspec_id=%s;\n",
+#		 sql_quote(name_fmt($act{name},$act{cs})), $act{id} );
+
 #  printf("insert into tax.spspec (id,k,gs,name) values (%s,%s,%s,%s);\n",
 #		 sql_quote($act{id},$act{k}, $act{gs}, name_fmt($act{name},$act{cs}) ));
   undef %act;
 }
-
-sub name_fmt {
-  my ($name,$csr) = @_;
-  return $name . (defined $csr and @$csr ? sprintf(" [%s]",join('; ',@$csr)) : '');
-  }
-
-sub sql_quote
-  { map { defined $_ ? q1($_) : 'NULL' } @_ }
-sub q1
-  { my $t = shift; $t =~ s/\'/\'\'/g; "'$t'"; }
