@@ -10,24 +10,30 @@ use Getopt::Long qw(:config gnu_getopt);
 use DBI;
 
 use lib ('./perl5', '/home/rkh/unison/perl5', "$ENV{HOME}/unison/perl5");
-use Unison;
+use Genentech::Unison;
 
 
 my $origin;
 my $filelist;
+my $startafter;
+my $maxlen = 10000;
 GetOptions( 'origin|o=s' => \$origin,
 			'filelist|f=s' => \$filelist,
+			'startafter|A=s' => \$startafter,
+			'maxlen|L=s' => \$maxlen,
+			@Genentech::Unison::OPTS
 		  )
   || die("$0: bad usage\n");
 defined $origin
   || die("$0: --origin (-o) is mandatory\n");
 
 
-# begin icky globals
-my $udb = new Unison;
+# whee... globals
+my $udb = new Genentech::Unison;
 my $porigin_id = $udb->si_porigin_id($origin);
-#printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
-# end icky globals
+my %extant = map {$_=>1} $udb->get_alias_in_porigin_id($porigin_id);
+printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+
 
 
 if (defined $filelist)
@@ -70,35 +76,63 @@ sub process_stream
 
 sub process_seq
   {
-  my $seq = shift;
-  my $id = $seq->display_id();
-  my $desc = $seq->desc();
-  my @ids;
+  my $bs = shift;
+  my $id = $bs->display_id();
+  my $descr = $bs->desc();
+  my $seq = $bs->seq();
 
+  # description reformatting
+  $descr = '' unless defined $descr;
+  $descr =~ s/\s+//g;
+  $descr =~ s/^\s+//;
+  $descr =~ s/\s+$//;
   if ($origin eq 'SPDI')
 	{
-	$desc =~ s/\[min\]\s+//;
-	$desc =~ s/\# converted.+//;
-	@ids = ();
-	push(@ids,$1) if $desc =~ s/(UNQ\d+)\s+//;
-	push(@ids,$1) if $desc =~ s/(PRO\d+)\s+//;
-	push(@ids,$id);
-	#$desc = "@ids $desc";
+	$descr =~ s/\[min\]\s+//;
+	$descr =~ s/\# converted.+//;
+	}
+
+  # skip sequences in various conditions
+  my $skip;
+  if ($id !~ m/\w/)
+	{ $skip = "doesn't look like a valid sequence id"; }
+  elsif (defined $startafter)
+	{
+	$skip = "haven't reached $startafter yet";
+	undef $startafter if ($id eq $startafter);
+	}
+  elsif (defined %extant and exists $extant{$id})
+	{ $skip = "extant"; }
+  elsif (defined $maxlen and length($seq)>$maxlen)
+	{ $skip = sprintf("too long (%d AA; maxlen=$maxlen",length($seq)); }
+  elsif (length($seq) == 0)
+	{ $skip = "zero-length"; }
+  elsif ($descr =~ m%/type=(\w+)% and $1 ne 'gene')
+	{ $skip = "non-gene genescan transcript"; }
+  if (defined $skip)
+	{ warn("# skipping $id: $skip ($descr)\n"); return; }
+
+  # @ids is the SET of ids to which we'll link this sequence
+  my @ids = ();
+  if ($origin eq 'SPDI')
+	{
+	push(@ids,$1) if $descr =~ s/(UNQ\d+)\s+//;
+	push(@ids,$1) if $descr =~ s/(PRO\d+)\s+//;
+	push(@ids,$1) if $descr =~ s/(DNA\d+)\s+//;
+	warn("$id: didn't match 3 SPDI identifiers (@ids)\n") unless $#ids=2;
     }
   else
-	{ @ids = ( $id ); }
+	{
+	@ids = ( $id );
+	}
 
-  if ($id !~ m/\w/ or length($seq->seq()) == 0)
-	{ warn("$id ($desc) is invalid; skipping\n"); return; }
-
-  if ($desc =~ m%/type=(\w+)% and $1 ne 'gene')
-	{ warn("$id ($desc): genscan and not a gene; skipping\n"); return; }
-
-  my $pseq_id = $udb->si_pseq_id($seq->seq());
+  # select/insert sequences, then link aliases
+  my $pseq_id = $udb->si_pseq_id($bs->seq());
   if (not defined $pseq_id)
 	{ warn("failed to add $id"); return; }
   foreach my $upd_id (@ids)
-	{ $udb->add_palias($pseq_id,$porigin_id,$upd_id,$desc); }
+	{ $udb->add_palias($pseq_id,$porigin_id,$upd_id,$descr); }
 
-  print(STDERR "# added pseq_id=$pseq_id, w/ aliases @ids ($desc)\n");
+  printf(STDERR "# added pseq_id=$pseq_id, len=%d, aliases={@ids}, descr=%s\n",
+		length($seq), $descr);
   }
