@@ -1,21 +1,33 @@
 =head1 NAME
 
-Unison::SQL -- Unison pseq table utilities
-S<$Id: SQL.pm,v 1.3 2004/05/04 04:46:33 rkh Exp $>
+Unison::SQL -- simplified generation of SQL queries
+S<$Id: SQL.pm,v 1.4 2004/06/25 00:20:44 rkh Exp $>
 
 =head1 SYNOPSIS
 
-use Unison::SQL;
+ use Unison::SQL;
+ my $sql = new Unison::SQL;
+ $sql->columns(qw(pseq_id len))
+     ->tables(pseq)
+     ->where('pseq_id<=100');
+ if (...) {
+   $sql->order('len desc');
+ }
 
-my $u = new Unison::SQL;
+ $sql->distinct(...);
+ $sql->columns(...);
 
-(etc.)
 
 =head1 DESCRIPTION
 
-B<> is a
+B<Unison::SQL> is an object-oriented SQL construction class. The primary
+intent is to facilitate the construction of dynamic queries, especially
+those which change by more than simple where clause criteria during
+runtime.  For example, I commonly build a base query and then
+conditionally add other columns (perhaps via joins), "where" criteria,
+order specifications, offsets, or limits.
 
-=head1 ROUTINES AND METHODS
+Unison::SQL is not Unison-specific and will be moved elsewhere eventually.
 
 =cut
 
@@ -25,22 +37,56 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use strict;
 use warnings;
+
 use overload '""' => \&stringify;
 use Unison::Exceptions;
 
 
+=pod
+
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## new
+
+=pod
+
+=item B<new( ... )>
+
+Generates a new Unison::SQL object and returns the reference to it.
+
+=cut
+
 sub new {
   my $class = shift;
-  bless({tables => [],
+  bless({columns => [],
 		 distinct => [],
-		 columns => [],
-		 where => [],
-		 order => [],
-		 offset => undef,
 		 limit => undef,
+		 tables => [],
+		 offset => undef,
+		 order => [],
+		 where => [],
 		},$class);
   }
 
+
+######################################################################
+## columns
+
+=pod
+
+=item B<< $sql->columns( C<column spec> [, ...] ) >>
+
+Adds columns to be returned by the query. There is currently no way to
+reorder the order of the columns. (If you need to do this, fiddle with the
+@{$ref->{columns}} array yourself.)
+
+=cut
 
 sub columns {
   my $self = shift;
@@ -54,6 +100,16 @@ sub columns {
   return $self;
 }
 
+
+######################################################################
+## distinct
+
+=pod
+
+=item B<distinct( C<> )>
+
+=cut
+
 sub distinct {
   my $self = shift;
   if (@_) {
@@ -65,6 +121,17 @@ sub distinct {
   }
   return $self;
 }
+
+######################################################################
+## table/join
+
+=pod
+
+=item B<join( C<> )>
+
+=item B<table( C<> )>
+
+=cut
 
 sub table { $_[0]->join(splice(@_,1)) }
 sub join {
@@ -79,6 +146,15 @@ sub join {
   return $self;
 }
 
+######################################################################
+## where
+
+=pod
+
+=item B<where( C<> )>
+
+=cut
+
 sub where {
   my $self = shift;
   if (@_) {
@@ -90,6 +166,15 @@ sub where {
   }
   return $self;
 }
+
+######################################################################
+## order
+
+=pod
+
+=item B<order( C<> )>
+
+=cut
 
 sub order {
   my $self = shift;
@@ -103,11 +188,30 @@ sub order {
   return $self;
 }
 
+######################################################################
+## limit
+
+=pod
+
+=item B<limit( C<> )>
+
+=cut
+
 sub limit {
   my $self = shift;
   $self->{limit} = $_[0];
   return $self;
 }
+
+
+######################################################################
+## offset
+
+=pod
+
+=item B<offset( C<> )>
+
+=cut
 
 sub offset {
   my $self = shift;
@@ -115,6 +219,15 @@ sub offset {
   return $self;
 }
 
+
+######################################################################
+## sql
+
+=pod
+
+=item B<sql()>
+
+=cut
 
 sub sql {
   my $self = shift;
@@ -131,26 +244,32 @@ sub sql {
   push(@sql, 'OFFSET', $self->{offset}) if defined $self->{offset};
   push(@sql, 'LIMIT', $self->{limit}) if defined $self->{limit};
 
-  wantarray ? @sql : CORE::join(' ', @sql);
+  CORE::join(' ', @sql);
 }
 
-sub stringify { scalar($_[0]->sql()) }
+sub stringify { $_[0]->sql() }
 
 
 
 =pod
 
+=back
+
 =head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
 
 =head1 SEE ALSO
 
+=over 4
+
+=item * perldoc Unison
+
+=back
+
 =head1 AUTHOR
 
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department             
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+see C<perldoc Unison> for contact information
 
 =cut
 
