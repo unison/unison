@@ -5,7 +5,7 @@
 # PURPOSE: parse BLAT psl output for protein-to-genome alignments. load
 #          output into set of unison tables.
 # 
-# $Id: load-blat,v 1.8 2004/06/10 18:04:02 cavs Exp $
+# $Id: load-blat,v 1.9 2004/06/10 22:18:24 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -14,6 +14,7 @@ use Bio::Tools::ProteinToGenomeBlat;
 use Getopt::Long;
 use Unison;
 use Unison::Exceptions;
+use Data::Dumper;
 
 my %opts =
   (
@@ -28,7 +29,7 @@ GetOptions(\%opts,
   'genasm_id|g=i',
   'score_cutoff|s=i',
   'help',
-  'verbose!',
+  'verbose|v+',
 ) || usage();
 
 usage() if ($#ARGV != 0 || ! defined $opts{genasm_id} );
@@ -46,6 +47,7 @@ my %updated;  # keep track of the pseq_ids that have had their run_history updat
 
 
 my $bio = new Bio::Tools::ProteinToGenomeBlat( -file => $ARGV[0] );
+RESULT:
 while( my $r = $bio->next_result() ){
   my @pct_ident  = $r->get_tag_values('percent_id');
   my @ident      = $r->get_tag_values('ident');
@@ -53,31 +55,43 @@ while( my $r = $bio->next_result() ){
   my @qgap_bases = $r->get_tag_values('qgap_bases');
   my @tgap_cnt   = $r->get_tag_values('tgap_cnt');
   my @tgap_bases = $r->get_tag_values('tgap_bases');
-
   my $pseq_id;
-  if ( defined $r->seq_id and $r->seq_id =~ m/Unison:(\d+)/ ) {
-    $pseq_id = $1;
-  } else {
-    die( "ERROR: can't parse pseq_id from seq_id=",$r->seq_id,"\n" );
-  }
 
-  # insertion criteria: score >= score_cutoff and pct_ident > pct_ident_cutoff
-  if ( $r->score < $opts{score_cutoff} 
-	   or $pct_ident[0] <= $opts{pct_ident_cutoff} ) {
-	if ( $opts{verbose} ) {
+
+  if ( not defined $r->seq_id ) {
+	warn( "ERROR: line $.: result seq_id is undefined; skipping.\n",
+		  $_, "\n" );
+	next RESULT;
+  }
+  if ( not $r->seq_id =~ m/Unison:(\d+)/ ) {
+    die( "ERROR: can't parse pseq_id from seq_id=",$r->seq_id,"\n",
+		 "Source sequences aren't from Unison!\n");
+  }
+  $pseq_id = $1;
+
+
+  # insertion criteria: score >= score_cutoff and pct_ident >= pct_ident_cutoff
+  if ( not ($r->score >= $opts{score_cutoff} 
+			and $pct_ident[0] >= $opts{pct_ident_cutoff} ) ) {
+	if ( $opts{verbose}>2 ) {
 	  printf(STDERR "Unison:%-10d BLAT alignment failed cutoffs (ident: %5d (%d), score: %4.2f (%4.2f))\n",
 			 $pseq_id,$ident[0],$opts{pct_ident_cutoff},$r->score,$opts{score_cutoff});
 	}
-	next;
+	next RESULT;
   }
 
   my (@hsp_ids,$chr);
   foreach my $f ( $r->get_SeqFeatures() ) {
-	if ( defined $f->seq_id and $f->seq_id =~ m/chr(\w+)/ ) {
-	  $chr = $1;
-	} else {
-	  die( "ERROR: can't parse chromosome from seq_id=(",$f->seq_id,")\n" );
+	if ( not defined $f->seq_id ) {
+	  warn( "ERROR: line $.: feature seq_id is undefined; skipping.\n",
+			$_, "\n" );
+	  next RESULT;
 	}
+	if ( not $f->seq_id =~ m/chr(\w+)/ ) {
+	  warn( "ERROR: line $.: can't parse chromosome from seq_id=(",$f->seq_id,"); skipping.\n" );
+	  next RESULT;
+	}
+	$chr = $1;
 
 	# load each HSP
 	try {
@@ -95,8 +109,10 @@ while( my $r = $bio->next_result() ){
   my $hsp_str = join (':', @hsp_ids );
 
   # load the alignment
-  printf(STDERR "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",
-		 $pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1));
+  if ( $opts{verbose} ) {
+	printf(STDERR "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",
+		   $pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1));
+  }
   try {
 	$aln_sth->execute( $hsp_str, $ident[0], $qgap_cnt[0], $qgap_bases[0],
 					   $tgap_cnt[0], $tgap_bases[0] );
