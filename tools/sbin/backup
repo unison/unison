@@ -1,55 +1,52 @@
 #!/bin/bash
-# $Id: backup,v 1.15 2004/01/08 02:17:38 rkh Exp $
+# $Id: backup,v 1.16 2004/01/08 02:42:58 rkh Exp $
 
 # backup -- backup the csb database
 # you must set PGPASSWORD before running this script
 # any user with write permission in /home/rkh/csb-db/backups/$PGDATABASE
 # should be able to run this script.
 
+PATH=/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
+PGD_OPTS="-X disable-triggers -X use-set-session-authorization -Ucompbio"
+
 source `dirname $0`/utils
 
-schema=0
+PGD_SOPT=
 case "$1" in
-	-s) schema=1; shift;;
+	-s) PGD_SOPT="-s"; shift;;
+	--debug) TABLE="-t porigin"; shift;;
 esac
 
-OPTS=
-if [ "$schema" = 1 ]; then
-   PGD_OPTS="-s";
+PGDATABASE=$1
+if [ -z "$PGDATABASE" ]; then
+	die "missing database argument; dying"
 fi
 
-
-# after this point and until `trap' below, all exits
-# are unexpected
-cleanup ()
-  { logger "! exited abnormally (status=$?)"; }
-trap cleanup EXIT
-
-
-PATH=/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
 case `hostname` in
     svc*|td-svc*|interceptor*|td-interceptor*)
     	PGHOST=;;
     *) 
     	PGHOST=td-svc;;
 esac
-
 export PGHOST
-export PGDATABASE=${1:-csb}
-if [ -n "$DEBUG" ]; then
-	TABLE="-t porigin";
-fi
+
 
 DIR="/home/rkh/adm/csb-db/backups/$PGDATABASE"
 mkdir -p "$DIR"
 DATE=`date +%Y-%m-%d-%H:%M`;
-R="$DIR/$DATE.pgdump$PGD_OPTS"
+R="$DIR/$DATE.pgdump$PGD_SOPTS"
 
+
+
+# after this point and until `trap' near end, all exits are unexpected
+cleanup ()
+  { logger "! exited abnormally (status=$?)"; }
+trap cleanup EXIT
 
 # do the backup
-logger "starting backup (OPTS=$PGD_OPTS; PGHOST=$PGHOST; PGDATABASE=$PGDATABASE; TABLE=$TABLE)"
-(time -p pg_dump $PGD_OPTS $TABLE -X disable-triggers -X use-set-session-authorization -Ucompbio "$PGDATABASE" \
- | gzip -cq) >"$R".gz 2>"$R".err
+OPTS="$PGD_SOPT $PGD_OPTS $TABLE $PGDATABASE"
+logger "starting backup (PGHOST=$PGHOST; OPTS=$OPTS)"
+(time -p pg_dump $OPTS | gzip -cq) >"$R".gz 2>"$R".err
 E="$?"
 S=`perl -le 'printf( "%.2f", (-s $ARGV[0]) / 2**20)' "$R".gz`
 logger "backup completed; status $E; size: $S MB; time: `tr '\012' , <"$R".err`"
