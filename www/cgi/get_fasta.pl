@@ -10,7 +10,7 @@ use Unison;
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::Exceptions;
-use Unison::utilities qw(wrap);
+use Unison::Utilities::misc qw(wrap);
 
 
 my $p = new Unison::WWW::Page();
