@@ -1,4 +1,7 @@
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use strict;
 use warnings;
 
@@ -28,7 +31,7 @@ sub get_userprefs {
   }
 
   return $userprefs;
-  }
+}
 
 
 1;

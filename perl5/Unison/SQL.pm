@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::SQL -- Unison pseq table utilities
-S<$Id: SQL.pm,v 1.1 2003/10/09 19:38:00 rkh Exp $>
+S<$Id: SQL.pm,v 1.2 2004/02/24 19:23:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -20,6 +20,9 @@ B<> is a
 =cut
 
 package Unison::SQL;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use strict;
 use warnings;
 use overload '""' => \&sql;
