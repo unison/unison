@@ -55,16 +55,25 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
                '</pre>' ),
 
          '<p>',
-         $p->group(sprintf('Aliases (%d)',$#$ar+1),
+         $p->group(sprintf('%s (%d)',
+						   $p->tooltip('Aliases', 'Unison stores sequences
+						   non-redundantly from many sources. Aliases are
+						   all of the known names for this exact
+						   sequence.'),
+						   $#$ar+1),
                'These are the aliases from the most reliable sources only; see also ',
                '<a href="pseq_paliases.pl?pseq_id=', $v->{pseq_id}, '">other aliases</a><p>',
                Unison::WWW::Table::render(\@f,$ar)),
 
          '<p>',
-         $p->group(sprintf('Homologene (%d)',$#$or+1),
+         $p->group(sprintf('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene">Homologene</a> (%d)',$#$or+1),
                Unison::WWW::Table::render(['pseq_id','alias','genus/species'],$or)),
 
          '<p>',
-         $p->group("Features",
+
+         $p->group($p->tooltip('Features','precomputed results for this
+						   sequence. NOTE: Not all sequences have all
+						   results precomputed -- see the History tab to
+						   determine which analysis have been performed'),
                "<center><img src=\"$urn\"></center>")
         );
