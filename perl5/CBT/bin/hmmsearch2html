@@ -33,25 +33,26 @@ my %de;
 
 my $state = 0;
 
-while( <$fh> )
+while( my $line = <$fh> )
   {
   if ($state == 0)							# preface
 	{
-	if (m/^Scores for complete sequences/)
+	if ($line =~ m/^Scores for complete sequences/)
 	  { $state = 1; next; }
 
-	$pr .= $_;
+	$pr .= $line;
 	}
 
   elsif ($state == 1)						# complete sequence scores
 	{
-	if (m/^Parsed for domains:/)
-	  { $state = 2; $do = $_; next; }
+	if ($line =~ m/^Parsed for domains:/)
+	  { $state = 2; $do = $line; next; }
 
 	#Sequence   Description                                  Score    E-value  N
 	#--------   -----------                                  -----    ------- ---
 	#PRO2354    UNQ1255 DNA88446 [min] Human LEPR            296.4    2.1e-85   2
-	if (not m/^Sequence|^-----/ and m/^(\w+)\s+(.{43})/)
+	if ( not $line =~ m/^Sequence|^-----/ 
+		 and $line =~ m/^(\w+)\s+(.{43})/ )
 	  {
 	  $de{$1} = $2;
 	  $de{$1} =~ s/\s+$//;
@@ -60,21 +61,25 @@ while( <$fh> )
 
   elsif ($state == 2)						# domain scores
 	{
-	if (m/^Alignments of top-scoring domains/)
-	  { $state = 3; $al = $_; next; }
+	if ($line =~ m/^Alignments of top-scoring domains/)
+	  { $state = 3; $al = $line; next; }
 
 	#Sequence   Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
 	#--------   ------- ----- -----    ----- -----      -----  -------
 	#PRO582       1/1     138   349 ..     1   228 []   225.0  6.3e-64
 	
-	if (not m/^Sequence|^----/ 
-		and s/^(\w+)\s+(\d+)\/(\d+)/<a href="al.html#$1_$2_$3" target="al">$&<\/a>/ )
+	if (not $line =~ m/^Sequence|^----/ 
+		and $line =~ s/^(\w+)\s+(\d+)\/(\d+)/<a href="al.html#$1_$2_$3" target="al">$&<\/a>/ )
 	  {
-	  my $de = $de{$1};
-	  s/\n/ #$de\n/;
+	  my $q = $1;
+	  my $bofn = "bo/$q-dblast.bo";
+	  chomp $line;
+	  $line .= ' #';
+	  $line .= ( -f "$dir/$bofn" ? "<a href=\"$bofn\">dblast</a>; " : '' );
+	  $line .= $de{$q} . "\n";
 	  };
 
-	$do .= $_;
+	$do .= $line;
 	}
 
   elsif ($state == 3)						# alignments
@@ -83,8 +88,21 @@ while( <$fh> )
 	#                   *->pqnlsCftnnlegnltCsWepgtdtg...ptnytlhyrrsllekeee
 	#                      p n+sC+++n++ +ltC+W+pg ++ +  +tny+l+y+ +++++  +
 	#      PRO582   138    PVNISCWSKNMK-DLTCRWTPGAHGEtflHTNYSLKYKLRWYGQDNT 183  
-	s/^(\w+): domain (\d+) of (\d+)/<a name="$1_$2_$3">\n$&/;
-	$al .= $_;
+	if ( $line =~ s/^(\w+): domain (\d+) of (\d+).*/<a name="$1_$2_$3">$&<\/a>/ )
+	  {
+	  my $q = $1;
+	  my $bofn = "$dir/bo/$q-dblast.bo";
+	  my $botop = botop($bofn);
+	  if (defined $botop)
+		{
+		$botop =~ s/^/  |-/mg;
+		$botop = "  + Top 10 Dayhoff BLAST alignments:\n" . $botop . "\n";
+		$botop = "<font color=\"#ff00ff\">$botop</font>";
+		$line .= $botop;
+		}
+	  }
+
+	$al .= $line;
 	}
 
   else
@@ -130,3 +148,23 @@ $fh->print("<html><body><pre>$al</pre></body></html>");
 $fh->close();
 print("  wrote $fn\n");
 
+
+exit(0);
+
+
+sub botop
+  {
+  my $fn = shift;
+  my $fh = new IO::File;
+  if ( not $fh->open("<$fn") )
+	{ warn("$fn: $!\n"); return; }
+  my $res = '';
+  while(<$fh>)
+	{
+	next if $.<20;
+	last if $.>30;
+	$res .= $_ if m/\s(?:\d+.\d+|\d*e-\d+)$/;   # and $1+0>1e-20" );
+	}
+  $fh->close();
+  return $res;
+  }
