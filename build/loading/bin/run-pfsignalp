@@ -1,0 +1,85 @@
+#!/usr/bin/env perl
+
+#-------------------------------------------------------------------------------
+# NAME run-pfsignalp
+# PURPOSE: run sigcleave and load results into unison
+# USAGE: run-pfsignalp [pseq_ids]
+#
+# $Id: run-pfsignalp,v 1.4 2003/10/13 23:50:20 cavs Exp $
+#-------------------------------------------------------------------------------
+
+use Unison;
+use Bio::SeqIO;
+use Bio::PrimarySeq;
+use IPC::Open2;
+use IO::File;
+use Env qw(@PATH);
+use Getopt::Long;
+use Genentech::EmbossSimple;
+use warnings;
+use strict;
+
+my %opts = 
+  (
+   debug => 0
+  );
+GetOptions( \%opts,
+      'debug|d+' )
+  || die("$0: usage\n");
+
+
+$ENV{DEBUG}=1;
+
+my $run_id = 6;                # hardwired for now
+my $temp_in_fn =  "/tmp/run-pfsignalp-$$.fa";
+my $temp_out_fn = "/tmp/run-pfsignalp-$$.out";
+
+sub run1($$$);
+
+my $u = new Unison;
+
+my @cmd = ('signalp', split(' ',$u->run_commandline_by_run_id( $run_id )),$temp_in_fn,"1>$temp_out_fn");
+my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
+my $sth = $u->prepare( 'insert into pfsignalp(pseq_id,start,stop,confidence,siganchor_prob,max_cleavage_prob,run_id) values (?,?,?,?,?,?,?)' );
+
+#my @list = Unison::utils::range_to_enum(@ARGV);
+my @list = @ARGV;
+for(my $i=0; $i<=$#list; $i++) {
+  my $pseq_id = $list[$i];
+
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  printf(STDOUT "retrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...\n",
+     $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
+  if (not defined $seq) {
+    warn("$0: Unison:$pseq_id doesn't exist\n");
+    return;
+  }
+  $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq, -id  => "Unison:$pseq_id") );
+}
+$seqio->close();
+
+# run signalp
+system(join(' ',@cmd));
+
+my $fp = new IO::File $temp_out_fn;
+local $/='----------------------------------------------------------------------';
+while(<$fp>){
+  next if m/SignalP predictions/;
+  my($id,$p,$spp,$sap,$mcsp);		
+  if (($id,$p,$spp,$sap,$mcsp) = m/>(\S+).+mean S\s+(\S+).+Signal peptide probability:\s+(\S+)\s+Signal anchor probability:\s+(\S+)\s+Max cleavage site probability:\s+(\S+)/sm) {
+    my ($start,$end) = split/-/,$p,2;
+    $id =~ m/^Unison:(\d+)/;
+    my $pseq_id = $1;
+    printf(STDOUT "\rloading Unison:%-8s (sig_pep_prob: %.2f, sig_anchor_prob: %d, cleavage_site: %d, max_cleavage_prob: %.2f)\n",
+           $pseq_id,$spp,$sap,$end,$mcsp);
+    $sth->execute($pseq_id,$start,$end,$spp,$sap,$mcsp,$run_id);
+  } else {
+    die("missed $_");
+  }
+}
+    #$sth->execute($pseq_id,$start,$end,$score,$run_id);
+
+    #next RESULT;
+
+
+exit(0);
