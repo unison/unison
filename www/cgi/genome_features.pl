@@ -5,7 +5,7 @@
 # PURPOSE: web script to output pseq aligned to a genome
 # USAGE: genome_features.pl?genasm_id=<genasm_id>;[(chr=<chr>;gstart=<gstart>;gstop=<gstop>)||(pseq_id=<pseq_id>)]
 #
-# $Id: genome_features.pl,v 1.9 2004/06/25 00:20:14 rkh Exp $
+# $Id: genome_features.pl,v 1.10 2004/07/22 22:30:49 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -19,7 +19,6 @@ use Unison::WWW::Page;
 use Unison;
 use Unison::Exceptions;
 use Unison::genome_features;
-use File::Temp;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -36,9 +35,7 @@ if ( ! ( defined $v->{genasm_id} && (
 my %opts = (%Unison::genome_features::opts, %$v);
 
 # get tempfiles for the genome-feature png and imagemap
-my ($png_fh, $png_fn)   = File::Temp::tempfile(DIR => $p->{tmpdir}, 
-											   SUFFIX=>'.png');
-my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
+my ($png_fh, $png_fn,$png_urn) = $p->tempfile(SUFFIX=>'.png');
 
 my $imagemap = '';
 

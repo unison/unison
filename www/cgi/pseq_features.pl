@@ -6,22 +6,19 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
-use File::Temp qw(tempfile);
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::Exceptions;
 use Unison;
 use Unison::pseq_features qw( %opts );
-use Data::Dumper;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir},
-					     SUFFIX => '.png' );
-my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
+my ($png_fh, $png_fn, $png_urn) = $p->tempfile( SUFFIX => '.png' );
+$p->die("Couldn't create a temporary file: $!\n") unless defined $png_urn;
 
 my %opts = (%Unison::pseq_features::opts, %$v);
 
