@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.9 2004/04/21 18:38:18 rkh Exp $>
+S<$Id: palias.pm,v 1.10 2004/04/21 20:08:47 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -63,43 +63,6 @@ sub add_palias {
   $self->do( $sql, { PrintError=>1 } );
   return;
 }
-
-
-
-### #-------------------------------------------------------------------------------
-### # get_pseq_id_from_alias()
-### #-------------------------------------------------------------------------------
-### 
-### =head2 get_pseq_id_from_alias()
-### 
-###  Name:      get_pseq_id_from_alias()
-###  Purpose:   get a pseq_id given an alias
-###  Arguments: palias
-###  Returns:   array of pseq_id
-### 
-### =cut
-### 
-### sub get_pseq_id_from_alias {
-###   my ($u,$alias) = @_;
-###   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
-###   (defined $alias) 
-###   || throw Unison::RuntimeError("alias not defined");
-###   # this'll be screwed up if the alias contains a ' quote... better to use bind vars...
-### 
-###   my $sql;
-###   my @ids;
-### 
-###   # case-sensitive first (much faster than case folded search below)
-###   $sql = "select distinct pseq_id from palias where alias='$alias'";
-###   @ids = @{ $u->{'dbh'}->selectall_arrayref($sql) };
-###   return( map {@$_}  @ids ) if @ids;
-### 
-###   # nothing returned from case-sensitive search -- try case-folding
-###   $alias = uc($alias);
-###   $sql = "select distinct pseq_id from palias where upper(alias)='$alias'";
-###   @ids = @{ $u->{'dbh'}->selectall_arrayref($sql) };
-###   return( map {@$_}  @ids );
-### }
 
 
 
@@ -167,7 +130,7 @@ sub get_pseq_id_from_alias_exact {
   (defined $alias) 
 	|| throw Unison::RuntimeError("alias not defined");
   my $sql = 'select distinct pseq_id from palias where alias = ?';
-  $sql .= " AND porigin_id=porigin_id('$ori')";
+  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
 
@@ -187,6 +150,7 @@ sub get_pseq_id_from_alias_casefolded {
   (defined $alias) 
 	|| throw Unison::RuntimeError("alias not defined");
   my $sql = 'select distinct pseq_id from palias where upper(alias) = ?';
+  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, uc($alias)) } );
 }
 
@@ -219,6 +183,7 @@ sub get_pseq_id_from_alias_regexp {
 	$sql .= 'upper(alias) ~ ?';
 	$alias = uc($alias);
   }
+  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
 
@@ -233,13 +198,13 @@ with ilike.
 =cut
 
 sub get_pseq_id_from_alias_fuzzy {
-  my ($u,$alias) = @_;
-  $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
+  my ($u,$alias,$ori) = @_;
+  $u->is_open()
+	|| throw Unison::RuntimeError("Unison connection not established");
   (defined $alias) 
 	|| throw Unison::RuntimeError("alias not defined");
-  #my $sth = $u->prepare($sql);
-  #$sth->execute($alias);
   my $sql = 'select distinct pseq_id from palias where alias ilike ?';
+  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
 
