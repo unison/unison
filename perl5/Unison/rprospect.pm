@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::rprospect2 -- Unison rprospect2 table utilities
-S<$Id: rprospect2.pm,v 1.2 2003/05/27 22:39:23 rkh Exp $>
+S<$Id: rprospect2.pm,v 1.1 2003/06/30 15:33:50 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -18,7 +18,7 @@ B<> is a
 =cut
 
 package Unison;
-use Prospect2::Options;
+use Prospect::Options;
 
 sub get_p2options_by_run_id($)
   {
@@ -29,7 +29,7 @@ sub get_p2options_by_run_id($)
   $sth->execute($run_id);
   my $h = $sth->fetchrow_hashref();
   ## FIX: only seqfile threading is supported below:
-  my $po = new Prospect2::Options( $h->{global} ? (global=>1) : (global_local=>1),
+  my $po = new Prospect::Options( $h->{global} ? (global=>1) : (global_local=>1),
 								   seq=>1, );
   return $po;
 =pod
