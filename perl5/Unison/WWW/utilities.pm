@@ -1,4 +1,4 @@
-package Unison::WWW::utils;
+package Unison::WWW::utilities;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
@@ -20,6 +20,8 @@ sub alias_link {
 	return( alias_splink($alias) ) 
   } elsif ($origin eq 'Ensembl') {
 	return( alias_enslink($alias) )
+  } elsif ($origin eq 'Proteome') {
+	return( alias_proteome_link($alias) )
   } elsif ($alias =~ m/^[XN]P/) {
 	return( alias_reflink($alias) )
   } else {
@@ -27,28 +29,44 @@ sub alias_link {
   }
 }
 
-sub pseq_summary_link {
-  my ($pseq_id,$tag) = @_;
-	return( "<a href=\"pseq_summary.pl?pseq_id=$pseq_id\">$tag</a>" );
+
+sub alias_proteome_link {
+  my $alias = shift;
+  "<a tooltip=\"link to Proteome for $alias\" href=\"http://research/products/proteome/cgi-bin/SearchSync.cgi?Mode=name&submit=Name/ID&current=human&pattern=$alias\">$alias</a>";
+  #view-source:http://research/products/proteome/HumanPD/TNF.html
+  #<form action="/products/proteome/cgi-bin/SearchSync.cgi" method="POST">
+  #<b>Quick Search:</b>
+  #<input type="text"   name="pattern" size="20">
+  #<input type="hidden" name="Mode"    value="name">
+  #<input type="submit" name="submit"  value="Name/ID">
+  #<input type="hidden" name="current" value="human">
+  #</form>
 }
 
-
 sub alias_gglink {
-  $_[0] =~ s%^(UNQ|PRO|DNA)(\d+)$%<a href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;
+  $_[0] =~ s%^(UNQ|PRO|DNA)(\d+)$%<a tooltip=\"link to GenenGenes:$_[0]\" href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;
   $_[0];
   }
 
 sub alias_splink {
-  "<a href=\"http://us.expasy.org/cgi-bin/niceprot.pl?$_[0]\">$_[0]</a>";
+  "<a tooltip=\"link to SwissProt:$_[0]\" href=\"http://us.expasy.org/cgi-bin/niceprot.pl?$_[0]\">$_[0]</a>";
   }
 
 sub alias_reflink {
-  "<a href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Protein&term=$_[0]\">$_[0]</a>";
+  "<a tooltip=\"link to RefSeq:$_[0]\" href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Protein&term=$_[0]\">$_[0]</a>";
   }
 
 sub alias_enslink {
-  "<a href=\"http://www.ensembl.org/Homo_sapiens/textview?species=All&idx=Protein&q=$_[0]\">$_[0]</a>";
+  "<a tooltip=\"link to Ensembl:$_[0]\" href=\"http://www.ensembl.org/Homo_sapiens/textview?species=All&idx=Protein&q=$_[0]\">$_[0]</a>";
   }
+
+
+sub pseq_summary_link {
+  my ($pseq_id,$tag) = @_;
+  return( "<a tooltip=\"link to summary of Unison:$pseq_id\" href=\"pseq_summary.pl?pseq_id=$pseq_id\">$tag</a>" );
+}
+
+
 
 sub text_wrap {
   #local $Text::Wrap::break = qr/\s|(?:[,=])/;

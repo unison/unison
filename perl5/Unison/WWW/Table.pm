@@ -1,10 +1,12 @@
 # U:W:Table -- spit an HTML Table from an array ref of 
 package Unison::WWW::Table;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use strict;
 use warnings;
-
 use base 'CBT::Hash';
-use Unison::WWW::utils;
+use Unison::WWW::utilities qw(coalesce);
 
 
 # title
@@ -70,7 +72,7 @@ sub render_compat {
 
   if (not defined $opts->{highlight_column}) {
 	$rv .= "<tr>" . join('',map {'<th align="'.guess_alignment($_).'">'.$_.'</th>'} @$fr)."</tr>\n";
-	$rv .= "<tr>" . join('',map {'<td ailgn="'.guess_alignment($_).'">'.Unison::WWW::utils::coalesce($_,'').'</td>'} @$_) ."</tr>\n" for @$ar; 
+	$rv .= "<tr>" . join('',map {'<td ailgn="'.guess_alignment($_).'">'.coalesce($_,'').'</td>'} @$_) ."</tr>\n" for @$ar; 
 	$rv .= $tbl_end;
 	return $rv;
   }
@@ -87,7 +89,7 @@ sub render_compat {
 	for(my $c=0; $c<=$#row; $c++) {
 	  my $cl = $c==$opts->{highlight_column} ? 'class="highlighted"' : '';
 	  my $al = 'align="' . guess_alignment($row[$c]) . '"';
-	  $rv .= "<td $cl $al>" . Unison::WWW::utils::coalesce($row[$c],'') . "</td>";
+	  $rv .= "<td $cl $al>" . coalesce($row[$c],'') . "</td>";
 	}
 	$rv .= "</tr>\n";
   }
