@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -38,6 +38,8 @@ my %opts =
    verbose => 0,
    pad => 10,
    logo_margin=> 10,
+   # this is the default track length needed for imagemap links
+   def_track_length => 60
   );
 
 sub pseq_features_panel($%);
@@ -70,6 +72,7 @@ sub pseq_features_panel($%);
 sub pseq_features_panel($%) {
   my $u = shift;
   my %opts = (%opts, @_);
+  my ($sec_str_only,$tick) = (0,1);
 
   my $len = $u->selectrow_array( "select len from pseq where pseq_id=$opts{pseq_id}" );
   if (not defined $len) {
@@ -77,39 +80,48 @@ sub pseq_features_panel($%) {
 	return undef;
   }
 
-  my $plen = int($len / 100 + 1) * 100;		# round up to nearest thousand
+  if(defined($opts{track_length})) {
+    $sec_str_only=1;
+    $tick = 2;
+  }
+  else {
+    $opts{track_length} = int($len / 100 + 1) * 100;		# round up to nearest thousand
+  }
 
-  my $panel = Bio::Graphics::Panel->new( -length => $plen,
-										 -width => $opts{width},
-										 -pad_top => $opts{pad},
-										 -pad_left => $opts{pad},
-										 -pad_right => $opts{pad},
-										 -pad_bottom => $opts{pad},
-										 -key_style => 'between'
-									   );
+  my $panel = Bio::Graphics::Panel->new( -length => $opts{track_length},
+					 -width => $opts{width},
+					 -pad_top => $opts{pad},
+					 -pad_left => $opts{pad},
+					 -pad_right => $opts{pad},
+					 -pad_bottom => $opts{pad},
+					 -key_style => 'between'
+				       );
 
   $panel->add_track( Bio::Graphics::Feature->new
 					 (-start => 1, -end => $len,
 					  -name => sprintf("Unison:%d; %d AA; %s",
 									   $opts{pseq_id}, $len, $u->best_alias($opts{pseq_id}))),
 					 -glyph => 'arrow',
-					 -tick => 1,
+					 -tick => $tick,
 					 -fgcolor => 'black',
 					 -double => 0,
 					 -label => 1, -description=>1
 				   );
 
-  add_pftmdetect( $u, $panel, $opts{pseq_id} );
-  add_pfsignalp( $u, $panel, $opts{pseq_id} );
-  add_pfsigcleave( $u, $panel, $opts{pseq_id} );
-  add_pfantigenic( $u, $panel, $opts{pseq_id} );
-  add_pfregexp( $u, $panel, $opts{pseq_id} );
-  add_papssm( $u, $panel, $opts{pseq_id} );
-  add_pahmm( $u, $panel, $opts{pseq_id} );
-  add_paprospect2( $u, $panel, $opts{pseq_id} );
+  add_pfssp_psipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length});
+  if(!$sec_str_only) {
+    add_pftmdetect( $u, $panel, $opts{pseq_id} );
+    add_pfsignalp( $u, $panel, $opts{pseq_id} );
+    add_pfsigcleave( $u, $panel, $opts{pseq_id} );
+    add_pfantigenic( $u, $panel, $opts{pseq_id} );
+    add_pfregexp( $u, $panel, $opts{pseq_id} );
+    add_papssm( $u, $panel, $opts{pseq_id} );
+    add_pahmm( $u, $panel, $opts{pseq_id} );
+    add_paprospect2( $u, $panel, $opts{pseq_id} );
+  }
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.7 2004/07/22 16:43:31 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -129,6 +141,90 @@ sub pseq_features_panel($%) {
   return $panel;
 }
 
+
+
+#-------------------------------------------------------------------------------
+# NAME: add_pfssp_psipred
+# PURPOSE: add pfssp_psipred features to a panel
+# ARGUMENTS: Unison object, Bio::Graphics::Feature object, pseq_id
+# RETURNS: count of features added
+#-------------------------------------------------------------------------------
+sub add_pfssp_psipred {
+  my ($u, $panel, $q, $len, $track_length) = @_;
+  my ($nadded) = (0);
+  my ($sql,$featref);
+  my @strands_helices= ();
+  @{$strands_helices[0]} = (); #initialize the array that is passed to add track
+
+  my $num_tracks = ($len/$track_length);
+  my $href = ($track_length < $len ? '' : "pseq_features.pl?pseq_id=$q&track_length=$opts{def_track_length}");
+
+ # get the ssp confidense string
+  $sql = "select confidence
+           from psipred where pseq_id=$q";
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  $featref = $u->selectall_arrayref($sql);
+
+  my $confidence_string = $$featref[0]->[0];
+
+  # add pfssp_psipred feature
+  $sql = "select start,stop,type
+           from pfssp_psipred where pseq_id=$q";
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  $featref = $u->selectall_arrayref($sql); 
+
+  foreach my $r (@$featref) {
+      $nadded++;
+      my $track_number = int(($r->[0]-1)/$track_length);
+      my $score = avg_confidence($r->[0], $r->[1], $confidence_string);
+      my $start = $r->[0] - ($track_length * $track_number);
+      my $end = $r->[1] - ($track_length * $track_number);
+      while ($end > $track_length) {
+	$end = $track_length;
+	push @{$strands_helices[$track_number]},  new Bio::Graphics::Feature ( -start => $start,
+									       -end => $end,
+									       -type => $r->[2],
+									       -name => $r->[2],
+									       -score => $score,
+									       -attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
+												href => $href }
+									     );	
+	$start = 1;
+	$end = ($r->[1] - ($track_length * $track_number)) - $track_length;
+	$track_number++;
+      }
+      push @{$strands_helices[$track_number]},  new Bio::Graphics::Feature ( -start => $start,
+									     -end => $end,
+									     -type => $r->[2],
+									     -name => $r->[2],
+									     -score => $score,
+									     -attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
+											      href => $href }
+									   );
+  }
+
+  for(my $i = 0; $i <= $num_tracks; $i++) {
+    my $key = ($num_tracks < 1 ? 'Secondary_Structure' : $track_length*$i+1);
+    my $track = $panel->add_track(generic=> [@{$strands_helices[$i]}],				
+				  -glyph => \&glyph_type,
+				  -key => $key,
+				  -bump => 0,
+				  -bgcolor => \&glyph_colour,
+				  -fgcolor => \&glyph_colour,
+				  -east => 1,
+ 				  #-arrowstyle => "filled",
+				  -fontcolor => 'black',
+				  -description => 1,
+				  -min_score => -5,
+				  -max_score => 5,
+				  -linewidth =>  sub {
+				    my $feat = shift @_;
+				    return '2' if $feat->type eq 'E';
+				  },
+				 ) if(defined($strands_helices[$i]));
+  }
+  return $nadded;
+}
 
 
 ######################################################################
@@ -603,6 +699,30 @@ sub add_pfregexp {
   return $nadded;
 }
 
+sub glyph_type {
+    my $feat = shift (@_);
+    return 'sec_str::helix' if $feat->type eq 'H';
+    return 'sec_str::myarrow' if $feat->type eq 'E';
+    return 'graded_segments' if $feat->type eq 'C';
+}
+
+sub glyph_colour{
+  my $feat = shift @_;
+  return 'red' if $feat->type eq 'H';
+  return 'blue' if $feat->type eq 'E';
+  return 'green';
+}
+
+sub avg_confidence {
+
+  my ($start, $end, $string) = @_;
+  my ($total, $avg);
+  for(my $i=$start; $i <= $end; $i++) {
+    $total += int substr($string,$i-1,1);
+  }
+  $avg = $total / (($end - $start) + 1);
+  return $avg;
+}
 
 package Unison;
 use Unison::utilities qw( warn_deprecated );
