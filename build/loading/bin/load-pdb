@@ -5,6 +5,8 @@ use strict;
 use lib '/home/rkh/unison/perl5';
 use Unison;
 
+$|++; select(STDERR); $|++; select(STDOUT);
+
 
 my $udb = new Unison;
 my $origin = 'pdb';
@@ -27,14 +29,19 @@ my %ONECODE =
 
 while (my $fn = shift)
   {
-  my %sr = read1($fn);
+  my ($sr,$len,$desc) = read1($fn);
   my $id = $fn;
   $id =~ s%.*/%%; $id =~ s/^pdb//; $id =~ s/\.(ent|pdb).*//;
-  printf(STDERR "$id: %d chains (%s)\n", scalar keys %sr, join(',',keys %sr));
-  for my $c (sort keys %sr)
+  printf(STDERR "$id: %d chains={%s}; %s\n",
+		 scalar keys %$sr, join(',',keys %$sr), $desc);
+  for my $c (sort keys %$sr)
 	{
+	if ( $len->{$c} != length($sr->{$c}) )
+	  { warn("! $id$c: sequence doesn't match provided sequence length\n"); }
+	if ( length($sr->{$c}) < 20 )
+	  { warn("! $id$c: discarding short sequence (",length($sr->{$c})," AA)\n"); }
 	my $dc = $c ne ' ' ? $c : '';
-	add1($udb,$porigin_id,"$id$dc",$sr{$c}); 
+	add1($udb,$porigin_id,$sr->{$c},"$id$dc",$desc);
 	}
   }
 
@@ -43,12 +50,15 @@ while (my $fn = shift)
 sub read1
   {
   my $fn = shift;
-
   my $pdb = `gzip -cdq $fn`;
-
+  my (@desc) = map {s/\s+\d\w\w\w   \d//;$_} $pdb=~m/^TITLE\s+(?:\d\s)?(.+)/mg;
+  my $desc = join(' ',@desc);
+  $desc =~ s/\s+/ /g; $desc =~ s/^\s//; $desc =~ s/\s$//;
   my %sr;
+  my %len;
   while( $pdb =~ m/^SEQRES \s+ \d+ \s+ (.) \s+ (\d+) \s+ ((?:\s\w{3})+)/gmsx )
 	{
+	$len{$1} = $2;
 	$sr{$1} = '' unless exists $sr{$1};
 	$sr{$1} .= "$3\n";
 	}
@@ -64,8 +74,9 @@ sub read1
 	  { delete $sr{$c}; }
 	}
 
-  return %sr;
+  return (\%sr,\%len,$desc);
   }
+
 
 sub xl
   {
@@ -76,18 +87,9 @@ sub xl
 
 sub add1
   {
-  my ($udb,$ori,$id,$seq) = @_;
-
+  my ($udb,$ori,$seq,$id,$desc) = @_;
   my $pseq_id = $udb->si_pseq_id($seq);
   if (not defined $pseq_id)
 	{ warn("sequence add for $id failed"); return; }
-
-  eval { $udb->do( "insert into palias (pseq_id,porigin_id,alias) "
-				   . "values ($pseq_id,$ori,'$id')",
-					 { PrintError=>0 } ) };
-
-  eval { $udb->do( "insert into pstr (pseq_id,pdbc) "
-				   . "values ($pseq_id,'$id')",
-					 { PrintError=>0 } ) };
-
+  $udb->add_palias($pseq_id,$ori,$id,$desc);
   }
