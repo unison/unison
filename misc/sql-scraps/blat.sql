@@ -2,7 +2,7 @@
 -- Name: blat.sql
 -- Purpose: sql code for generating tables for storing blat results
 --
--- $Id: blat.sql,v 1.4 2004/01/27 22:43:17 cavs Exp $
+-- $Id: blat.sql,v 1.5 2004/01/30 18:20:22 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
@@ -29,6 +29,7 @@ ALTER TABLE ONLY genasm
 REVOKE ALL ON TABLE genasm FROM PUBLIC;
 GRANT SELECT ON TABLE genasm TO PUBLIC;
 GRANT INSERT,UPDATE ON TABLE genasm TO loader;
+GRANT SELECT,INSERT,UPDATE on genasm_genasm_id_seq to loader;
 -- -----------------------------------------------------------------------------
 
 
@@ -59,7 +60,8 @@ ALTER TABLE ONLY p2gblataln
 
 REVOKE ALL ON TABLE p2gblataln FROM PUBLIC;
 GRANT SELECT ON TABLE p2gblataln TO PUBLIC;
-GRANT INSERT,UPDATE,DELETE ON TABLE p2gblataln TO loader;
+GRANT INSERT,UPDATE ON TABLE p2gblataln TO loader;
+GRANT SELECT,INSERT,UPDATE on p2gblataln_p2gblataln_id_seq to loader;
 -- -----------------------------------------------------------------------------
 
 
@@ -100,7 +102,8 @@ ALTER TABLE ONLY p2gblathsp
 
 REVOKE ALL ON TABLE p2gblathsp FROM PUBLIC;
 GRANT SELECT ON TABLE p2gblathsp TO PUBLIC;
-GRANT INSERT,UPDATE,DELETE ON TABLE p2gblathsp TO loader;
+GRANT INSERT,UPDATE ON TABLE p2gblathsp TO loader;
+GRANT SELECT,INSERT,UPDATE on p2gblathsp_p2gblathsp_id_seq to loader;
 -- -----------------------------------------------------------------------------
 
 
@@ -125,7 +128,7 @@ CREATE RULE no_update AS ON UPDATE TO p2gblatalnhsp DO NOTHING;
 
 REVOKE ALL ON TABLE p2gblatalnhsp FROM PUBLIC;
 GRANT SELECT ON TABLE p2gblatalnhsp TO PUBLIC;
-GRANT INSERT,DELETE ON TABLE p2gblatalnhsp TO loader;
+GRANT INSERT,UPDATE ON TABLE p2gblatalnhsp TO loader;
 -- -----------------------------------------------------------------------------
 
 
