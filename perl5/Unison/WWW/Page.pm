@@ -81,8 +81,6 @@ sub new {
   return $self;
   }
 
- 
-
 
 sub page_connect ($) {
   my $self = shift;
@@ -102,7 +100,7 @@ sub page_connect ($) {
   if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
 	$v->{username} = $ENV{REMOTE_USER};
 	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$v->{username}";
-	  $v->{host} = 'svc';						# must be svc for krb5 auth
+	  $v->{host} = 'csb';						# must be this for krb5 auth
   }
 
   # NOTE: password=>undef works for PUBLIC and krb auth
@@ -221,9 +219,12 @@ sub render {
 					  (map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
 					   qw(username host dbname)),
 
-					  ['release',
+					  ['db<br>release',
 					   $p->{unison}->selectrow_array
-					   ('select value::date from meta where key=\'release timestamp\'')]
+					   ('select value::date from meta where key=\'release timestamp\'')],
+
+					  ['API<br>release', $Unison::RELEASE],
+					  ['WWW<br>release', $Unison::WWW::RELEASE]
 					)
 				);
 	$cnav .= '<p><center><span style="background-color: red"><b><i>&nbsp;&nbsp;writable&nbsp;&nbsp;</i></b></span></center>' if (not $p->{readonly});
