@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.11 2004/05/04 04:54:32 rkh Exp $>
+S<$Id: DBI.pm,v 1.12 2004/05/06 22:39:56 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -42,22 +42,21 @@ use Getopt::Long;
 my $p = new Getopt::Long::Parser;
 $p->configure( qw(gnu_getopt pass_through) );
 
-my $hostname = `hostname`;
+my $thishost = `hostname`; $thishost =~ s/\n$//;
+
 our %opts =
   (
    # use PGHOST if it's not '', otherwise set based on whether we're
    # on csb (local), comp* (cvs), else exo-cluster (csb)
    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
-   host => ( (exists $ENV{PGHOST}) and ($ENV{PGHOST} ne '')
-			 ? $ENV{PGHOST}					# PGHOST if specified
-			 : ( $hostname eq 'csb'
-				 ? undef					# local connection when possible
-				 : ( $hostname =~ m/^comp\d/
-					 ? 'svc'				# intra-cluster (192.168/16)
-					 : 'csb'				# everywhere else
-				   ))),
+   host => ( (exists $ENV{PGHOST})  and ($ENV{PGHOST} =~ m/\w/) ) ? $ENV{PGHOST}
+   		: $thishost =~ m/^csb/ ? 'csb'	    # local connection when possible
+		: $thishost =~ m/^comp\d/ ? 'svc'	# intra-cluster (192.168/16)
+   		: 'csb',							# everywhere else
+
    dbname => $ENV{PGDATABASE} || 'csb',
-   username => $ENV{PGUSER},
+   username => $ENV{PGUSER} || eval {my $tmp = `/usr/bin/id -un`;
+									 chomp $tmp; $tmp},
    password => $ENV{PGPASSWORD},
    attr => {
 			PrintError => 0,
@@ -65,6 +64,7 @@ our %opts =
 			AutoCommit => 1,
 		   },
   );
+
 
 
 our @options;
@@ -111,7 +111,7 @@ sub connect {
   }
 
   my $dsn = "dbi:Pg:dbname=$self->{dbname}";
-  if (defined $self->{host} and $self->{host} ne '') {
+  if (defined $self->{host}) {				# never happens: host eq ''
 	$dsn .= ";host=$self->{host}" ;
   }
   my $dbh = DBI->connect($dsn,
@@ -124,6 +124,7 @@ sub connect {
 		join("\n", 
 			 'DBI ERROR: '.DBI->errstr(),
 			 "dsn=$dsn",
+			 'host='.(defined $self->{host} ? $self->{host} : '<undef>'),
 			 'username='.(defined $self->{username} ? $self->{username} : '<undef>'),
 			 'password='.(defined $self->{password} ? '<hidden>' : '<undef>')),
 		'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
