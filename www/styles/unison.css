@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: unison.css,v 1.1 2003/05/21 06:15:34 rkh Exp $ */
 
 /* #C4C0E2 */
 /* #9e9efa */
@@ -40,4 +40,7 @@ TABLE.uwtable TD {
 
 SPAN.error {
 	color: red
+	}
+SPAN.debug {
+	background-color: yellow
 	}
