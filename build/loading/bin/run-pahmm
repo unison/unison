@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.2 2004/02/27 07:40:14 rkh Exp $
+# $Id: run-pahmm,v 1.3 2004/06/04 00:04:07 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 use warnings;
@@ -14,66 +14,80 @@ use Getopt::Long qw(:config gnu_getopt);
 use IO::File;
 use IO::Pipe;
 use Unison::Exceptions;
+use Unison::SQL;
 use Unison;
 
 
-my %opts = (
-			force => 0,
-			params_id => undef,
-		   );
-GetOptions(\%opts,
-		   'force|f+',
-		   'params_id|p=i',
-		  )
-  || die("$0: you got usage issues, short stack\n");
+my $modelfile = '/apps/compbio/share/pfam-12.0/Pfam_fs';
+my $params = 'Pfam_fs 12.0';
 
+my %opts = (
+	force => 0,
+	params_id => undef,
+	pmodelset_id => undef,
+	verbose => 0
+);
+GetOptions(\%opts,
+	'force|f+',
+	'params_id|p=i',
+	'pmodelset_id|m=i@',
+	'verbose|v+',
+) || die("$0: you got usage issues, short stack\n");
 
 my $temproot = "/tmp/run-pahmm-$$";
 my $seqfn = "$temproot.fa";
+my $pfamfn;  # filename will be set below
 
 
 my $u = new Unison( dbname=>'csb-dev' );
 
-
-
-
 if (not defined $opts{params_id}) {
   die("! you must provide a --params_id=<params_id> argument\n");
 }
-my $clo = $u->selectrow_array("select commandline from params where params_id=$opts{params_id}");
-if (not defined $clo) {
-  die("! couldn't find command line options for params_id=$opts{params_id}\n");
-}
-my @cl = (split(' ',$clo), $seqfn);
-
 
 my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
 my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
 										   join(',',@fields), join(',',map {'?'} @fields)));
 
+if ( defined $opts{pmodelset_id} ) {
+	$pfamfn = "$temproot.pfam";
+	my $sql = new Unison::SQL;
+	$sql->columns('distinct name')
+		->table('pmhmm M');
+	$sql->join('pmsm_pmhmm S on M.pmodel_id=S.pmodel_id')
+		->where('S.pmodelset_id in (' . join(',',@{$opts{pmodelset_id}}) . ')');
+	$sql->order('name');
+		(@{$opts{'templates'}}) = map {@$_} @{$u->selectall_arrayref("$sql")};
+
+	my $cmd = "hmm-extract< $modelfile @{$opts{'templates'}} >$pfamfn";
+	print "$cmd\n" if $opts{verbose};
+	system( $cmd );
+} else {
+	$pfamfn = $modelfile;
+}
+
+my $clo = $u->run_commandline_by_params_id($opts{params_id});
+my @cl = (split(' ',$clo), $pfamfn, $seqfn);
+print "cl: ",join(' ',@cl),"\n" if $opts{verbose};
 
 my @pseq_ids = map {eval "$_"} @ARGV;
 my $N = $#pseq_ids+1;
 my $n = 0;
-
-
 PSEQ_ID:
 while( my $pseq_id = shift(@pseq_ids) ) {
   my $leader = sprintf("\rUnison:%8s (%4d/%4d %5.1f%%)", $pseq_id, ++$n, $N, $n/$N*100 );
   print(STDERR $leader, ' 'x20);
 
-
-  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
-  if (defined $ran_on) {
-	print(STDERR "$leader: run with these options on $ran_on; skipping\n");
-	next PSEQ_ID;
+  my $already_ran = $u->check_run_histories($pseq_id,$opts{params_id},undef,$opts{pmodelset_id});
+  if ($already_ran) {
+		print(STDERR "$leader: run with these options; skipping\n");
+		next PSEQ_ID;
   }
-
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   if (not defined $seq) {
-	warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
-	next;
+		warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+		next;
   }
 
   my $so = new Bio::SeqIO( -format => 'fasta',
@@ -115,6 +129,7 @@ while( my $pseq_id = shift(@pseq_ids) ) {
 		} catch Unison::Exception with {
 		  warn("\n$_[0]");
 		};
+
 		$nins++;
 	  }
 	}
@@ -122,7 +137,7 @@ while( my $pseq_id = shift(@pseq_ids) ) {
 
   $hmmerpipe->close();
   print(STDERR "$leader: inserted $nins/$nhsps hsps; last_update=", 
-		$u->upd_run_history($pseq_id,$opts{params_id},undef,undef), 
+		$u->upd_run_histories($pseq_id,$opts{params_id},undef,$opts{pmodelset_id}),
 		"\n");
 }
 
