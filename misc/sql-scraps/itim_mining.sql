@@ -2,7 +2,7 @@
 -- NAME: itim_mining.sql
 -- PURPOSE: sql code for mining Unison for ITIMS
 -- 
--- $Id$
+-- $Id: itim_mining.sql,v 1.1 2004/05/05 21:47:42 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 
@@ -83,51 +83,51 @@ CREATE OR REPLACE VIEW cavs.tm_itam AS
 
 
 -- build a set of pclusters based on known SPDI ITIM seqs
-DELETE FROM unison.pclusterset WHERE pclustersetname_id=1;
-INSERT INTO unison.pclusterset SELECT DISTINCT 1,pcluster_id FROM unison.pcluster_member 
+DELETE FROM cavs.pclusterset WHERE pclustersetname_id=1;
+INSERT INTO cavs.pclusterset SELECT DISTINCT 1,pcluster_id FROM unison.pcluster_member 
   WHERE pseq_id IN (SELECT pseq_id FROM pseqset WHERE pset_id=40);
 
 -- build a set of pclusters based on known staub ITIM seqs
-DELETE FROM unison.pclusterset WHERE pclustersetname_id=2;
-INSERT INTO unison.pclusterset SELECT DISTINCT 2,pcluster_id FROM unison.pcluster_member 
+DELETE FROM cavs.pclusterset WHERE pclustersetname_id=2;
+INSERT INTO cavs.pclusterset SELECT DISTINCT 2,pcluster_id FROM unison.pcluster_member 
   WHERE pseq_id IN (SELECT pseq_id FROM pseqset WHERE pset_id=45);
 
--- build a set of pclusters based on putative ITIMS FROM prospect
-DELETE FROM unison.pclusterset WHERE pclustersetname_id=3;
-INSERT INTO unison.pclusterset SELECT DISTINCT 3,pcluster_id FROM unison.pcluster_member 
+-- build a set of pclusters based on putative ITIMS from prospect
+DELETE FROM cavs.pclusterset WHERE pclustersetname_id=3;
+INSERT INTO cavs.pclusterset SELECT DISTINCT 3,pcluster_id FROM unison.pcluster_member 
   WHERE pseq_id IN (SELECT pseq_id FROM pseqset WHERE pset_id=-35);
 
--- build a set of pclusters based on putative ITIMS FROM pfam
-DELETE FROM unison.pclusterset WHERE pclustersetname_id=4;
-INSERT INTO unison.pclusterset SELECT DISTINCT 4,pcluster_id FROM unison.pcluster_member 
+-- build a set of pclusters based on putative ITIMS from pfam
+DELETE FROM cavs.pclusterset WHERE pclustersetname_id=4;
+INSERT INTO cavs.pclusterset SELECT DISTINCT 4,pcluster_id FROM unison.pcluster_member 
   WHERE pseq_id IN (SELECT pseq_id FROM pseqset WHERE pset_id=-30);
 
--- build a set of pclusters based on novel ITIMS FROM prospect (take putative AND substract known staub)
-DELETE FROM unison.pclusterset WHERE pclustersetname_id=5;
-INSERT INTO unison.pclusterset SELECT DISTINCT 5,pcluster_id FROM unison.pclusterset WHERE pclustersetname_id=3 EXCEPT
-  SELECT 5,pcluster_id FROM unison.pclusterset WHERE pclustersetname_id=2;
+-- build a set of pclusters based on novel ITIMS from prospect (take putative AND substract known staub)
+DELETE FROM cavs.pclusterset WHERE pclustersetname_id=5;
+INSERT INTO cavs.pclusterset SELECT DISTINCT 5,pcluster_id FROM cavs.pclusterset WHERE pclustersetname_id=3 EXCEPT
+  SELECT 5,pcluster_id FROM cavs.pclusterset WHERE pclustersetname_id=2;
 
--- build a set of pclusters based on novel ITIMS FROM pfam (take putative AND substract known staub)
-DELETE FROM unison.pclusterset WHERE pclustersetname_id=6;
-INSERT INTO unison.pclusterset SELECT DISTINCT 6,pcluster_id FROM unison.pclusterset WHERE pclustersetname_id=4 EXCEPT
-  SELECT 6,pcluster_id FROM unison.pclusterset WHERE pclustersetname_id=2;
+-- build a set of pclusters based on novel ITIMS from pfam (take putative AND substract known staub)
+DELETE FROM cavs.pclusterset WHERE pclustersetname_id=6;
+INSERT INTO cavs.pclusterset SELECT DISTINCT 6,pcluster_id FROM cavs.pclusterset WHERE pclustersetname_id=4 EXCEPT
+  SELECT 6,pcluster_id FROM cavs.pclusterset WHERE pclustersetname_id=2;
 
--- get a list of pcluster siblINgs for known SPDI ITIM seqs
+-- get a list of pcluster siblings for known SPDI ITIM seqs
 DELETE FROM pseqset WHERE pset_id=41;
 INSERT INTO pseqset SELECT DISTINCT 41,pseq_id FROM unison.pcluster_member WHERE pcluster_id IN 
-  (SELECT pcluster_id FROM unison.pclusterset WHERE pclustersetname_id=1);
+  (SELECT pcluster_id FROM cavs.pclusterset WHERE pclustersetname_id=1);
 
--- get a list of pcluster siblINgs for known staub ITIM seqs
+-- get a list of pcluster siblings for known staub ITIM seqs
 DELETE FROM pseqset WHERE pset_id=46;
 INSERT INTO pseqset SELECT DISTINCT 46,pseq_id FROM unison.pcluster_member WHERE pcluster_id IN 
-  (SELECT pcluster_id FROM unison.pclusterset WHERE pclustersetname_id=2);
+  (SELECT pcluster_id FROM cavs.pclusterset WHERE pclustersetname_id=2);
 
 -- build list of novel pfam itim seqs by subtract known staub ITIMs (and pcluster siblings) from set of pfam mined ITIMS
 DELETE FROM pseqset WHERE pset_id=-31;
 INSERT INTO pseqset SELECT -31,pseq_id FROM pseqset WHERE pset_id=-30 EXCEPT 
   SELECT -31,pseq_id FROM pseqset WHERE pset_id=46;
 
--- build list of novel prospect ITIM seqs by subtract known staub ITIMs (AND pcluster siblINgs) FROM set of prospect mINed ITIMS
+-- build list of novel prospect ITIM seqs by subtract known staub ITIMs (AND pcluster siblings) from set of prospect mINed ITIMS
 DELETE FROM pseqset WHERE pset_id=-36;
 INSERT INTO pseqset SELECT -36,pseq_id FROM pseqset WHERE pset_id=-35 EXCEPT 
   SELECT -36,pseq_id FROM pseqset WHERE pset_id=46;
