@@ -2,10 +2,14 @@
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
-use Unison::WWW::utils qw(alias_link text_wrap);
+use Unison::WWW::utilities qw(alias_link text_wrap);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};

@@ -2,6 +2,10 @@
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+
 use Error qw(:try);
 use Bio::Structure::IO;
 
