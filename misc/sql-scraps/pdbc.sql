@@ -1,12 +1,12 @@
 \echo =======================================================================
-\echo $Id$
--- pstr -- protein structure reference
+\echo $Id: pdbc.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
+-- pdbc -- protein structure reference
 
 -- note: pdb files (e.g., 2tnf) may have multiple chains, referred to here
 -- as pdbc (e.g., 2tnfa), each of which must have an extant pseq.
 
-create table pstr (
-	pstr_id			serial,
+create table pdbc (
+	pdbc_id			serial,
 	pseq_id			integer not null default null,
 	pdbc			varchar(5),	-- pdb + (optional) chain, eg. 3ptbA
 
@@ -14,11 +14,5 @@ create table pstr (
 		foreign key (pseq_id)
 		references pseq (pseq_id)
 		on delete cascade
-		on update cascade,
-
-	-- one pdbc per seq, one seq per pdbc
-	constraint pseq_pdbc_relation_is_exclusive unique (pseq_id,pdbc)
+		on update cascade
 	);
-
--- unique enforces that each pstr (=pdbc) may have only one associated pseq
-create unique index pstr_pdbc_idx on pstr (upper(pdbc));
