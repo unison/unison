@@ -2,7 +2,7 @@
 -- Name: blat.sql
 -- Purpose: sql code for generating tables for storing blat results
 --
--- $Id: blat.sql,v 1.3 2004/01/27 22:38:34 cavs Exp $
+-- $Id: blat.sql,v 1.4 2004/01/27 22:43:17 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
@@ -123,9 +123,9 @@ ALTER TABLE ONLY p2gblatalnhsp
 -- prevent updates - once defined, alignments don't change
 CREATE RULE no_update AS ON UPDATE TO p2gblatalnhsp DO NOTHING;
 
-REVOKE ALL ON TABLE p2gblathsp FROM PUBLIC;
-GRANT SELECT ON TABLE p2gblathsp TO PUBLIC;
-GRANT INSERT,DELETE ON TABLE p2gblathsp TO loader;
+REVOKE ALL ON TABLE p2gblatalnhsp FROM PUBLIC;
+GRANT SELECT ON TABLE p2gblatalnhsp TO PUBLIC;
+GRANT INSERT,DELETE ON TABLE p2gblatalnhsp TO loader;
 -- -----------------------------------------------------------------------------
 
 
