@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # unison-blast -- blasts sequences from unison
-# $Id: blast2,v 1.6 2004/04/02 00:27:43 rkh Exp $
+# $Id: unison-blast,v 1.1 2004/04/14 17:44:53 rkh Exp $
 
 
 use strict;
@@ -32,7 +32,7 @@ sub blast_2_pseq_ids($$$);
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '# $Id$ ', "\n");
+print(STDERR '# $Id: unison-blast,v 1.1 2004/04/14 17:44:53 rkh Exp $ ', "\n");
 
 
 
@@ -68,29 +68,6 @@ exit(0);
 
 
 
-my %seq_cache;									# {pseq_id} -- Bio::PrimarySeq cache
-sub fetch_pseq_id($$) {
-  # fetch pseq_id from the database and cache the resulting Bio::PrimarySeq
-  my ($u,$id) = @_;
-  if (not defined $id) {
-	die("fetch_pseq_id called with undef \$id\n");
-  }
-  if (not exists $seq_cache{$id}) {
-	$seq_cache{$id} = undef;
-	my $seq = $u->get_sequence_by_pseq_id( $id );
-	if (defined $seq) {
-	  $seq_cache{$id} = Bio::PrimarySeq->new (
-			-seq => $seq,
-			-id  => "Unison:$id",
-			-desc => $u->best_annotation($id),
-			-alphabet => 'protein' );
-	}
-  }
-  return $seq_cache{$id};
-}
-
-
-
 sub blast_2_pseq_ids($$$) {
   my ($blaster,$id1,$id2) = @_;
 
@@ -114,11 +91,12 @@ sub blast_2_pseq_ids($$$) {
   $report->sbjctName;
   $report->sbjctLength;
   while(my $hsp = $report->next_feature) {
-	printf("%8d %8d  I/+/len=%3d(%3d%%)/%3d(%3d%%)/%3d, S=%3d, E=%6.2g\n",
+	printf("%8d  %8d  I/+/len=%4d(%3d%%)/%4d(%3d%%)/%4d, S=%4d, E=%6.2g\n",
 		   $id1, $id2,
-		   $hsp->match(), $hsp->percent(),
+		   $hsp->match(), $hsp->match()/$hsp->length()*100,
 		   $hsp->positive(), $hsp->positive()/$hsp->length()*100,
-		   $hsp->length(), $hsp->score(), $hsp->P() );
+		   $hsp->length(),
+		   $hsp->score(), $hsp->P() );
 	last unless ($opts{'all-summaries'});
   }
 
@@ -127,6 +105,31 @@ sub blast_2_pseq_ids($$$) {
 	system("cat $tmpfn");
   }
 }
+
+
+
+
+my %seq_cache;									# {pseq_id} -- Bio::PrimarySeq cache
+sub fetch_pseq_id($$) {
+  # fetch pseq_id from the database and cache the resulting Bio::PrimarySeq
+  my ($u,$id) = @_;
+  if (not defined $id) {
+	die("fetch_pseq_id called with undef \$id\n");
+  }
+  if (not exists $seq_cache{$id}) {
+	$seq_cache{$id} = undef;
+	my $seq = $u->get_sequence_by_pseq_id( $id );
+	if (defined $seq) {
+	  $seq_cache{$id} = Bio::PrimarySeq->new (
+			-seq => $seq,
+			-id  => "Unison:$id",
+			-desc => $u->best_annotation($id),
+			-alphabet => 'protein' );
+	}
+  }
+  return $seq_cache{$id};
+}
+
 
 
 exit(0);
