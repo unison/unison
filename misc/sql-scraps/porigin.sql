@@ -1,10 +1,11 @@
 \echo =======================================================================
-\echo $Id$
+\echo $Id: porigin.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
 -- porigin -- origin of protein sequences & aliases
 
 create table porigin (
 	porigin_id		serial,
-	origin			text			not null
+	origin			text			not null,
+	url				text		-- with %s placeholder for alias
 	);
 create unique index porigin_origin_idx on porigin (upper(origin));
 
