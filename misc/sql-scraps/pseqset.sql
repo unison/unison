@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id$
+\echo $Id: pseqset.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
 
 create table pseqset (
 	pset_id			integer,
@@ -15,7 +15,10 @@ create table pseqset (
 		foreign key (pseq_id)
 		references pseq (pseq_id)
 		on delete cascade
-		on update cascade
+		on update cascade,
+
+	constraint seq_already_in_set
+		unique (pset_id,pseq_id)
 	);
 
 create index pseqset_pset_id on pseqset (pset_id);

@@ -1,10 +1,10 @@
 \echo =======================================================================
-\echo $Id$
+\echo $Id: pset.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
 -- non-exclusive (i.e., overlapping) sets of pseqs
 
 create table pset (
 	pset_id		serial,
-	name		text			unique not null
+	name		text			not null default null
 	);
 
-create index pset_setname_idx on pset (name);
+create unique index pset_name_idx on pset (upper(name));
