@@ -1,10 +1,12 @@
 package Base::Record;
-BEGIN
-  {
-  my $Id = '$Id: Base::Hash $ ';
-  print("# ",__PACKAGE__," ($Id)\n") if (defined $main::DEBUG and $main::DEBUG);
-  }
 use strict;
+use warnings;
+
+our ($VERSION) = q$Revision: 1.2 $ =~ m/Revision: ([\d\.]+)/;
+
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use fields qw( );
 use Base::Misc qw( iprint );
 use vars qw(@ISA @EXPORT @EXPORT_OK);
