@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.11 2004/05/19 23:08:49 rkh Exp $
+# $Id: get-seq,v 1.12 2004/05/19 23:47:46 rkh Exp $
 
 use warnings;
 use strict;
@@ -24,6 +24,7 @@ GetOptions( \%opts,
 			'pro_id|proid|P=s@',
 			'verbose|v+',
 			'pset_id|S=i',
+			'porigin_id|O=i',
 		  )
   || die("$0: you got usage issues, homey\n");
 
@@ -34,12 +35,15 @@ if (defined $opts{pset_id} and (defined $opts{pro_id} or @ARGV)) {
   die("$0: cannot specify pset_id with other sequence selection options\n");
 }
 
+if (defined $opts{porigin_id} and (defined $opts{pro_id} or @ARGV)) {
+  die("$0: cannot specify pset_id with other sequence selection options\n");
+}
+
+
+
 if (@ARGV) {
   # expand ranges like 1..5 to {1,2,3,4,5}
   @ARGV = map { eval "$_" } @ARGV;
-} elsif (defined $opts{pro_id}) {
-  @{$opts{pro_id}} = map {split(/,/,$_)} @{$opts{pro_id}};
-  unshift(@ARGV, SPDI_lookup('PRO',@{$opts{pro_id}}));
 } elsif (defined $opts{pset_id}) {
   my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from pseqset where pset_id=$opts{pset_id}")};
   if (not @Q) {
@@ -47,6 +51,16 @@ if (@ARGV) {
   }
   printf(STDERR "# %d sequence ids in pset_id=%d\n", $#Q+1, $opts{pset_id});
   unshift(@ARGV, @Q);
+} elsif (defined $opts{porigin_id}) {
+  my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from palias where porigin_id=$opts{porigin_id}")};
+  if (not @Q) {
+	die("$0: porigin $opts{porigin_id} apparently contains no sequences\n");
+  }
+  printf(STDERR "# %d sequence ids in porigin_id=%d\n", $#Q+1, $opts{porigin_id});
+  unshift(@ARGV, @Q);
+} elsif (defined $opts{pro_id}) {
+  @{$opts{pro_id}} = map {split(/,/,$_)} @{$opts{pro_id}};
+  unshift(@ARGV, SPDI_lookup('PRO',@{$opts{pro_id}}));
 }
 
 
@@ -129,7 +143,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.11 2004/05/19 23:08:49 rkh Exp $>
+S<$Id: get-seq,v 1.12 2004/05/19 23:47:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
