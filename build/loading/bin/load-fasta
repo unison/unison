@@ -40,8 +40,8 @@ my %alias;
 my %md5;
 
 
-printf(STDERR '# $Id$ ',"\n");
-printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+print(STDERR '# $Id: load-fasta,v 1.11 2003/01/28 21:27:45 rkh Exp $ ',"\n");
+print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
   %alias = map {$_=>1} $udb->get_alias_in_porigin_id($porigin_id);
