@@ -8,7 +8,7 @@
 
 Unison::pseq_structure -- sequence-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.2 2005/03/21 18:24:41 mukhyala Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $;
 
 =head1 SYNOPSIS
 
@@ -180,14 +180,13 @@ sub _get_seq_str_map {
 
   my ($self,$pdbCode) = @_;
 
-  my $map_sql = "select seq_pos,res_id, ins_code, seq_res,atom_res from mukhyala.astral_seq_structure_map a join mukhyala.astral_seq_structure_header b on a.header_id=b.header_id and b.pdbid=\'$pdbCode\' UNION select seq_pos,res_id, ins_code, seq_res,atom_res from mukhyala.seq_structure_map a join mukhyala.seq_structure_header b on a.header_id=b.header_id and b.pdbc=\'$pdbCode\'";
+  my $map_sql = "select seq_pos,res_id, seq_res,atom_res from pdb.seqstrmap where pdbc=\'$pdbCode\'";
 
   my $map_ar = $self->{'unison'}->selectall_arrayref($map_sql);
 
   return undef unless defined($map_ar);
   foreach my $r(@$map_ar) {
     $self->{'seq_str_map'}{$pdbCode}{$r->[0]}{'res_id'} = $r->[1];
-    $self->{'seq_str_map'}{$pdbCode}{$r->[0]}{'res_ic'} = $r->[2];
     $self->{'seq_str_map'}{$pdbCode}{$r->[0]}{'seq_res'} = $r->[3];
     $self->{'seq_str_map'}{$pdbCode}{$r->[0]}{'atom_res'} = $r->[4];
     #print "$pdbCode\t",$r->[0],"\t",$r->[1],"\t",$r->[2],"\n";
@@ -218,7 +217,7 @@ sub set_js_vars {
     foreach my $i(1..$self->pseq_length) {
 
       my $pdb_res = $self->{'seq_str_map'}{$pdbid}{$i};
-      my $res = $pdb_res->{'res_id'}.$pdb_res->{'res_ic'};
+      my $res = $pdb_res->{'res_id'};
 
       $stringio->print("seq_str[pdbid][$i] = \'$res\';\n");
       #print "$pdbid\t$i\t",$res,"\n";
@@ -232,7 +231,7 @@ sub set_js_vars {
       my $template_pos = $self->{'templates'}{$pdbid}{'tstart'} + $j++;
       next if (!defined($self->{'seq_str_map'}{$pdbid}{$template_pos}));
       my $pdb_res = $self->{'seq_str_map'}{$pdbid}{$template_pos};
-      my $res = $pdb_res->{'res_id'}.$pdb_res->{'res_ic'};
+      my $res = $pdb_res->{'res_id'};
 
       $stringio->print("seq_str[pdbid][$i] = \'$res\';\n");
       #print "$pdbid\t$i\t$j\t$template_pos\t",$res,"\n";
