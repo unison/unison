@@ -20,7 +20,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir},
-											 SUFFIX => '.png' );
+					     SUFFIX => '.png' );
 my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
 
 my %opts = (%Unison::pseq_features::opts, %$v);
@@ -36,7 +36,6 @@ try {
 
   # assemble the imagemap as a string
   foreach my $box ( $panel->boxes() ) {
-	print(STDERR "box\n");
 	my ($feature, $x1, $y1, $x2, $y2) = @$box;
 	my $attr = $feature->{attributes};
 	next unless defined $attr;
@@ -49,9 +48,16 @@ try {
 
 
 print $p->render("Unison:$v->{pseq_id} Features Overview",
-				 $p->best_annotation($v->{pseq_id}),
-				 '<hr>',
-				 $p->group("Unison:$v->{pseq_id} Features",
-						   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
-						   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
-				);
+		 $p->best_annotation($v->{pseq_id}),
+		 '<hr>',
+		 $p->group("Unison:$v->{pseq_id} Features",
+			   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
+			   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
+		)  if(defined($opts{track_length}));
+
+print $p->render("Secondary Structure Prediction for Unison:$v->{pseq_id} using Psipred 2.x",  
+		 '<hr>',
+		 $p->group("Unison:$v->{pseq_id} Secondary Structure",
+			   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
+			   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
+		)  unless defined($opts{track_length});
