@@ -1,7 +1,7 @@
 This directory contains source code and data for unison, a database of
-protein annotation information.  The goals are to provide easy access to:
+protein annotation information.  These are the goals:
 
-immediate:
+immediately:
   - a non-redundant protein database with references to
     the (perhaps multiple) origins of each sequence
   - sets of protein sequences, possibly overlapping
@@ -10,7 +10,7 @@ immediate:
   - miscellaneous sequence features, including sigpeptide, 
    	transmembrane, gpi, pI, scores
 
-eventual:
+eventually:
   - sequence-sequence relationships
   - other method results, including Pfam,
     Interpro, Proceryon, BLAST/PSI-BLAST

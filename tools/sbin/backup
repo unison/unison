@@ -11,7 +11,7 @@ export PGHOST
 export PGDATABASE=${1:-csb}
 export PGPASSWORD=marge
 
-DIR=/home/rkh/unison/backups/$PGDATABASE
+DIR=/home/rkh/csb-db/backups/$PGDATABASE
 mkdir -p "$DIR"
 DATE=`date +%Y-%m-%d-%H:%M`;
 R="$DIR/$DATE.pgdump"
