@@ -8,13 +8,25 @@
 # eg2$ framework-search <framwork.fa >file.html
 # eg3$ framework-search region1 region2 ... regionN >file.html
 #
-# $Id: framework-search,v 1.4 2004/10/20 18:51:09 rkh Exp $
+# $Id: framework-search,v 1.5 2005/02/20 01:20:33 rkh Exp $
 #
 
 
 use strict;
 use warnings;
 use Unison;
+use Getopt::Long qw(:config gnu_getopt);
+
+my %opts = 
+  ( 			
+   title => undef,
+   testing => 0
+  );
+
+GetOptions(\%opts,
+		   'title|t=s',
+		   'testing+'
+		  );
 
 
 # Sequences of all origins will be searched. @origins is the
@@ -77,20 +89,27 @@ exit(0);
 
 sub html_header() {
   my $title = 'Antibody Framework Search';
-  my $Id = '$Id: framework-search,v 1.4 2004/10/20 18:51:09 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.5 2005/02/20 01:20:33 rkh Exp $ ';
   my $date = `date +"%Y-%m-%d %H:%M"`;
+
+  my $htmltitle = $title;
+  my $h2subtitle = '';
+  if ($opts{title}) {
+	$htmltitle = "$title: $opts{title}";
+	$h2subtitle = "<h2>$opts{title}</h2>";
+  }
 
   my $html = <<EOHTML;
 <html>
 
 <head>
-<title>$title</title>
+<title>$htmltitle</title>
 </head>
 
 <body>
 
 <h1>$title</h1>
-
+$h2subtitle
 Version $Id
 <br>Report generated on $date
 
@@ -124,9 +143,9 @@ sub about_search() {
 <h2>About the search</h2>
 
 This report identifies sequences which are matched by a set antibody
-framework regions.  Specifically, a sequence matches a set of framework
-regions if it contains all specified regions identically and in order,
-with intervening gaps of any length (including zero-length gaps).
+framework regions.  A sequence matches a set of framework regions if it
+contains all specified regions identically and in order, with intervening
+gaps of any length (including zero-length gaps).
 
 <p>The sequence search was performed in Unison, a compilation of sequences
 from many source databases.  Please contact Reece Hart for more information
@@ -197,6 +216,10 @@ WHERE
 ORDER BY
   S.pseq_id, O.ann_pref
 EOSQL
+  
+  if ($opts{testing}) {
+	$sql =~ s/WHERE/WHERE S.pseq_id>=1880200 and S.pseq_id<=1880300 AND /;
+  }
 
   my $sth = $u->prepare($sql);
   eval { $sth->execute($fr) };
@@ -237,7 +260,7 @@ EOHTML
 }
 
 sub html_footer($) {
-  my $Id = '$Id: framework-search,v 1.4 2004/10/20 18:51:09 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.5 2005/02/20 01:20:33 rkh Exp $ ';
   return <<EOHTML;
 <hr>
 Report generated in $_[0] seconds.
