@@ -2,9 +2,12 @@
 
 use strict;
 use warnings;
-use CGI( -debug );
+use Error qw(:try);
+use CGI ( -debug );
 use CGI::Carp qw(fatalsToBrowser);
-use Data::Dumper;
+use Bio::Structure::IO;
+
+# use's below here might come from ../perl5 if available
 BEGIN
   {
   if (exists $ENV{SCRIPT_FILENAME})
@@ -15,7 +18,8 @@ use Unison::WWW::Page;
 use Prospect2::Options;
 use Prospect2::LocalClient;
 use Prospect2::Transformation;
-use Bio::Structure::IO;
+use Prospect2::Exceptions;
+
 
 my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 
@@ -41,12 +45,19 @@ if (not defined $po)
   { $p->die("The p2params_id parameter ($v->p2params_id) is invalid."); }
 $po->{templates} = \@templates;
 
-my $pf = new Prospect2::LocalClient( {options=>$po} );
-my $pt = new Prospect2::Transformation;
-my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
-								  -format => 'pdb')->next_structure();
-my $thr = ($pf->thread( $seq ))[0];
+try
+  {
+  my $pf = new Prospect2::LocalClient( {options=>$po} );
+  my $pt = new Prospect2::Transformation;
+  my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
+									-format => 'pdb')->next_structure();
+  my $thr = ($pf->thread( $seq ))[0];
+  print("Content-type: application/x-rasmol\n\n",
+		$pt->output_rasmol_script( $thr, $str ));
+  }
+catch Prospect2::RuntimeError with
+  {
+  $p->die("couldn't generate rasmol script",$@)
+  };
 
-print("Content-type: application/x-rasmol\n\n",
-	  $pt->output_rasmol_script( $thr, $str ));
 exit(0);

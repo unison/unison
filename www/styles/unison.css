@@ -1,8 +1,8 @@
-/* $Id: unison.css,v 1.3 2003/05/27 22:28:31 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.4 2003/06/03 00:40:11 rkh Exp $     emacs: -*-c-*-  */
 
 
 BODY {
- background: #FFFFDD;
+ background: #FFFFEB;
 }
 
 
@@ -17,6 +17,8 @@ TABLE.page TD {
 TABLE.page TD.logo {
  border: grey thin dashed;
  padding: 5px;
+ align: center;
+ vertical-align: center;
 }
 TABLE.page TD.cnav {
  border: grey thin dashed;
@@ -30,6 +32,7 @@ TABLE.nav {
  border: none;
 }
 TABLE.nav TR TD.unselected {
+ border-top: black thin solid;
  border-left: black thin solid;
  border-right: black thin solid;
  background: #EAFFE6;
@@ -38,6 +41,7 @@ TABLE.nav TR TD.unselected {
  padding-right: 5px;
 }
 TABLE.nav TD.selected {
+ border-top: black thin solid;
  border-left: black thin solid;
  border-right: black thin solid;
  background: #2BFF00;
@@ -51,12 +55,12 @@ TABLE.nav TD.vbar {
  width: 5px;
 }
 TABLE.nav TD.selected:hover {
- color: white;
  background: #CCCCCC;
+ cursor:pointer;cursor:hand;
 }
 TABLE.nav TD.unselected:hover {
- color: white;
  background: #CCCCCC;
+ cursor:pointer;cursor:hand;
 }
 TABLE.nav TD A {
  text-decoration: none;
