@@ -1,21 +1,62 @@
-UHOME:=/home/rkh/csb-db/unison
+COMPBIO:=/apps/compbio
+UHOME:=${HOME}/csb-db/unison
 export PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc:/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
 export PGUSER:=loader
 export PGDATABASE:=csb-dev
-export PERL5LIB:=${HOME}/csb-db/unison/perl
+export PERL5LIB:=${UHOME}/perl5
 
 
-#$(warning 'UHOME=${UHOME}' )
-#$(warning 'PGUSER=${PGUSER}' )
-#$(warning 'PGDATABASE=${PGDATABASE}' )
-#$(warning 'PERL5LIB=${PERL5LIB}' )
+### QSUB arguments and command
+# -V is necessary since we'll pass passwords in the env.
+Q:=all
+QPPN:=2
+QNODES:=nodes=1:ppn=${QPPN}
+QTIME:=120000:00
+QSUB:=qsub -V -q${Q} -lwalltime=${QTIME},pcput=${QTIME},${QNODES}
+
+
+
+ifdef DEBUG
+$(warning UHOME=${UHOME} )
+$(warning PGUSER=${PGUSER} )
+$(warning PGDATABASE=${PGDATABASE} )
+$(warning PERL5LIB=${PERL5LIB} )
+$(warning QSUB=${QSUB} )
+endif
+
 ifndef PGPASSWORD
-$(warning "PGPASSWORD isn't set" )
+$(warning PGPASSWORD isn't set ) 	#'
 endif
 
 
+# Guarantee that including this file (defaults.mk) doesn't
+# create a default target. Ideally, the includer will
+# place a default target above the include defaults.mk line.
+NO_DEFAULT_TARGET:
+	@echo "no default target" 1>&2; exit 1
 
 
+# get sequences for a set of ids
+%.fa: %.ids
+	get-seq <$< >$@.tmp \
+	&& /bin/mv $@.tmp $@
+
+
+# Any target can be a qsub target
+# e.g., $ make FOO.log.qsub 
+# make -n ensures that the target is legit and that make
+# can figure out how to build it
+%.qsub:
+	@if ! make -C${PWD} -n $* >/dev/null 2>/dev/null; then \
+		echo "couldn't make -n $* -- impossible target" 1>&2; \
+		exit 1; \
+	fi
+	echo "make -C${PWD} $*" | ${QSUB}
+
+
+
+# Generic cleaning rules
 .PHONY: clean cleaner cleanest
 clean:
 	/bin/rm -f *~ *.bak
+	/bin/rm -fr *.err
