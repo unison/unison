@@ -2,6 +2,7 @@ package Unison::WWW;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+our $RELEASE = '$Name$';
 
 BEGIN {
   # if this file exists and is writable, then we'll open it for logging.
