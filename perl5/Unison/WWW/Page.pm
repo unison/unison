@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.31 2005/01/18 18:50:42 rkh Exp $>
+S<$Id: Page.pm,v 1.32 2005/01/25 01:21:44 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -697,7 +697,6 @@ sub navbar {
 	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	   ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
 	   ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
-	   ['Secondary',	'Secondary Structure Prediction', 		'pseq_secstr.pl', 	$pseq_id ],
 	   ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
 	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id;params_id=1"],
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
@@ -724,11 +723,10 @@ sub navbar {
 	  # ['Origins', undef, 'browse_origins.pl']
 	  ],
 	  [ # compare menu
-           ['Compare', 'compare sequence sets and analysis methods (not-implemented)'],
+           ['Assess', 'compare sequence sets and analysis methods (not-implemented)'],
            ['Scores', 'compare scoring systems', 'compare_scores.pl'],
            ['Methods', 'compare threading methods', 'compare_methods.pl'],
           ],
-
 	  # empty list forces right-justification of subsequent menu
 	  [ [ '' ]  ],
 
