@@ -1,0 +1,14 @@
+# -*- sh -*-
+# $Id$
+# utils -- misc defaults and utilities for csb-db shell scripts
+
+LOGDIR="/services/logs"
+JEMAPPELLE=`basename $0`
+
+
+# logger -- format a log line
+# logger <message>
+logger ()
+	{ 
+	echo `date +"%Y/%m/%d %H:%M:%S"` "$JEMAPPELLE[$$]" "$@";
+	}
