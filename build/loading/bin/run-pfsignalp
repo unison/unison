@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.1 2003/10/17 21:41:20 cavs Exp $
+# $Id: run-pfsignalp,v 1.2 2003/10/17 23:45:04 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -26,13 +26,13 @@ GetOptions( \%opts,
   || die("$0: usage\n");
 
 
-$ENV{DEBUG}=1;
-
 my $run_id = 6;                # hardwired for now
 my $temp_in_fn =  "/tmp/run-pfsignalp-$$.fa";
 my $temp_out_fn = "/tmp/run-pfsignalp-$$.out";
 
-sub run1($$$);
+# signalp barfs on really small and large seqs
+my $len_lower_cutoff = '50';
+my $len_upper_cutoff = '3000';
 
 my $u = new Unison;
 
@@ -47,12 +47,17 @@ for(my $i=0; $i<=$#list; $i++) {
   my $pseq_id = $list[$i];
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  printf(STDOUT "retrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...\n",
+  printf(STDERR "retrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...\n",
      $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
-  if (not defined $seq) {
+  if      (not defined $seq) {
     warn("$0: Unison:$pseq_id doesn't exist\n");
     return;
+  } elsif ((length($seq) < $len_lower_cutoff) || (length($seq) >  $len_upper_cutoff)) {
+    printf(STDERR "skipping Unison:%s since its len (%d) not in the range of [%d .. %d]\n",
+       $pseq_id, length($seq), $len_lower_cutoff , $len_upper_cutoff);
+    next;
   }
+    
   $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq, -id  => "Unison:$pseq_id") );
 }
 $seqio->close();
@@ -68,12 +73,13 @@ while(<$fp>){
     $id =~ m/^Unison:(\d+)/;
     my $pseq_id = $1;
     my ($nn_start,$nn_end) = split/-/,$spos,2;
-    printf(STDOUT "\rloading Unison:%-8s (NN:  sig_pep_prob: %.2f, cleavage_site: %d)\n",
+    printf(STDERR "loading Unison:%-8s (NN:  sig_pep_prob: %.2f, cleavage_site: %d)\n",
            $pseq_id,$sprob,$nn_end);
-    printf(STDOUT "\rloading Unison:%-8s (HMM: sig_pep_prob: %.2f, sig_anchor_prob: %.2f, cleavage_site: %d, max_cleavage_prob: %.2f)\n",
+    printf(STDERR "loading Unison:%-8s (HMM: sig_pep_prob: %.2f, sig_anchor_prob: %.2f, cleavage_site: %d, max_cleavage_prob: %.2f)\n",
            $pseq_id,$spp,$sap,$hmme,$mcsp);
     $sthnn->execute($pseq_id,$nn_start,$nn_end,$sprob,$run_id);
     $sthhmm->execute($pseq_id,'1',$hmme,$spp,$sap,$mcsp,$run_id);
+    $u->last_run_update($pseq_id,$run_id);
   } else {
     die("missed $_");
   }
