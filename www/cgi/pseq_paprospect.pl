@@ -15,11 +15,11 @@ my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-my @statevars = qw(pseq_id run_id offset limit sort);
+my @statevars = qw(pseq_id params_id offset limit sort);
 
-$p->ensure_required_params(qw(pseq_id run_id));
+$p->ensure_required_params(qw(pseq_id params_id));
 
-$v->{run_id} = 1 unless defined $v->{run_id}; # should be required?
+$v->{params_id} = 1 unless defined $v->{params_id}; # should be required?
 $v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
@@ -53,9 +53,9 @@ my $ob = {
 		 }->{$v->{sort}};
 
 
-my $N = $u->selectrow_array("select count(*) from paprospect2 where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}");
+my $N = $u->selectrow_array("select count(*) from paprospect2 where pseq_id=$v->{pseq_id} and params_id=$v->{params_id}");
 
-my $sql = "select acc,\"%ide\",raw,svm,singleton,pairwise,mutation,gap,scop   from v_paprospect2_scop where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}  order by $ob  limit $v->{limit} offset $v->{offset}";
+my $sql = "select acc,\"%ide\",raw,svm,singleton,pairwise,mutation,gap,scop   from v_paprospect2_scop where pseq_id=$v->{pseq_id} and params_id=$v->{params_id}  order by $ob  limit $v->{limit} offset $v->{offset}";
 my $ar = $u->selectall_arrayref($sql);
 for(my $i=0; $i<=$#$ar; $i++)
   {
@@ -64,7 +64,7 @@ for(my $i=0; $i<=$#$ar; $i++)
   #$c = ($a[1]<=-1000 or (defined $a[7] and $a[7]=~m/TNF-like/)) ? ' checked="TRUE"' : '';
   unshift(@a, "<input type=\"checkbox\" name=\"templates\" value=\"$a[0]\"$c>");
   if ( -f "$pdbDir/$a[1].pdb" )
-	{ $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id};run_id=$v->{run_id};templates=$a[1]\">$a[1]</a>"; }
+	{ $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id};params_id=$v->{params_id};templates=$a[1]\">$a[1]</a>"; }
   $ar->[$i] = \@a;
   }
 
@@ -78,7 +78,7 @@ for(my $fi=0; $fi<=$#f; $fi++) {
   next if $fi == $hc;
   next unless defined $cols[$fi]->[1];
   $f[$fi] = sprintf("<a href=\"%s\">%s</a>",
-					$p->make_url({sort=>$cols[$fi]->[1]},qw(pseq_id run_id)),
+					$p->make_url({sort=>$cols[$fi]->[1]},qw(pseq_id params_id)),
 					$f[$fi]);
 }
 
@@ -112,7 +112,7 @@ if ($N-1-$v->{offset}>0) {
 my $ctl = '<table border=0><tr>' . join('',map {"<td>$_</td>"} @ctl) . '</tr></table>';
 
 
-print $p->render("threading summary for Unison:$v->{pseq_id} (run_id=$v->{run_id})",
+print $p->render("threading summary for Unison:$v->{pseq_id} (params_id=$v->{params_id})",
 				 $p->best_annotation($v->{pseq_id}),
 
 				 $p->tip('clicking some column headings will dynamically sort by that column'),
@@ -120,7 +120,7 @@ print $p->render("threading summary for Unison:$v->{pseq_id} (run_id=$v->{run_id
 				 $p->start_form(-action=>'p2alignment.pl'),
 				 $p->submit(-value=>'align checked'),
 				 $p->hidden('pseq_id',$v->{pseq_id}),
-				 $p->hidden('run_id',$v->{run_id}),
+				 $p->hidden('params_id',$v->{params_id}),
 				 $p->group(['Prospect2 Threadings',$ctl],
 						   Unison::WWW::Table::render(\@f,$ar,{highlight_column=>$hc})),
 				 $p->submit(-value=>'align checked'),
