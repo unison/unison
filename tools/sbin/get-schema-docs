@@ -1,0 +1,32 @@
+#! /bin/bash
+
+#-------------------------------------------------------------------------------
+# NAME: get-schema-docs
+# PURPOSE: build schema documentation
+# USAGE: get-schema-docs [schema-name]
+#
+# $Id$
+#-------------------------------------------------------------------------------
+
+if [ -n "$1" ]; then
+  SCHEMA=$1;
+else 
+  SCHEMA=unison
+fi;
+
+echo "Creating documentation for $SCHEMA schema ..."
+OUTPUT_DIR=~cavs/public_html/projects/unison
+export CSB_BASE_URL=http://resdev:8080/people/cavs/projects/unison/$SCHEMA.html
+
+cd $OUTPUT_DIR
+PGPASSWORD=homer; postgresql_autodoc -s $SCHEMA -d csb -f $SCHEMA -h td-svc -u compbio
+
+perl -pi -e 's/^digraph g {\n/digraph g {\nURL="$ENV{CSB_BASE_URL}";\n/;' $SCHEMA.dot
+perl -pi -e 's/shape = record, /shape = record, URL="$ENV{CSB_BASE_URL}#$SCHEMA.table.\\N", /g;' $SCHEMA.dot
+
+dot -Tcmap $SCHEMA.dot  > $SCHEMA.map
+dot -Tjpeg $SCHEMA.dot  > $SCHEMA.jpeg 
+echo "<img border=\"0\" src=\"$SCHEMA.jpeg\" usemap=\"#$SCHEMA\">" > "$SCHEMA-schema.html"
+echo "<MAP NAME=\"$SCHEMA\">" >> $SCHEMA-schema.html
+cat $SCHEMA.map >> $SCHEMA-schema.html
+echo "</MAP>" >> $SCHEMA-schema.html
