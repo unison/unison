@@ -1,0 +1,162 @@
+#!/usr/bin/env perl
+# $Id: run-pahmm,v 1.2 2003/07/16 18:17:41 rkh Exp $
+# run-pahmm -- run hmmer on specified sequences
+
+use warnings;
+use strict;
+use Unison;
+use IO::File;
+use IO::Pipe;
+use File::Temp qw(tempfile tempdir);
+use Bio::SeqIO;
+use Bio::SearchIO;
+use Bio::PrimarySeq;
+use Data::Dumper;
+use Getopt::Long qw(:config gnu_getopt);
+
+
+my %opts = (
+			force => 0,
+			params_id => undef,
+			modelfile => undef,
+			'number-of-seqs' => undef,
+		   );
+GetOptions(\%opts,
+		   'force|f+',
+		   'modelfile|m=s',
+		   'params_id|p=i',
+		   'number-of-seqs|number_of_seqs|N=i'
+		  )
+  || die("$0: you got usage issues, short stack\n");
+
+
+my $temproot = "/tmp/run-pahmm-$$";
+my $seqfn = "$temproot.fa";
+
+
+my $u = new Unison;
+
+
+if (not defined $opts{modelfile}) {
+  die("! you must provide a --modelfile=<hmmerfile> argument\n");
+}
+
+
+if (not defined $opts{params_id}) {
+  die("! you must provide a --params_id=<params_id> argument\n");
+}
+my $clo = $u->selectrow_array("select commandline from params where params_id=$opts{params_id}");
+if (not defined $clo) {
+  die("! couldn't find command line options for params_id=$opts{params_id}\n");
+}
+my @cl = ( 'hmmpfam', split(' ',$clo), $opts{modelfile}, $seqfn );
+
+
+my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
+my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
+										   join(',',@fields), join(',',map {'?'} @fields)));
+
+
+
+
+if (@ARGV) {
+  my $n = 0;
+  my $N = scalar( map { eval $_ } @ARGV );
+  while( my $r = shift ) {
+	foreach my $id (eval "$r") {
+	  printf(STDERR "\rUnison:%8s (%4d/%4d %3d%%)...", $id, ++$n, $N, $n/$N*100 ) if $N;
+	  process1($id);
+	}
+  }
+} else {
+  my $n = 0;
+  my $N = $opts{'number-of-seqs'};
+  while (my $id=<>)	{
+	chomp $id;
+	if ($N) {
+	  printf(STDERR "\rUnison:%8s (%4d/%4d %3d%%)... ", $id, ++$n, $N, $n/$N*100 );
+	} else {
+	  printf(STDERR "\rUnison:%8s (%4d)... ", $id, ++$n);
+	}
+	process1($id);
+  }
+}
+print(STDERR "\n");
+exit(0);
+
+
+sub process1 {
+  my $pseq_id = shift;
+
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  if (not defined $seq) {
+	warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+	return;
+  }
+
+  my $so = new Bio::SeqIO( -format => 'fasta',
+						   -file => ">$seqfn" )
+	|| die("! couldn't open $seqfn for writing\n");
+  $so->write_seq( new Bio::PrimarySeq( -seq => $seq,
+									   -id => "Unison:$pseq_id" ) );
+  $so->close();
+
+
+  my $hmmerpipe = new IO::Pipe;
+  $hmmerpipe->reader( @cl )
+	|| die("couldn't do @cl\n");
+
+  my $in = new Bio::SearchIO(-format => 'hmmer',
+							 -fh => $hmmerpipe);
+
+  my $nhsps = 0;
+  my $nins = 0;
+  while( my $result = $in->next_result ) {
+	#if ($result->hmm_name() !~ m/Pfam_fs$/ and not $opts{force}) {
+	#  die("unison currently contains only Pfam local alignments (Pfam_fs)\n");
+	#}
+
+	while( my $hit = $result->next_hit ) {
+	  my $name = $hit->name();
+	  my $pmodel_id = get_pmodel_id($name);
+	  if (not defined $pmodel_id) {
+		warn("\n! couldn't look up a pmodel_id for $name; skipping this hit\n");
+		next;
+	  }
+
+	  while( my $hsp = $hit->next_hsp ) {
+		$nhsps++;
+		my @data = ($opts{params_id}, 
+					$pseq_id, $hsp->start('query'), $hsp->end('query'),
+					$pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
+					$hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
+					int($hsp->score()), $hsp->evalue());
+		if ($pahmm_sth->execute(@data)) {
+		  $nins++;
+#		  print("  inserted ", join(' , ',@data), "\n");
+		}
+	  }
+	}
+  }
+
+  $hmmerpipe->close();
+
+  printf(STDERR "%3d hsps; %3d successfully inserted", $nhsps, $nins);
+}
+
+
+
+
+my %pmodel_id_cache;
+sub get_pmodel_id {
+  my $name = shift;
+  if (not exists $pmodel_id_cache{$name}) {
+	my $sth = $u->prepare_cached('select pmodel_id from pmhmm where name=? order by added desc');
+	$sth->execute($name);
+	my $ids = $sth->fetchall_arrayref();
+	return undef unless defined $ids;
+	warn("\n! found ",$#$ids+1," pmodel_ids for model name $name; returning most recent\n") if ($#$ids>0);
+	$pmodel_id_cache{$name} = $ids->[0]->[0];
+  }
+  return $pmodel_id_cache{$name};
+}
