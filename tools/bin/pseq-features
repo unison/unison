@@ -47,6 +47,8 @@ $panel->add_track( Bio::SeqFeature::Generic->new
 				 );
 
 add_pftmdetect( $u, $panel, $opts{pseq_id} );
+add_pfsigcleave( $u, $panel, $opts{pseq_id} );
+add_pfantigenic( $u, $panel, $opts{pseq_id} );
 add_pahmm( $u, $panel, $opts{pseq_id} );
 add_papssm( $u, $panel, $opts{pseq_id} );
 add_paprospect2( $u, $panel, $opts{pseq_id} );
@@ -94,7 +96,7 @@ sub add_pftmdetect {
 
 sub add_paprospect2 {
   my ($u, $panel, $q) = @_;
-  my ($svm_thr,$topN) = (7,4);
+  my ($svm_thr,$topN) = (7,5);
   my $nadded = 0;
   my $sql =
 	'select tmp.*,best_annotation(tmp.pseq_id)
@@ -220,3 +222,66 @@ sub add_papssm {
   }
   return $nadded;
 }
+
+
+
+sub add_pfantigenic {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 1,
+								 -max_score => 1.2,
+								 -sort_order => 'high_score',
+								 -bgcolor => 'green',
+								 -key => 'antigenic',
+								 -bump => +1,
+								 -label => 1,
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $featref = $u->selectall_arrayref
+	("select start,stop,score,subseq from v_pfantigenic where pseq_id=$q limit 10");
+  foreach my $r (@$featref) {
+	$track->add_feature
+	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+									   -end => $r->[1],
+									   -score => $r->[2],
+									   -seq_id => $r->[3]
+									 ) );
+	$nadded++;
+  }
+  return $nadded;
+}
+
+
+
+sub add_pfsigcleave {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 0,
+								 -max_score => 1,
+								 -sort_order => 'high_score',
+								 -bgcolor => 'blue',
+								 -key => 'EMBOSS/sigcleave',
+								 -bump => +1,
+								 -label => 1,
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $featref = $u->selectall_arrayref
+	("select start,stop,confidence from pfsigcleave where pseq_id=$q");
+  foreach my $r (@$featref) {
+	$track->add_feature
+	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+									   -end => $r->[1],
+									   -score => $r->[2],
+									   -seq_id => "$r->[2]"
+									 ) );
+	$nadded++;
+  }
+  return $nadded;
+}
+
+
+
