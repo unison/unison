@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2params -- Unison p2params table utilities
-S<$Id: p2params.pm,v 1.5 2003/11/05 17:55:09 cavs Exp $>
+S<$Id: params.pm,v 1.6 2004/02/24 19:23:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -24,19 +24,28 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use Unison::Exceptions;
 use Bio::Prospect::Options;
 
+sub run_commandline_by_params_id($$) {
+  my ($self,$params_id) = @_;
+  $self->is_open()
+  || croak("Unison connection not established");
+  my $cl = $self->selectrow_array('select commandline from params where params_id=?',
+                  undef,$params_id);
+  return $cl;
+}
+
 sub get_params_id_by_name($$) {
   my ($self,$params_name) = @_;
   $self->is_open()
-	|| croak("Unison connection not established");
+  || croak("Unison connection not established");
   my $id = $self->selectrow_array('select params_id from params where upper(name)=?',
-								  undef,uc($params_name));
+                  undef,uc($params_name));
   return $id;
 }
 
 sub get_p2options_by_params_id($) {
   my ($self,$run_id) = @_;
   $self->is_open()
-	|| croak("Unison connection not established");
+  || croak("Unison connection not established");
   my $sth = $self->prepare_cached("select * from params_prospect2 where params_id=?");
   $sth->execute($run_id);
   my $h = $sth->fetchrow_hashref();
