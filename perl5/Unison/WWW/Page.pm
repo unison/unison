@@ -230,16 +230,16 @@ sub render {
   my $cnav = '';
   my $elapsed = '';
 
-  if (ref $p and exists $p->{unison} and $p->{unison}->is_open()) {
+  if (ref $p and defined $p->{unison} and $p->{unison}->is_open()) {
 	$cnav = join('<p>',
 				 map( {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
 					  # key-value pairs:
-					  (map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
+					  (map {[$_ , (defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
 					   qw(username host dbname)),
 
 					  ['db<br>release',
 					   $p->{unison}->selectrow_array
-					   ('select value::date from meta where key=\'release timestamp\'')],
+					   ('select value::date from meta where key=\'release timestamp\'') || ''],
 
 					  ['API<br>release', $Unison::RELEASE],
 
@@ -285,10 +285,12 @@ sub render {
 		  '<tr>', "\n",
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
 		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
-		  '  <td class="contact">Please contact <a href="http://gwiz/local-bin/empshow.cgi?',
-		        'empkey=26599">Reece Hart</a> with suggestions or problems<br>',
-		  $elapsed, '</td>', "\n",
-		  '</tr>', "\n",
+		  '  <td class="footer">',
+		  "     Please contact <a href=\"http://gwiz/local-bin/empshow.cgi?empkey=26599\">Reece Hart</a> with suggestions or problems\n",
+		  "     <br>$elapsed\n",
+		  (defined $p->{footer} ? map {"     <br>$_\n"} @{$p->{footer}} : ''),
+		  "  </td>\n",
+		  "</tr>\n",
 		  "\n<!-- ========== end footer ========== -->\n",
 
 		  '</table>', "\n",
@@ -550,7 +552,16 @@ sub debug {
   print $p->render("debug: $_[0]",'<span class="debug">',join('<br>',@_),'</span>');
 }
 
+sub add_footer_lines {
+  my $p = shift;
+  push(@{$p->{footer}}, @_);
+}
 
+sub page_variables {
+  my $self = shift;
+  my $v = $self->Vars();
+  return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
+}
 
 
 

@@ -28,7 +28,9 @@ try {
   $p->die(@_);
 };
 
-print("Content-type: text/plain\nContent-disposition: attachment; filename=Unison$v->{pseq_id}.fa\n\n",
+print("Content-type: text/plain\n",
+	  "Content-disposition: attachment; filename=Unison$v->{pseq_id}.fa\n",
+	  "\n",
 	  ">Unison:$v->{pseq_id} $alias\n",
 	  wrap($seq)
 	 );

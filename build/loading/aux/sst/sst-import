@@ -6,10 +6,23 @@ use strict;
 use warnings;
 use DBI;
 
+my %opts =
+  (
+   verbose => 1,
+  );
+
+my @table_defs =
+  (
+   [ 'unqpro', 		'unqproform', 	[qw(unqid proid)] 					],
+   [ 'prodna', 		'prodna',	 	[qw(proid dnaid)] 					],
+   [ 'fam',    		'fam', 		 	[qw(famid familyname shortname)] 	],
+   [ 'unqfamily',	'unqfamily',	[qw(unqid famid)] 					],
+  );
+
+
 select(STDERR); $|++;
 select(STDOUT); $|++;
-
-print(STDERR '$Id: sst-import,v 1.2 2004/06/10 22:05:12 rkh Exp $ ', "\n");
+print(STDERR '$Id: sst-import,v 1.3 2004/06/10 22:24:50 rkh Exp $ ', "\n");
 
 (defined $ENV{SSTPASS})
   || die("$0: SSTPASS not defined\n");
@@ -21,29 +34,30 @@ my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
 
-print("TRUNCATE sst.unqproform;\n");
-print("COPY sst.unqpro (unqid, proid) FROM stdin;\n");
-$sql = 'select unqid,proid from unqproform';
-$sth = $dbh->prepare($sql);
-$sth->execute()
-  || die("$sql: ", $dbh->errstr());
-while( my @row = $sth->fetchrow_array() ) {
-  print( join("\t", map {sql_escape($_)} @row), "\n" );
+for(my $ti=0; $ti<=$#table_defs; $ti++) {
+  my ($utable,$otable) = @{$table_defs[$ti]};
+  my (@cols) = @{$table_defs[$ti]->[2]};
+  my $cols = join(',',@cols);
+  my $msg = "preparing table sst.$utable";
+  my $sql = "select $cols from $otable";
+  my $n = 0;
+
+  print(STDERR "# $utable: $sql\n");
+
+  print("TRUNCATE sst.$utable;\n");
+  print("COPY sst.$utable ($cols) FROM stdin;\n");
+
+  $sth = $dbh->prepare($sql);
+  $sth->execute()
+	|| die("$sql: ", $dbh->errstr());
+  while( my @row = $sth->fetchrow_array() ) {
+	$n++;
+	print( join("\t", map {sql_escape($_)} @row), "\n" );
+	print(STDERR "\r$msg: $n rows") if $opts{verbose} and $n % 1000 == 0;
+  }
+  print("\\.\n");
+  print(STDERR "\r$msg: $n rows\n") if $opts{verbose};
 }
-print("\\.\n");
-
-
-print("TRUNCATE sst.prodna;\n");
-print("COPY sst.prodna (proid, dnaid) FROM stdin;\n");
-$sql = 'select proid,dnaid from prodna ';
-$sth = $dbh->prepare($sql);
-$sth->execute()
-  || die("$sql: ", $dbh->errstr());
-while( my @row = $sth->fetchrow_array() ) {
-  print( join("\t", map {sql_escape($_)} @row), "\n" );
-}
-print("\\.\n");
-
 
 
 

@@ -13,6 +13,7 @@ use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::blat;
 
+
 sub genome_features_panel($%);
 
 
@@ -27,7 +28,9 @@ our %opts =
    width => 750,
    verbose => 0,
    margin => 0,
-   logo_margin => 10
+   logo_margin => 10,
+   min_pct_ident => 99,
+   min_pct_cov => 90,
   );
 
 
@@ -36,9 +39,12 @@ sub genome_features_panel ($%) {
   my $u = shift;
   my %opts = @_;
   my $p2gblataln_id;
+  my $logo_margin = 10;
 
   if ( defined $opts{pseq_id}) {
-	($opts{chr},$opts{gstart},$opts{gstop},$p2gblataln_id) 
+#	($opts{genasm_id},$opts{chr},$opts{gstart},$opts{gstop},$p2gblataln_id)
+#	  = Unison::get_p2blataln_info($u,$opts{pseq_id});
+	($opts{chr},$opts{gstart},$opts{gstop},$p2gblataln_id)
 	  = Unison::get_blataln($u,$opts{pseq_id});
   }
 
@@ -63,7 +69,7 @@ sub genome_features_panel ($%) {
 									   );
 
   $panel->add_track(
-					-key => "Chr$opts{chr} from $opts{gstart} to $opts{gstop}",
+					-key => "chr$opts{chr}:$opts{gstart}-$opts{gstop}",
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
@@ -82,12 +88,27 @@ sub genome_features_panel ($%) {
 
   add_blatloci( $u, $panel, %opts );
 
-  $panel->add_track( ) for 1..2;         # spacing
+  $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome-features,v 1.5 2004/03/12 01:07:15 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.1 2004/05/04 04:38:58 rkh Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
+
+
+  my $gd = $panel->gd();
+  my $unison_fn = '/home/rkh/www/csb/unison/av/unison.xpm';
+  if ( -f $unison_fn ) {
+	my $ugd = GD::Image->newFromXpm($unison_fn);
+	if (defined $ugd) {
+	  my ($sw,$sh) = $ugd->getBounds();
+	  my ($dw,$dh) = $gd->getBounds();
+	  $gd->copy($ugd,
+				$dw-$sw-$logo_margin,$dh-$sh-$logo_margin,
+				0,0,$sw,$sh);
+	}
+  }
+
 
   return $panel;
 }
@@ -107,49 +128,65 @@ sub add_blatloci {
   my ($u, $panel, %opts) = @_;
   my $nadded = 0;
   my $plus_strand_track = $panel->add_track( 
-    -glyph => 'graded_segments',
-    -min_score => 0,
-    -max_score => 1,
-    -sort_order => 'high_score',
-    -bgcolor => 'blue',
-    -key => '+',
-    -bump => +1,
-    -label => 1,
-    -fgcolor => 'black',
-    -fontcolor => 'black',
-    -font2color => 'red',
-    -description => 1,
-    -height => 4,
-  );
+											-glyph => 'graded_segments',
+											-min_score => 0,
+											-max_score => 1,
+											-sort_order => 'high_score',
+											-bgcolor => 'blue',
+											-key => '+',
+											-bump => +1,
+											-label => 1,
+											-fgcolor => 'black',
+											-fontcolor => 'black',
+											-font2color => 'red',
+											-description => 1,
+											-height => 4,
+										   );
   my $separator_track = $panel->add_track( Bio::Graphics::Feature->new
 										   (-start => $opts{gstart},
 											-end => $opts{gstop},
-										   -glyph => 'generic',
-										   -fgcolor => 'black',
-										   -double => 0,
-										   -label => 0,
-										 ));
+											-glyph => 'generic',
+											-fgcolor => 'black',
+											-double => 0,
+											-label => 0,
+										   ));
   my $rev_strand_track = $panel->add_track( 
-    -glyph => 'graded_segments',
-    -min_score => 0,
-    -max_score => 1,
-    -sort_order => 'high_score',
-    -bgcolor => 'red',
-    -key => '-',
-    -bump => +1,
-    -label => 1,
-    -fgcolor => 'black',
-    -fontcolor => 'black',
-    -font2color => 'red',
-    -description => 1,
-    -height => 4,
-  );
+										   -glyph => 'graded_segments',
+										   -min_score => 0,
+										   -max_score => 1,
+										   -sort_order => 'high_score',
+										   -bgcolor => 'red',
+										   -key => '-',
+										   -bump => +1,
+										   -label => 1,
+										   -fgcolor => 'black',
+										   -fontcolor => 'black',
+										   -font2color => 'red',
+										   -description => 1,
+										   -height => 4,
+										  );
 
-  my $sql = "select p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand from v_p2gblataln where "
-    . "genasm_id=$opts{genasm_id} and "
-    . "chr='$opts{chr}' and "
-    . "gstart>=$opts{gstart} and "
-    . "gstop<=$opts{gstop}";
+# [rkh] The following is original:
+#  my $sql = "select p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand from v_p2gblataln where "
+#	. "genasm_id=$opts{genasm_id} and "
+#	. "chr='$opts{chr}' and "
+#    . "gstart>=$opts{gstart} and "
+#    . "gstop<=$opts{gstop}";
+# [rkh] Incorporating pct ident will require looking at the whole alignment.
+# The following code is knowingly (a little) broken because it uses pct
+# ident over the hsp; it's possible that we'll have dangling hsps (i.e., some
+# with PI>=threshold and some with PE<threshold). Oh well.  
+# At overhaul:
+# -- shade based on %IDE.
+# -- indicate ambiguity of hsp locations
+# -- restrict aliases to species
+  my $sql = <<EOSQL;
+SELECT p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand
+FROM v_p2gblataln
+WHERE genasm_id=$opts{genasm_id} 
+  AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}
+  AND ident/(pstop-pstart+1)*100>=$opts{min_pct_ident}
+EOSQL
   if (defined $opts{pseq_id} and not $opts{show_all}) {
 	$sql .= " and pseq_id=$opts{pseq_id}";
   }
@@ -159,7 +196,7 @@ sub add_blatloci {
 
   my $p2gblataln_id = -1;
   my ($plus_strand,$feat);
-  while( my $r = $sth->fetchrow_hashref ) {
+  while ( my $r = $sth->fetchrow_hashref ) {
     # new BLAT alignment - create a new feature
     if ( $r->{p2gblataln_id} != $p2gblataln_id ) {
       # if we have a feat defined, then add it to the appropriate strand track
@@ -174,8 +211,8 @@ sub add_blatloci {
       $plus_strand = $r->{plus_strand};
       print STDERR "Get a new feature\n" if $opts{verbose};
       $feat = new Bio::Graphics::Feature->new(-name=>sprintf('Unison:%d (%s)',
-															 $r->{pseq_id}, 
-															 $u->best_alias($r->{pseq_id})||''));
+															 $r->{pseq_id},
+															 $u->best_alias($r->{pseq_id},1)||'?'));
       print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
       $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
     }
@@ -185,7 +222,6 @@ sub add_blatloci {
       print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
       $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
     }
-    
   }
 
   # add remaining feature
@@ -217,20 +253,20 @@ sub add_p2gblataln {
   $sth->execute($p2gblataln_id);
 
   my $track = $panel->add_track(
-    -glyph => 'graded_segments',
-    -connector=>'solid',
-    -min_score => 0,
-    -max_score => 1,
-    -sort_order => 'high_score',
-    -bgcolor => 'green',
-    -bump => +1,
-    -label => 1,
-    -fgcolor => 'black',
-    -fontcolor => 'black',
-    -font2color => 'red',
-    -description => 1,
-    -height => 4,
-    );
+								-glyph => 'graded_segments',
+								-connector=>'solid',
+								-min_score => 0,
+								-max_score => 1,
+								-sort_order => 'high_score',
+								-bgcolor => 'green',
+								-bump => +1,
+								-label => 1,
+								-fgcolor => 'black',
+								-fontcolor => 'black',
+								-font2color => 'red',
+								-description => 1,
+								-height => 4,
+							   );
 
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $feat = new Bio::Graphics::Feature->new();

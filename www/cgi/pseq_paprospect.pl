@@ -14,8 +14,12 @@ use Unison::SQL;
 use Unison::Exceptions;
 
 my $pdbDir = '/apps/compbio/share/prospect2/pdb';
-my $scopURL = 'http://scop.mrc-lmb.cam.ac.uk/scop/search.cgi?sunid=';
+#my $scopURL = 'http://scop.mrc-lmb.cam.ac.uk/scop';
+my $scopURL = 'http://scop.berkeley.edu';
+my $scoplinkfmt = "<A HREF=\"$scopURL/search.cgi?sunid=%d\">%s</A>";
 my @statevars = qw(pseq_id params_id offset limit sort);
+
+sub scoplink ($$);
 
 
 my @cols =
@@ -45,7 +49,7 @@ $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.16 2004/06/14 23:42:25 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.17 2004/06/15 00:22:08 rkh Exp $ ');
 
 
 my $u = $p->{unison};
@@ -93,32 +97,31 @@ my $feats = $u->coalesce_scop( \@raw_data );
 
 # build ar array which will store row data
 my @ar;
+my $xmol = 'pymol';
 foreach my $row ( @{$feats} ) {
   # build checkbox for alignment
   my $aln = "<input type=\"checkbox\" name=\"templates\" "
 	. "value=\"$row->{acc}\">";
-  # build rasmol linking
-  my $rasmol;
+
+  # build structure link
+  my $strxlink = $row->{acc};
   if ( -f "$pdbDir/$row->{acc}.pdb" ) {
-    $rasmol .= "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id};params_id="
+    $strxlink = "<a href=\"p2$xmol.pl?pseq_id=$v->{pseq_id};params_id="
 	  . "$v->{params_id};templates=$row->{acc}\" tooltip=\""
-	  . "show threading alignment with rasmol\">$row->{acc}</a>";
-  } else {
-    $rasmol .= $row->{acc};
+	  . "show threading alignment with $xmol\">$row->{acc}</a>";
   }
 
-  # build scop decription
-  my $scop='';
-  for (my $i=0;$i<scalar(@{$row->{scop}});$i++) {
-    $row->{scop}[$i]->{sfname} =~ s/ /&nbsp;/g;
-    $row->{scop}[$i]->{dmname} =~ s/ /&nbsp;/g;
-    $scop .= "<LI><A HREF='$scopURL$row->{scop}[$i]->{sfid}'>"
-	  . "$row->{scop}[$i]->{sfname}</A>&nbsp;>&nbsp;<A HREF='$scopURL"
-	  . "$row->{scop}[$i]->{dmid}'>$row->{scop}[$i]->{dmname}</A>";
+  # build scop description
+  my @scop;
+  for (my $i=0; $i<=$#{$row->{scop}}; $i++) {
+	my $scopr = $row->{scop}[$i];
+    push(@scop, scoplink( $scopr->{sfid}, $scopr->{sfname} )
+	            . '&nbsp;&gt;&nbsp;' 
+			    . scoplink( $scopr->{dmid}, $scopr->{dmname} ) );
   }
-  $scop .= '';
+  my $scop = join('<br>',@scop);
 
-  push @ar,[ $aln, $rasmol, (map { $row->{$_->[1]}  } @cols[2..8]), $scop];
+  push @ar,[ $aln, $strxlink, (map { $row->{$_->[1]}  } @cols[2..8]), $scop];
 }
 
 
@@ -191,7 +194,8 @@ print $p->render
 							  -values => ['all', map {$_->[0]} @ms],
 							  -labels => \%ms,
 							  -default => "$v->{pmodelset_id}"),
-   $p->submit(-value=>'display'),
+   '&nbsp;&nbsp;',
+   $p->submit(-value=>'redisplay'),
    $p->end_form(), "\n",
 
    $p->tip('clicking some column headings will dynamically sort by that column'),
@@ -199,6 +203,7 @@ print $p->render
    '<!-- thread list and multiple thread alignment -->',
    $p->start_form(-action=>'p2alignment.pl'),
    $p->hidden('pseq_id',$v->{pseq_id}),
+   $p->hidden('params_id',$v->{params_id}),
    '<p>', $p->submit(-value=>'align checked'),
 
    $p->group(['Prospect2 Threadings',$ctl],
@@ -209,3 +214,13 @@ print $p->render
    $p->sql($sql),
   );
 
+
+
+############################################################################
+### INTERNALS
+
+sub scoplink ($$) {
+  my ($id,$name) = @_;
+  $name =~ s/\s+/&nbsp;/g;
+  return sprintf($scoplinkfmt,$id,$name);
+}

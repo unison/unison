@@ -52,7 +52,10 @@ try {
   my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
 									-format => 'pdb')->next_structure();
   my $thr = ($pf->thread( $seq ))[0];
-  print("Content-type: application/x-rasmol\n\n",
+  print("Content-type: application/x-rasmol\n",
+		sprintf("Content-disposition: attachment; filename=%s-%s-%s.rasmol\n",
+				$v->{pseq_id},$template,$v->{params_id}),
+		"\n",
 		$thr->output_rasmol_script( $str ),
 	   );
 } catch Bio::Prospect::RuntimeError with {

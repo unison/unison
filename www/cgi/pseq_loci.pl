@@ -59,11 +59,11 @@ sub genome_link {
 
 sub geode_url {
   my ($chr,$gstart,$gstop) = @_;
-  return "/~rkh/csb/unison/bin/chr_view.pl?chr=$chr&gstart=$gstart&gstop=$gstop";
+  return "/~rkh/csb/unison/bin/chr_view.pl?chr=$chr;gstart=$gstart;gstop=$gstop";
   }
 
 sub unison_url {
   my ($chr,$gstart,$gstop) = @_;
   ### WARNING: HARDWIRED genasm_id
-  return "genome_features.pl?genasm_id=1&chr=$chr&gstart=$gstart&gstop=$gstop";
+  return "genome_features.pl?genasm_id=1;chr=$chr;gstart=$gstart;gstop=$gstop";
   }

@@ -9,29 +9,38 @@ use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
-use Unison::WWW::utilities qw(alias_link text_wrap);
+use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.20 2004/06/14 23:40:24 rkh Exp $ ');
 
-my $sql = qq/select sprot_a, organism_a, sprot_b, organism_b, pmid, interaction_detection_method
-      from sulin.v_mint
-      where pseq_id=$v->{pseq_id}/;
+my $sql = qq/select pseq_id_b, sprot_b, best_annotation(pseq_id_b), pmid, interaction_detection_method
+      from v_mint where pseq_id_a=$v->{pseq_id}/;
 
 my $ar = $u->selectall_arrayref($sql);
-my @f = ( 'Swiss-Prot A', 'Organsim A', 'Swiss-Prot B', 'Organism B', 'PubMed', 'Interaction detection method' );
+my @f = ( 'Sequence', 'Swiss-Prot', 'Best annotation', 'PubMed', 'Interaction detection method', 'Link' );
 
-do { $_->[0] = alias_link($_->[0],'Swiss-Prot') } for @$ar;
-do { $_->[2] = alias_link($_->[2],'Swiss-Prot') } for @$ar;
-do { $_->[4] = alias_link($_->[4],'Pubmed') } for @$ar;
+my $sprot_a = $u->selectrow_array
+  ("select alias from palias where porigin_id=porigin_id('Swiss-Prot') and pseq_id=$v->{pseq_id} and alias~'^[A-Z][0-9]+\$'");
 
-# break really log "words" into fragments
-#do {$_->[2] = text_wrap($_->[2])} for @$ar;
+# work right-to-left
+do { $_->[5]= alias_link($_->[1],'Mint') } for @$ar;
+do { $_->[3] = alias_link($_->[3],'Pubmed') } for @$ar;
+do { $_->[1] = alias_link($_->[1],'Swiss-Prot') } for @$ar;
+do { $_->[0] = pseq_summary_link($_->[0],"Unison:$_->[0]") } for @$ar;
+
 
 print $p->render("Mint data: $v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
-				 $p->group("Mint data: $v->{pseq_id}",
+
+				 '<p>',
+				 ($sprot_a ? "Go to MINT with Unison:$v->{pseq_id}: ". alias_link($sprot_a,'Mint') 
+				  : 'No interactions'),
+
+				 '<p>',
+				 $p->group("Unison:$v->{pseq_id} interacts with",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)
 				);

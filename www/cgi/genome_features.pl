@@ -3,9 +3,9 @@
 #-------------------------------------------------------------------------------
 # NAME: genome_features.pl
 # PURPOSE: web script to output pseq aligned to a genome
-# USAGE: genome_features.pl?genasm_id=<genasm_id>&[(chr=<chr>&gstart=<gstart>&gstop=<gstop>)||(pseq_id=<pseq_id>)]
+# USAGE: genome_features.pl?genasm_id=<genasm_id>;[(chr=<chr>;gstart=<gstart>;gstop=<gstop>)||(pseq_id=<pseq_id>)]
 #
-# $Id: genome_features.pl,v 1.7 2004/04/30 23:48:38 rkh Exp $
+# $Id: genome_features.pl,v 1.8 2004/05/04 05:22:04 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -24,6 +24,7 @@ use File::Temp;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+
 
 
 # verify parameters
@@ -55,12 +56,12 @@ try {
 	my $fname = $feature->name; # should be unique
 	next if not defined $fname;
 	if (my ($pseq_id) = $fname =~ m/^Unison:(\d+)/) {
-	  my $text = $u->best_annotation($pseq_id,1);
+	  my $text = $u->best_annotation($pseq_id,1) || '?';
 	  $imagemap .= qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">\n);
 	}
   }
 } catch Unison::Exception with {
-  $p->die(@_);
+  $p->die(shift);
 };
 
 
@@ -75,8 +76,8 @@ print $p->render("Genome Map",
 # PURPOSE: return usage string
 #-------------------------------------------------------------------------------
 sub usage {
-  return( "USAGE: genome_features.pl ? genasm_id&lt;gensam_id&gt; " .
-     "[(chr=&lt;chr&gt; & gstart=&lt;gstart&gt; & gstop=&lt;gstop&gt; " .
+  return( "USAGE: genome_features.pl ? genasm_id=&lt;gensam_id&gt; " .
+     "[(chr=&lt;chr&gt; ; gstart=&lt;gstart&gt; ; gstop=&lt;gstop&gt; " .
      "|| pseq_id=&lt;pseq_id&gt;]" );
 }
 
