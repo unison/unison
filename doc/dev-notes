@@ -1,0 +1,44 @@
+-*-outline-*-
+
+This file contains notes for developers of unison.  
+
+Um, since there's only me and Dave, I should say:
+Dave- feel free to add notes here.
+
+
+* function names
+Dave proposed the following convention (quoted):
+  Here's a simple naming schema for unison functions which is essentially 
+  a regurgitation of our discussion yesterday afternoon:
+  
+  <action>_<table/view>[_<column(s) involved]
+  
+  Action is one of ins, del, upd, get and the columns involved are 
+  optional.  For functions that insert/delete entire table records, I 
+  would leave off the columns involved.  Here are a few examples:
+  
+  ins_paliasorigin - insert a paliasorigin record
+  get_paliasorigin_palias_id - retrieve the palias_id from the 
+  paliasorigin table
+  ins_pseqalias - insert a pseqalias record
+  ins_pseqprop_sigpredict - insert/update sigpredict score in the 
+  pseqprop table
+  ...
+
+* utility functions
+use \df+ <fxname> in psql for descriptions
+- pfype_id_lookup()
+
+* variable names
+In plpgsql and perl scripts, use variables with same name as table
+columns.  Dave reports that plpgsql sometimes gets confused by vars with
+column names, so we'll prefix with v_.
+
+* perl & pgsql function name correspondence
+As much as possible, Unison module function names and take the same
+arguments as plpgsql correspondents.  This isn't always possible or is
+ambiguous (e.g., plpgsql overloads names by argument number & types).
+
+* options in perl
+migrate to options prefixed with a hyphen, like this:
+  $obj->method( -opt1=>'arg1' )

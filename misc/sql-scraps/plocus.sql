@@ -35,7 +35,10 @@ comment on column plocus.ident is 'HSP percent identity';
 comment on column plocus.eval is 'HSP evalue';
 
 
-create or replace view unison.v_plocus as SELECT pseq_id, genome_id, chr, min(pstart) AS
+create or replace view unison.v_plocus as SELECT pseq_id, genome.name, chr, min(pstart) AS
 pstart, max(pstop) AS pstop, (max(pstop)-min(pstart)) AS plen, min(gstart) AS gstart,
 max(gstop) AS gstop, (max(gstop) - min(gstart)) AS glen, count(*) AS pexons
-FROM plocus where ident>=99 GROUP BY pseq_id,genome_id,chr ORDER BY chr2locus(chr),pseq_id;
+FROM plocus  natural join genome 
+where ident>=99 GROUP BY pseq_id,genome.name,chr ORDER BY chr2locus(chr),pseq_id;
+comment on view unison.v_plocus is 'plocus view to facilitate gene localization';
+

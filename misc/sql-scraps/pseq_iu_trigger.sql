@@ -10,8 +10,12 @@ begin
     new.seq := clean_sequence(new.seq);
 
 	-- modifying sequences is prohibited
-	if tg_op = ''UPDATE'' and old.seq != new.seq then
+	-- pgsql apparently doesn''t short-circuit conditionals, like:
+	--   if tg_op = ''UPDATE'' and old.seq != new.seq then
+	if tg_op = ''UPDATE'' then
+	if old.seq != new.seq then
 		raise exception ''pseq sequences may not be altered'';
+	end if;
 	end if;
 
 	-- compute the md5 and length of the "cleaned" sequence
