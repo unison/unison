@@ -1,0 +1,120 @@
+#!/usr/bin/env perl
+
+$^W++;
+use 5.6.0;
+use strict;
+use IO::File;
+
+my $fn = shift;
+(defined $fn)
+  || die ("missing filename\n");
+
+my $fh = new IO::File;
+$fh->open("<$fn")
+  || die("$fn: $!\n");
+
+my $dir; ($dir = $fn) =~ s/\.\w+$//;
+warn "writing to $dir\n";
+-d $dir
+  || mkdir($dir)
+  || die("$dir: $!\n");
+
+
+my $pr = '';								# preface
+my $cs = '';								# complete sequence
+my $do = '';								# domain
+my $al = '';								# alignments
+
+my $state = 0;
+
+while( <$fh> )
+  {
+  if ($state == 0)							# preface
+	{
+	if (m/^Scores for complete sequences/)
+	  { $state = 1; $cs = $_; next; }
+
+	$pr .= $_;
+	}
+
+  elsif ($state == 1)						# complete sequence scores
+	{
+	if (m/^Parsed for domains:/)
+	  { $state = 2; $do = $_; next; }
+
+	#Sequence   Description                                  Score    E-value  N
+	#--------   -----------                                  -----    ------- ---
+	#PRO2354    UNQ1255 DNA88446 [min] Human LEPR            296.4    2.1e-85   2
+	s/^(\w+)/<a name="$1">$&/;
+	$cs .= $_;
+	}
+
+  elsif ($state == 2)						# domain scores
+	{
+	if (m/^Alignments of top-scoring domains/)
+	  { $state = 3; $al = $_; next; }
+
+	#Sequence   Domain  seq-f seq-t    hmm-f hmm-t      score  E-value
+	#--------   ------- ----- -----    ----- -----      -----  -------
+	#PRO582       1/1     138   349 ..     1   228 []   225.0  6.3e-64
+	s/^(\w+)\s+(\d+)\/(\d+)/<a href="al.html#$1_$2_$3" target="al">$&<\/a>/;
+	$do .= $_;
+	}
+
+  elsif ($state == 3)						# alignments
+	{
+	#PRO582: domain 1 of 1, from 138 to 349: score 225.0, E = 6.3e-64
+	#                   *->pqnlsCftnnlegnltCsWepgtdtg...ptnytlhyrrsllekeee
+	#                      p n+sC+++n++ +ltC+W+pg ++ +  +tny+l+y+ +++++  +
+	#      PRO582   138    PVNISCWSKNMK-DLTCRWTPGAHGEtflHTNYSLKYKLRWYGQDNT 183  
+	s/^(\w+): domain (\d+) of (\d+)/<a name="$1_$2_$3">\n$&/;
+	$al .= $_;
+	}
+
+  else
+	{ die("state==$state??\n"); }
+
+  }
+
+$fh->close();
+
+
+$fn = "$dir/index.html";
+$fh->open(">$fn")
+  || die("$fn: $!\n");
+$fh->print(
+'<html>
+<frameset rows="10%,20%,20%,*">
+<frame src="pr.html" name="pr">
+<frame src="cs.html" name="cs">
+<frame src="do.html" name="do">
+<frame src="al.html" name="al">
+</frameset>
+');
+$fh->close();
+
+
+$fn = "$dir/pr.html";
+$fh->open(">$fn")
+  || die("$fn: $!\n");
+$fh->print("<html><body><pre>$pr</pre></body></html>");
+$fh->close();
+
+$fn = "$dir/cs.html";
+$fh->open(">$fn")
+  || die("$fn: $!\n");
+$fh->print("<html><body><pre>$cs</pre></body></html>");
+$fh->close();
+
+$fn = "$dir/do.html";
+$fh->open(">$fn")
+  || die("$fn: $!\n");
+$fh->print("<html><body><pre>$do</pre></body></html>");
+$fh->close();
+
+$fn = "$dir/al.html";
+$fh->open(">$fn")
+  || die("$fn: $!\n");
+$fh->print("<html><body><pre>$al</pre></body></html>");
+$fh->close();
+
