@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.4 2003/05/27 22:39:23 rkh Exp $>
+S<$Id: DBI.pm,v 1.5 2003/07/31 23:56:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -38,28 +38,31 @@ use Unison::Exceptions;
 use Getopt::Long;
 my $p = new Getopt::Long::Parser;
 $p->configure( qw(gnu_getopt pass_through) );
+
 our %opts =
   (
    dbname => $ENV{PGDATABASE} || 'csb',
    # setting host here causes a problem: it's sometimes necessary to have
    # a NULL host setting (and 'localhost' means something else).  If we set
-   # it here, there's no way to undef it.
-   # host => $ENV{PGHOST} || ( `hostname` =~ m/^comp\d/ ? 'svc' : 'td-svc'),
+   # it here, there's no way for a user to undef it.
+   # || ( `hostname` =~ m/^comp\d/ ? 'svc' : 'td-svc'),
+   host => $ENV{PGHOST},
    username => $ENV{PGUSER} || 'PUBLIC',
-   password => $ENV{PGPASSWORD}
+   password => $ENV{PGPASSWORD} || undef,
+   attr => {
+			PrintError => 1,
+#			RaiseError => 1,
+			AutoCommit => 1
+		   },
   );
+
 our @options;
 push( @options, 'dbname|d=s' => \$opts{dbname},
 				'host|h=s' => \$opts{host},
 				'username|U=s' => \$opts{username} );
 $p->getoptions( @options );
 
-our %attr =
-  (
-   PrintError => 1,
-   RaiseError => 0,
-   AutoCommit => 1
-  );
+
 
 sub new
   {
@@ -82,24 +85,22 @@ immediately and an exception thrown if unsuccessful.
 =cut
   }
 
-sub connect
-  {
+sub connect {
   my $self = shift;
-  my $dsn = shift || ("dbi:Pg:dbname=$self->{dbname}"
-					  . ( defined $self->{host} ? ";host=$self->{host}" : '') );
-  my $username = shift || $self->{username};
-  my $pass = shift || $self->{password};
-  my $attr = shift || \%attr;
-  my $dbh = DBI->connect($dsn,$username,$pass,$attr);
-  if (defined $dbh)
-	{
+  my $dsn = "dbi:Pg:dbname=$self->{dbname}";
+  $dsn .= ";host=$self->{host}" if (defined $self->{host} and $self->{host} ne '');
+  my $dbh = DBI->connect($dsn,
+						 $self->{username},
+						 $self->{password},
+						 $self->{attr});
+  if (defined $dbh)	{
 	$self->{dbh} = $dbh;
 	return($self);
-	}
+  }
   throw Unison::Exception::ConnectionFailed( "couldn't connect to unison",
 											 "dsn=$dsn\n" .
 											 'username='.$self->{username}."\n" .
-											 'password='.(defined $pass ?'<hidden>':'<undef>') );
+											 'password='.(defined $self->{password} ?'<hidden>':'<undef>') );
   return undef;
 =pod
 
@@ -112,7 +113,7 @@ Establishes a connection to the Unison database.
 =back
 
 =cut
-  }
+}
 
 
 sub DESTROY
