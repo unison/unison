@@ -4,7 +4,7 @@
 -- PURPOSE: sql statements and PL/pgSQL commands for creating a
 --          blast feature table and associated procedures
 --
--- $Id$
+-- $Id: create_pblastfeature.sql,v 1.1 2003/04/09 21:46:20 cavs Exp $
 --
 -- -----------------------------------------------------------------------------
 
@@ -127,4 +127,36 @@ BEGIN
 END;
 ' LANGUAGE 'plpgsql';
 COMMENT ON FUNCTION ins_pblastfeature(integer, integer, integer, integer, integer, integer, real, real, integer, integer, integer) IS 'insert a blast feature';
+-- -----------------------------------------------------------------------------
+
+
+-- -----------------------------------------------------------------------------
+--
+-- get_identical_seqs():
+--   purpose: retrieve a set of pseq_ids of "identical" sequences
+--   arguments: pseq_id
+--   returns: cursor for fetching the pseq_ids
+--
+CREATE OR REPLACE FUNCTION get_identical_seqs(integer) RETURNS refcursor AS '
+DECLARE
+	v_pseq_id ALIAS FOR $1;
+
+	ref refcursor;
+	pct_identity_min real;
+	pct_hsp_coverage_min real;
+	hsp_length_min integer;
+BEGIN
+	-- define selection criteria
+	pct_identity_min := 90.0;
+	pct_hsp_coverage_min := 90.0;
+	hsp_length_min := 50;
+
+	OPEN ref FOR SELECT t_pseq_id from pblastfeature WHERE pseq_id=v_pseq_id and 
+	pct_identity>=pct_identity_min and pct_hsp_coverage >= pct_hsp_coverage_min and 
+	hsp_length >= hsp_length_min;
+
+	return ref;
+END;
+' LANGUAGE 'plpgsql';
+COMMENT ON FUNCTION get_identical_seqs(integer) IS 'retrieve a set of nearly identical sequences';
 -- -----------------------------------------------------------------------------
