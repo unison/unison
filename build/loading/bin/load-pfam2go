@@ -1,5 +1,8 @@
 #!/usr/bin/env perl
-# load <goftp>/external2go/pfam2go into unison
+# load pfam2go into unison.pmodel2go
+# usage:
+# $ load-pfam2go ftp.geneontology.org/pub/go/external2go/pfam2go
+
 
 use strict;
 use warnings;

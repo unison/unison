@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pahmm,v 1.6 2003/04/12 00:37:22 rkh Exp $
+# $Id: load-pahmm,v 1.1 2003/06/18 22:39:15 rkh Exp $
 # load-pahmm -- load hmm alignments
 
 use warnings;
@@ -10,7 +10,13 @@ use IO::File;;
 use File::Temp;
 use Bio::SearchIO;
 use Data::Dumper;
-#use Getopt::Long qw(:config gnu_getopt);
+use Getopt::Long qw(:config gnu_getopt);
+
+
+my %opts = (force => 0);
+GetOptions(\%opts,
+		   'force|f+')
+  || die("$0: you got usage issues, short stack\n");
 
 
 my $u = new Unison;
@@ -28,7 +34,7 @@ while( my $result = $in->next_result ) {
   my ($pseq_id) = $q =~ m/Unison:(\d+)/;
   die("hmmer query wasn't for a unison sequence (e.g., Unison:76)\n") unless defined $pseq_id;
 
-  if ($result->hmm_name() !~ m/Pfam_fs$/) {
+  if ($result->hmm_name() !~ m/Pfam_fs$/ and not $opts{force}) {
 	die("unison currently contains only Pfam local alignments (Pfam_fs)\n");
   }
 
@@ -36,7 +42,7 @@ while( my $result = $in->next_result ) {
 	my $name = $hit->name();
 	my $pmodel_id = get_pmodel_id($name);
 	if (not defined $pmodel_id) {
-	  warn("couldn't look up a pmodel_id for $name; skipping this hit\n");
+	  warn("! couldn't look up a pmodel_id for $name; skipping this hit\n");
 	  next;
 	}
 
@@ -45,8 +51,9 @@ while( my $result = $in->next_result ) {
 				  $pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
 				  $hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
 				  int($hsp->score()), $hsp->evalue());
-	  $pahmm_sth->execute(@data);
-	  print(join(' , ',@data),"\n");
+	  if ($pahmm_sth->execute(@data)) {
+		print("inserted ", join(' , ',@data), "\n");
+	  }
 	}
   }
 }
@@ -55,10 +62,10 @@ while( my $result = $in->next_result ) {
 
 sub get_pmodel_id {
   my $name = shift;
-  my $sth = $u->prepare_cached('select pmodel_id from pmhmm where name=?');
+  my $sth = $u->prepare_cached('select pmodel_id from pmhmm where name=? order by added desc');
   $sth->execute($name);
   my $ids = $sth->fetchall_arrayref();
-  return $ids->[0][0] if ($#$ids == 0);
-  warn("found ",$#$ids+1," pmodel_ids for model name $name\n");
-  return undef;
+  return undef unless defined $ids;
+  warn("! found ",$#$ids+1," pmodel_ids for model name $name; returning most recent\n") if ($#$ids>0);
+  return $ids->[0]->[0];
 }
