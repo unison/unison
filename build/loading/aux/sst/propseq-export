@@ -31,7 +31,7 @@ else
 	mkdir -p "$XLINK_DIR"
 fi
 
-echo '# $Id: xlink,v 1.7 2004/05/06 21:58:42 rkh Exp $' 1>&2
+echo '# $Id: xlink,v 1.8 2004/05/07 20:20:36 rkh Exp $' 1>&2
 echo '# started' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
 echo "# XLINK_DIR=$XLINK_DIR; CREATE=$CREATE; LOAD=$LOAD" 1>&2
 echo "# PSEQ_LIMIT=$PSEQ_LIMIT" 1>&2
@@ -83,7 +83,7 @@ create index aliases_origin_alias_idx on aliases(origin,alias);
 create index aliases_gs_idx on aliases(gs);
 
 
-CREATE OR REPLACE VIEW pro_pseq AS
+CREATE OR REPLACE VIEW dv_pro_pseq AS
 SELECT
 	TO_NUMBER(SUBSTR(alias,4)) AS "PROID",
 	aliases.pseq_id,
@@ -93,8 +93,17 @@ FROM aliases, pseq
 WHERE
 	origin='SPDI' AND alias NOT LIKE '%\_%' ESCAPE '\'
 	AND aliases.pseq_id=pseq.pseq_id;
+GRANT SELECT ON dv_pro_pseq TO PUBLIC;
+COMMENT ON TABLE pro_pseq IS 'def view: proid <-> pseq_id mapping with md5s';
+
+
+DROP TABLE pro_pseq;
+CREATE TABLE pro_pseq AS SELECT * FROM dv_pro_pseq;
+CREATE INDEX pro_pseq_proid on pro_pseq(proid);
+CREATE INDEX pro_pseq_pseq_id on pro_pseq(pseq_id);
+CREATE INDEX pro_pseq_md5 on pro_pseq(md5);
 GRANT SELECT ON pro_pseq TO PUBLIC;
-COMMENT ON TABLE pro_pseq IS 'proid <-> pseq_id mapping with md5s';
+COMMENT ON TABLE pro_pseq IS 'proid <-> pseq_id mapping with md5s; see dv_pro_pseq';
 
 
 quit
