@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-tmdetect,v 1.3 2004/02/25 00:57:01 cavs Exp $
+# $Id: run-tmdetect,v 1.4 2004/04/02 00:34:05 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -84,7 +84,7 @@ PSEQ_ID: while( my $pseq_id = shift ) {
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   $leader .= " (" . length($seq) . " AA)";
 
-  print("$leader: outputted for tmdetect\n");
+#  print("$leader: outputted for tmdetect\n");
   $seqio->write_seq(new Bio::Seq(-id=>"Unison:$pseq_id",-seq=>$seq));
 
   $run_me{ $pseq_id }++;
@@ -111,9 +111,9 @@ if ( scalar(keys %run_me) > 0 ) {
     if ( $tmd[2] eq '(S)' ) { 
       $pft = $tmds_id;
     } elsif ( $tmd[2] eq '(M)' ) {
-      $pft = $tmdn_id;
-    } elsif ( $tmd[2] eq '(N)' ) {
       $pft = $tmdm_id;
+    } elsif ( $tmd[2] eq '(N)' ) {
+      $pft = $tmdn_id;
     } else {
         die("Don't understand $tmd[2] feature type");
     }
@@ -121,7 +121,11 @@ if ( scalar(keys %run_me) > 0 ) {
     $tmd[0] =~ m/^Unison:(\d+)$/;
     my $pseq_id = $1;
     printf("$sqlf\n",$pseq_id, $pft, $b, $tmd[3]+10, $tmd[6],$opts{params_id});
-    $sth->execute( $pseq_id, $pft, $b, $tmd[3]+10, $tmd[6],$opts{params_id});
+	try {
+	  $sth->execute( $pseq_id, $pft, $b, $tmd[3]+10, $tmd[6],$opts{params_id});
+	} catch Unison::Exception with {
+	  warn($_[0]);
+	};
 
     # delete this pseq_id from the run_me hash and then update
     # the run history table.  any pseqs left in %run_me are pseqs
