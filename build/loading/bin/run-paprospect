@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.15 2004/06/25 00:20:27 rkh Exp $
+# $Id: run-paprospect2,v 1.16 2004/12/24 00:09:46 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -97,7 +97,7 @@ if (defined $opts{'templates'}) {
 } elsif (defined $opts{'template-file'}) {
   $po->{tfile} = $opts{'template-file'}
 } else {
-  $po->{tfile} = '/apps/compbio/share/prospect2/tfiles/all';
+  $po->{tfile} = '/gne/compbio/share/prospect2/tfiles/all';
 }
 
 my $temproot = (defined $ENV{'PBS_JOBID'}) ? "/scr/$ENV{'PBS_JOBID'}" : '/tmp/';
@@ -176,6 +176,9 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.16  2004/12/24 00:09:46  rkh
+# 2004 sync
+#
 # Revision 1.15  2004/06/25 00:20:27  rkh
 # periodic sync
 #
