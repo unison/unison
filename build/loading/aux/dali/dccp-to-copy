@@ -1,0 +1,45 @@
+#!/usr/bin/env perl
+# usage: gzip -cd dali_dccp.gz | ./thisscript | psql -hcsb -Uunison -dcsb-dev -qaf-
+
+my $begin = "COPY dali.dccp from STDIN;\n";
+my $end = "\\.\n";
+my $open = 0;
+my $n = 0;
+
+while( <> ) {
+  if (m/\t\t/) {
+	warn("line $.: contains NULL columns:\n    $_");
+	next;
+  }
+
+  my @F = split(' ');
+
+  if ($open and $n % 2500 == 0) {
+	print $end;
+	$open = 0;
+	print("\\echo beginning new COPY at input line $.\n");
+  }
+  if (not $open) {
+	print $begin;
+	$open = 1;
+  }
+
+  print( join("\t",
+			  @F[0..6], 
+			  "{" . join(",",map {"\"$_\""} @F[7..15])  . "}",
+			  "{" . join(",",map {"\"$_\""} @F[16..18]) . "}",
+			  "{" . join(",",map {"\"$_\""} @F[19..27]) . "}",
+			  "{" . join(",",map {"\"$_\""} @F[28..30]) . "}",
+			  $F[31],
+			 ),
+		 "\n"
+	   );
+  $n++;
+}
+
+if ($open) {
+  print $end;
+  $open = 0;
+}
+
+exit(0);

@@ -1,0 +1,49 @@
+#!/usr/bin/perl
+# usage: gzip -cd dali_fragments.gz | ./thisscript | psql -hcsb -Uunison -dcsb-dev -qaf-
+
+my $begin = "COPY dali.fragments from STDIN;\n";
+my $end = "\\.\n";
+my $open = 0;
+my $n = 0;
+
+while( <> ) {
+  if (m/\t\t/) {
+	warn("line $.: contains NULL columns:\n    $_");
+	next;
+  }
+
+  if ($open and $n % 2500 == 0) {
+	print $end;
+	$open = 0;
+	print("\\echo beginning new COPY at input line $.\n");
+  }
+  if (not $open) {
+	print $begin;
+	$open = 1;
+  }
+
+  print;
+  $n++;
+}
+
+if ($open) {
+  print $end;
+  $open = 0;
+}
+
+exit(0);
+
+
+# sigh... the dump output contains malformed lines like
+# tallac$ gzip -cdq /gne/compbio/share/dali/dali_fragments.gz | grep '    0$'
+#   768                             0
+#   1050628 1409286144              3328    0
+#   3170431 0       0       0       0
+#   3170431 0       0       0       0
+#   3170431 0       0       0       0
+#   3170431 0       0       0       0
+
+# I dunno the significance of this boo-boo, but they need fixing by one of
+# the following:
+
+
