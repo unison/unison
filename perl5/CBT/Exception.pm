@@ -1,7 +1,7 @@
 =head1 NAME
 
 CBT::Exception -- base class for exceptions
-S<$Id: Exception.pm,v 1.1 2003/04/30 21:11:21 rkh Exp $>
+S<$Id: Exception.pm,v 1.2 2003/05/12 22:24:00 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -63,8 +63,9 @@ package CBT::Exception;
 use strict;
 use warnings;
 
+our ($VERSION) = q$Revision: 1.2 $ =~ m/Revision: ([\d\.]+)/;
+
 use CBT::debug;
-our $VERSION = CBT::debug::RCSVersion( '$Revision: 1.1 $ ' );
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use base qw(Error);
