@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.10 2005/02/16 23:43:16 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.11 2005/03/19 18:22:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -29,7 +29,7 @@ our @EXPORT_OK = qw( pseq_features_panel %opts );
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::utilities qw( warn_deprecated );
-use Unison::pseq_structure;
+#use Unison::pseq_structure;					# DON'T UNCOMMENT UNTIL CHECKED IN!
 
 my %opts = 
   (
@@ -126,7 +126,7 @@ sub pseq_features_panel($%) {
   add_pfmim        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure} ) if($opts{features}{mim});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.10 2005/02/16 23:43:16 mukhyala Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.11 2005/03/19 18:22:46 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
