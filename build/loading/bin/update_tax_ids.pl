@@ -56,7 +56,7 @@ select(STDERR); $|++;
 select(STDOUT); $|++;
 
 
-print(STDERR '$Id$ ', "\n");
+print(STDERR '$Id: assign_tax_ids.pl,v 1.3 2004/04/07 21:15:52 rkh Exp $ ', "\n");
 
 
 my $u = new Unison;
@@ -65,7 +65,6 @@ if (not defined $opts{'palias-id-max'}) {
   $opts{'palias-id-max'} = $u->selectrow_array
 	('select max(palias_id) from paliasorigin');
 }
-
 
 
 create_paotax($u) 						if $opts{'create-paotax'};
@@ -88,8 +87,9 @@ exit(0);
 sub execute_sth($$$) {
   my ($fx,$sth,$inc) = @_;
   my $nr_tot = 0;
-  $inc = $opts{'update-increment'} unless defined $inc;
-  for(my $b=$opts{'palias-id-min'}; $b<$opts{'palias-id-max'}; $b+=$inc) {
+  for(my $b=$opts{'palias-id-min'};
+	  $b<$opts{'palias-id-max'};
+	  $b+=$inc) {
 	my $e = $b+$inc;
 	my $nr = $sth->execute($b,$e);
 	$nr_tot += $nr;
