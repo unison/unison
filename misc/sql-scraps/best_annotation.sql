@@ -1,4 +1,11 @@
 -- -----------------------------------------------------------------------------
+-- NAME: best_annotation.sql
+-- PURPOSE: set of functions for retrieving the best alias of a given sequence
+--
+-- $Id$
+-- -----------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------------
 -- NAME: palias_OAD_fmt(integer)
 -- PURPOSE: returns text string of origin, alias, and descr for a given palias_id
 -- ARGUMENTS: palias_id
