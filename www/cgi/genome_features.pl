@@ -5,7 +5,7 @@
 # PURPOSE: web script to output pseq aligned to a genome
 # USAGE: genome_features.pl?genasm_id=<genasm_id>;[(chr=<chr>;gstart=<gstart>;gstop=<gstop>)||(pseq_id=<pseq_id>)]
 #
-# $Id: genome_features.pl,v 1.10 2004/07/22 22:30:49 rkh Exp $
+# $Id: genome_features.pl,v 1.11 2005/02/20 00:10:07 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -18,7 +18,7 @@ use Unison::WWW;
 use Unison::WWW::Page;
 use Unison;
 use Unison::Exceptions;
-use Unison::genome_features;
+use Unison::Utilities::genome_features;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -32,7 +32,7 @@ if ( ! ( defined $v->{genasm_id} && (
   ( defined $v->{pseq_id} ) ) )) { $p->die( &usage ); }
 
 # merge defaults and options
-my %opts = (%Unison::genome_features::opts, %$v);
+my %opts = (%Unison::Utilities::genome_features::opts, %$v);
 
 # get tempfiles for the genome-feature png and imagemap
 my ($png_fh, $png_fn,$png_urn) = $p->tempfile(SUFFIX=>'.png');
@@ -41,7 +41,7 @@ my $imagemap = '';
 
 
 try {
-  my $panel = Unison::genome_features::genome_features_panel($u,%opts);
+  my $panel = Unison::Utilities::genome_features::genome_features_panel($u,%opts);
 
   # write the png to the temp file
   $png_fh->print( $panel->gd()->png() );
