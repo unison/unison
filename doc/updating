@@ -5,6 +5,7 @@ Unison Update Tasks				-*-outline-*-
 * Data:
 
 ** load sequences (SPDI, nr, incyte, ensemble, swiss-prot)
+see loading/pseq/Makefile
 
 ** load go, build gong
 
@@ -12,6 +13,15 @@ Unison Update Tasks				-*-outline-*-
 
 ** load new scop
 scop2pmodel 
+
+** General loading
+In a loading/pa* directory:
+$ export PGUSER=unison PGPASSWORD=... 
+$ make pset42.ids
+$ make pset42-todo.ids
+$ make pset42-todo-N10
+$ make pset42-todo-qload
+
 
 ** load HMMs (in-house, Pfam)
 - In addition to loading Pfam, one must also make a new params set for

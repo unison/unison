@@ -1,6 +1,9 @@
 
 default all: sst.log
 
+ifndef SSTPASS
+$(warning SSTPASS isn't set ) 	#'
+endif
 include ../defaults.mk
 
 
@@ -15,7 +18,7 @@ sst.sql:
 	&& /bin/mv -f $@.err $@.log && /bin/mv -f $@.tmp $@
 
 
-cleaner: clean
+cleaner:: clean
 	/bin/rm -f sst.sql*
-cleanest: cleaner
+cleanest:: cleaner
 	/bin/rm -f sst.log*

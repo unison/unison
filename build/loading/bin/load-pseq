@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.12 2004/06/10 22:03:43 rkh Exp $
+# $Id: load-pseq,v 1.13 2004/06/25 00:20:27 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -176,7 +176,9 @@ sub process_seq ($$$$) {
 
   # skip sequences in various conditions
   my $skip;
-  if ($id !~ m/\w/) {
+  if (not defined $id) {
+    $skip = "sequence id isn't defined?!";
+  } elsif ($id !~ m/\w/) {
     $skip = "doesn't look like a valid sequence id"; 
   } elsif (defined $opts{'start-after'}) {
     $skip = "haven't reached $opts{'start-after'} yet";
@@ -215,7 +217,7 @@ sub process_seq ($$$$) {
 	if (defined $v) {
 	  $id .= ".$v";
 	}
-  } elsif ($opts{origin} =~ m/Swiss-Prot/i) {
+  } elsif ($opts{origin} =~ m/^Uniprot|Swiss-Prot/i) {
 	# load S-P accession as well
   	push( @aliases, $bs->accession() );
   } elsif ($opts{origin} =~ m/GenenGenes/i) {
@@ -227,6 +229,7 @@ sub process_seq ($$$$) {
 	$descr =~ s%/coords.+trans=[FR]\d %%;
 	$tax_id = 9606;
   } else {
+	# intentionally blank
   }
 
 
@@ -249,8 +252,9 @@ sub process_seq ($$$$) {
 	$rv->{nadded}++;
   }
 
-  # load aliases for this pseq_id
-  foreach my $alias (@aliases)  {
+  # load unique aliases for this pseq_id
+  my %aliases = map {$_=>1} @aliases;
+  foreach my $alias (keys %aliases)  {
 	try {
 	  $u->add_palias($pseq_id,$opts{porigin_id},$alias,$descr,$tax_id);
 	} catch Unison::Exception with {

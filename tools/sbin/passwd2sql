@@ -4,24 +4,31 @@
 use strict;
 use warnings;
 use Getopt::Long qw(:config gnu_getopt);
+use Data::Dumper;
 
 my %opts =
   (
-   group => undef,
+   groups => undef,
   );
 
 GetOptions(\%opts,
-		   'group|g=i')
+		   'groups|group|g=i@')
   || die("usage\n");
 
-my %logins;
+my %wanted_logins;
 
 if (@ARGV) {
-  if ($opts{group}) {
+  if ($opts{groups}) {
 	die("can't specify group and logins\n");
   }
-  %logins = map { $_=>1 } @ARGV;
+  %wanted_logins = map { $_=>1 } @ARGV;
   undef @ARGV;
+}
+
+
+my %wanted_groups;
+if ($opts{groups}) {
+  %wanted_groups = map {$_=>1} @{$opts{groups}};
 }
 
 
@@ -30,17 +37,21 @@ my %omit = map {$_=>1}
 
 while(<>) {
   my @F = split(/:/);
-  next if ($F[3]<=10 or exists $omit{$F[0]}); # 10's a guess
-  if ( (defined $opts{group} and $F[3] == $opts{group})
-	   or (exists $logins{$F[0]}) ) {
+  
+  # don't print these under any circumstances:
+  next if (exists $omit{$F[0]});			# skip login
+  next if ($F[2]<=100);						# skip low-numbered uids
+
+  if ( (%wanted_groups and exists $wanted_groups{$F[3]})
+	   or (exists $wanted_logins{$F[0]}) ) {
 	printf("create user $F[0] with sysid $F[2] nocreatedb nocreateuser;\n");
-	delete $logins{$F[0]};
+	delete $wanted_logins{$F[0]};
   }
 }
 
 
 
-my @remaining = sort keys %logins;
+my @remaining = sort keys %wanted_logins;
 if (@remaining) {
   die(sprintf("%d login(s) weren't found: {%s}\n",
 			  $#remaining+1, join(',',@remaining)));

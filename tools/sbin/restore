@@ -2,12 +2,14 @@
 
 unset PGHOST
 
-if [ "`uname -n`" != "csb" ]; then
-	echo "this should be run on csb" 1>&2
-	exit 1
-fi
+set -e
 
-if [ -z "$PGPORT" -o -z "$PGPASSWORD" -o  -z "$PGDATABASE" -o -z "PGUSER" ]; then
+case "`uname -n`" in
+	csb|csb-dev) ;;
+	*) echo "this should be run on csb" 1>&2; exit 1;;
+esac
+
+if [ -z "$PGPASSWORD" -o -z "$PGDATABASE" -o -z "PGUSER" ]; then
 	echo "PGPORT, PGUSER, PGDATABASE, and PGPASSWORD must be set:" 1>&2
 	echo "  PGPORT=6543 PGUSER=me PGPASSWORD=blah PGDATABASE=dbname $0" 1>&2
 	exit 2
@@ -25,6 +27,7 @@ psql -dtemplate1 -qaf - <<EOF
 create database "$PGDATABASE";
 grant create on database "$PGDATABASE" to rkh;
 grant create on database "$PGDATABASE" to cavs;
+grant create on database "$PGDATABASE" to mukhyala;
 EOF
 
 case "$1" in
@@ -32,4 +35,6 @@ case "$1" in
 	*) /usr/bin/time -p psql -qaf $1;;
 esac
 
-exit $?
+
+psql -c "alter database \"$PGDATABASE\" set search_path = \"$user\",unison,gong,scop,tax";
+psql -c 'analyze verbose';

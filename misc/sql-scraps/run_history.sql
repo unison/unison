@@ -55,7 +55,7 @@ comment on table run_history is 'updates run_history for the given pseq_id,param
 
 
 create or replace function get_run_timestamp(integer,integer,integer,integer)
-returns timestamp
+returns timestamp with time zone
 language plpgsql
 as '
 DECLARE
@@ -68,7 +68,7 @@ BEGIN
     select into z ran_on from run_history
         where pseq_id=q
         and params_id=p
-        and (case when o is null then true else porigin_id=o end)
-        and (case when m is null then true else pmodelset_id=m end);
+        and (case when o is null then porigin_id is NULL else porigin_id=o end)
+        and (case when m is null then pmodelset_id is NULL else pmodelset_id=m end);
     return z;
 END;';

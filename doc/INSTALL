@@ -23,20 +23,19 @@ $ psql -Ucompbio -dtemplate1 -c 'select version()'  ## to test connection
 $ createuser -i2 -Ucompbio -A -D    PUBLIC
 $ createuser -i3 -Ucompbio -A -D -P unison
 $ createuser -i4 -Ucompbio -A -D -P loader
-$ csb-db/sbin/passwd2sql </etc/passwd -g1279 | psql -dtemplate1 -Ucompbio -qaf-
-$ csb-db/sbin/passwd2sql </etc/passwd -g227 | psql -dtemplate1 -Ucompbio -qaf-
-$ csb-db/sbin/passwd2sql </etc/passwd -g199 | psql -dtemplate1 -Ucompbio -qaf-
-$ csb-db/sbin/passwd2sql </etc/passwd -g136 | psql -dtemplate1 -Ucompbio -qaf-
+$ csb-db/sbin/passwd2sql </etc/passwd -g1279 -g227 -g199 -g136 -g140 | psql -dtemplate1 -Ucompbio -qaf-
 
 
 * languages and unison C functions
-## This is optional. We're better off doing it for the database itself, NOT template1
-$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plpgsql
-$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plperl
-$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plperlu
 $ cd csb-db/unison/src
 $ make unison.so
 $ make install
+
+## DEPRECATED -- DON'T DO THE FOLLOWING
+# We're better off doing it for the database itself, NOT template1
+$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plpgsql
+$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plperl
+$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plperlu
 
 
 
@@ -53,7 +52,7 @@ backups are kept in ~rkh/csb-db/backups/csb/. Full backups are named
 The basic DIY restore is like this:
 $ gzip -cdq backup.sql | psql -dcsb-dev -Ucompbio -af- >restore.log 2>&1
 
-Instead, use csb-db/bin/restore, like this:
+Instead, use csb-db/sbin/restore, like this:
 $ PGPASSWORD=xxx PGDATABASE=csb-dev restore <timestamp.pgdump.gz>
 
 
