@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- retrieve sequences from unison
-# $Id: get-seq,v 1.4 2003/05/02 05:37:47 rkh Exp $
+# $Id: get-seq,v 1.5 2003/05/27 22:33:45 rkh Exp $
 
 use warnings;
 use strict;
@@ -8,11 +8,13 @@ use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 
-my %options;
-GetOptions( \%options,
+my %opts;
+GetOptions( \%opts,
 			'best-alias|best-oa|a+',
 			'best-annotation|best-oad|D+',
-			'all-aliases|A+'
+			'all-aliases|A+',
+			'dnaid|D=s@',
+			'proid|P=s@'
 		  )
   || die("$0: you got usage issues, homey\n");
 
@@ -20,16 +22,20 @@ my $u = new Unison( username => 'PUBLIC' );
 die( "! couldn't open a connection to unison\n" ) unless $u;
 
 
-if (@ARGV)
-  {
-  while( my $r = shift )
-	{ eval "process1(\$_) for $r" }
+@{$opts{proid}} = map {split(/,/,$_)} @{$opts{proid}};
+unshift(@ARGV, SPDI_lookup('PRO',@{$opts{proid}}));
+
+@{$opts{dnaid}} = map {split(/,/,$_)} @{$opts{dnaid}};
+unshift(@ARGV, SPDI_lookup('DNA',@{$opts{dnaid}}));
+
+if (@ARGV) {
+  while( my $r = shift ) {
+	eval "process1(\$_) for $r"
   }
-else
-  {
-  while (my $id=<>)
-	{ process1($id) }
-  }
+} else {
+  while (my $id=<>)	{
+	process1($id) }
+}
 
 exit(0);
 
@@ -52,11 +58,11 @@ sub get1
   my $seq = $u->get_sequence_by_pseq_id($pseq_id);
   if (not defined $seq)
 	{ warn("pseq $pseq_id doesn't exist\n"); return; }
-  if (defined $options{'best-alias'})
+  if (defined $opts{'best-alias'})
 	{ (@aliases) = $u->best_alias($pseq_id) }
-  elsif (defined $options{'best-annotation'})
+  elsif (defined $opts{'best-annotation'})
 	{ (@aliases) = $u->best_annotation($pseq_id) }
-  elsif (defined $options{'all-aliases'})
+  elsif (defined $opts{'all-aliases'})
 	{ (@aliases) = $u->pseq_get_aliases($pseq_id) }
   $rv = join(' ',">Unison:$pseq_id",@aliases) . "\n";
   while( length($seq) )
@@ -65,13 +71,33 @@ sub get1
   }
 
 
+
+sub SPDI_lookup {
+  my $pfx = shift;
+  return map {SPDI_lookup1($pfx,$_)} @_;
+}
+
+sub SPDI_lookup1 {
+  my ($pfx,$id) = @_;
+  my $sth = $u->prepare_cached(q/select pseq_id from palias where alias=? and
+ 								porigin_id=porigin_id_lookup('SPDI')/);
+  $sth->execute("$pfx$id");
+  my $rv = $sth->fetchrow_array;
+  $sth->finish();
+  return $rv;
+}
+
+
+
+
+
 =pod
 
 =head1 NAME
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.4 2003/05/02 05:37:47 rkh Exp $>
+S<$Id: get-seq,v 1.5 2003/05/27 22:33:45 rkh Exp $>
 
 =head1 SYNOPSIS
 
