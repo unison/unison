@@ -1,0 +1,59 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my @pending;
+my %users;
+my %hosts;
+my %user_database;
+my %user_host;
+
+
+while(<>) {
+  #2004-07-14 09:00:43 [26233] LOG:  connection received: host=tallac.gene.com port=34485
+  #2004-07-14 09:00:43 [26233] LOG:  connection authorized: user=rkh database=csb-dev
+
+  if (m/^(200.+) \[(\d+)\] LOG:  connection received: host=(\S+)/) {
+	$pending[$2] = { ts=>$1, host=>$3 };
+  } elsif (m/^(200.+) \[(\d+)\] LOG:  connection authorized: user=(\S+) database=(\S+)/) {
+	if (not defined $pending[$2]) {
+	  die("$.: connection not received!\n");
+	}
+
+	my %conn = (%{$pending[$2]}, user=>$3, database=>$4);
+	undef $pending[$2];
+
+	my ($h,$u,$d) = @conn{qw(host user database)};
+	$h =~ s/^comp\d+/comp*/
+	  || $h =~ s/^(vpn-pc)-\d+/$1-*/
+		|| $h =~ s/^(dhcp187)-\d+/$1-*/;
+
+	push(@{$users{$u}}, \%conn);
+	push(@{$hosts{$h}}, \%conn);
+	push(@{$user_host{$u}{$h}},\%conn);
+	push(@{$user_database{$u}{$d}},\%conn);
+  }
+}
+
+
+print("connections by user:\n");
+foreach my $u (sort keys %users) {
+  my $uc = $users{$u};
+  my $earliest = $uc->[0]->{ts};
+  my $latest = $uc->[$#$uc]->{ts};
+
+  printf("%-10s: %4d conn, %2d hosts, %2d dbs; %s..%s\n",
+		 $u,
+		 $#{$users{$u}}+1, 
+		 (scalar keys %{$user_host{$u}}),
+		 (scalar keys %{$user_database{$u}}),
+		 $earliest, $latest
+		);
+}
+
+
+print("\n\nconnections by host:\n");
+foreach my $h (sort keys %hosts) {
+  printf("%4d $h\n", $#{$hosts{$h}}+1);
+}
