@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id: blast2,v 1.1 2003/07/07 22:59:27 rkh Exp $
+# $Id: blast2,v 1.2 2003/07/16 18:17:41 rkh Exp $
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
@@ -13,12 +13,21 @@ use Unison;
 use Bio::PrimarySeq;
 use Bio::Tools::Run::StandAloneBlast;
 use Bio::Tools::BPbl2seq;
+use Getopt::Long qw(:config gnu_getopt);
+
+my %opts =
+  ( 'show-report' => 0 );
+
+GetOptions( 'show-report|r+' )
+  || die("$0: you are horribly misguided about my arguments\n");
+
+
 
 my ($id1,$id2) = @ARGV;
 
 # temp output file & cleanup
 my $bo = "/tmp/bl2seq-$$.out";
-sub cleanup () { unlink($bo); print(STDERR "cleanup $bo\n") };
+sub cleanup () { unlink($bo); };
 $SIG{$_} = sub { cleanup(); exit 1; } for qw(HUP INT QUIT);
 
 
@@ -45,8 +54,10 @@ while(my $hsp = $report->next_feature) {
 		 $hsp->length(), $hsp->score(), $hsp->P() );
 }
 
-print("BLAST REPORT FOLLOWS\n");
-system("cat $bo");
+if ($opts{'show-report'}) {
+  print("BLAST REPORT FOLLOWS\n");
+  system("cat $bo");
+}
 
 cleanup();
 exit(0);
