@@ -4,6 +4,19 @@ use CGI qw( -debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
 
 
+BEGIN {
+  $ENV{DEBUG} = 1;
+  if ($ENV{DEBUG}) {
+	my $fn = '/tmp/unison-web.log';
+	close(STDERR);
+	if (not open(STDERR, ">>$fn")) {
+	  print("$fn: $!\n");
+	  exit(0);
+	}
+  }
+}
+
+
 BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
 use strict;
 use warnings;
@@ -61,15 +74,16 @@ sub new {
 	if (not defined $v->{pseq_id}) {
 	  $self->die("couldn't infer pseq_id from arguments");
 	}
+
+	# hereafter, we don't want these polluting our variables
+	delete $v->{'q'};
+	delete $v->{alias};
+	delete $v->{md5};
+	delete $v->{seq};
   }
 
-  $self->{userprefs} = $self->{unison}->get_userprefs();
 
-  # hereafter, we don't want these polluting our variables
-  delete $v->{'q'};
-  delete $v->{alias};
-  delete $v->{md5};
-  delete $v->{seq};
+  $self->{userprefs} = $self->{unison}->get_userprefs();
 
   # if we've made it this far, we'll eventually get a page out
   $self->start_html;
@@ -112,7 +126,7 @@ sub page_connect ($) {
 
 
 
-sub infer_pseq_id ($$) {
+sub infer_pseq_id ($) {
   # Most pages should refer to sequences by pseq_id. If pseq_id isn't
   # defined, then we attempt to infer it from given 'seq', 'md5', or
   # 'alias' (in that order).  Furthermore, if none of those are defined
