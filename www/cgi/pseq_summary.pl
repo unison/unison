@@ -6,6 +6,9 @@ use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::Utils qw(alias_link);
+use Unison::features;
+use File::Temp qw(tempfile);
+
 
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
@@ -26,6 +29,15 @@ my @f = qw( origin alias description );
 my $seq = $u->get_sequence_by_pseq_id($v->{pseq_id});
 my $wrapped_seq = $seq; $wrapped_seq =~ s/.{60}/$&\n/g;
 
+
+
+my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => "$ENV{'DOCUMENT_ROOT'}/tmp/pseq-features/",
+											 SUFFIX => '.png' );
+my ($urn) = $png_fn =~ m%^$ENV{'DOCUMENT_ROOT'}(.+)%;
+$png_fh->print( $u->features_graphic($v->{pseq_id}) );
+$png_fh->close( );
+
+
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
 
@@ -44,5 +56,5 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 
 				 '<p>',
 				 $p->group("Features",
-						   "<center><img src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\"></center>")
+						   "<center><img src=\"$urn\"></center>")
 				);
