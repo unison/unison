@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
-$ID = $Id$;
+
+$ID = q$Id: pseq_snp.pm,v 1.1 2005/02/17 00:38:40 mukhyala Exp $;
 #represents a single snp in a given sequence
 package Unison::pseq_snp;
 

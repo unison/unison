@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$ID = $Id$;
+$ID = q$Id: Structure_Template.pm,v 1.1 2005/02/17 00:00:23 mukhyala Exp $;
 #represents a single structure/template for a given sequence
 ###########################################################
 
