@@ -1,0 +1,87 @@
+#! /usr/bin/env perl
+
+#-------------------------------------------------------------------------------
+# NAME: load-pcluster
+# PURPOSE: cluster a set of hsps into representative sets
+# 
+# $Id: cluster,v 1.3 2004/01/29 18:23:06 cavs Exp $
+#-------------------------------------------------------------------------------
+
+use warnings;
+use Getopt::Long;
+use Unison;
+use strict;
+
+my $uni = new Unison();
+
+my $sth = $uni->prepare( 'select * from blatloci where pseq_id in (select pseq_id from pseqset where pset_id=42) order by chr,plus_strand,gstart ' );
+$sth->execute();
+
+my %c;
+my $start  = -1;
+my $stop   = -1;
+my $chr    = '';
+my $str = '';
+my $genasm_id = 1;  # hard-code for now
+while( my $r = $sth->fetchrow_hashref() ) {
+  # append to current cluster  
+	printf("chr%s\t%s\t%d\t%d\t%s\n",$r->{chr},$r->{plus_strand},$r->{gstart},$r->{gstop},$r->{pseq_id}) if $ENV{DEBUG};
+  if ( ($r->{chr} eq $chr) && ($r->{plus_strand} eq $str) && ($r->{gstart} < $stop) ) {
+    push @{$c{$chr}{$str}{$start}{pseq_ids}},$r->{pseq_id};
+    push @{$c{$chr}{$str}{$start}{gstarts}},$r->{gstart};
+    push @{$c{$chr}{$str}{$start}{gstops}},$r->{gstop};
+    $stop = $r->{gstop} if $r->{gstop} > $stop;
+  } 
+  
+  # start a new cluster
+  else {
+    # assign stop to last cluster
+    if ( $stop != -1 ) {
+      $c{$chr}{$str}{$start}{stop} = $stop;
+    }
+    $chr   = $r->{chr};
+    $str   = $r->{plus_strand};
+    $start = $r->{gstart};
+    $stop  = $r->{gstop};
+
+    push @{$c{$chr}{$str}{$start}{pseq_ids}},$r->{pseq_id};
+    push @{$c{$chr}{$str}{$start}{gstarts}},$r->{gstart};
+    push @{$c{$chr}{$str}{$start}{gstops}},$r->{gstop};
+  }
+}
+$c{$chr}{$str}{$start}{stop} = $stop;
+
+
+my $s_sth  = $uni->prepare('select nextval(\'cavs.pcluster_pcluster_id_seq\'::text)');
+my $c_sth  = $uni->prepare('insert into cavs.pcluster (pcluster_id,genasm_id, gstart, gstop, chr, plus_strand) values (?,?,?,?,?,?)');
+my $cm_sth = $uni->prepare('insert into cavs.pcluster_member (pcluster_id, pseq_id, gstart, gstop) values (?,?,?,?)');
+
+# load the clusters
+foreach $chr ( sort { $a cmp $b } keys %c ) {
+	foreach $str ( sort { $a <=> $b } keys %{$c{$chr}} ) {
+		foreach $start ( sort { $a <=> $b } keys %{$c{$chr}{$str}} ) {
+			my $m = '';
+
+			$s_sth->execute();
+			my $row = $s_sth->fetchrow_arrayref();
+			my $pcluster_id = $row->[0];
+			$c_sth->execute($pcluster_id,$genasm_id,$start,$c{$chr}{$str}{$start}{stop},$chr,($str == 0) ? 'false' : 'true');
+			for (my $i=0; $i<scalar(@{$c{$chr}{$str}{$start}{pseq_ids}}); $i++) { 
+				$m .= "$c{$chr}{$str}{$start}{pseq_ids}->[$i] (" .
+					"$c{$chr}{$str}{$start}{gstarts}->[$i] .. $c{$chr}{$str}{$start}{gstops}->[$i]),";
+					$cm_sth->execute($pcluster_id,$c{$chr}{$str}{$start}{pseq_ids}->[$i],
+					  $c{$chr}{$str}{$start}{gstarts}->[$i], $c{$chr}{$str}{$start}{gstops}->[$i]);
+
+			}
+			chop($m);
+			printf("chr%s\t%s\t%d\t%d\t%d\t%s\n",
+				$chr,
+				$str,
+				$start,
+				$c{$chr}{$str}{$start}{stop},
+				($c{$chr}{$str}{$start}{stop}-$start),
+				$m
+			);
+		}
+  }
+}
