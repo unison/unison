@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.33 2005/02/03 00:21:11 mukhyala Exp $>
+S<$Id: Page.pm,v 1.34 2005/02/16 23:07:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -39,6 +39,8 @@ use Error qw(:try);
 
 sub page_connect ($);
 sub infer_pseq_id ($);
+sub dev_instance();
+
 
 our $infer_pseq_id = 0;
 
@@ -279,6 +281,9 @@ sub render {
 
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '  <td class="body">', "\n",
+		  ( dev_instance() ? $p->warn('This is a development
+		  version of Unison. Pages may be unstable and features may change.
+		  Do not bookmark this page.') : ''),
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
 		  '  </td>', "\n",
@@ -851,5 +856,12 @@ sub where {
 }
 
 
-1;
+sub dev_instance () {
+  # return true if this is NOT on the production port (80)
+  # OR if the page is being served by a user development directory
+  return ( (exists $ENV{SERVER_PORT} and $ENV{SERVER_PORT}!=80)
+		   or (exists $ENV{REQUEST_URI} and $ENV{REQUEST_URI} =~ m%/~%) );
+}
 
+
+1;
