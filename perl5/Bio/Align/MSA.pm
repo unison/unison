@@ -1,11 +1,11 @@
-# $Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $
+# $Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $
 # @@banner@@
 
 =head1 NAME
 
 Bio::Align::MSA - multiple sequence alignments
 
-S<$Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $>
+S<$Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -22,7 +22,7 @@ use vars qw($RCSId $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 # Loading preface
 BEGIN
   {
-  $RCSId = '$Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $ ';
+  $RCSId = '$Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $ ';
   print('#',__PACKAGE__,": $RCSId\n") if (defined $ENV{'DEBUG'});
   }
 
@@ -41,7 +41,7 @@ use Bio::Root::Root;
 # Loading preface
 BEGIN
   {
-  $RCSId = '$Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $ ';
+  $RCSId = '$Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $ ';
   print('#',__PACKAGE__,": $RCSId\n") if (defined $ENV{'DEBUG'});
   }
                                                                                                                                                                  
@@ -102,6 +102,7 @@ sub get_alignment {
   my @alignio_formats = qw (bl2seq clustalw emboss fasta mase mega meme 
      msf nexus pfam phylip prodom psi selex stockholm);
   my $searchme = join ('|',@alignio_formats);
+
   # get the clustalw alignment if we have not already done so.
   # CACHING ISSUE!!!!
   if ( ! defined $self->{'alignment'} ) {
@@ -174,40 +175,35 @@ sub _align {
   my $cnt=0;
   my @query_padded;
   my @target_padded;
-  foreach my $seq ( @align ) {
-      print STDERR '-'x80,"\n";
-      # extract sequences and check values for the alignment column $pos
-      print STDERR "id:  " . $seq->display_id() . "\n";
-      print STDERR "start:  " . $seq->start() . "\n";
-      print STDERR "end:  " . $seq->end() . "\n";
+  my @target_name;
 
-      # pad target sequences with '-' to make an alignment to the
-      # query sequence
+  # alignment algorithm:
+  #   1. pad the target alignment within the SimpleAlign objects with 
+  #      '-' to make a full-length alignment
+  #   2. the ungapped query sequence is the universal coordinate system
+  #   3. gaps inserted into the query sequence as a result of
+  #      an alignment to a template, must be reflected in the
+  #      alignments of the templates
+
+  # pad target sequences
+  foreach my $aln ( @align ) {
+    foreach my $seq ( $aln->each_seq() ) {
       if ( $cnt%2 == 0 ) {
-        print STDERR "seq:   " . $seq->seq() . "\n";
         $query_start = $seq->start();
         $query_end   = $seq->end();
         $query_padded[$pair_cnt] = substr ($self->{query}->seq(),1,($query_start - 1)) . $seq->seq() .
           substr( $self->{query}->seq(),$query_end,($query_len-$query_end));
       } else {
-        print STDERR "seq:   " . $seq->seq() . "\n";
+        push @target_name,$seq->display_id();
         $target_padded[$pair_cnt] = '-' x ( $query_start - 1 ) . $seq->seq() . '-'x($query_len-$query_end);
         if ( length($query_padded[$pair_cnt]) != length($target_padded[$pair_cnt]) ) {
           die( "query_padded not the same length as target_padded" );
         }
-        print STDERR "query: $query_padded[$pair_cnt]\n";
-        print STDERR "targt: $target_padded[$pair_cnt]\n";
         $pair_cnt++;
       }
       $cnt++;
+    }
   }
-
-
-  # alignment algorithm:
-  #   1. the ungapped query sequence is the universal coordinate system
-  #   2. gaps inserted into the query sequence as a result of
-  #      an alignment to a template, must be reflected in the
-  #      alignments of the templates
 
   my %query_gap;    # store the number of gaps inserted by a given alignment and residue number
   my %max_gap;      # store the largest gap in all the alignments prior to each residue
@@ -300,8 +296,9 @@ sub _align {
     my $end = ( $start + $offset - 1 ) < $#consensus ? $start + $offset - 1: $#consensus;
     $align .= sprintf("%-22s %s\n","QUERY",join('',@consensus[$start..$end]));
     for (my $i=0; $i<=$#template; $i++) {
-      (my $id=$align[2*$i+1]->display_id()) =~ s/^(.*?)\s.*$/$1/g;
-      $align .= sprintf("%-22s %s\n","$id$i",join('',@{$template[$i]}[$start..$end]));
+      (my $id=$target_name[$i]) =~ s/^(.*?)\s.*$/$1/g;
+      $id .= "-$i-" . $align[$i]->source();
+      $align .= sprintf("%-22s %s\n",$id,join('',@{$template[$i]}[$start..$end]));
     }
     $align .= "\n";
   }
