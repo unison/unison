@@ -6,7 +6,7 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW;
 use Unison::WWW::Table;
 use Unison::pseq_features;
@@ -49,7 +49,7 @@ $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.17 2004/06/15 00:22:08 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.18 2004/06/25 00:20:14 rkh Exp $ ');
 
 
 my $u = $p->{unison};
@@ -60,7 +60,7 @@ my $sc = $sort_col{$v->{sort}};
 # construct query
 $sql->columns('*')
   ->distinct($sc,($sc eq 'acc'?'':'acc,').'clid,sfid,dmid')
-  ->table('v_paprospect2_scop_2')
+  ->table('v_paprospect2_scop')
   ->where("pseq_id=$v->{pseq_id} AND params_id=$v->{params_id}")
   ->order($ob,($sc eq 'acc'?'':'acc,').'clid,sfid,dmid');
 if (defined $v->{pmodelset_id}
@@ -92,7 +92,7 @@ try {
 } catch Unison::Exception with {
   $p->die($_[0],"$sql");
 };
-my $feats = $u->coalesce_scop( \@raw_data );
+my $feats = $u->Unison::pseq_features::coalesce_scop( \@raw_data );
 
 
 # build ar array which will store row data
@@ -173,7 +173,7 @@ if ($N-1-$v->{offset}>0) {
 my $ctl = '<table border=0><tr>' . join('',map {"<td>$_</td>"} @ctl) . '</tr></table>';
 
 
-my @ps = @{ $u->selectall_arrayref('select params_id,name from params where params_id in (1) order by params_id') };
+my @ps = @{ $u->selectall_arrayref('select params_id,name from params_prospect2 order by params_id') };
 my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset order by pmodelset_id') };
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
@@ -183,7 +183,7 @@ print $p->render
    $p->best_annotation($v->{pseq_id}),
 
    '<!-- pseq_prospect2 parameters -->',
-   $p->start_form(),
+   $p->start_form(-method=>'GET'),
    $p->hidden('pseq_id',$v->{pseq_id}),
    '<br>parameters: ', $p->popup_menu(-name => 'params_id',
 									  -values => [map {$_->[0]} @ps],

@@ -53,12 +53,13 @@ try {
 									-format => 'pdb')->next_structure();
   my $thr = ($pf->thread( $seq ))[0];
   $thr->qname($v->{pseq_id});
+  my $root = sprintf("%s-%s-%s",$v->{pseq_id},$template,$v->{params_id});
+  my $filename = "$root.pml";
   print("Content-type: application/x-pymol\n",
-		sprintf("Content-disposition: attachment; filename=%s-%s-%s.pml\n",
-				$v->{pseq_id},$template,$v->{params_id}),
+		# "Content-disposition: inline; filename=$filename\n",
+		"Content-disposition: attachment; filename=$filename\n",
 		"\n",
-		$thr->output_pymol_script( $str,
-								   "$v->{pseq_id}-$template"),
+		$thr->output_pymol_script( $str, $root ),
 	   );
 } catch Bio::Prospect::RuntimeError with {
   $p->die("couldn't generate rasmol script",@_)
