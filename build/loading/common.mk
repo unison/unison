@@ -6,7 +6,7 @@ COMPBIO:=/gne/compbio
 UHOME:=${HOME}/csb-db/unison
 
 PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc
-PATH:=${PATH}:${COMPBIO}/i686-linux-2.6/bin:${COMPBIO}/bin
+PATH:=${PATH}:${COMPBIO_EPREFIX}/bin:${COMPBIO_PREFIX}/bin
 PATH:=${PATH}:/usr/local/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
 export PATH
 
@@ -73,6 +73,11 @@ todo.ids: wanted.ids done.ids
 	/bin/mv -f $@.tmp $@
 	@wc -l $@
 
+genengenes.ids sugen.ids pdb.ids: %.ids:
+	psql -Atc "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
+	sort -u -o $@.tmp $@.tmp
+	/bin/mv $@.tmp $@
+	@wc -l $@
 pset%.ids:
 	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@.tmp
 	sort -u -o $@.tmp $@.tmp
@@ -108,6 +113,11 @@ ggi-me1.ids:
 # get sequences for a set of ids
 %.fa: %.ids
 	get-seq <$< >$@.tmp \
+	&& /bin/mv $@.tmp $@
+
+# get a sequence
+%.fa:
+	get-seq $* >$@.tmp \
 	&& /bin/mv $@.tmp $@
 
 
@@ -194,14 +204,17 @@ PREFIX=?
 
 
 env:
-	env >$@ 2>&1
+	env | sort >$@ 2>&1
 
 
 # Generic cleaning rules
 .PHONY: clean cleaner cleanest
 clean::
 	/bin/rm -f *~ *.bak
+	/bin/rm -f *.tmp
 	/bin/rm -fr *.err
 cleaner:: clean
+	/bin/rm -fr qsub todo
+	find . -name pset\* -type d -print0 | xargs -0rt /bin/rm -fr
 cleanest:: cleaner
-	/bin/rm -fr qsub todo *.ids
+	/bin/rm -fr *.ids *.load *.log

@@ -8,6 +8,9 @@ external: scop
 
 aux: affyannot
 
+run: pfbigpi pftmdetect
+
+DIRS:=affyannot blat pahmm paprospect2 papseq pappsm pfbigpi pftmdetect plocus pmhmm ppintx pseq pseqprop sst
 
 tax.log: pseq.log
 	psql -Uunison -af ../sql/create-pao-tax.sql >$@.err 2>&1
@@ -22,9 +25,13 @@ psets.log: tax.log
 
 
 %.log: %
-	make -C $* >$@.err 2>&1
+	make -C $* pset42.load >$@.err 2>&1
 	/bin/mv $@.err $@
 
 
 # dependencies
 pcluster.log: blat.log
+
+
+clean cleaner cleanest::
+	@for dir in ${DIRS}; do make -C $$dir $@; done
