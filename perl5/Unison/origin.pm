@@ -1,19 +1,16 @@
 =head1 NAME
 
-Unison::porigin -- Unison porigin table utilities
-S<$Id: porigin.pm,v 1.6 2004/06/04 00:04:31 rkh Exp $>
+ Unison::porigin -- Unison porigin table utilities
+ $Id: porigin.pm,v 1.7 2004/07/19 22:20:16 rkh Exp $
 
 =head1 SYNOPSIS
 
-use Unison;
-
-my $u = new Unison;
+ use Unison;
+ my $u = new Unison;
 
 =head1 DESCRIPTION
 
 B<> is a
-
-=head1 ROUTINES AND METHODS
 
 =cut
 
@@ -27,16 +24,29 @@ use warnings;
 
 =pod
 
+=head1 ROUTINES AND METHODS
+
 =over
 
-=item B<Unison::porigin_si_porgin_id( C<origin> )>
+=cut
+
+
+######################################################################
+## porigin_si_porigin_id()
+
+=pod
+
+=item B<< ::porigin_si_porgin_id( C<origin> ) >>
+
+=over
 
 ensure that origin is in the porigin table, return porigin_id
 
 =back
 
 =cut
-sub porigin_si_porigin_id {
+
+sub porigin_si_porigin_id($$) {
   my ($self,$origin) = @_;
   $self->is_open()
 	|| throw Unison::Exception('Unison connection not established');
@@ -48,7 +58,20 @@ sub porigin_si_porigin_id {
 
 
 
-sub porigin_origin_by_porigin_id {
+######################################################################
+## porigin_origin_by_porigin_id()
+
+=pod
+
+=item B<< ::porigin_origin_by_porigin_id( C<porigin_id> ) >>
+
+=over
+
+=back
+
+=cut
+
+sub porigin_origin_by_porigin_id($$) {
   my ($self,$porigin_id) = @_;
   $self->is_open()
 	|| throw Unison::Exception('Unison connection not established');
@@ -58,7 +81,21 @@ sub porigin_origin_by_porigin_id {
   return $rv;
 }
 
-sub porigin_porigin_id_by_origin {
+
+######################################################################
+## porigin_porigin_id_by_origin
+
+=pod
+
+=item B<< $u->porigin_porigin_id_by_origin( C<porigin_id> ) >>
+
+=over
+
+=back
+
+=cut
+
+sub porigin_porigin_id_by_origin($) {
   my ($self,$origin) = @_;
   $self->is_open()
 	|| throw Unison::Exception('Unison connection not established');
@@ -75,19 +112,23 @@ sub get_porigin_id_by_origin {
 
 
 
+######################################################################
+## porigin_last_updated
+
 =pod
 
-=over
-
-=item B<::porigin_last_updated( C<porigin_id>, [set] )>
+=item B<< ::porigin_last_updated( C<porigin_id>, [set] ) >>
 
 If the optional second argument is defined (e.g,. porigin_last_updated(15,1)), then 
 set the last_updated field to now.  In any case, the last_updated value is returned.
 
+=over
+
 =back
 
 =cut
-sub porigin_last_updated {
+
+sub porigin_last_updated($$) {
   my ($self,$porigin_id) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -105,17 +146,23 @@ sub porigin_last_updated {
 
 =pod
 
+=back
+
 =head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
 
 =head1 SEE ALSO
 
+=over 4
+
+=item * perldoc Unison
+
+=back
+
 =head1 AUTHOR
 
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department             
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+see C<perldoc Unison> for contact information
 
 =cut
 
