@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.10 2004/05/19 23:01:05 rkh Exp $
+# $Id: get-seq,v 1.11 2004/05/19 23:08:49 rkh Exp $
 
 use warnings;
 use strict;
@@ -34,7 +34,10 @@ if (defined $opts{pset_id} and (defined $opts{pro_id} or @ARGV)) {
   die("$0: cannot specify pset_id with other sequence selection options\n");
 }
 
-if (defined $opts{pro_id}) {
+if (@ARGV) {
+  # expand ranges like 1..5 to {1,2,3,4,5}
+  @ARGV = map { eval "$_" } @ARGV;
+} elsif (defined $opts{pro_id}) {
   @{$opts{pro_id}} = map {split(/,/,$_)} @{$opts{pro_id}};
   unshift(@ARGV, SPDI_lookup('PRO',@{$opts{pro_id}}));
 } elsif (defined $opts{pset_id}) {
@@ -46,7 +49,6 @@ if (defined $opts{pro_id}) {
   unshift(@ARGV, @Q);
 }
 
-@ARGV = map { eval "$_" } @ARGV;
 
 if (@ARGV) {
   for(my $i=0; $i<=$#ARGV; $i++) {
@@ -127,7 +129,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.10 2004/05/19 23:01:05 rkh Exp $>
+S<$Id: get-seq,v 1.11 2004/05/19 23:08:49 rkh Exp $>
 
 =head1 SYNOPSIS
 
