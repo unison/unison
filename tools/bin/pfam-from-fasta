@@ -38,7 +38,7 @@ my $pfam_sth = $u->prepare(<<EOSQL);
 EOSQL
 
 
-my $Id = '$Id$ ';
+my $Id = '$Id: pfam-from-fasta,v 1.2 2004/11/30 21:56:15 rkh Exp $ ';
 print(STDERR <<EOT);
 # $Id
 # params = $params (params_id = $params_id)
@@ -69,7 +69,7 @@ while( my $bs = $in->next_seq() ) {
 	# distinguish these cases by checking the run_history table.
 	my $z = $u->get_run_timestamp($pseq_id,$params_id,undef,undef);
 	if (defined $z) {
-	  print("  run on $z\n");
+	  print("  run on $z; no hits with E<=$eval_max\n");
 	} else {
 	  print("  not run using parameters '$params'\n");
 	}
