@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.12 2004/05/19 23:47:46 rkh Exp $
+# $Id: get-seq,v 1.13 2004/05/20 01:16:17 rkh Exp $
 
 use warnings;
 use strict;
@@ -43,20 +43,23 @@ if (defined $opts{porigin_id} and (defined $opts{pro_id} or @ARGV)) {
 
 if (@ARGV) {
   # expand ranges like 1..5 to {1,2,3,4,5}
+  if (my @bad = grep {/[^\d.]/} @ARGV) {
+	die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
+  }
   @ARGV = map { eval "$_" } @ARGV;
 } elsif (defined $opts{pset_id}) {
   my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from pseqset where pset_id=$opts{pset_id}")};
   if (not @Q) {
 	die("$0: pset $opts{pset_id} apparently contains no sequences\n");
   }
-  printf(STDERR "# %d sequence ids in pset_id=%d\n", $#Q+1, $opts{pset_id});
+  printf(STDERR "# %d sequence ids in pset_id=%d\n", $#Q+1, $opts{pset_id}) if $opts{verbose};
   unshift(@ARGV, @Q);
 } elsif (defined $opts{porigin_id}) {
   my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from palias where porigin_id=$opts{porigin_id}")};
   if (not @Q) {
 	die("$0: porigin $opts{porigin_id} apparently contains no sequences\n");
   }
-  printf(STDERR "# %d sequence ids in porigin_id=%d\n", $#Q+1, $opts{porigin_id});
+  printf(STDERR "# %d sequence ids in porigin_id=%d\n", $#Q+1, $opts{porigin_id}) if $opts{verbose};
   unshift(@ARGV, @Q);
 } elsif (defined $opts{pro_id}) {
   @{$opts{pro_id}} = map {split(/,/,$_)} @{$opts{pro_id}};
@@ -67,10 +70,10 @@ if (@ARGV) {
 if (@ARGV) {
   for(my $i=0; $i<=$#ARGV; $i++) {
 	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
-		   $i+1,$#ARGV+1, ($i+1)/($#ARGV+1)*100, $ARGV[$i]);
+		   $i+1,$#ARGV+1, ($i+1)/($#ARGV+1)*100, $ARGV[$i]) if $opts{verbose};
 	process1($ARGV[$i]);
   }
-  print(STDERR "\n");
+  print(STDERR "\n") if $opts{verbose};
 } else {
   while (my $id=<>)	{
 	chomp $id;
@@ -112,7 +115,7 @@ sub get1 {
   while( length($seq) )
 	{ $rv .= substr($seq,0,60,'') . "\n"; }
 
-  print(STDERR "# $pseq_id (", $descr[0]||'<no description>', ")\n") if $opts{verbose};
+  #print(STDERR "# $pseq_id (", $descr[0]||'<no description>', ")\n") if $opts{verbose};
   return $rv;
 }
 
@@ -143,7 +146,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.12 2004/05/19 23:47:46 rkh Exp $>
+S<$Id: get-seq,v 1.13 2004/05/20 01:16:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
