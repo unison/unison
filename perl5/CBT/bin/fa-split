@@ -1,0 +1,60 @@
+#!/usr/bin/env perl
+
+=head1 NAME
+
+fa-split -- split a fasta file into individual sequences
+S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+
+=head1 SYNOPSIS
+
+fa-split <seq.fasta
+
+=head1 DESCRIPTION
+
+B<fa-split> creates individual files for each of the sequences in the input
+stream.  Files are named by the sequence id from the fasta tag line with a
+'.fa' suffix.  If this file already exists, #i is added, where i is
+searched sequentially to make the filename unique (e.g,. 'id.fa#5').
+
+
+=head1 BUGS
+
+=head1 SEE ALSO
+
+B<fa-extract>
+
+=head1 AUTHOR
+
+ Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
+ Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
+ Bioinformatics Department
+ 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
+ South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+
+=cut
+
+
+use strict;
+use warnings;
+use Bio::SeqIO;
+
+my $in  = Bio::SeqIO->new(-file => shift, '-format' => 'Fasta');
+
+while( my $seq = $in->next_seq() )
+  {
+  my $id = $seq->display_id();
+  my $fn = "$id.fa";
+  my $i = 0;
+  while (-e $fn)
+	{ $fn = "$id#$i.fa"; }
+
+  my $out = Bio::SeqIO->new(-file => ">$fn", '-format' => 'Fasta');
+  if (not defined $out)
+	{ die("$fn: $!\n"); }
+  $out->write_seq($seq);
+
+  print(STDERR "# wrote $fn\n");
+
+  # $out just falls out of scope wo/closing (no close() method)
+  }
+
