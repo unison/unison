@@ -1,49 +1,179 @@
-/* $Id: unison.css,v 1.2 2003/05/21 23:40:28 rkh Exp $ */
+/* $Id: unison.css,v 1.3 2003/05/27 22:28:31 rkh Exp $     emacs: -*-c-*-  */
+
+
+BODY {
+ background: #FFFFDD;
+}
+
+
+/* page layout */
+TABLE.page {
+ border: grey thin dashed;
+}
+TABLE.page TD {
+ border: grey thin dashed;
+ padding: 0px;
+}
+TABLE.page TD.logo {
+ border: grey thin dashed;
+ padding: 5px;
+}
+TABLE.page TD.cnav {
+ border: grey thin dashed;
+ vertical-align: top;
+}
+
+
+/* navbars */
+/* types; "nav", "subnav", context nav "cnav" */
+TABLE.nav {
+ border: none;
+}
+TABLE.nav TR TD.unselected {
+ border-left: black thin solid;
+ border-right: black thin solid;
+ background: #EAFFE6;
+ width: 50px;
+ padding-left: 5px;
+ padding-right: 5px;
+}
+TABLE.nav TD.selected {
+ border-left: black thin solid;
+ border-right: black thin solid;
+ background: #2BFF00;
+ width: 50px;
+ padding-left: 5px;
+ padding-right: 5px;
+}
+TABLE.nav TD.vbar {
+ border: none;
+ background: #0;
+ width: 5px;
+}
+TABLE.nav TD.selected:hover {
+ color: white;
+ background: #CCCCCC;
+}
+TABLE.nav TD.unselected:hover {
+ color: white;
+ background: #CCCCCC;
+}
+TABLE.nav TD A {
+ text-decoration: none;
+}
+TABLE.nav A:visited, A:link {
+ text-decoration: none;
+}
+
+
+
+
+
+/* grouped data */
+TABLE.group {
+ width: 100%;
+}
+
+TABLE.group TH.grouptag {
+ border: black thin solid;
+ background-color: #BDB6F3;
+ width: 30%;
+ font-size: largest;
+ text-decoration: underline;
+}
+
+TABLE.group TD {
+ border: black thin solid;
+ background-color: #cccccc;
+}
+
+
+
+
+
+
+TABLE.uwtable {
+  background-color: #BDB6F3;
+}
+TABLE.uwtable TH {
+ border: black thin solid;
+ font-size: 100%;
+ background-color: #BDB6F3;
+}
+TABLE.uwtable TD {
+  background-color: white;
+}
+
+
+
+
+
+
+/* miscellany */
+SPAN.error {
+ color: red
+		  }
+SPAN.debug {
+  background-color: #FFFFCC;
+}
+SPAN.sql {
+  background-color: #55ff55;
+}
+
+
+
+
+/* archive */
+/*
+A:hover { background: #66ff66 }
+A.plainlink { border-width: 0; }
+
+
+*/
+
+
+
+/*
+.nav a:visited,.nav a:link,.nav {text-decoration: none; color: #00c;}
+.nav a:active {text-decoration: none; background: #00c; color: #fff;}
+*/
+
+/*
+UL.nav {
+ margin: 0px;
+ padding: 0px;
+ }
+UL.nav LI {
+ display: inline;
+ overflow: hidden;
+ list-style-type: none; }	
+UL.nav LI A {
+ color: black;
+ background:  #FFFFCC;
+
+ border: 1px solid  black;
+ padding: 0px 10px 0px 10px;
+ margin: 0px;
+ text-decoration: none; 
+ font-weight: bold;
+}
+UL.nav LI.selected A {
+ color: green;
+ background:  #FFFFCC;
+
+ border: 1px solid  black;
+ padding: 0px 10px 0px 10px;
+ margin: 0px;
+ font-weight: bold;
+ text-decoration: none; 
+}
+UL.nav LI A:HOVER {
+ color: #FFFFCC;
+ background: #CCCCCC; 
+}
+*/
+
 
 /* #C4C0E2 */
 /* #9e9efa */
 /* #BDB6F3 */
-TABLE.page {
-	border: grey thin dashed;
-	}
-TABLE.page TD {
-	border: grey thin dashed;
-	}
-
-
-TABLE.group {
-	width: 100%;
-	}
-TABLE.group TH.grouptag {
-	border: black thin solid;
-	background-color: #BDB6F3;
-	width: 30%;
-	font-size: largest;
-	text-decoration: underline;
-	}
-TABLE.group TD {
-	border: black thin solid;
-	background-color: #cccccc;
-	}
-
-TABLE.uwtable {
-	background-color: #BDB6F3;
-	}
-TABLE.uwtable TH {
-	border: black thin solid;
-	font-size: 100%;
-	background-color: #BDB6F3;
-	}
-TABLE.uwtable TD {
-	background-color: white;
-	}
-
-SPAN.error {
-	color: red
-	}
-SPAN.debug {
-	background-color: yellow;
-	}
-SPAN.sql {
-	background-color: #55ff55;
-	}
