@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsigcleave [pseq_ids]
 #
-# $Id: run-pfsigcleave,v 1.1 2003/10/09 00:00:53 cavs Exp $
+# $Id: run-pfsigcleave,v 1.2 2003/10/09 22:27:33 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -49,7 +49,7 @@ for(my $i=0; $i<=$#list; $i++) {
   my $pseq_id = $list[$i];
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  printf(STDERR "\rretrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...",
+  printf(STDOUT "retrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...\n",
      $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
   if (not defined $seq) {
     warn("$0: Unison:$pseq_id doesn't exist\n");
@@ -67,17 +67,21 @@ system(join(' ',@cmd));
 
 my $parser = new Genentech::EmbossSimple( 'file' => $temp_out_fn );
 
-while(my @r = $parser->next_result) {
-  my $pseq_id = $r[0]->{'Name'};
-  my $score = $r[0]->{'Score'};
-  my $start = 1;
-  my $end = $r[0]->{'End'}-1;
-  printf(STDERR "\rloading Unison:%-8s (score: %.2f, start: %d, end: %d)\n",
-     $pseq_id,$score,$start,$end);
-  $sth->execute($pseq_id,$start,$end,$score,$run_id);
-  $u->last_run_update($pseq_id,$run_id);
+while(my $r = $parser->next_result) {
+  if ( defined $r->[0] ) {
+    my $pseq_id = $r->[0]->{'Name'};
+    my $score = $r->[0]->{'Score'};
+    my $start = $r->[0]->{'Start'};
+    my $end = $r->[0]->{'End'};
+    printf(STDOUT "\rloading Unison:%-8s (score: %.2f, start: %d, end: %d)\n",
+       $pseq_id,$score,$start,$end);
+    $sth->execute($pseq_id,$start,$end,$score,$run_id);
+    $u->last_run_update($pseq_id,$run_id);
+  } else {
+    printf(STDOUT "\rno sigcleave value");
+  }
 }
 
-print(STDERR "\n");
+print(STDOUT "\n");
 
 exit(0);
