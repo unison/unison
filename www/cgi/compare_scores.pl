@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################
 # compare_scores.pl -- compare scoring systems for pmodelsets
-# $ID = q$Id: compare_scores.pl,v 1.3 2005/02/03 00:23:29 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pl,v 1.4 2005/03/20 03:36:16 rkh Exp $;
 #############################################################
 use strict;
 use warnings;
@@ -14,7 +14,7 @@ use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::SQL;
 use Unison::Exceptions;
-use Unison::compare_scores;
+use Unison::Utils::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -36,7 +36,6 @@ $v = \%v;
 # get tempfiles for the comparison graph's png files
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX=>'.png');
 
-
 sub main {
   try {
 ##
@@ -45,25 +44,25 @@ sub main {
 ##
 
     if (exists $v->{submit}) {
-      ($scores) = Unison::compare_scores::get_p2_scores($u,$v,$v->{score});
+      ($scores) = Unison::Utils::compare_scores::get_p2_scores($u,$v,$v->{score});
 
       if(scalar keys %$scores < 1) {$v->{tag} = "NO DATA" ;}
       else {
 
 	#get scop and pdb codes for all pmodels in pmodelset;
-	Unison::compare_scores::get_scop_pdb($u);
+	Unison::Utils::compare_scores::get_scop_pdb($u);
 	
 	if($v->{Plot} eq 'Clustered') {
-	  $v->{tag} = Unison::compare_scores::display_table($u);
+	  $v->{tag} = Unison::Utils::compare_scores::display_table($u);
 	}
 	elsif($v->{Plot} eq 'Scatter') {
 
-	    my ($data,$map) = Unison::compare_scores::display_points($png_fh);
+	    my ($data,$map) = Unison::Utils::compare_scores::display_points($png_fh);
 	    $v->{tag} = sprintf('<IMG SRC="%s" usemap="#scattermap">%s',$png_urn,$map->imagemap($png_fn, $data));
 	  }
 	elsif($v->{Plot} eq 'Range') {
 
-	  Unison::compare_scores::display_bars($png_fh);
+	  Unison::Utils::compare_scores::display_bars($png_fh);
 	  $v->{tag} = sprintf('<IMG SRC="%s"',$png_urn);
 	}
 	$v->{tag} .= _footnote($v->{Plot});
@@ -76,7 +75,7 @@ sub main {
 
 
     #get the control sets in pset
-    my @controls = @{ $u->selectall_arrayref('select ps.pset_id,ps.name from pset ps join pcontrolset cs on cs.pset_id=ps.pset_id order by ps.pset_id') };
+    my @controls = @{ $u->selectall_arrayref('select ps.pset_id,ps.name from pset ps where ps.pset_id = '.$v->{pcontrolset_id}.' order by ps.pset_id') };
     my %cs = map { $_->[0] => "$_->[1] (set $_->[0])" } @controls;
 
     #get params
