@@ -1,11 +1,17 @@
 #!/usr/bin/env perl
 
+# This script is similar to Unison.pl except that it DOES NOT use the
+# "common" includes. It's intended as an example for people who do not
+# wish to use Unison conventions for env vars and command-line parsing.
+
 use strict;
 use warnings;
-use Unison;
+use Unison::DBI;
 use Unison::Exceptions;
+use Data::Dumper;
 
-my $u = new Unison();
+# must provide at least the following connection info
+my $u = new Unison( host=>'csb', dbname=>'csb', username=>'PUBLIC' );
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
