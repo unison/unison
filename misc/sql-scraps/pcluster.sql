@@ -2,7 +2,7 @@
 -- Name: pcluster.sql
 -- Purpose: sql code for generating tables for storing pcluster results
 --
--- $Id: pcluster.sql,v 1.6 2004/02/09 21:36:27 cavs Exp $
+-- $Id: pcluster.sql,v 1.1 2004/03/02 23:11:35 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
@@ -12,11 +12,11 @@
 DROP TABLE pcluster CASCADE;
 CREATE TABLE pcluster (
     pcluster_id serial NOT NULL,
-		genasm_id integer NOT NULL,
-		gstart integer NOT NULL,
-		gstop integer NOT NULL,
-		chr text NOT NULL,
-		plus_strand boolean NOT NULL,
+    genasm_id integer NOT NULL,
+    gstart integer NOT NULL,
+    gstop integer NOT NULL,
+    chr text NOT NULL,
+    plus_strand boolean NOT NULL,
     created timestamp without time zone DEFAULT now() NOT NULL
 ) WITHOUT OIDS;
 COMMENT ON TABLE pcluster IS 'store pclusters of pseq_ids mapping to same genomic region';
@@ -42,9 +42,9 @@ GRANT SELECT,INSERT,UPDATE on pcluster_pcluster_id_seq to loader;
 DROP TABLE pcluster_member CASCADE;
 CREATE TABLE pcluster_member (
     pcluster_id integer NOT NULL,
-		pseq_id integer NOT NULL,
-		gstart integer NOT NULL,
-		gstop integer NOT NULL
+    pseq_id integer NOT NULL,
+    gstart integer NOT NULL,
+    gstop integer NOT NULL
 ) WITHOUT OIDS;
 COMMENT ON TABLE pcluster_member IS 'stores list of pseq_ids for a given pcluster';
 
@@ -60,3 +60,44 @@ GRANT SELECT ON TABLE pcluster_member TO PUBLIC;
 GRANT INSERT,UPDATE ON TABLE pcluster_member TO loader;
 -- -----------------------------------------------------------------------------
 
+
+-- -----------------------------------------------------------------------------
+-- Name: pclustersetname
+-- Purpose: store pcluster set info
+--
+DROP TABLE pclustersetname CASCADE;
+CREATE TABLE pclustersetname (
+  pclustersetname_id serial NOT NULL,
+  name text,
+  descr text
+) WITHOUT OIDS;
+
+REVOKE ALL ON TABLE pclustersetname FROM PUBLIC;
+GRANT SELECT ON TABLE pclustersetname TO PUBLIC;
+
+ALTER TABLE pclustersetname
+  ADD CONSTRAINT pclustersetname_pkey PRIMARY KEY (pclustersetname_id);
+CREATE UNIQUE INDEX pclustersetname_unq ON pclustersetname USING btree (upper(name));
+-- -----------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------------
+-- Name: pclusterset
+-- Purpose: store sets of pclusters
+--
+DROP TABLE pclusterset CASCADE;
+CREATE TABLE pclusterset (
+  pclustersetname_id integer NOT NULL,
+  pcluster_id integer NOT NULL
+) WITHOUT OIDS;
+
+ALTER TABLE pclusterset 
+  ADD CONSTRAINT pcluster_id_exists FOREIGN KEY (pcluster_id) REFERENCES pcluster(pcluster_id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE pclusterset 
+  ADD CONSTRAINT pclustersetname_id_exists FOREIGN KEY (pclustersetname_id) REFERENCES pclustersetname(pclustersetname_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+CREATE UNIQUE INDEX pclusterset_unq ON pclusterset USING btree (pclustersetname_id,pcluster_id );
+
+REVOKE ALL ON TABLE pclusterset FROM PUBLIC;
+GRANT SELECT ON TABLE pclusterset TO PUBLIC;
+GRANT INSERT,UPDATE ON TABLE pclusterset TO loader;
+-- -----------------------------------------------------------------------------
