@@ -5,7 +5,7 @@ use warnings;
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
-use Unison::WWW::Utils qw(alias_link text_wrap);
+use Unison::WWW::utils qw(alias_link text_wrap);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
