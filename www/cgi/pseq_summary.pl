@@ -81,30 +81,60 @@ sub homologs_group ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
+  my @col_headings = qw(gene pseq_id alias genus/species);
+  my $homologene_url = 'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi';
 
   my @tax_ids = map {$$_[0]} @{$u->selectall_arrayref("SELECT
   	DISTINCT tax_id FROM palias WHERE pseq_id=$v->{pseq_id} AND tax_id IS NOT NULL")};
-  my $tax_ids = join(',',@tax_ids);
-  my @gs = map {$$_[0]} @{$u->selectall_arrayref("SELECT gs from tax.spspec where tax_id in ($tax_ids)")};
 
+
+  if (not @tax_ids) {
+	# There are no tax_ids associated with this sequence.
+	my $sql_h = "select gene_symbol, pseq_id2, best_annotation(pseq_id2),
+  	tax_id2gs(tax_id2) from v_homologene where pseq_id1=$v->{pseq_id} order by 1,4";
+	my $hr = $u->selectall_arrayref($sql_h);
+	do { $_->[0] = shrintf('<a href="$homologene_url?db=homologene&cmd=search&term=%s">%s</a>',$_->[0],$_->[0]) } for @$hr;
+	do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$hr;
+
+	return 
+	  $p->group( ('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene">Homologene</a>'
+				  . $p->tooltip(' ?',
+								"Homologous sequences as determined by NCBI's Homologene project")),
+
+				 '<table width="100%">',
+				 '<tr><td style="background: yellow"><b>', $#$hr+1, ' Homologs</b> ',
+				 sprintf('There are no taxonomic identifiers associated with this sequence. The
+				following are predicted and known homologs (paralogs and orthologs) of this
+				sequence:'),
+				 '</td></tr>',
+				 '<tr><td>', Unison::WWW::Table::render(\@col_headings,$hr), '</td></tr>',
+				 '</table>',
+				 );
+  }
+
+
+  # since we know this sequences' tax_ids (possibly plural!), we can break
+  # the homologs down into para- and orthologs.  Orthologs are selected
+  # only from @ortho_gs genus-species.
   my @ortho_gs = qw/HUMAN MOUSE RAT CAEEL DROME BOVIN BRARE RAT YEAST/;
   my $ortho_gs = join(',', map { "gs2tax_id('$_')" } @ortho_gs);
 
-  my @col_headings = qw(gene pseq_id alias genus/species);
+  my $tax_ids = join(',',@tax_ids);
+  my @gs = map {$$_[0]} @{$u->selectall_arrayref("SELECT gs from tax.spspec where tax_id in ($tax_ids)")};
 
 
   # paralogs:
   my $sql_p = "select gene_symbol, pseq_id2, best_annotation(pseq_id2),
   	tax_id2gs(tax_id2) from v_homologene_paralogs where pseq_id1=$v->{pseq_id} order by 1,4";
   my $pr = $u->selectall_arrayref($sql_p);
-  do { $_->[0] = sprintf('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene&term=%s&cmd=search">%s</a>',$_->[0],$_->[0]) } for @$pr;
+  do { $_->[0] = sprintf('<a href="$homologene_url?db=homologene&cmd=search&term=%s">%s</a>',$_->[0],$_->[0]) } for @$pr;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$pr;
 
   # orthologs:
   my $sql_o = "select gene_symbol, pseq_id2, best_annotation(pseq_id2),
   	tax_id2gs(tax_id2) from v_homologene_orthologs where pseq_id1=$v->{pseq_id} order by 1,4";
   my $or = $u->selectall_arrayref("$sql_o");
-  do { $_->[0] = sprintf('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene&term=%s&cmd=search">%s</a>',$_->[0],$_->[0]) } for @$or;
+  do { $_->[0] = sprintf('<a href="$homologene_url?db=homologene&cmd=search&term=%s">%s</a>',$_->[0],$_->[0]) } for @$or;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$or;
 
   $p->group( ('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene">Homologene</a>'
@@ -112,7 +142,7 @@ sub homologs_group ($) {
 							"Homologous sequences as determined by NCBI's Homologene project")),
 
 			 '<table width="100%">',
-			 '<tr><td style="background: yellow"><b>Paralogs</b> ',
+			 '<tr><td style="background: yellow"><b>', $#$pr+1, ' Paralogs</b> ',
 			 sprintf('This sequence occurs in %d specie%s (%s). The
 				following are predicted and known paralogs of this
 				sequence:', $#gs+1, ($#gs+1>1?'s':''), join(',',@gs)),
@@ -122,19 +152,17 @@ sub homologs_group ($) {
 
 			'<hr>',
 			 '<table width="100%">',
-			 '<tr><td style="background: yellow"><b>Orthologs</b> ',
+			 '<tr><td style="background: yellow"><b>', $#$or+1, ' Orthologs</b> ',
 			sprintf("The following are predicted or known orthologs of
             this sequence from %s", join(',',@ortho_gs)),
 			 '</td></tr>',
 			 '<tr><td>', Unison::WWW::Table::render(\@col_headings,$or), '</td></tr>',
 			 '</table>',
-
-
-#			'<hr>',
-#			$p->sql("$sql_p"),
-#			$p->sql("$sql_o")
 		   );
 }
+
+
+
 
 
 sub features_group ($) {
