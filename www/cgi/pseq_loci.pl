@@ -46,7 +46,7 @@ exit(0);
 
 sub genome_link {
   my ($chr,$gstart,$gstop) = @_;
-  return sprintf('%d:%d-%d <a href="%s"><img src="../av/favicon.gif"></a> <a href="%s"><img src="../av/geode.png"></a>',
+  return sprintf('%d:%d-%d <a href="%s"><img border=0 tooltip="view genomic region in Unison" src="../av/favicon.gif"></a> <a href="%s"><img border=0 tooltip="view genomic region with geode" src="../av/geode.png"></a>',
 				 $chr, $gstart, $gstop,
 				 unison_url($chr, $gstart-$margin, $gstop+$margin),
 				 geode_url($chr, $gstart-$margin, $gstop+$margin));
