@@ -1,24 +1,24 @@
 # -*- sh -*-
-# $Id: utils,v 1.4 2003/09/29 15:28:20 rkh Exp $
+# $Id: utils,v 1.5 2003/10/01 16:05:46 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
-LOGDIR="/services/logs"
 JEMAPPELLE=`basename $0`
-LOGFN="$LOGDIR/$JEMAPPELLE"
-
-
-# redirect all output (stdout + stderr)
-exec >>"$LOGDIR/$JEMAPPELLE" 2>&1
+LOG_DIR="/services/logs"
+LOG_FN="$LOG_DIR/$JEMAPPELLE"
 
 
 # logger -- format a log line
 # logger <message>
 logger () { 
-	DATE=`date +"%Y/%m/%d %H:%M:%S"`
-	echo "$DATE $JEMAPPELLE[$$]" "$@"
-	#if [ -t 0 ]; then
-	#	echo "$DATE $JEMAPPELLE[$$]" "$@"
-	#fi
+	echo `date +"%Y/%m/%d %H:%M:%S"` "$JEMAPPELLE[$$]" "$@"
+}
+
+
+# pipe_logger -- send all lines on stdin to logger
+# NOTE: while sed or similar might seem to be better,
+# that would result in a static datestamp
+pipe_logger () {
+	while read f; do [ -n "$f" ] && logger "$f"; done
 }
 
 
@@ -30,7 +30,19 @@ die () {
 }
 
 
+# dothis -- execute a command and log stdout+stderr
 dothis () {
 	logger "cmd: $@"
-	eval "$@"
+	eval "$@; echo exit status is \$?" 2>&1 | pipe_logger
 }
+
+
+
+if [ -t 0 ]; then
+	logger "logging to stdout/stderr (`tty`)"
+else
+	logger "logging to $LOG_DIR/$JEMAPPELLE"
+	exec >>"$LOG_DIR/$JEMAPPELLE" 2>&1
+fi
+
+
