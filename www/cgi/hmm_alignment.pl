@@ -27,10 +27,12 @@ my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id params_id profiles));
 
+
 my $modelfile = '/gne/compbio/share/pfam-14.0/Pfam_fs.hmm';
 my ($hmmfh, $hmmfn) = $p->tempfile(SUFFIX=>'.hmm');
 my ($seqfh, $seqfn) = $p->tempfile(SUFFIX=>'.fasta');
 my ($htmlfh, $htmlfn) = $p->tempfile(SUFFIX=>'.html');
+
 
 my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 if (not defined $seq)
@@ -71,8 +73,14 @@ $out->write_result($in->next_result);
 seek($htmlfh,0,0);
 my $html;
 while(<$htmlfh>) {
+  next if /Identities/;
   last if /Search Parameters/;
-  $html .= $_;
+  my $line = $_;
+  if(/Expect/) {#could be done better!
+    $line =~ s/\(/\, E \= /;
+    $line =~ s/\), Expect =//;
+  }
+  $html .= $line;
 }
 
 
