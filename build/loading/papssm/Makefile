@@ -13,9 +13,6 @@ LOAD-PAPSSM:=/home/rkh/csb-db/unison/sbin/load-papssm
 BLASTDB=${COMPBIO}/share/blast
 export BLASTDB
 
-export PGHOST=td-svc
-export PGPASSWORD=marge
-
 
 default: $(PROFILES:.chk=.pbo-load.log)
 pbo: $(PROFILES:.chk=.pbo)
