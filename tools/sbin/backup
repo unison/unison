@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: backup,v 1.12 2003/07/31 22:42:23 rkh Exp $
+# $Id: backup,v 1.13 2003/10/01 16:05:46 rkh Exp $
 
 # backup -- backup the csb database
 # you must set PGPASSWORD before running this script
@@ -8,13 +8,13 @@
 
 source `dirname $0`/utils
 
-schema_only=0
+schema=0
 case "$1" in
-	-s) schema_only=1; shift;;
+	-s) schema=1; shift;;
 esac
 
 OPTS=
-if [ "$schema_only" = 1 ]; then
+if [ "$schema" = 1 ]; then
    PGD_OPTS="-s";
 fi
 
@@ -48,7 +48,7 @@ R="$DIR/$DATE.pgdump$PGD_OPTS"
 
 # do the backup
 logger "starting backup (OPTS=$PGD_OPTS; PGHOST=$PGHOST; PGDATABASE=$PGDATABASE; TABLE=$TABLE)"
-(time -p pg_dump $PGD_OPTS $TABLE -X use-set-session-authorization -Uadmin "$PGDATABASE" \
+(time -p pg_dump $PGD_OPTS $TABLE -X use-set-session-authorization -Ucompbio "$PGDATABASE" \
  | gzip -cq) >"$R".gz 2>"$R".err
 E="$?"
 S=`perl -le 'printf( "%.2f", (-s $ARGV[0]) / 2**20)' "$R".gz`
