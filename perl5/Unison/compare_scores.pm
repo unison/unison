@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id$;
+# $ID = q$Id: compare_scores.pm,v 1.2 2005/01/25 23:52:36 mukhyala Exp $;
 ############################################################
 
 package Unison::compare_scores;
@@ -46,7 +46,7 @@ my $scopURL = 'http://scop.berkeley.edu/search.cgi?sunid=';
 my $pdbURL = 'http://www.rcsb.org/pdb/cgi/explore.cgi?pdbId=';
 
 my ($pmodel_scop,$pmodel_pdb);
-my ($scores,$sp,$data,@stats);
+my ($scores,$sp,$data);
 
 ##
 ## 1. get pseqs,pmodels of pmodelset
@@ -100,6 +100,32 @@ sub get_p2_scores($$$) {
   return ($scores);
 }
 
+##############################################################################
+#set scores for dummy pseq '0' in order to separate known and known-not scores
+sub draw_divider {
+
+  my ($x_value) = @_;
+  my ($min,$max) = min_max();
+  my $inc = ($max-$min)/(scalar keys %$scores);
+  my $num=1;
+  foreach my $i (keys %$scores) {
+    $$scores{$i}{$x_value}=$min + $inc * $num++;
+  }
+}
+
+sub min_max {
+  my ($min,$max);
+   foreach my $i (keys %$scores) {
+     foreach my $y (keys %{$$scores{$i}}) {
+       my $val = $$scores{$i}{$y};
+       $min = $val if defined $val && (!defined $min || $val < $min);
+       $max = $val if defined $val && (!defined $max || $val > $max);
+     }
+   }
+  return ($min,$max);
+}
+################################################################################
+
 ##
 ##Reorganize hash suitable for GD::Graph ploting
 ##X labels in first row and their values in subsequent rows
@@ -108,7 +134,10 @@ sub get_p2_scores($$$) {
 sub display_points($) {
 
   my ($png_fh) = @_;
-  my ($cols,$rows,$temp,$imagerefs,$labelrefs,$label_legends);
+  my ($cols,$rows,$temp,$imagerefs,$labelrefs);
+
+  #set scores for dummy pseq '0' in order to separate known and known-not scores
+  draw_divider('0');
 
   push @$cols, keys %$scores;
   foreach my $pseq(sort {$$sp{$a} <=> $$sp{$b}} keys %$sp) {
@@ -124,11 +153,11 @@ sub display_points($) {
 	push @$url, $pdbURL.substr($$pmodel_pdb{$model},0,4);
       }
     }
-    push @$data, $row;#scores for each pseq with this model
+    push @$data, $row;#scores for pseqs with this model
     push @$imagerefs, $url;
     push @$labelrefs, $pdbURL.substr($$pmodel_pdb{$model},0,4);
   }
-  my $map = _plot_points($imagerefs,$labelrefs,$label_legends,$png_fh);
+  my $map = _plot_points($imagerefs,$labelrefs,$png_fh);
   return ($data,$map);
 }
 
@@ -137,7 +166,7 @@ sub display_points($) {
 ##
 sub _plot_points() {
 
-  my ($imagerefs,$labelrefs,$label_legends,$png_fh) = @_;
+  my ($imagerefs,$labelrefs,$png_fh) = @_;
   my $points_graph = GD::Graph::points->new(800, 500);
 
   $points_graph->set(
@@ -170,7 +199,8 @@ sub _plot_points() {
 sub display_bars($) {
 
   my ($png_fh) = @_;
-  my ($cols,$temp,$mins,$maxs,$err_mins,$err_maxs,$err_meds);
+  my ($cols,$temp,$mins,$maxs,$err_mins,$err_maxs,$err_meds,$divider_min,$divider_max);
+  my ($min_all,$max_all) = min_max();
 
   push @$cols, keys %$scores;
   foreach my $pseq(sort {$$sp{$a} <=> $$sp{$b}} keys %$sp) {
@@ -195,6 +225,10 @@ sub display_bars($) {
       push @$err_mins, (defined($min) ? ($mo->query - $sd->query > $min ? $mo->query - $sd->query : $min) : undef);
       push @$err_maxs, (defined($max) ? ($mo->query + $sd->query < $max ? $mo->query + $sd->query : $max) : undef);
       push @$err_meds, (defined($$scores{$$cols[0]}{$pseq}) ? $mo->query : undef);
+      push @$divider_max, undef unless ($pseq == 0);
+      push @$divider_max, $max_all  if ($pseq == 0);
+      push @$divider_min, undef unless ($pseq == 0);
+      push @$divider_min, $min_all  if ($pseq == 0);
     }
   }
   push @$data,$mins;
@@ -202,6 +236,8 @@ sub display_bars($) {
   push @$data,$err_mins;
   push @$data,$err_maxs;
   push @$data,$err_meds;
+  push @$data,$divider_max;
+  push @$data,$divider_min;
   _plot_bars($png_fh);
 }
 
@@ -215,7 +251,7 @@ sub _plot_bars {
   my $bar_graph = GD::Graph::mixed->new(800, 500);
 
   $bar_graph->set(	
-		types         => ['bars','bars','bars','bars','points'],
+		types         => ['bars','bars','bars','bars','points','bars','bars'],
 		x_label       => 'Sequence_ids',
 		y_label       => $params{score}." score",
 		title         => 'Scoring Range for Known and Known-NOT sequences against known Models',
@@ -228,7 +264,7 @@ sub _plot_bars {
 		error_bars    => 1
 	       ) or warn $bar_graph->error;
   $bar_graph->set_legend('', 'Total Scoring Range', '', '1 Std. Dev Range', 'Mean Score');
-  $bar_graph->set(dclrs => [('','blue','','lred','green')]);
+  $bar_graph->set(dclrs => [('','blue','','lred','green','black','black')]);
   _print_graph($bar_graph,$png_fh);
 }
 
@@ -313,7 +349,7 @@ sub get_scop_pdb($) {
 
   my ($u) = @_;
 
-  my @pm_scop = @{ $u->selectall_arrayref('select pmodel_id,sp,pdb,descr from mukhyala.v_scop_pmodel where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
+  my @pm_scop = @{ $u->selectall_arrayref('select pmodel_id,sp,pdb,descr from v_scop_pmodel where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
 
   map {$$pmodel_scop{$_->[0]}{'sunid'} = $_->[1]} @pm_scop;
   map {$$pmodel_scop{$_->[0]}{'name'}  = $_->[2]} @pm_scop;
@@ -369,8 +405,12 @@ sub compute_stats($$) {
   my $sensitivity = $tp/($tp+$fn);
   my $specificity = $tn/($tn+$fp);
 
-  push @{$stats[0]},$sensitivity;
-  push @{$stats[1]},$specificity;
+  #create the data structure for a scatter plot.
+  #create a data structure for a scatter plot with numerical x axis
+  push @{$$data[0]},sprintf("%.2f",$sensitivity); #x values
+  # create a separate series for each y value ([1][0], [2][1], [3][2] ...)
+  my $data_size = $#{$$data[0]};
+  $$data[$data_size+1][$data_size] = sprintf("%.2f",$specificity);
 
   return ($sensitivity,$specificity);
 }
@@ -380,23 +420,19 @@ sub compute_stats($$) {
 ##
 sub plot_stats($$) {
 
-    my ($xref,$png_fh) = @_;
+    my ($legend_ref,$png_fh) = @_;
     my $points_graph = GD::Graph::points->new(800, 500);
 
-    push @$data, $xref;
-    push @$data, $stats[0];
-    push @$data, $stats[1];
-
     $points_graph->set(
-		     x_label       => 'Scoring Method',
-		     y1_label      => 'Value',
+		     x_label       => 'sensitivity',
+		     y1_label      => 'specificity',
 		     title         => 'Specificity and Sensitivity Values',
-		     x_all_ticks   => 1,
-		     marker_size   => 3,
+		     x_tick_number => 'auto',
+		     marker_size   => 4,
 		     legend_placement => 'BC',
 		     ) or warn $points_graph->error;
     $points_graph->set( markers => [5, 7] );
-    $points_graph->set_legend(('sensitivity','specificity'));
+    $points_graph->set_legend(@$legend_ref);
     _print_graph($points_graph,$png_fh);
 }
 1;
