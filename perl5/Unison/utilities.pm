@@ -2,24 +2,18 @@
 
 Unison::utilities -- general Unison utilities
 
-S<$Id: pseq.pm,v 1.14 2004/05/04 04:48:22 rkh Exp $>
+S<$Id: utilities.pm,v 1.5 2004/05/07 21:36:21 rkh Exp $>
 
 =head1 SYNOPSIS
 
-use Unison::utilities;
-
-my $u = new Unison;
-
-my $seq = $u->get_sequence_by_pseq_id( 42 );
-
-(etc.)
+ use Unison::utilities;
 
 =head1 DESCRIPTION
 
-B<Unison::utilities> is a collection of utility functions intended for use
-within the Unison modules. All routines may used outside of Unison and
-I<are not> called with Unison object references (i.e., they're not
-methods).
+B<Unison::utilities> is a collection of utility functions intended
+primarily for use within B<Unison::> modules. However, none of these
+routines are called with Unison object references (i.e., they're not
+methods) and may used outside of B<Unison::>.
 
 =head1 ROUTINES AND METHODS
 
@@ -30,6 +24,10 @@ methods).
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+use base Exporter;
+@EXPORT = ();
+@EXPORT_OK = qw( warn_deprecated range_to_enum clean_sequence );
 
 use strict;
 use warnings;
@@ -57,11 +55,19 @@ missing stack frame info due to optimization.
 =cut
 
 my %already_warned;
-sub warn_deprecated() {
+sub warn_deprecated(;$) {
+  my $msg = shift;
   my ($pkg,$fn,$line,$dep_routine) = caller(1);
   my $instance = "$dep_routine:$fn:$line";	# defines distinct warnings
-  cluck("WARNING: deprecated function $dep_routine() called\n") 
-	unless $already_warned{$instance}++;
+  if (not $already_warned{$instance}++) {
+	if (defined $msg) {
+	  chomp($msg);
+	  $msg = "RECOMMENDATION: $msg\n";
+	} else {
+	  $msg = '';
+	}
+	cluck("WARNING: $dep_routine() is deprecated\n", $msg);
+  }
   #print(STDERR "warn_deprecated($instance) = $already_warned{$instance}\n");
 }
 
