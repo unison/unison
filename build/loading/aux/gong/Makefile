@@ -7,24 +7,26 @@ export PGDATABASE=go
 export PGUSER=admin
 
 
-
 default all:
 	@echo "There ain't no stinking default target, homey.  You may make:"; \
-	echo "  godb.sql -- the postgresql sql create-and-load script"; \
-	echo "  load-godb.log -- actually load the above"; \
+	echo "  load-go.sql -- the postgresql sql create-and-load script"; \
+	echo "  load-go.log -- actually load the above"; \
+	echo "  gong.log -- migrate GO term data to GOng"; \
 	echo "  go.pgdump.gz -- get a pgdump of the go database"; \
-	echo "  clean, cleaner, cleanest -- cleanup stuff"; \
+	echo "  clean, cleaner, cleanest -- delete files (!DANGER!)"; \
 	echo "I know it sounds strange, but consider reading the README file"; \
 	exit 1
 
 
+gong.log: gong.sql load-go.log
+	psql -qaf $< | tee $@.tmp && /bin/mv $@.tmp $@
 
-load-godb.log: godb.sql
-	psql -qaf $< | tee $@.tmp
-	/bin/mv $@.tmp $@
+load-go.log: load-go.sql
+	psql -qaf $< | tee $@.tmp && /bin/mv $@.tmp $@
 
-godb.sql: prep.sql schema.sql load.sql
+load-go.sql: prep.sql schema.sql load.sql
 	cat $^ >$@
+
 
 schema.sql:: tables
 schema.sql:: $(wildcard tables/*.sql)
@@ -38,13 +40,13 @@ tables:
 	echo "  4) type make again"; \
 	exit 1
 
-
 load.sql: $(wildcard tables/*.txt)
 	perl -e 'while(my $$fn=shift) {' \
 	-e 'my ($$t) = $$fn =~ m%(\w+)\.txt%;' \
 	-e 'print "COPY go.$$t FROM '"'"'${PWD}/$$fn'"'"';\n";' \
 	-e '}' $^ >$@.tmp \
 	&& mv $@.tmp $@
+
 
 go.pgdump.gz:
 	pg_dump -O | gzip >$@.tmp && /bin/mv $@.tmp $@
@@ -54,6 +56,6 @@ go.pgdump.gz:
 clean:
 	/bin/rm -f *~ *.bak *.tmp
 cleaner: clean
-	/bin/rm -f godb.sql schema.sql load.sql
+	/bin/rm -f load-go.sql schema.sql load.sql
 cleanest: cleaner
-	/bin/rm -f tables godb.log
+	/bin/rm -f tables load-go.log gong.log

@@ -22,8 +22,9 @@ my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->ensure_required_params(qw(pseq_id run_id));
+$p->ensure_required_params(qw(pseq_id));
 
+$v->{run_id} = 1 unless defined $v->{run_id}; # should be required?
 $v->{offset} = 1 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
@@ -56,6 +57,6 @@ print $p->render("threading summary for unison:$v->{pseq_id} (run_id=$v->{run_id
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->submit(-value=>'align checked'),
 				 $p->end_form(),
-				 '<br><span class="sql">', '<b>SQL query:</b>', $sql, '</span>'
+				 $p->sql($sql)
 				 );
 

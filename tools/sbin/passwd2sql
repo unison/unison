@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+# generate sql create user statements from passwd file
+
+my %logins = map { $_=>1 } @ARGV;
+undef @ARGV;
+
+while(<>)
+  {
+  my @F = split(/:/);
+  if (exists $logins{$F[0]})
+	{
+	printf("create user $F[0] with sysid $F[2] nocreatedb nocreateuser;\n");
+	delete $logins{$F[0]};
+	}
+  }
+
+
+my @remaining = sort keys %logins;
+if (@remaining)
+  {
+  die(sprintf("%d login(s) weren't found: {%s}\n",
+			  $#remaining+1, join(',',@remaining)));
+  }
+exit(0);

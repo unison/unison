@@ -22,7 +22,8 @@ select(STDOUT); $|++;
 my $origin;
 my $filelist;
 my $startafter;
-my $maxlen = 8200;							# empirical limit
+# maxlen is no longer needed to workaround a bug in clean_sequence
+my $maxlen;  #= 8200;						# empirical limit
 my $sqlonly = 0;
 my $nomd5 = 1;								# now default!
 my $noalias = 1;							# now default!
@@ -46,7 +47,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.19 2003/07/13 03:15:46 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.20 2003/07/25 17:38:21 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
@@ -128,12 +129,12 @@ sub process_seq
   my $md5 = md5_hex($seq);
   $nseen++;
 
-  if ($seq ne $oseq)
-	{
-	warn("! $id: sequence modified by s/^[-\*\?A-Z]//g\n",
-		 "orig: $seq\n",
-		 "strp: $oseq\n");
-	}
+#  if ($seq ne $oseq)
+#	{
+#	warn("! $id: sequence modified by s/^[-\*\?A-Z]//g\n",
+#		 "orig: $seq\n",
+#		 "strp: $oseq\n");
+#	}
 
   # description reformatting
   $descr = '' unless defined $descr;
