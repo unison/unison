@@ -1,0 +1,63 @@
+Unison Update Tasks				-*-outline-*-
+
+
+* Data:
+
+** load sequences (SPDI, nr, incyte, ensemble, swiss-prot)
+
+** load new scop
+
+** load go, build gong
+
+** load Prospect2 models
+
+** load HMMs (in-house, Pfam)
+- In addition to loading Pfam, one must also make a new params set for
+  each Pfam because the E-values depend on the number of models.
+
+** load PSSMs (Proceryon, CDD)
+
+** load genome assemblies
+
+** load regexps
+
+
+
+* Data derived in Unison (e.g., by plpgsql code):
+
+** infer_tax_id
+See sbin/update_tax_ids.
+
+** update sets
+select update_uni_sets;
+
+** update stats
+
+
+
+* Precomputed results
+Typically, results are only precomputed for the uni_hmr set, which are
+intended to be high-quality sequences from human, mouse, and rat.
+Currently, there is no single script which runs new sequences.
+
+** run-paprospect2
+
+** run-pahmm
+
+** run-papssm
+
+** run-blat
+
+** pairwise blast
+
+** run regexps
+
+
+
+
+* Other:
+
+** generate blast database files
+
+** generate schema docs
+

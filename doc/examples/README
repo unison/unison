@@ -1,0 +1,8 @@
+This directory contains simple code examples for the Unison perl API.
+
+Sample output is in the *.log files.
+
+The examples in this directory should work, but often omit error checking
+for the sake of clarity. For examples of other code, see the ../bin/ and
+../sbin/ directories.
+
