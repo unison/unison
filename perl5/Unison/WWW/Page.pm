@@ -17,7 +17,7 @@ sub new
 	{ $ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$username"; }
   else
 	{ $username = 'PUBLIC'; }
-
+  $username = 'PUBLIC';
   try
 	{ $self->{unison} = new Unison( username=>$username, password=>undef ); }
   catch Unison::Exception::ConnectionFailed with
@@ -29,10 +29,18 @@ sub new
 		$self->end_html());
 	};
 #  print(STDERR "## unison = ", $self->{unison}, "\n");
+  $self->start_html;
   return $self;
   }
 
 
+
+sub header
+  {
+  my $p = shift;
+  return '' if $p->{already_did_header}++;
+  return $p->SUPER::header();
+  }
 
 sub start_html
   {
