@@ -8,9 +8,11 @@ use Bio::Structure::IO;
 # uses below here might come from ../perl5 if available
 use Unison::WWW;
 use Unison::WWW::Page;
-use Prospect2::Options;
-use Prospect2::LocalClient;
-use Prospect2::Exceptions;
+
+use Prospect::Options;
+use Prospect::LocalClient;
+use Prospect::Exceptions;
+
 
 
 my $pdbDir = '/apps/compbio/share/prospect2/pdb';
@@ -41,15 +43,15 @@ if (not defined $po) {
 $po->{templates} = \@templates;
 
 try {
-  my $pf = new Prospect2::LocalClient( {options=>$po} );
-#  my $pt = new Prospect2::Transformation;
+  my $pf = new Prospect::LocalClient( {options=>$po} );
+#  my $pt = new Prospect::Transformation;
   my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
 									-format => 'pdb')->next_structure();
   my $thr = ($pf->thread( $seq ))[0];
   print("Content-type: application/x-rasmol\n\n",
 		$thr->output_rasmol_script( $str ),
 	   );
-} catch Prospect2::RuntimeError with {
+} catch Prospect::RuntimeError with {
   $p->die("couldn't generate rasmol script",$@)
 };
 

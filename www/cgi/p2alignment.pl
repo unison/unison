@@ -8,9 +8,9 @@ use Data::Dumper;
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
-use Prospect2::Options;
-use Prospect2::LocalClient;
-use Prospect2::Align;
+use Prospect::Options;
+use Prospect::LocalClient;
+use Prospect::Align;
 
 
 my $p = new Unison::WWW::Page;
@@ -30,10 +30,10 @@ if (not defined $po)
   { $p->die("The run_id parameter ($v->run_id) is invalid."); }
 $po->{templates} = \@templates;
 
-my $pf = new Prospect2::LocalClient( {options=>$po} );
+my $pf = new Prospect::LocalClient( {options=>$po} );
 
 my @threads = $pf->thread( $seq );
-my $pa = new Prospect2::Align( -debug=>0,-threads => \@threads );
+my $pa = new Prospect::Align( -debug=>0,-threads => \@threads );
 
 
 
