@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::porigin -- Unison porigin table utilities
-S<$Id: porigin.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
+S<$Id: porigin.pm,v 1.2 2003/07/31 23:56:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -35,6 +35,24 @@ sub porigin_si_porigin_id {
   $self->is_open()
 	|| croak("Unison connection not established");
   my ($rv) = $self->selectrow_array("select porigin_si_porigin_id ('$origin')");
+  return $rv;
+}
+
+
+
+sub porigin_origin_by_porigin_id {
+  my ($self,$porigin_id) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my ($rv) = $self->selectrow_array("select origin from porigin where porigin_id=$porigin_id");
+  return $rv;
+}
+
+sub porigin_porigin_id_by_origin {
+  my ($self,$origin) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my ($rv) = $self->selectrow_array("select porigin_id from porigin where upper(origin)=upper('$origin')");
   return $rv;
 }
 
