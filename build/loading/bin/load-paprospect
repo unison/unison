@@ -1,4 +1,8 @@
 #!/usr/bin/env perl
+# $Id$
+# load-p2thread -- load prospect2 thread results into unison
+# from xml files (optionally with svm scores from sort files)
+
 
 use warnings;
 use strict;
