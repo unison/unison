@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2thread -- Unison p2thread table utilities
-S<$Id: p2thread.pm,v 1.1 2003/06/10 20:27:33 cavs Exp $>
+S<$Id: p2thread.pm,v 1.2 2003/06/11 00:17:36 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -47,9 +47,9 @@ my %uf = (
 =head2 insert_thread()
                                                                                                                                               
  Name:      insert_thread()
- Purpose:   insert 1 Prospect2::Thread object into the database
+ Purpose:   insert 1 Prospect::Thread object into the database
  Arguments: Unison connection, pseq_id, p2params_id, 
-            Prospect2::ThreadSummary or Prospect2::Thread
+            Prospect::ThreadSummary or Prospect::Thread
  Returns:   nada
                                                                                                                                               
 =cut
@@ -62,7 +62,7 @@ sub insert_thread {
     throw Unison::BadUsage( "insertThread() pseq_id provided is missing or invalid" );
   } elsif ( !defined $p2params_id or $p2params_id !~ m/^\d+$/ ) {
     throw Unison::BadUsage( "insertThread() p2params_id provided is missing or invalid" );
-  } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
+  } elsif  ( !defined $t or (ref $t !~ m/Prospect::Thread/ )) {
     throw Unison::BadUsage( "insertThread() thread provided is missing or invalid" );
   }
  
@@ -96,9 +96,9 @@ sub insert_thread {
 =head2 delete_thread()
                                                                                                                                               
  Name:      delete_thread()
- Purpose:   delete 1 Prospect2::Thread object into the database
+ Purpose:   delete 1 Prospect::Thread object into the database
  Arguments: Unison connection, pseq_id, p2params_id, 
-            Prospect2::ThreadSummary or Prospect2::Thread
+            Prospect::ThreadSummary or Prospect::Thread
  Returns:   nada
                                                                                                                                               
 =cut
@@ -111,7 +111,7 @@ sub delete_thread {
     throw Unison::BadUsage( "delete_thread() pseq_id provided is missing or invalid" );
   } elsif ( !defined $p2params_id or $p2params_id !~ m/^\d+$/ ) {
     throw Unison::BadUsage( "delete_thread() p2params_id provided is missing or invalid" );
-  } elsif  ( !defined $t or (ref $t !~ m/Prospect2::Thread/ )) {
+  } elsif  ( !defined $t or (ref $t !~ m/Prospect::Thread/ )) {
     throw Unison::BadUsage( "delete_thread() thread provided is missing or invalid" );
   }
 
