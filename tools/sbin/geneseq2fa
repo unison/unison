@@ -23,8 +23,8 @@ while(my $fn = shift) {
 	$DT =~ s/\)(\w)/)$1/g;
 	$DT =~ s/\n/; /;
 
-	my $descr = sprintf("%s; %s [DT: %s]",
-						$r->{PN}, $r->{PT}, $DT);
+	my $descr = sprintf("%s; %s [DT: %s] [PA: %s] [PI: %s]",
+						$r->{PN}, $r->{PT}, $DT, $r->{PA}||'', $r->{PI}||'');
 	my $ps = Bio::PrimarySeq->new ( -seq => $r->{SQ},
 									-id  => $r->{AC},
 									-desc => $descr,
