@@ -1,45 +1,68 @@
-package Unison;
+package Unison::pseq_features;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+use base 'Exporter';
+@EXPORT = ();
+@EXPORT_OK = qw( pseq_features_panel );
+
 use strict;
 use warnings;
+
 use Bio::Graphics;
 use Bio::Graphics::Feature;
+use Unison::utilities qw( warn_deprecated );
+
 
 
 my %opts = 
   (
    pseq_id => undef,
    width => 750,
-   verbose => 0
+   verbose => 0,
+   pad => 10,
   );
 
-sub features_graphic {
-  my $u = shift;
-  my $q = shift;
-  my $w = shift || $opts{width};
-  my $logo_margin = 10;
-  my $pad = 0;
+sub pseq_features_panel($%);
+sub features_graphic($$;$);
 
-  my $len = $u->selectrow_array( "select len from pseq where pseq_id=$q" );
+
+
+sub features_graphic($$;$) {
+ warn_deprecated();
+ my %opts = %::opts;
+ $opts{pseq_id} = $_[1];
+ $opts{width} = $_[2] if defined $_[2];
+ my $panel = pseq_features_panel($_[0], %opts);
+ return $panel->gd->png();
+}
+
+
+sub pseq_features_panel($%) {
+  my $u = shift;
+  my %opts = (%opts, @_);
+
+  my $len = $u->selectrow_array( "select len from pseq where pseq_id=$opts{pseq_id}" );
   if (not defined $len) {
-	warn("$0: Unison:$q doesn't exist\n");
+	warn("$0: Unison:$opts{pseq_id} doesn't exist\n");
 	return undef;
   }
 
   my $plen = int($len / 100 + 1) * 100;		# round up to nearest thousand
 
   my $panel = Bio::Graphics::Panel->new( -length => $plen,
-										 -width => $w,
-										 -pad_top => $pad,
-										 -pad_left => $pad,
-										 -pad_right => $pad,
-										 -pad_bottom => $pad,
+										 -width => $opts{width},
+										 -pad_top => $opts{pad},
+										 -pad_left => $opts{pad},
+										 -pad_right => $opts{pad},
+										 -pad_bottom => $opts{pad},
 										 -key_style => 'between'
 									   );
 
   $panel->add_track( Bio::Graphics::Feature->new
 					 (-start => 1, -end => $len,
 					  -name => sprintf("Unison:%d; %d AA; %s",
-									   $q, $len, $u->best_alias($q))),
+									   $opts{pseq_id}, $len, $u->best_alias($opts{pseq_id}))),
 					 -glyph => 'arrow',
 					 -tick => 1,
 					 -fgcolor => 'black',
@@ -47,17 +70,17 @@ sub features_graphic {
 					 -label => 1, -description=>1
 				   );
 
-  add_pftmdetect( $u, $panel, $q );
-  add_pfsignalp( $u, $panel, $q );
-  add_pfsigcleave( $u, $panel, $q );
-  add_pfantigenic( $u, $panel, $q );
-  add_pfregexp( $u, $panel, $q );
-  add_papssm( $u, $panel, $q );
-  add_pahmm( $u, $panel, $q );
-  add_paprospect2( $u, $panel, $q );
+  add_pftmdetect( $u, $panel, $opts{pseq_id} );
+  add_pfsignalp( $u, $panel, $opts{pseq_id} );
+  add_pfsigcleave( $u, $panel, $opts{pseq_id} );
+  add_pfantigenic( $u, $panel, $opts{pseq_id} );
+  add_pfregexp( $u, $panel, $opts{pseq_id} );
+  add_papssm( $u, $panel, $opts{pseq_id} );
+  add_pahmm( $u, $panel, $opts{pseq_id} );
+  add_paprospect2( $u, $panel, $opts{pseq_id} );
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.4 2004/04/02 19:37:06 cavs Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.5 2004/06/25 00:20:44 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -70,12 +93,11 @@ sub features_graphic {
 	  my ($sw,$sh) = $ugd->getBounds();
 	  my ($dw,$dh) = $gd->getBounds();
 	  $gd->copy($ugd,
-				$dw-$sw-$logo_margin,$dh-$sh-$logo_margin,
+				$dw-$sw-$opts{logo_margin},$dh-$sh-$opts{logo_margin},
 				0,0,$sw,$sh);
 	}
   }
-  
-  return $gd->png();
+  return $panel;
 }
 
 
@@ -188,7 +210,7 @@ sub add_paprospect2 {
   while ( my $row = $sth->fetchrow_hashref() ) {
 	push @raw_data,$row;
   }
-  my $feats = $u->coalesce_scop( \@raw_data );
+  my $feats = coalesce_scop( $u,\@raw_data );
   my $nfeat = scalar(@{$feats});
   splice(@{$feats},$topN) if $nfeat>$topN;
   my $track = $panel->add_track( 
@@ -449,6 +471,15 @@ sub add_pfregexp {
   }
   return $nadded;
 }
+
+
+package Unison;
+use Unison::utilities qw( warn_deprecated );
+sub features_graphic($$;$) {
+  warn_deprecated();
+  return Unison::pseq_features::features_graphic($_[0],$_[1]);
+}
+
 
 
 1;
