@@ -2,10 +2,10 @@
 
 #-------------------------------------------------------------------------------
 # NAME run-pfsigcleave
-# PURPOSE: run sigcleave and load into unison
+# PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsigcleave [pseq_ids]
 #
-# $Id: run-pfsigcleave,v 1.3 2003/10/07 18:59:37 rkh Exp $
+# $Id: run-pfsigcleave,v 1.1 2003/10/09 00:00:53 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -16,34 +16,32 @@ use IO::Handle;
 use IO::Pipe;
 use Env qw(@PATH);
 use Getopt::Long;
-use Genentech::Sigcleave;
+use Genentech::EmbossSimple;
+use warnings;
+use strict;
 
 my %opts = 
   (
    debug => 0
   );
 GetOptions( \%opts,
-			'debug|d+' )
+      'debug|d+' )
   || die("$0: usage\n");
 
 
-unshift(@PATH, '/usr/local/tools/bin/');
-$ENV{DEBUG}=0;
+$ENV{DEBUG}=1;
 
-my $run_id = 5;								# hardwired for now
+my $run_id = 5;                # hardwired for now
 my $temp_in_fn =  "/tmp/run-pfsigcleave-$$.fa";
 my $temp_out_fn = "/tmp/run-pfsigcleave-$$.out";
-my $sc = new Genentech::Sigcleave;
-
 
 sub run1($$$);
 
 my $u = new Unison;
 
 my @cmd = ('sigcleave', split(' ',$u->run_commandline_by_run_id( $run_id )),"-outfile $temp_out_fn",$temp_in_fn,'2>/dev/null');
-print(STDERR "# running with @cmd\n");
-
-my $sth = $u->prepare( 'insert into pfsigcleave(pseq_id,start,stop,score,run_id) values (?,?,?,?,?,?)' );
+my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
+my $sth = $u->prepare( 'insert into pfsigcleave(pseq_id,start,stop,score,run_id) values (?,?,?,?,?)' );
 
 #my @list = Unison::utils::range_to_enum(@ARGV);
 my @list = @ARGV;
@@ -51,43 +49,35 @@ for(my $i=0; $i<=$#list; $i++) {
   my $pseq_id = $list[$i];
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  printf(STDERR "\rretrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...",
+     $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
   if (not defined $seq) {
-	warn("$0: Unison:$pseq_id doesn't exist\n");
-	return;
+    warn("$0: Unison:$pseq_id doesn't exist\n");
+    return;
   }
+  $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq, -id  => "Unison:$pseq_id") );
 
-  printf(STDERR "\rloading Unison:%-8s (%5d AA); %4d/%4d %3d%% complete...",
-		 $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
-  run1( $u, $pseq_id, $seq );
 }
+$seqio->close();
+
+# run sigcleave
+system(join(' ',@cmd));
+#my $rer = IO::Pipe->new->reader(join( ' ', @cmd, '-outfile', 'stdout',
+  #$temp_in_fn, '2>/dev/null') );
+
+my $parser = new Genentech::EmbossSimple( 'file' => $temp_out_fn );
+
+while(my @r = $parser->next_result) {
+  my $pseq_id = $r[0]->{'Name'};
+  my $score = $r[0]->{'Score'};
+  my $start = 1;
+  my $end = $r[0]->{'End'}-1;
+  printf(STDERR "\rloading Unison:%-8s (score: %.2f, start: %d, end: %d)\n",
+     $pseq_id,$score,$start,$end);
+  $sth->execute($pseq_id,$start,$end,$score,$run_id);
+  $u->last_run_update($pseq_id,$run_id);
+}
+
 print(STDERR "\n");
 
 exit(0);
-
-
-
-
-sub run1($$$) {
-  my $u = shift;
-  my $pseq_id = shift;
-  my $seq = shift;
-
-  # write temp sequence
-  my $seqio = new Bio::SeqIO( -format => 'fasta',
-							  -file => ">$temp_in_fn" );
-  $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq,
-										 -id  => "Unison:$pseq_id") );
-  $seqio->close();
-
-  # run sigcleave
-	system(join(' ',@cmd));
-  #my $rer = IO::Pipe->new->reader(join( ' ', @cmd, '-outfile', $temp_out_fn,
-										#$temp_in_fn, '2>/dev/null') );
-
-  # read sigcleave
-	my ($score,$site) = $sc->getCleavageSite( 'file' => $temp_out_fn );
-
-printf("site:%d, score: %f\n",$site,$score);
-	#$sth->execute($pseq_id,1,$site-1,$score,$run_id);
-	#$u->last_run_update($pseq_id,$run_id);
-}
