@@ -45,7 +45,7 @@ sub do_search {
 
   my $sql = qq/
 	select X1.*,O.origin,AO.alias,AO.descr from (select target as
-	pseq_id,len,pct_ident from blast_results($v->{pseq_id}) union select
+	pseq_id,len,pct_ident from v_papseq where query=$v->{pseq_id} union select
 	pseq_id,len,100 from pseq where pseq_id=$v->{pseq_id}) X1 join
 	pseqalias SA on X1.pseq_id=SA.pseq_id join paliasorigin AO on
 	AO.palias_id=SA.palias_id join porigin O on O.porigin_id=AO.porigin_id
