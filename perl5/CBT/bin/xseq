@@ -1,0 +1,26 @@
+#!/usr/bin/env perl -w
+# xseq -- extract sequences from Swiss-Prot database
+
+BEGIN 
+  {
+  $RCSId = '$Id:: eece Exp $ ';
+  print("# $RCSId\n") if defined $main::DEBUG; 
+  #unshift(@INC,"/ssa17/cbc/opt/lib/perl5");
+  }
+use CBT::SwissProt::DB;
+use CBT::SwissProt::Record;
+
+$db = new CBT::SwissProt::DB;
+$fn = shift
+  || die("missing database\n");
+$db->open("$fn")
+  || die("$fn: $!\n");
+
+foreach $k (sort grep {/_/} $db->keys)
+  {
+  my($r) = new CBT::SwissProt::Record;
+  $r->parse_block( $db->read_record($k) );
+  my($s) = $r->sequence;
+  print($k,':',$s,"\n");
+  }
+

@@ -1,0 +1,130 @@
+This is a draft document on the design of CBT.
+It presents future possibilities, not the present reality.
+
+Desirable Entities
+==================
+- DNA Sequence & Structure
+- RNA Sequence & Structure
+- Protein Sequence & Structure
+- Cartesian Coordinates
+- Internal Coordinates
+- Motifs: Pattern/RegExp, Profile/HMM, Complex (multi-pattern hits)
+- Alignments
+- Algorithms/Processes: smith-waterman, fasta, blast, splash, teiresias
+
+
+Desirable Features
+==================
+- centralized configuration
+- consistant usage syntax
+- facilities for logging methodology (invocation, parameters, etc)
+- separation of command line and visual interface
+- "clean" and extensible interface to user
+- extensible design philosophy
+
+
+Issues
+======
+- modules should autoload
+- how to incorporate GUI elements? Subclass? HASA? (representation & visual)
+- multiple GUIs  (Gnome, Windows, Tk) and other output formats (HTML, VRML)
+- => logical representation has multiple visual representations
+  => how about Sequence::{HTML, VRML} 
+- all visuals should respond to certain commands (draw, select, mousedown, etc)
+  where appropriate
+
+
+Brainstorm
+==========
+- Exceptions/Errors class 
+- Base class :: Exceptions, Exporter
+- URI-like descriptors for databases
+  "get pdb 1crn" should automatically use local or remote as necessary
+  databases: fssp, dssp, ...
+- similar abstraction for algorithms (e.g., web servers)
+- abstraction for distributed processing
+- openness to web-based tools
+
+
+
+Class Hierarchy
+===============
+:  => subclass (ISA)
++  => related (and probably the Perl module directory structure)
+{} => instance variables (HAS-A)
+
+Base
+ + Hash
+ + Exception
+
+
+Sequence
+ + Generic
+ + NA : Generic
+ + DNA : NA
+ + RNA : NA
+ + Protein : Generic
+=> good.  models ISA well
+
+Coordinates
+ + Generic
+ + Internal
+ + Cartesian
+ + Mixed { Internal , Cartesian }
+Coordinates.pm
+=> not sure I like this layout.  Neither ISA nor HASA
+
+Structure 
+ + Generic
+   { Coordinates, atom info, params, etc }
+ + NA, RNA, DNA, Protein : Generic (superfluous subclassing?)
+ + PDB?, mmCIF, ... 
+=> parallels with Sequence (which I think makes sense)
+
+Protein.pm : { Sequence::Protein, Structure::Protein } (ditto RNA, DNA)
+=> Good.  Models HASA
+
+Motif
+ + Generic
+ + Pattern
+ + Profile
+ + Multi
+
+PatternDiscovery
+ + Splash
+ + Teiresias
+ + NYPDBlue
+
++ Options
+
+DB
+ + Generic
+ + Record (w/ link to DB)
+ + LocalFile
+ + MySQL
+ + Web
+
+Alignments
+should be collections (>=2) selection vectors with same cardinality (some
+elements may be undef)
+
+
+
+Prosite::Record DB::Record
+Prosite::DB { DB::x }
+(ditto for swissprot, etc)
+
+
+(Utils::?)
+Selection.pm :
+  enum (1,2,3,6,7,10) <-> range (1-3,6-7,10) <-> vector (1110011001)
+Spawn.pm 
+  spawn jobs
+Annotation.pm
+  generic sequence annotations... should this be in Sequence/?
+  how to interact with visuals?  Can there be structure annotation in the
+  absence of sequence?
+File : IO::File
+  transparently opens compressed (.gz,.Z,.bz2) if present
+  handles normal /path/to/files, as well as
+  URLs like file://foo, http://rcsb.org/xxx.pdb, etc.
