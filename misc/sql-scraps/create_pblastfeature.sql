@@ -1,0 +1,130 @@
+-- -----------------------------------------------------------------------------
+--
+-- NAME: create_pblastfeature.sql
+-- PURPOSE: sql statements and PL/pgSQL commands for creating a
+--          blast feature table and associated procedures
+--
+-- $Id$
+--
+-- -----------------------------------------------------------------------------
+
+\timing
+
+-- -----------------------------------------------------------------------------
+--
+-- create the pblastfeature table as a subclass of pfeature.  add appropriate
+-- indices.
+DROP TABLE pblastfeature;
+CREATE TABLE pblastfeature (
+	t_pseq_id integer NOT NULL,
+	t_start integer NOT NULL,
+	t_stop integer NOT NULL,
+	e_value real NOT NULL,
+	p_value real NOT NULL,
+	hsp_length integer NOT NULL,
+	identities integer NOT NULL,
+	similarities integer NOT NULL,
+	pct_identity real NOT NULL,
+	pct_hsp_coverage real NOT NULL,
+	pct_coverage real NOT NULL
+) INHERITS (pfeature) WITHOUT OIDS;
+COMMENT ON TABLE pblastfeature IS 'stores BLAST features and derived values';
+COMMENT ON COLUMN pblastfeature.pseq_id IS 'query pseq_id';
+COMMENT ON COLUMN pblastfeature.start IS 'starting position (1-based) on the query sequence';
+COMMENT ON COLUMN pblastfeature.stop IS 'ending position (1-based) on the query sequence';
+COMMENT ON COLUMN pblastfeature.t_pseq_id IS 'target pseq_id';
+COMMENT ON COLUMN pblastfeature.t_start IS 'starting position (1-based) on the target sequence';
+COMMENT ON COLUMN pblastfeature.t_stop IS 'ending position (1-based) on the target sequence';
+COMMENT ON COLUMN pblastfeature.e_value IS 'HSP e-value';
+COMMENT ON COLUMN pblastfeature.p_value IS 'HSP p-value';
+COMMENT ON COLUMN pblastfeature.hsp_length IS 'length of HSP including gaps';
+COMMENT ON COLUMN pblastfeature.identities IS 'number of identities';
+COMMENT ON COLUMN pblastfeature.similarities IS 'number of similarities';
+COMMENT ON COLUMN pblastfeature.pct_identity IS 'derived value: identites/hsp_length';
+COMMENT ON COLUMN pblastfeature.pct_hsp_coverage IS 'derived value: hsp_length/length of query sequence';
+COMMENT ON COLUMN pblastfeature.pct_coverage IS 'derived value: length of target sequence/length of query sequence';
+
+ALTER TABLE ONLY pblastfeature
+    ADD CONSTRAINT pseq_id_fk FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE NO ACTION;
+ALTER TABLE ONLY pblastfeature
+    ADD CONSTRAINT t_pseq_id_fk FOREIGN KEY (t_pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE NO ACTION;
+CREATE INDEX pblastfeature_pseq_id ON pblastfeature USING btree (pseq_id);
+CREATE INDEX pblastfeature_t_pseq_id ON pblastfeature USING btree (t_pseq_id);
+CREATE INDEX pblastfeature_pct_identity ON pblastfeature USING btree (pct_identity);
+CREATE INDEX pblastfeature_pct_hsp_coverage ON pblastfeature USING btree (pct_hsp_coverage);
+CREATE INDEX pblastfeature_hsp_length ON pblastfeature USING btree (hsp_length);
+
+
+REVOKE ALL ON TABLE pblastfeature FROM PUBLIC;
+GRANT SELECT ON TABLE pblastfeature TO PUBLIC;
+GRANT INSERT,UPDATE ON TABLE pblastfeature TO loader;
+-- -----------------------------------------------------------------------------
+
+
+-- -----------------------------------------------------------------------------
+--
+-- ins_pblastfeature():
+--   purpose: create a pblastfeature record
+--   arguments: porigin_id, alias, pseq_id, ref_pseq_id
+--   returns: pfeature_id
+--
+CREATE OR REPLACE FUNCTION ins_pblastfeature(integer, integer, integer, integer, integer, integer, real, real, integer, integer, integer)  RETURNS integer AS '
+DECLARE
+	v_q_pseq_id ALIAS FOR $1;
+	v_q_start ALIAS FOR $2;
+	v_q_stop ALIAS FOR $3;
+	v_t_pseq_id ALIAS FOR $4;
+	v_t_start ALIAS FOR $5;
+	v_t_stop ALIAS FOR $6;
+	v_e_value ALIAS FOR $7;
+	v_p_value ALIAS FOR $8;
+	v_hsp_length ALIAS FOR $9;
+	v_identities ALIAS FOR $10;
+	v_similarities ALIAS FOR $11;
+
+	v_pct_identity real;
+	v_pct_hsp_coverage real;
+	v_pct_coverage real;
+	v_pfeature_id integer;
+	v_pftype_id integer;
+	t_seq_len integer;
+	q_seq_len integer;
+	pftype_name varchar;
+BEGIN
+	pftype_name := ''BLAST'';
+	select into v_pfeature_id nextval(''pfeature_pfeature_id_seq'');
+	select into v_pftype_id pftype_id from pftype where name=pftype_name;
+
+	-- error handling
+	IF v_pftype_id is null THEN
+		RAISE EXCEPTION ''Unable to retrieve pftype_id for name=%'',pftype_name;
+	ELSIF v_hsp_length = 0 THEN
+		RAISE EXCEPTION ''hsp_length parameter is 0 - not valid'';
+	END IF;
+
+	-- get sequence lengths for derived values;
+	select into q_seq_len len from pseq where pseq_id=v_q_pseq_id;
+	select into t_seq_len len from pseq where pseq_id=v_t_pseq_id;
+	IF    q_seq_len is null or q_seq_len = 0 THEN
+		RAISE EXCEPTION ''length for pseq_id=% is null or zero'',v_q_pseq_id;
+	ELSIF t_seq_len is null or t_seq_len = 0 THEN
+		RAISE EXCEPTION ''length for pseq_id=% is null or zero'',v_t_pseq_id;
+	END IF;
+
+	-- calculate derived values
+	v_pct_identity := ( v_identities::real / v_hsp_length::real ) * 100.0;
+	v_pct_hsp_coverage := ( v_hsp_length::real / q_seq_len::real ) * 100.0;
+	v_pct_coverage := ( t_seq_len::real / q_seq_len::real ) * 100.0;
+
+	-- do insert
+	insert into pblastfeature ( pfeature_id, pseq_id, pftype_id, start, stop, t_pseq_id, 
+	    t_start, t_stop, e_value, p_value, hsp_length, identities, similarities, pct_identity, 
+	    pct_hsp_coverage, pct_coverage ) values ( v_pfeature_id, v_q_pseq_id, v_pftype_id, v_q_start,
+		v_q_stop, v_t_pseq_id, v_t_start, v_t_stop, v_e_value, v_p_value, v_hsp_length, 
+		v_identities, v_similarities, v_pct_identity, v_pct_hsp_coverage, v_pct_coverage );
+
+	return v_pfeature_id;
+END;
+' LANGUAGE 'plpgsql';
+COMMENT ON FUNCTION ins_pblastfeature(integer, integer, integer, integer, integer, integer, real, real, integer, integer, integer) IS 'insert a blast feature';
+-- -----------------------------------------------------------------------------
