@@ -16,7 +16,7 @@ use Genentech::Unison;
 my $origin;
 my $filelist;
 my $startafter;
-my $maxlen = 10000;
+my $maxlen = 8500;							# empirical limit
 my $sqlonly;
 GetOptions( 'origin|o=s' => \$origin,
 			'filelist|f=s' => \$filelist,
@@ -28,7 +28,6 @@ GetOptions( 'origin|o=s' => \$origin,
   || die("$0: bad usage\n");
 defined $origin
   || die("$0: --origin (-o) is mandatory\n");
-$origin = uc($origin);
 
 
 # whee... globals
@@ -110,7 +109,7 @@ sub process_seq
   $descr =~ s/\s{2,}/ /g;
   $descr =~ s/^\s+//;
   $descr =~ s/\s+$//;
-  if ($origin eq 'SPDI')
+  if ($origin =~ m/spdi/i)
 	{
 	$descr =~ s/\[(?:min|full)\]\s+//;
 	$descr =~ s/\# converted.+//;
@@ -143,7 +142,7 @@ sub process_seq
 	{
 	push(@ids,$1) if $descr =~ s/(UNQ\d+)\s+//;
 	push(@ids,$1) if $descr =~ s/(PRO\d+)\s+//;
-	push(@ids,$id);
+	push(@ids,$id) unless $id =~ m/^</;
 	warn("! $id: didn't match 3 SPDI identifiers (@ids)\n") unless $#ids==2;
     }
   else
