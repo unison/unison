@@ -1,11 +1,11 @@
-# $Id: Align.pm,v 1.3 2003/05/21 22:30:26 rkh Exp $
+# $Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $
 # @@banner@@
 
 =head1 NAME
 
 Bio::Align::MSA - multiple sequence alignments
 
-S<$Id: Align.pm,v 1.3 2003/05/21 22:30:26 rkh Exp $>
+S<$Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -22,7 +22,7 @@ use vars qw($RCSId $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 # Loading preface
 BEGIN
   {
-  $RCSId = '$Id: Align.pm,v 1.3 2003/05/21 22:30:26 rkh Exp $ ';
+  $RCSId = '$Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $ ';
   print('#',__PACKAGE__,": $RCSId\n") if (defined $ENV{'DEBUG'});
   }
 
@@ -34,13 +34,14 @@ use IO::Scalar;
 use Bio::AlignIO;
 use Bio::SimpleAlign;
 use Data::Dumper;
+use Bio::Root::Root;
 
 @ISA = qw( Bio::Root::Root );
                                                                                                                                                                  
 # Loading preface
 BEGIN
   {
-  $RCSId = '$Id: Transformation.pm,v 1.6 2003/03/31 17:35:21 cavs Exp $ ';
+  $RCSId = '$Id: MSA.pm,v 1.1 2003/06/24 17:40:37 cavs Exp $ ';
   print('#',__PACKAGE__,": $RCSId\n") if (defined $ENV{'DEBUG'});
   }
                                                                                                                                                                  
@@ -98,49 +99,25 @@ sub get_alignment {
 
   my $retval = '';
 
-  #
-  # parse the arguments into a parameter hash
-  #
-  my %param = @_;
-  @param{ map { lc $_ } keys %param } = values %param; # lowercase keys
-  $param{'-format'} = $format;
-
-  #
-  # the show_ss and show_seq flags are only valid for html and clustalw output 
-  # (Bio::AlignIO.pm has some issues when I try them)
-  #
-  if ( $param{'-show_ss'} && ( $param{'-format'} !~ m/clustalw|html/i ) ) {
-    print STDERR "Prospect2::Align.pm WARNING: getAlignment() show_ss flag is only valid for " .
-                 "-format => clustalw | html - ignoring\n";
-    $param{ '-show_ss' } = 0;
-  }
-  if ( !$param{'-show_seq'} && ( $param{'-format'} !~ m/clustalw|html/i ) ) {
-    print STDERR "Prospect2::Align.pm WARNING: getAlignment() show_seq flag is only valid for " .
-                 "-format => clustalw | html - ignoring\n";
-    $param{ '-show_seq' } = 1;
-  }
-
-  #
+  my @alignio_formats = qw (bl2seq clustalw emboss fasta mase mega meme 
+     msf nexus pfam phylip prodom psi selex stockholm);
+  my $searchme = join ('|',@alignio_formats);
   # get the clustalw alignment if we have not already done so.
-  #
+  # CACHING ISSUE!!!!
   if ( ! defined $self->{'alignment'} ) {
     $self->_align( @align );
   }
 
-  #
   # default is clustalw  because the alignment is internally stored
   # in clustalw format.  utilize Bio::SimpleAln object for other
   # format tyoes
-  if ( ! defined $param{'-format'} || $param{'-format'} eq 'clustalw' ) {
+  if ( ! defined $format || $format eq 'clustalw' ) {
     $retval = $self->{'alignment'};
-  } elsif ( $param{'-format'} =~ m/html/i ) {
+  } elsif ( $format =~ m/html/i ) {
     my @args;
-  #push(@args,'-css on');          # sigh... won't work to embed in another html
     push(@args,'-html head');
     push(@args,'-ruler on  -width 60');
     push(@args,'-coloring consensus -threshold 80 -consensus on -con_coloring any');
-    #$retval = `echo \"$self->{'alignment'}\" | /usr/local/tools/pkgs/mview-1.47.3/bin/mview -in clustalw -html data -colorfile /usr/local/tools/pkgs/mview-1.47.3/lib/ss_colormap -coloring consensus -width 80 -ruler on -alncolor '#BBBBBB'`;
-    #$retval = `echo \"$self->{'alignment'}\" | mview -in clustalw -html data -coloring consensus -ruler on -alncolor '#BBBBBB'`;
     $retval = `echo \"$self->{'alignment'}\" | mview -in clustalw -alncolor '#BBBBBB' @args`;
 
     # [rkh] strip the surrounding table tags
@@ -148,14 +125,13 @@ sub get_alignment {
     $retval =~ s%\n</TD></TR></TABLE>\n%%;
     $retval =~ s%^%<!-- BEGIN Bio::Align::MSA output -->\n%;
     $retval =~ s%$%\n<!-- END Bio::Align::MSA output -->\n%;
-  } elsif ( $param{'-format'} =~ 
-  m/bl2seq|clustalw|emboss|fasta|mase|mega|meme|msf|nexus|pfam|phylip|prodom|psi|selex|stockholm/i ) {
+  } elsif ( $format =~ m/$searchme/o ){
     my $in_fh = new IO::Scalar;
     my $out_fh = new IO::Scalar;
     $in_fh->open(\$self->{'alignment'});
     $out_fh->open(\$retval);
     my $in  = Bio::AlignIO->new(-fh => $in_fh , '-format' => 'clustalw');
-    my $out = Bio::AlignIO->new(-fh => $out_fh, '-format' => $param{'-format'} );
+    my $out = Bio::AlignIO->new(-fh => $out_fh, '-format' => $format );
 
     while ( my $aln = $in->next_aln() ) {
       $out->write_aln($aln);
@@ -163,8 +139,8 @@ sub get_alignment {
     $in_fh->close();
     $out_fh->close();
   } else {
-    die( "Prospect2::Align.pm ERROR: getAlignment() format ($param{'-format'}) " .
-       "not recognized" );
+    $self->throw( "Bio::Align::MSA ERROR: get_alignment() format ($format) " .
+       "not supported" );
   }
   return( $retval );
 }
@@ -324,9 +300,8 @@ sub _align {
     my $end = ( $start + $offset - 1 ) < $#consensus ? $start + $offset - 1: $#consensus;
     $align .= sprintf("%-22s %s\n","QUERY",join('',@consensus[$start..$end]));
     for (my $i=0; $i<=$#template; $i++) {
-      $align[2*$i+1]->display_id() =~ m/^(.*?)\s/g;
-      my $id = $1;
-      $align .= sprintf("%-22s %s\n",$1,join('',@{$template[$i]}[$start..$end]));
+      (my $id=$align[2*$i+1]->display_id()) =~ s/^(.*?)\s.*$/$1/g;
+      $align .= sprintf("%-22s %s\n","$id$i",join('',@{$template[$i]}[$start..$end]));
     }
     $align .= "\n";
   }
