@@ -19,6 +19,7 @@ sub sequence_group ($);
 sub aliases_group ($);
 sub homologs_group ($);
 sub features_group ($);
+sub mint_group($);
 
 
 my $p = new Unison::WWW::Page();
@@ -32,6 +33,7 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 				 '<p>', aliases_group($p),
 				 '<p>', homologs_group($p),
 				 '<p>', features_group($p),
+                                 '<p>', mint_group($p),
 				);
 
 exit(0);
@@ -186,4 +188,30 @@ sub features_group ($) {
 						   results precomputed -- see the History tab to
 						   determine which analysis have been performed'),
 			"<center><img src=\"$urn\"></center>")
+}
+
+sub mint_group ($) {
+  my $p = shift;
+  my $u = $p->{unison};
+  my $v = $p->Vars();
+
+  my $sql = qq/select sprot_a, best_alias(pseq_id_a), sprot_b, pseq_id_b, best_alias(pseq_id_b), count(*)
+      from sulin.v_mint
+      where pseq_id=$v->{pseq_id} group by sprot_a, sprot_b, pseq_id_a, pseq_id_b/;
+     
+  my $ar = $u->selectall_arrayref($sql);
+  do { $_->[0] = alias_link($_->[0],'Mint') } for @$ar;
+  do { $_->[2] = alias_link($_->[2],'Mint') } for @$ar;
+  do { $_->[3] = pseq_summary_link($_->[3],$_->[3]) } for @$ar;
+
+  my @f = qw ( sprot_a alias_a sprot_b pseq_id_b alias_b count );
+
+  #http://csb:8080/~sulin/csb/unison/bin/pseq_summary.pl?q=6
+
+  $p->group(sprintf('%s (%d)',
+					$p->tooltip('Mint', 'Something about mint.'),
+					$#$ar+1),
+			'These are the aliases from the most reliable sources only; see also ',
+			'<a href="pseq_mint.pl?pseq_id=', $v->{pseq_id}, '">other aliases</a><p>',
+			Unison::WWW::Table::render(\@f,$ar));
 }
