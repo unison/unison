@@ -1,0 +1,7 @@
+#!/bin/sh
+
+source `dirname $0`/utils
+
+logger starting
+dothis /bin/ls "$@"
+logger exiting
