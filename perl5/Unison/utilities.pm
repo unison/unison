@@ -1,18 +1,20 @@
 package Unison;
-use strict;
-use warnings;
-
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+use strict;
+use warnings;
 use Carp qw(cluck);
 
 
 my %already_warned;
 sub warn_deprecated() {
-  my @caller = caller(1);
-  cluck("WARNING: deprecated function $caller[0] called\n") 
-	unless $already_warned{$caller[0]}++;
+  my $dep_routine = (caller(1))[3];
+  my $instance = "$dep_routine";
+  #my $caller = sprintf("%s (%s:%d)", (caller(2))[3,1,2]);
+  #my $instance = "$dep_routine\0$caller";
+  cluck("WARNING: deprecated function $dep_routine() called\n") 
+	unless $already_warned{$instance}++;
 }
 
 
