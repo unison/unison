@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2params -- Unison p2params table utilities
-S<$Id: params.pm,v 1.8 2004/05/04 04:51:18 rkh Exp $>
+S<$Id: params.pm,v 1.9 2004/07/19 22:20:16 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -35,13 +35,15 @@ sub run_commandline_by_params_id($$) {
   return $cl;
 }
 
-sub get_params_id_by_name($$) {
+sub params_id_by_name($$) {
   my ($self,$params_name) = @_;
   $self->is_open()
   || croak("Unison connection not established");
-  my $id = $self->selectrow_array('select params_id from params where upper(name)=?',
-                  undef,uc($params_name));
+  my $id = $self->selectrow_array('select params_id(?)',undef,uc($params_name));
   return $id;
+}
+sub get_params_id_by_name($$) {
+  goto params_id_by_name;
 }
 
 sub get_p2options_by_params_id($) {
