@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.6 2003/09/20 00:35:54 rkh Exp $>
+S<$Id: DBI.pm,v 1.7 2003/10/09 16:59:30 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -39,14 +39,19 @@ use Getopt::Long;
 my $p = new Getopt::Long::Parser;
 $p->configure( qw(gnu_getopt pass_through) );
 
+my $hostname = `hostname`;
 our %opts =
   (
+   # use PGHOST if it's not '', otherwise set based on whether we're
+   # on interceptor (local), comp* (svc), else exocluster (td-svc)
+   # IF PGHOST IS SET AND YOU WANT A UNIX SOCKET CONNECTION,
+   # you'll need to unset PGHOST first.
+   host => ( exists $ENV{PGHOST}
+			 ? ( $ENV{PGHOST} ne '' ? $ENV{PGHOST} : undef )
+			 : ( $hostname eq 'interceptor'
+				 ? undef
+				 : ( $hostname =~ m/^comp\d/ ? 'svc' : 'td-svc' ))),
    dbname => $ENV{PGDATABASE} || 'csb',
-   # setting host here causes a problem: it's sometimes necessary to have
-   # a NULL host setting (and 'localhost' means something else).  If we set
-   # it here, there's no way for a user to undef it.
-   # || ( `hostname` =~ m/^comp\d/ ? 'svc' : 'td-svc'),
-   host => $ENV{PGHOST},
    username => $ENV{PGUSER} || 'PUBLIC',
    password => $ENV{PGPASSWORD} || undef,
    attr => {
@@ -55,6 +60,7 @@ our %opts =
 			AutoCommit => 1
 		   },
   );
+
 
 our @options;
 push( @options, 'dbname|d=s' => \$opts{dbname},
@@ -99,7 +105,7 @@ sub connect {
 											   'username='.$self->{username}."\n" .
 											   'password='.(defined $self->{password} ?
 															'<hidden>' : '<undef>'),
-											   'Perhaps your need to set PGHOST or use -h?'
+											   'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
 											 );
   }
 
