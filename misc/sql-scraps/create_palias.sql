@@ -4,7 +4,7 @@
 -- PURPOSE: sql statements and PL/pgSQL commands for creating a 
 --          palias versioning system
 --
--- $Id: create_palias.sql,v 1.2 2003/04/10 23:32:01 cavs Exp $
+-- $Id: create_palias.sql,v 1.3 2003/05/07 22:49:34 cavs Exp $
 --
 -- -----------------------------------------------------------------------------
 
@@ -79,11 +79,10 @@ vacuum analyze pseqalias;
 vacuum analyze paliasorigin;
 -- -----------------------------------------------------------------------------
 
-
 -- -----------------------------------------------------------------------------
 --
 -- ins_paliasorigin():
---   purpose: create a new paliasorigin record or return known
+--   purpose: backwardly compatible - calls new ins_paliasorigin with NULL tax_id
 --   arguments: porigin_id, alias, descr
 --   returns: palias_id
 --
@@ -95,20 +94,44 @@ DECLARE
 	v_palias_id integer;
 BEGIN
 	-- check whether paliasorigin exists: if yes, then return palias_id, otherwise enter a new record 
+	RAISE WARNING ''deprecated method use ins_paliasorigininteger, text, text, integer) instead'';
+	select into v_palias_id ins_paliasorigin(v_porigin_id, v_alias, v_descr, NULL);
+	return v_palias_id;
+END;
+' LANGUAGE 'plpgsql';
+COMMENT ON FUNCTION ins_paliasorigin(integer, text, text) IS 'backwardly compatible - calls new ins_paliasorigin with NULL tax_id'';
+-- -----------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------------
+--
+-- ins_paliasorigin():
+--   purpose: create a new paliasorigin record or return known
+--   arguments: porigin_id, alias, descr, tax_id
+--   returns: palias_id
+--
+CREATE OR REPLACE FUNCTION ins_paliasorigin(integer, text, text, integer) RETURNS integer AS '
+DECLARE
+	v_porigin_id ALIAS FOR $1;
+	v_alias ALIAS FOR $2;
+	v_descr ALIAS FOR $3;
+	v_tax_id ALIAS FOR $4;
+	v_palias_id integer;
+BEGIN
+	-- check whether paliasorigin exists: if yes, then return palias_id, otherwise enter a new record 
 	RAISE DEBUG ''select into v_palias_id get_paliasorigin_palias_id( %, % )'', v_porigin_id, v_alias;
 	select into v_palias_id get_paliasorigin_palias_id( v_porigin_id, v_alias );
 	--IF not found THEN
 	IF v_palias_id is null THEN
 		select into v_palias_id nextval(''paliasorigin_palias_id_seq'');
-		RAISE DEBUG ''executing insert into alias (palias_id, porigin_id, alias, descr) values (%, %, %, %)'',v_palias_id, v_porigin_id, v_alias, v_descr;
-		insert into paliasorigin (palias_id, porigin_id, alias, descr) values (v_palias_id, v_porigin_id, v_alias, v_descr);
+		RAISE DEBUG ''executing insert into alias (palias_id, porigin_id, alias, descr, tax_id) values (%, %, %, %, %)'',v_palias_id, v_porigin_id, v_alias, v_descr, tax_id;
+		insert into paliasorigin (palias_id, porigin_id, alias, descr, tax_id) values (v_palias_id, v_porigin_id, v_alias, v_descr, tax_id);
 	ELSE 
 		RAISE DEBUG ''record exists for this alias and porigin: %'', v_palias_id;
 	END IF;
 	return v_palias_id;
 END;
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION ins_paliasorigin(integer, text, text) IS 'create a new paliasorigin record or return known palias_id';
+COMMENT ON FUNCTION ins_paliasorigin(integer, text, text, integer) IS 'create a new paliasorigin record or return known palias_id';
 -- -----------------------------------------------------------------------------
 
 
@@ -142,8 +165,9 @@ COMMENT ON FUNCTION get_paliasorigin_palias_id(integer, text) IS 'retrieve the p
 -- -----------------------------------------------------------------------------
 --
 -- assign_alias():
---   purpose: create a pseqalias record for the given paliasorigin and pseq entries
---   arguments: porigin_id, alias, pseq_id, ref_pseq_id
+--   purpose: backwardly compatible version of assign_alias. calls new assign_alias
+--            that includes tax_id support
+--   arguments: porigin_id, alias, descr, pseq_id, ref_pseq_id
 --   returns: palias_id
 --
 CREATE OR REPLACE FUNCTION assign_alias(integer, text, text, integer, integer) RETURNS integer AS '
@@ -157,7 +181,36 @@ DECLARE
 	rv integer;
 	rec record;
 BEGIN
-	select into v_palias_id ins_paliasorigin( v_porigin_id, v_alias, v_descr );
+	-- call new assign_alias that has tax_id support, use NULL for tax_id
+	RAISE WARNING ''deprecated method use assign_alias(integer, text, text, integer, integer, integer) instead'';
+	select into v_palias_id assign_alias( v_porigin_id, v_alias, v_descr, NULL );
+	END IF;
+	return v_palias_id;
+END;
+' LANGUAGE 'plpgsql';
+COMMENT ON FUNCTION assign_alias(integer, text, text, integer, integer) IS 'backwardly compatible version of assign_alias';
+-- -----------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------------
+--
+-- assign_alias():
+--   purpose: create a pseqalias record for the given paliasorigin and pseq entries
+--   arguments: porigin_id, alias, descr, pseq_id, ref_pseq_id, tax_id
+--   returns: palias_id
+--
+CREATE OR REPLACE FUNCTION assign_alias(integer, text, text, integer, integer, integer) RETURNS integer AS '
+DECLARE
+	v_porigin_id ALIAS FOR $1;
+	v_alias ALIAS FOR $2;
+	v_descr ALIAS FOR $3;
+	v_pseq_id ALIAS FOR $4;
+	v_ref_pseq_id ALIAS FOR $5;
+	v_tax_id ALIAS FOR $6;
+	v_palias_id integer;
+	rv integer;
+	rec record;
+BEGIN
+	select into v_palias_id ins_paliasorigin( v_porigin_id, v_alias, v_descr, v_tax_id );
 
 	-- check whether there is a pseqalias entry for this palias_id and pseq_id.  
 	RAISE DEBUG ''select into rec * from pseqalias where porigin_id=% and palias_id=%'',v_porigin_id, v_palias_id;
@@ -180,7 +233,7 @@ BEGIN
 	return v_palias_id;
 END;
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION assign_alias(integer, text, text, integer, integer) IS 'create a pseqalias record for the given paliasorigin and pseq entries';
+COMMENT ON FUNCTION assign_alias(integer, text, text, integer, integer, integer) IS 'create a pseqalias record for the given paliasorigin and pseq entries';
 -- -----------------------------------------------------------------------------
 
 
@@ -188,7 +241,7 @@ COMMENT ON FUNCTION assign_alias(integer, text, text, integer, integer) IS 'crea
 --
 -- then create a backwardly compatible view (palias)
 --
-CREATE VIEW palias as select pa.palias_id, pv.pseq_id, pa.porigin_id, pa.alias, pa.descr, pv.ref_pseq_id, pv.added from
+CREATE VIEW palias as select pa.palias_id, pv.pseq_id, pa.porigin_id, pa.alias, pa.descr, pa.tax_id, pv.ref_pseq_id, pv.added from
 paliasorigin pa, pseqalias pv where pv.palias_id=pa.palias_id and isCurrent=true;
 GRANT SELECT ON palias TO PUBLIC;
 COMMENT ON VIEW palias IS 'backwardly compatible - joins paliasorigin and pseqalias tables';
@@ -201,7 +254,7 @@ COMMENT ON VIEW palias IS 'backwardly compatible - joins paliasorigin and pseqal
 --
 CREATE OR REPLACE RULE ins_palias AS ON INSERT TO palias DO INSTEAD
 (
-select assign_alias( NEW.porigin_id, NEW.alias, NEW.descr, NEW.pseq_id, NEW.ref_pseq_id );
+select assign_alias( NEW.porigin_id, NEW.alias, NEW.descr, NEW.pseq_id, NEW.ref_pseq_id, NEW.tax_id );
 )
 -- -----------------------------------------------------------------------------
 
@@ -216,36 +269,4 @@ ALTER TABLE ONLY pseqalias
     ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE ONLY pseqalias
     ADD CONSTRAINT ref_pseq_id_exists FOREIGN KEY (ref_pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE NO ACTION;
--- -----------------------------------------------------------------------------
-
--- -----------------------------------------------------------------------------
---
--- add back a few views that were dropped with the table alterations. Not sure that this are that useful
---
-
-CREATE VIEW v_pseqsummary AS
-    SELECT q.pseq_id, o.origin, a.alias, a.descr, q.len, q.seq FROM ((pseq q FULL JOIN palias a ON ((q.pseq_id = a.pseq_id))) LEFT JOIN porigin o ON ((a.porigin_id = o.porigin_id))) ORDER BY q.pseq_id, o.origin, a.alias;
-REVOKE ALL ON TABLE v_pseqsummary FROM PUBLIC;
-GRANT SELECT ON TABLE v_pseqsummary TO PUBLIC;
-GRANT INSERT,UPDATE ON TABLE v_pseqsummary TO loader;
-
-CREATE VIEW v_palias AS
-    SELECT palias.pseq_id, porigin.origin, palias.alias, palias.descr FROM palias, porigin WHERE (palias.porigin_id = porigin.porigin_id) ORDER BY palias.pseq_id;
-REVOKE ALL ON TABLE v_palias FROM PUBLIC;
-GRANT SELECT ON TABLE v_palias TO PUBLIC;
-GRANT INSERT,UPDATE ON TABLE v_palias TO loader;
--- -----------------------------------------------------------------------------
-
-
--- -----------------------------------------------------------------------------
---
--- v2thread_cavs(): view combining thread and scop information
---
-drop view v_p2thread_cavs;
-create view v_p2thread_cavs as SELECT t.pseq_id, b.name, t.raw, t.svm, t.mutation, t.pairwise, t.singleton, t.gap, 
-sf.descr as "SCOP Superfamily", fa.descr as "SCOP Family", dm.descr as "SCOP Protein"
-FROM (((((p2thread t JOIN p2template b ON ((t.pmodel_id = b.pmodel_id))) JOIN cla px ON ((px.sunid = b.sunid))) 
-JOIN des sf ON ((sf.sunid = px.sf))) JOIN des fa ON ((fa.sunid = px.fa))) JOIN des dm ON ((dm.sunid = px.dm))) ORDER BY t.raw ASC;
-
-grant SELECT on v_p2thread_cavs to public;
 -- -----------------------------------------------------------------------------
