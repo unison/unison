@@ -2,7 +2,7 @@
 # 
 
 
-SEQDB:=/apps/compbio/share/seqdb/aa/new
+SEQDB:=/gne/compbio/share/seqdb/aa/new
 PATH:=${RHOME}/csb-db/unison/bin:${PATH}
 PERL5LIB=~rkh/csb-db/unison/perl5
 TIME:=/usr/bin/time -p
