@@ -1,0 +1,69 @@
+#!/usr/bin/env perl
+# load-pmprofile -- loads psiblast profiles into unison
+# $Id: load-pfprofile,v 1.1 2003/04/30 21:09:34 rkh Exp $
+
+
+use strict;
+use warnings;
+use Digest::MD5;
+use Getopt::Long qw(:config gnu_getopt);
+use IO::File;
+use Unison;
+use Bio::Tools::BPpsilite;
+
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
+my %options;
+GetOptions( \%options,
+			@Unison::options,
+			'pmodel-name|P=s',
+			'pmodel-id|pmodel_id|p=i')
+  || die("options");
+
+my $fh = new IO::File;
+my $u = new Unison;
+
+my $pmodel_id;
+if (defined $pmodel_id)
+  { $pmodel_id = $options{'pmodel_id'}; }
+else
+  {
+  my $sql = "select pmodel_id from pmpssm where name='".$options{'pmodel-name'}."'";
+  $pmodel_id = $u->selectrow_array($sql);
+  }
+
+(defined $pmodel_id)
+  || die("$0: couldn't find the pmodel_id\n");
+print("# loading for pmodel_id=$pmodel_id\n");
+
+my $sth;
+$sth = $u->prepare("insert into papssm(pmodel_id,pseq_id,start,stop,eval,".
+				   "len,score,ident,pos,gap) values ($pmodel_id,?,?,?,?,?,?,?,?,?)")
+  || die($u->errstr());
+
+my $fn = shift;
+$fh->open("<$fn")
+  || die("$fn: $!\n");
+my $r = Bio::Tools::BPpsilite->new(-fh=>$fh);
+my $j = $r->number_of_iterations;
+my $R = $r->round($j);
+while( my $subj = $R->nextSbjct )
+  {
+  my ($pseq_id) = $subj->name =~ m/Unison:(\d+)/;
+  if (not defined $pseq_id)
+	{ warn("couldn't parse Unison pseq_id from ", $subj->name, "\n"); next; }
+  while( my $hsp = $subj->nextHSP)
+	{
+	printf("#    $pseq_id\[%d:%d] (sc=%d,E=%g,ide/pos/gap/len=%d/%d/%d/%d\n",
+		   $hsp->hit->start, $hsp->hit->end,
+		   $hsp->score, $hsp->P, $hsp->match, $hsp->positive,
+		   $hsp->gaps, $hsp->hsplength);
+	$sth->execute($pseq_id,$hsp->hit->start,$hsp->hit->end,
+				  $hsp->P, $hsp->hsplength, $hsp->score, $hsp->match,
+				  $hsp->positive, $hsp->gaps);
+	}
+  }
+
+$sth->finish();
+$u->disconnect();

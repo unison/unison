@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- retrieve sequences from unison
-# $Id$
+# $Id: get-seq,v 1.4 2003/05/02 05:37:47 rkh Exp $
 
 use warnings;
 use strict;
@@ -28,7 +28,7 @@ if (@ARGV)
 else
   {
   while (my $id=<>)
-	{ get1($id) }
+	{ process1($id) }
   }
 
 exit(0);
@@ -71,7 +71,7 @@ sub get1
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: pl,v 1.1 2000/08/14 02:33:02 reece Exp $>
+S<$Id: get-seq,v 1.4 2003/05/02 05:37:47 rkh Exp $>
 
 =head1 SYNOPSIS
 

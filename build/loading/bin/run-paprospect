@@ -33,11 +33,13 @@ my %options;
 GetOptions(\%options,
 		   @Unison::options,
 		   'p2params_id|p=i',
+		   #'update|u+'						# force update (delete rows before insert)
 		  )
   || die("$0: bad usage\n");
 
 my $u = new Unison;
 my $po = $u->get_p2options_by_p2params_id($options{p2params_id});
+# FIX: make this a command line option
 $po->{tfile} = '/home/rkh/prospect/tfiles/all';
 my $pc = new Prospect2::LocalClient( options=>$po );
 

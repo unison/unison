@@ -4,7 +4,10 @@ DECLARE
 	a_id alias for $1;
 	rv text;
 BEGIN
-	if a_id is null then return; end if;
+	if a_id is null then
+		return a_id;
+	end if;
+
 	select into rv 
 		O.origin || '':'' || A.alias || '' ('' || A.descr || '')'' 
 		from paliasorigin A

@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.2 2003/04/30 21:11:22 rkh Exp $>
+S<$Id: DBI.pm,v 1.3 2003/05/16 00:21:01 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -33,16 +33,17 @@ use Unison::Exceptions;
 use Getopt::Long;
 my $p = new Getopt::Long::Parser;
 $p->configure( qw(gnu_getopt pass_through) );
-our %options =
+our %opts =
   (
    dbname => $ENV{PGDATABASE} || 'csb',
    host => $ENV{PGHOST} || ( `hostname` =~ m/^comp\d/ ? 'svc' : 'td-svc'),
-   username => $ENV{PGUSER} || 'PUBLIC'
+   username => $ENV{PGUSER} || 'PUBLIC',
+   password => $ENV{PGPASSWORD}
   );
 our @options;
-push( @options, 'dbname|d=s' => \$options{dbname},
-				'host|h=s' => \$options{host},
-				'username|U=s' => \$options{username} );
+push( @options, 'dbname|d=s' => \$opts{dbname},
+				'host|h=s' => \$opts{host},
+				'username|U=s' => \$opts{username} );
 $p->getoptions( @options );
 
 our %attr =
@@ -55,7 +56,7 @@ our %attr =
 sub new
   {
   my $type = shift;
-  my %self = (%options, @_);
+  my %self = (%opts, @_);
   my $self = bless(\%self,$type);
   $self->connect();
   return $self;
@@ -79,7 +80,7 @@ sub connect
   my $dsn = shift || sprintf('dbi:Pg:dbname=%s;host=%s',
 							 $self->{dbname},$self->{host});
   my $username = shift || $self->{username};
-  my $pass = shift || $ENV{'PGPASSWORD'};
+  my $pass = shift || $self->{password};
   my $attr = shift || \%attr;
   my $dbh = DBI->connect($dsn,$username,$pass,$attr);
   if (defined $dbh)
@@ -90,7 +91,7 @@ sub connect
   throw Unison::Exception::ConnectionFailed( "couldn't connect to unison",
 											 "dsn=$dsn\n" .
 											 'username='.$self->{username}."\n" .
-											 'password='.(defined $ENV{'PGPASSWORD'}?'<pass>':'<undef>') );
+											 'password='.(defined $pass ?'<hidden>':'<undef>') );
   return undef;
 =pod
 
