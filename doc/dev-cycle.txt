@@ -1,6 +1,6 @@
 CSB-DB LIFE CYCLE
 -----------------
-$Id: dev-cycle.txt,v 1.2 2004/01/09 19:24:48 rkh Exp $
+$Id: dev-cycle.txt,v 1.3 2004/01/09 19:38:21 rkh Exp $
 
  	phase:     	|	development     |   staging         |  	production
 ----------------|-------------------|-------------------|-------------------|
@@ -47,17 +47,20 @@ in csb-dev:
 - schema changes are made and tested
 - data may be loaded (but may be dropped at will if csb-dev needs to be reverted)
 
-DS: development-to-staging process
-- csb-dev is RENAMEd to csb-stage
+DS: development-to-staging process (script)
+- update version
+- analyze
+- stats
 
 in csb-stage:
 - schema frozen
 - data may be loaded; lost only if csb-stage is rejected for serious schema issues
 - API, command line tools, and web interface is tested
 
-SP: staging-to-production process
-- csb-stage is renamed to csb
-- csb-dev is recreated from csb
+SP: staging-to-production process (script)
+- update version
+- analyze
+- stats
 - all insert, delete, and update privileges are dropped from tables in
 unison schema (user schemas remain writable)
 
@@ -67,3 +70,14 @@ in csb:
 
 PD: production-to-development
 - csb is copied to development so that dev begins on current prod database
+
+
+
+questions
+---------
+- where to store version number?
+- copy v. dump/restore
+- version number scheme
+simple case: dev-1.1 -> stage-1.1 -> prod-1.1 -> dev-1.2 -> ...
+what about: multiple stagings during development?
+
