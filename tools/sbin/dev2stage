@@ -1,8 +1,8 @@
 #!/bin/sh -e
 # copy dev database to stage
-# $Id: dev2stage,v 1.3 2004/05/01 00:45:47 rkh Exp $
+# $Id: dev2stage,v 1.4 2004/05/04 05:59:34 rkh Exp $
 
-echo '# $Id: dev2stage,v 1.3 2004/05/01 00:45:47 rkh Exp $' 1>&2
+echo '# $Id: dev2stage,v 1.4 2004/05/04 05:59:34 rkh Exp $' 1>&2
 
 if [ $# != 1 -o -z "$1" ]; then
 	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
@@ -13,6 +13,8 @@ export PGDATABASE="$1"
 export PGUSER=compbio
 
 DUMP_OPTS=${DUMP_OPTS:-}
+
+echo `date +'%Y-%m-%d %H:%M:%S'`: $0 started
 
 # new stage database must not already exist
 # die if a connection to it succeeds
@@ -32,15 +34,13 @@ createlang plperlu
 SCHEMAS="gong scop tax unison"
 for s in $SCHEMAS; do
 	pg_dump $DUMP_OPTS -n "$s" "csb-dev" \
-	| perl -p \
-		-e 'print "create function porigin_id(text) returns integer language sql as \047select 1\047;\n" if /CREATE FUNCTION porigin_id_lookup/;' \
-		-e 's/(CREATE)\s+(FUNCTION porigin_id)/$1 or replace $2/;' \
 	| psql -qaf-
 done
 
 psql -qaf- <<EOF
 alter database "$PGDATABASE" set search_path = unison,gong,scop,tax;
-select  meta_update_kv('release',now());
+select  meta_update_kv('release timestamp',now());
 analyze verbose;
 EOF
 
+echo `date +'%Y-%m-%d %H:%M:%S'`: $0 done
