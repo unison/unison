@@ -17,16 +17,13 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-my $sql = qq/select O.origin,AO.alias,AO.descr from pseqalias SA
-			join paliasorigin AO on AO.palias_id=SA.palias_id
-			join porigin O on O.porigin_id=AO.porigin_id
-			where SA.pseq_id=$v->{pseq_id} and SA.iscurrent=true and AO.porigin_id!=10031
-			order by O.ann_pref/;
+my $sql = qq/select pstart,pstop,genome.name,chr,gstart,gstop,ident,eval
+			from plocus natural join genome where plocus.pseq_id=$v->{pseq_id}/;
 my $ar = $u->selectall_arrayref($sql);
-my @f = qw( origin alias description );
+my @f = ('pstart', 'pstop', 'genome name', 'chr', 'gstart', 'gstop', 'ident', 'eval' );
 
-print $p->render("Aliases of Unison:$v->{pseq_id}",
-				 $p->group("Aliases of Unison:$v->{pseq_id}",
+print $p->render("Loci of Unison:$v->{pseq_id}",
+				 $p->group("Loci",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)
 				);

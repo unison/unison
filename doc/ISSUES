@@ -4,12 +4,6 @@ issues / todo:
 
 IMPORTANT:
 
-* Gene Ontology
-  link models and sequences to GO, with interpro2go, spkw2go
-
-* p2thread -> pfp2thread
-  rename for conformity (pfeatures have prefix pf)
-
 * sequence representatives
   Currently, all sequences in pseq are equal.  In reality, sequences may
   be usefully related by: 1) subsequences, 2) alternative splicing, 3)
@@ -59,4 +53,10 @@ DONE
   ontology too, but I can't find any reference to such.  Propose to GO?
 
 * pftype2pftype_id( ) lookup function  DONE
+
+* Gene Ontology
+  link models and sequences to GO, with interpro2go, spkw2go
+
+* p2thread -> pfp2thread
+  rename for conformity (pfeatures have prefix pf)
 

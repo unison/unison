@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.5 2003/06/03 22:09:51 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.6 2003/06/30 16:28:27 rkh Exp $     emacs: -*-c-*-  */
 
 
 BODY {
@@ -86,7 +86,7 @@ TABLE.group {
 TABLE.group TH.grouptag {
  border: black thin solid;
  background-color: #BDB6F3;
- width: 30%;
+ width: 20%;
  font-size: largest;
  text-decoration: underline;
 }
@@ -125,8 +125,12 @@ SPAN.error {
 SPAN.debug {
   background-color: #FFFFCC;
 }
-SPAN.sql {
+div.sql {
   background-color: #55ff55;
+  border: none;
+  padding: 2px;
+  margin: 10px;
+  font-family: monospace;
 }
 
 

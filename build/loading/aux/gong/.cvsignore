@@ -3,3 +3,4 @@ go.pgdump.gz
 godb.sql
 load.sql
 schema.sql
+load-go.sql

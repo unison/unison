@@ -1,5 +1,5 @@
 # -*- sh -*-
-# $Id: utils,v 1.1 2003/04/25 23:13:21 rkh Exp $
+# $Id: utils,v 1.2 2003/05/07 23:51:50 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 LOGDIR="/services/logs"
@@ -8,10 +8,10 @@ LOGFN="$LOGDIR/$JEMAPPELLE"
 
 # logger -- format a log line
 # logger <message>
-logger ()
-	{ 
-	echo `date +"%Y/%m/%d %H:%M:%S"` "$JEMAPPELLE[$$]" "$@" >>"$LOGFN"
+logger () { 
+	DATE=`date +"%Y/%m/%d %H:%M:%S"`
+	echo "$DATE $JEMAPPELLE[$$]" "$@" >>"$LOGFN"
 	if [ -t 0 ]; then
-		echo `date +"%Y/%m/%d %H:%M:%S"` "$JEMAPPELLE[$$]" "$@" 1>&2
+		echo "$DATE $JEMAPPELLE[$$]" "$@" 1>&2
 	fi
 	}
