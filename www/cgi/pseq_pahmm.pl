@@ -13,19 +13,51 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+$v->{params_id} = 15 unless defined $v->{params_id};
+$p->ensure_required_params(qw(pseq_id params_id));
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.18 2004/06/25 00:20:14 rkh Exp $ ');
 
-my $sql = 'select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
-		   from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
-		   where pseq_id='.$v->{pseq_id}.' and params_id=13 order by eval';
-my $ar = edit_rows( $u->selectall_arrayref($sql) );
+
+my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
+select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
+  from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
+  where pseq_id=%d and params_id=%d order by eval
+EOSQL
+my $ar = edit_rows( $u->selectall_arrayref($sql,undef) );
 my @f = ('name', 'start-stop', 'mstart-mstop', '[]', 'score', 'eval');
 
-print $p->render("HMM alignments to Unison:$v->{pseq_id}",
-				 $p->best_annotation($v->{pseq_id}),
-				 $p->group("HMM alignments",
-						   Unison::WWW::Table::render(\@f,$ar)),
-				 $p->sql($sql)
-				);
+
+my @ps = @{ $u->selectall_arrayref("select params_id,name from params where name~'^Pfam' order by name") };
+my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
+
+
+print $p->render
+  (
+   "HMM alignments to Unison:$v->{pseq_id}",
+   $p->best_annotation($v->{pseq_id}),
+
+   '<!-- parameters -->',
+   $p->start_form(-method=>'GET'),
+   $p->hidden('pseq_id',$v->{pseq_id}),
+   '<br>parameters: ', $p->popup_menu(-name => 'params_id',
+									  -values => [map {$_->[0]} @ps],
+									  -labels => \%ps,
+									  -default => "$v->{params_id}"),
+   $p->submit(-value=>'redisplay'),
+   $p->end_form(), "\n",
+
+   '<!-- results -->',
+   (($#$ar==-1 and $v->{params_id}==15)
+	? $p->warn("No alignments... consider selecting the Pfam_fs 12.0 parameter set and clicking redisplay.")
+	: ''),
+
+   $p->group("HMM alignments",
+			 Unison::WWW::Table::render(\@f,$ar)),
+
+   '<!-- sql -->',
+   $p->sql($sql)
+  );
+
 
 sub edit_rows {
   my $ar = shift;
