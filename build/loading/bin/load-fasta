@@ -40,7 +40,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.11 2003/01/28 21:27:45 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.12 2003/02/04 23:04:38 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
@@ -161,9 +161,12 @@ sub process_seq
 
   if ($origin =~ m/SPDI/i)
 	{
-	push(@ids,$1) if $descr =~ s/(UNQ\d+)\s+//;
-	push(@ids,$1) if $descr =~ s/(PRO\d+)\s+//;
-	push(@ids,$id) unless $id =~ m/^</;
+	my %ids;
+	$ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
+	$ids{$1}++ if $descr =~ s/(PRO\d+)\s+//;
+	$ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
+	$ids{$id}++;
+	@ids = sort keys %ids;
 	warn("! $id: SPDI sequence didn't match 3 identifiers (@ids)\n") unless $#ids==2;
     }
   else
@@ -187,10 +190,8 @@ sub process_seq
     }
   else
 	{
-#	$pseq_id = $udb->pseq_i_pseq_id( $seq );
 	$pseq_id = $udb->pseq_si_pseq_id( $seq );
 	$md5{ $md5 } = $pseq_id;
-#	printf(STDERR "got pseq_id=$pseq_id\n");
 	}
 
   if (not defined $pseq_id)
