@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 #
 # xlink-dump -- dump rudimentary Unison data as sqlplus/sqlldr script
 #
@@ -6,28 +6,41 @@
 # information. This is intended to be loaded into other databases in order
 # to facilitate linking from those databases to Unison.
 #
+# usage: ORAPASS=/pass xlink
+#
 
-LOGIN=unison/56133@biodev1
+LOGIN=unison$ORAPASS@biodev1
 DESCR_SIZE=200
 TRUNCATED='... [truncated by xlink]'
 
+if [ -z "$PSEQ_LIMIT" ]; then
+	PSEQ_LIMIT=
+#	PSEQ_LIMIT='where pseq_id<=30000'
+fi
 
-tmproot="/tmp/xlink-$$"
-sqltmp="$tmproot.sql"
-ctltmp="$tmproot.ctl"
-logtmp="$tmproot.log"
-badtmp="$tmproot.bad"
-summary="$tmproot-summary"
+tmpdir="/tmp/xlink-$$"
+mkdir -p "$tmpdir"
+
+table_sql="$tmpdir/tables.sql"
+pseq_ctl="$tmpdir/pseq.ctl"
+pseq_log="$tmpdir/pseq.log"
+pseq_bad="$tmpdir/pseq.bad"
+aliases_ctl="$tmpdir/pseq.ctl"
+aliases_log="$tmpdir/pseq.log"
+aliases_bad="$tmpdir/pseq.bad"
 
 truncated_len=`/bin/echo -n "$TRUNCATED" | wc -c`
 descr_max=`echo $DESCR_SIZE-$truncated_len | bc`
 
-PSEQ_LIMIT=
-#PSEQ_LIMIT='where pseq_id<100'
+
+echo '# $Id$' 1>&2
+echo '# started' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
+echo "# tmpdir=$tmpdir" 1>&2
+echo "# pseq_limit=$PSEQ_LIMIT" 1>&2
 
 
-# drop and create the Oracle tables
-cat <<EOSQL >$sqltmp
+# create the Oracle tables
+cat <<EOSQL >$table_sql
 drop table pseq cascade constraints;
 drop table aliases cascade constraints;
 create table pseq (
@@ -39,7 +52,7 @@ create unique index pseq_md5_idx on pseq(md5);
 create index pseq_len_idx on pseq(len);
 
 create table aliases (
-	pseq_id integer not null references pseq(pseq_id),
+	pseq_id integer not null, -- references pseq(pseq_id),
     ann_pref integer,
 	origin char(30) not null,
 	alias char(50) not null,
@@ -54,50 +67,47 @@ create index aliases_gs_idx on aliases(gs);
 quit
 EOSQL
 
-echo "# dropping & creating pseq & aliases tables:" 1>&2
-sqlplus "$LOGIN" "@$sqltmp" 1>/dev/null 2>/dev/null
+echo "# dropping & creating pseq & aliases tables..." 1>&2
+sqlplus "$LOGIN" "@$table_sql" 1>/dev/null 2>/dev/null
 
 
 
-echo "# loading pseq:" 1>&2
+echo '# fetching pseq...' 1>&2
 (cat <<EOLDR1
 load data
 infile *
-into table pseq
+append into table pseq
 fields terminated by '	'
 (pseq_id, len, md5)
 BEGINDATA
 EOLDR1
 psql -tAF'	' -c "select pseq_id,len,md5 from pseq $PSEQ_LIMIT"
-) >"$ctltmp"
+) >"$pseq_ctl"
 
-/bin/rm -f "$logtmp" "$badtmp"
-sqlldr "$LOGIN" control="$ctltmp" log="$logtmp" bad="$badtmp" >/dev/null
-/bin/touch "$logtmp" "$badtmp"		# in case bad was empty
-/bin/wc -l "$logtmp" "$badtmp" 1>&2
-grep -A4 '^Table.*:' "$logtmp" >>"$summary"
+echo "# loading pseq..." 1>&2
+/bin/rm -f "$pseq_log" "$pseq_bad"
+sqlldr "$LOGIN" control="$pseq_ctl" log="$pseq_log" bad="$pseq_bad" >/dev/null
+/bin/touch "$pseq_ctl" "$pseq_log" "$pseq_bad"
+/bin/wc -l "$pseq_ctl" "$pseq_log" "$pseq_bad" 1>&2
 
 
-echo "# loading aliases:" 1>&2
+echo '# fetching aliases...' 1>&2
 (cat <<EOLDR1
 load data
 infile *
-into table aliases
+append into table aliases
 fields terminated by '	'
 (pseq_id,ann_pref,origin,alias,descr,gs)
 BEGINDATA
 EOLDR1
 psql -tAF'	' -c "SELECT pseq_id,ann_pref,origin,alias,CASE WHEN LENGTH(descr)>$DESCR_SIZE THEN SUBSTR(descr,1,$descr_max)||'$TRUNCATED' ELSE descr END as \"descr\",CASE WHEN gs IS NULL THEN 'NULL' ELSE gs END AS \"gs\" from v_aliases $PSEQ_LIMIT"
-) >"$ctltmp"
+) >"$aliases_ctl"
 
-/bin/rm -f "$logtmp" "$badtmp"
-sqlldr "$LOGIN" control="$ctltmp" log="$logtmp" bad="$badtmp" >/dev/null
-/bin/touch "$logtmp" "$badtmp"		# in case bad was empty
-/bin/wc -l "$logtmp" "$badtmp" 1>&2
-grep -A4 '^Table.*:' "$logtmp" >>"$summary"
+echo '# loading aliases...' 1>&2
+/bin/rm -f "$aliases_log" "$aliases_bad"
+sqlldr "$LOGIN" control="$aliases_ctl" log="$aliases_log" bad="$aliases_bad" >/dev/null
+/bin/touch "$aliases_ctl" "$aliases_log" "$aliases_bad"
+/bin/wc -l "$aliases_ctl" "$aliases_log" "$aliases_bad" 1>&2
 
 
-
-echo ===============================================================
-cat "$summary"
-
+echo '# finished' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
