@@ -1,12 +1,17 @@
 #!/bin/sh
-# $Id: nightly,v 1.3 2003/07/31 22:42:23 rkh Exp $
+# $Id: nightly,v 1.4 2003/09/29 15:28:41 rkh Exp $
 
 # nightly -- tasks to perform nightly
 # you must set PGPASSWORD before running this script
 
 source `dirname $0`/utils
-#exec >>"$LOGDIR/$JEMAPPELLE" 2>&1
+
+
+if [ -z "$PGPASSWORD" ]; then
+	die "PGPASSWORD not set"
+fi
+
 
 logger "vacuum analyze started"
-vacuumdb -Uadmin -dcsb -z  # -f
+dothis vacuumdb -Uadmin -dcsb -z  # -f
 logger "vacuum analyze done"
