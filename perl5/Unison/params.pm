@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.9.2.3 2005/01/16 00:39:00 rkh Exp $>
+S<$Id: params.pm,v 1.11 2005/01/20 01:21:06 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -88,7 +88,10 @@ sub get_params_id_by_name($$) {
 
 =item B<< $u->get_p2options_by_params_id( C<params_id> ) >>
 
-fetches a single protein sequence from the pseq table.
+get options from the params table and fill in a few prospect-specific hash elements.
+
+This function is completely misplaced and should be moved elsewhere. It's
+presence here is historical.
 
 =back
 
@@ -98,34 +101,18 @@ sub get_p2options_by_params_id($$) {
   my ($self,$run_id) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached("select * from params_prospect2 where params_id=?");
-  $sth->execute($run_id);
-  my $h = $sth->fetchrow_hashref();
+  my $h = $self->selectrow_hashref("select * from params where params_id=$run_id");
+
   ## FIX: only seqfile threading is supported below:
   my $po = new Bio::Prospect::Options
 	( 
-	 $h->{global} ? (global=>1) : (global_local=>1),
-	 $h->{commandline} =~ m/-scop/ ? (scop=>1) : (scop=>0),
+	 $h->{commandline} =~ m/-global_local/ 	? (global_local=>1,global=>0) : (global_local=>0,global=>1),
+	 $h->{commandline} =~ m/-scop/ 			? (scop=>1)   : (scop=>0),
 	 seq=>1,
 	);
   return $po;
   }
 
-
-
-### DEPRECATED FUNCTIONS
-
-# removed 2005-01-15
-# sub get_p2options_by_run_id($) {
-#   warn_deprecated();						# 2004-09-01
-#   goto &get_p2options_by_params_id;
-# }
-
-# removed 2005-01-15
-# sub get_p2options_by_p2params_id($) {
-#   warn_deprecated();						# 2004-09-01
-#   goto &get_p2options_by_params_id;
-# }
 
 
 
