@@ -7,9 +7,12 @@
 # ARGUMENTS:
 #   --origin|-o <origin>: name of origin
 #   --format|-f <format>: name of input file format (any format allowed by Bio::SeqIO)
-#   --
+#   --start-after|--startafter <acc>: start parsing input file after this acc
+#   --sql-only|--sqlonly: flag to output only sql commands
+#   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
+#   --verbose|-v: flag to output more processing information
 #
-# $Id$
+# $Id: load-pseq,v 1.1 2004/04/13 21:19:32 cavs Exp $
 #------------------------------------------------------------------------------
 
 use warnings;
@@ -30,7 +33,6 @@ my %af = ( fthelper => 1,
 my %opts = (
   origin => undef,
   format => undef,
-  filelist => undef,
   'start-after' => undef,
   'sql-only' => 0,
   'include-subex' => 0,
