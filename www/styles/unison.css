@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.6 2003/06/30 16:28:27 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.7 2003/07/31 22:50:53 rkh Exp $     emacs: -*-c-*-  */
 
 
 BODY {
@@ -102,7 +102,7 @@ TABLE.group TD {
 
 
 TABLE.uwtable {
-  background-color: #BDB6F3;
+ background-color: #BDB6F3;
 }
 TABLE.uwtable TH {
  border: black thin solid;
@@ -110,7 +110,10 @@ TABLE.uwtable TH {
  background-color: #BDB6F3;
 }
 TABLE.uwtable TD {
-  background-color: white;
+ background-color: white;
+}
+TABLE.uwtable TD.highlighted {
+ background-color: yellow;
 }
 
 
@@ -129,8 +132,15 @@ div.sql {
   background-color: #55ff55;
   border: none;
   padding: 2px;
-  margin: 10px;
+  margin: 20px;
   font-family: monospace;
+}
+div.tip {
+ background-color: lightgrey;
+ border: none;
+ padding: 10px;
+ margin: 20px;
+ align: center;
 }
 
 

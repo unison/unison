@@ -2,14 +2,7 @@
 
 use strict;
 use warnings;
-use CGI( -debug );
-use Data::Dumper;
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
+use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 
@@ -25,8 +18,17 @@ my $sql = qq/select O.origin,AO.alias,AO.descr from pseqalias SA
 my $ar = $u->selectall_arrayref($sql);
 my @f = qw( origin alias description );
 
+do { $_->[1]=ggify($_->[1]) } for @$ar;
+
+
 print $p->render("Aliases of Unison:$v->{pseq_id}",
 				 $p->group("Aliases of Unison:$v->{pseq_id}",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)
 				);
+
+
+sub ggify {
+  $_[0] =~ s%^(UNQ|PRO|DNA)(\d+)$%<a href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;
+  $_[0];
+  }

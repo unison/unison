@@ -3,12 +3,7 @@
 use strict;
 use warnings;
 use Data::Dumper;
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
+use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 
@@ -30,6 +25,7 @@ my @f = ( 'target','qstart-qstop','tstop-tstart','len',
 		  'HSP coverage (%)','coverage (%)' );
 
 print $p->render("Near-identity BLASTs of Unison:$v->{pseq_id}",
+				 '<i>tip: hover over entries in the target column to see annotations</i>',
 				 $p->group("BLASTS Unison:$v->{pseq_id}",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)

@@ -18,7 +18,8 @@ my $v = $p->Vars();
 
 print $p->render("Unison:$v->{pseq_id} Features Overview",
 				 $p->group("Unison:$v->{pseq_id} Features",
-						   'a pretty picture...<p>',
-						   "<img src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\">"
+						   '<center>',
+						   "<img align=\"center\" src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\">",
+						   '</center>',
 						  ),
 				);
