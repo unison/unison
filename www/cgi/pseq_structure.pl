@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.1 2005/02/17 00:41:07 mukhyala Exp $;
+#$ID = q$Id: pseq_structure.pl,v 1.2 2005/02/17 01:05:41 mukhyala Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -19,8 +19,8 @@ use Unison::WWW::Table;
 use Unison::Exceptions;
 use Unison::Jmol;
 
-use Unison::pseq_structure;
-use Unison::pseq_features qw( %opts );
+use Unison::Utilities::pseq_structure;
+use Unison::Utilities::pseq_features qw( %opts );
 
 # for running pairwise blast between pdb sequence from atom records 
 # and its actual complete sequence
@@ -28,7 +28,6 @@ $ENV{'PATH'} = "$ENV{'PATH'}:/gne/compbio/i686-linux-2.6/opt/blast/bin/";
 $ENV{'BLASTMAT'} = "/gne/compbio/share/blast/matrices";
 
 my $pdbDir = (defined($ENV{PDB_PATH}) ? $ENV{PDB_PATH} : '/gne/compbio/share/pdb/all.ent');
-my ($pdb_fh, $pdb_fn) = File::Temp::tempfile(UNLINK => 0, DIR => '../js/jmol/', SUFFIX=>'.pdb');
 
 #this is a list of columns we want in the structures table
 my @structures_cols = qw(alias description);
@@ -36,63 +35,66 @@ my @structures_cols = qw(alias description);
 #this is a list of columns we want in the templates table at the top of the page
 my @templates_cols = qw(alias descr qstart qstop tstart tstop ident sim gaps eval pct_ident len pct_coverage);
 
-#this is a list of columns we want in the snp table at the bottom of the page
-my @snp_cols = qw(wt_aa variant_aa position_in_sequence MIM);
+#this is a list of columns we want in the snp table
+my @snp_cols = qw(wt_aa variant_aa position_in_sequence Description);
+
+#this is a list of columns we want in the mim table
+my @mim_cols = qw(Title GeneSymbols Disorders Mouse_corelate Chr_Map);
 
 my $p = new Unison::WWW::Page;
+
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id));
 
 # these files are for the image map
-my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX => '.png' );
-my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
+my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png' );
 
-my $pseq_structure = new Unison::pseq_structure($v->{pseq_id});
+my $pseq_structure = new Unison::Utilities::pseq_structure($v->{pseq_id});
 $pseq_structure->unison($u);
 
-my $jmol = new Unison::Jmol(800,300);
+my $jmol = new Unison::Jmol(600,300);
+$pseq_structure->jmol($jmol);
 
-my %opts = (%Unison::pseq_features::opts, %$v);
+my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
+
+get_user_specs($jmol);
 
 try {
 
     my $structures_ar=$pseq_structure->find_structures();
-
-    $structures_ar = edit_structure_rows($structures_ar);
-
-    $pseq_structure->find_snps($u);#for now this sets templates also, call before find_templates;
-    my $templates_ar=$pseq_structure->find_templates($u);
-
+    my $templates_ar=$pseq_structure->find_templates();
     $p->die("Sorry no structures/templates found\n") if($pseq_structure->{'num_structures'} == 0 and $pseq_structure->{'num_templates'}==0);
+
+    $pseq_structure->find_snps();
+    $structures_ar = edit_structure_rows($structures_ar);
+    $templates_ar = edit_structure_rows($templates_ar,1);
+    my $mim_ar = edit_mim_rows($pseq_structure->get_mims());
+    my $snp_ar = edit_snp_rows(\@snp_cols);
 
     $pseq_structure->load_first_structure();
 
-    $templates_ar = edit_structure_rows($templates_ar,1);
-
     $p->add_html($jmol->script_header());
-
-    my $ar = edit_snp_rows(\@snp_cols);
 
     #for structure view
     my ($pdb_id) = substr($pseq_structure->{'loaded_structure'},0,4);
-    copy_file("$pdbDir/pdb$pdb_id.ent",$pdb_fn) || $p->die("pseq_structure.pl couldn't copy $pdbDir/pdb$pdb_id.ent to $pdb_fn");
 
     my $imagemap = generate_imagemap() || $p->die("pseq_structure.pl couldn't generate imagemap");
 
     print $p->render("Unison:$v->{pseq_id} Structural Features",
 		     $p->best_annotation($v->{pseq_id}),
-		     $jmol->initialize($pdb_fn,$pseq_structure->{'loaded_structure'},$pseq_structure),
-		     $p->group("Structures found for Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@structures_cols,$structures_ar)),
-		     '<p>',
-		     $p->group("Structural Templates found for Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@templates_cols,$templates_ar)),
-		     '<p>',
+		     $jmol->initialize("pdb$pdb_id.ent",$pseq_structure->{'loaded_structure'},$pseq_structure),
 		     $p->group("Unison:$v->{pseq_id} Features",
 			       "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
 			       "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
+		       '<p>',
+		     $p->group("Structures found for Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@structures_cols,$structures_ar)),
 		     '<p>',
-		     $p->group("SNPs in Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@snp_cols,$ar))
-		     );
+		     $p->group("Structural Templates found for Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@templates_cols,$templates_ar)),
+		     $p->group("SNPs in Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@snp_cols,$snp_ar)),
+		     '<p>',
+		     $p->group("Disease Associated with Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@mim_cols,$mim_ar))
+		   );
 } catch Unison::Exception with {
     $p->die($_[0]);
 };
@@ -103,11 +105,11 @@ try {
 sub generate_imagemap {
 
   my $imagemap;
-  $opts{features}{$_}++ foreach qw(hmm mim);
+  $opts{features}{$_}++ foreach qw(template hmm snp user);
   $opts{view}=1;
   $opts{structure}=$pseq_structure;
 
-  my $panel = Unison::pseq_features::pseq_features_panel($u,%opts);
+  my $panel = Unison::Utilities::pseq_features::pseq_features_panel($u,%opts);
 
   # write the png to the temp file
   $png_fh->print( $panel->gd()->png() );
@@ -130,32 +132,31 @@ sub edit_structure_rows {
   my ($ar,$sh) = @_;
   foreach my $r (@$ar) {
     shift @$r if($sh);
-    my ($pdb_fh, $pdb_fn) = File::Temp::tempfile(UNLINK => 0, DIR => '../js/jmol/', SUFFIX=>'.pdb');
 
-    my ($pdb_id,$chain) = (substr($r->[0],0,4),substr($r->[0],3,1));
-    copy_file("$pdbDir/pdb$pdb_id.ent",$pdb_fn);
-    $chain = ($chain eq '' ? '' : ":$chain");
-    $r->[0] = $jmol->changeStructurelink($jmol->load($pdb_fn),$r->[0]);
-    foreach my $i(@$r) {$i = "<center>$i</center>";}
+    my ($pdb_id,$chain) = (substr($r->[0],0,4),substr($r->[0],4,1));
+
+    $r->[0] = $jmol->changeStructureLink($jmol->load("pdb$pdb_id.ent",$chain),$r->[0],'link');
+    foreach my $i(@$r) {$i = "<center><font size=2>$i</font></center>";}
   }
   return $ar;
 }
 
 sub edit_snp_rows {
   my ($hr) = @_;
-  my $href = "http://www.ncbi.nlm.nih.gov/entrez/dispomim.cgi?id=";
+
+  my $href = "http://us.expasy.org/cgi-bin/get-sprot-variant.pl?";
   my $ar;
 
   foreach my $r (@{$pseq_structure->{'features'}{'snps'}}) {
 
-    my $snp_lnk = "<a href=\"".$jmol->selectPosition($r->{'start'}, $r->{'wt_aa'})."\">$r->{'wt_aa'}</a>";
-    my $mim_lnk = "<a href=\"$href$r->{ref}\">$r->{name}</a>";
+    my $snp_lnk = "<a href=\"javascript:".$jmol->selectPosition($r->{'start'}, $r->{'wt_aa'})."\">$r->{'wt_aa'}</a>";
+    my $swiss_lnk = "<a href=\"$href$r->{ref}\">$r->{name}</a>";
 
-    push @$ar, [($snp_lnk,$r->{'var_aa'},$r->{'start'},$mim_lnk)];
+    push @$ar, [($snp_lnk,$r->{'var_aa'},$r->{'start'},$swiss_lnk)];
   }
   #just to make the data centered in each table cell
   foreach my $r (@$ar) {
-    foreach my $i(@$r) {$i = "<center>$i</center>";}
+    foreach my $i(@$r) {$i = "<center><font size=2>$i</font></center>";}
   }
   #just to make the data centered in each col header
   foreach my $i (@$hr) {
@@ -164,10 +165,52 @@ sub edit_snp_rows {
   return $ar;
 }
 
-sub copy_file {
+sub edit_mim_rows {
+  my ($ar) = @_;
+  my $arnew;
+  my $href = "http://www.ncbi.nlm.nih.gov/entrez/dispomim.cgi?id=";
+  foreach my $r (@$ar) {
+    $r->[1] = "<a href=\"$href$r->[0]\">$r->[1]</a>";
+    $r->[2] =~ s/\"//g;
+    $r->[2] =~ s/\{//g;
+    $r->[2] =~ s/\}//g;
+    foreach my $i(@$r) {$i = "<center><font size=2>$i</font></center>";}
+    push @$arnew, [@$r[1..7]];
+  }
+  return $arnew;
+}
 
-  my ($file1,$file2) = @_;
-  $p->die("Couldn't find $file1") if(!-f $file1);
-  system("cp $file1 $file2");
-  return 1;
+sub get_user_specs {
+
+  if(defined($v->{userfeatures})) {
+    foreach (split(/,/,$v->{userfeatures})) {
+      $p->die("wrong userfeatures format expecting :: name@\coord[-coord]\n") unless (/(\S+)\@(\S+)/);
+      my ($start,$end) = split(/-/,$2);
+      $opts{user_feats}{$1}{type}='user';
+      $opts{user_feats}{$1}{start}=$start;
+      $opts{user_feats}{$1}{end}=$end;
+    }
+  }
+
+  if(defined($v->{highlight})) {
+      foreach (split(/,/,$v->{highlight})) {
+	  $p->die("wrong highlight format expecting source:feature[:colour]\n") unless (/(\S+)\:(\S+)/);
+	  my @hl = split(/\:/);
+	  $p->die("Looks like you didn't define $hl[1]\n") if($hl[0] eq 'user' and !defined($opts{user_feats}{$hl[1]}));
+	  if($hl[0] =~ /hmm/i) {
+	      my $ar = $pseq_structure->get_hmm_range($hl[1]);
+	      $p->die("Couldn't find $hl[1] domain in PFAM hits")  if ($#{$ar} <1);
+	      ($opts{user_feats}{$hl[1]}{type},$opts{user_feats}{$hl[1]}{start},$opts{user_feats}{$hl[1]}{end}) = ('hmm',$ar->[0],$ar->[1]);
+	  }
+	  if($hl[2] =~ /^\*/) {
+	      $p->die("$hl[2] 6 digits expected with RGB hexadecimal format\n") if(length($hl[2]) != 7);
+	      $hl[2] = hex(substr($hl[2],1,2))."-".hex(substr($hl[2],3,2))."-".hex(substr($hl[2],5,2)) || $p->die("Something probably wrong with your RGB hexadecimal format\n");
+	  }
+	  $hl[2] =~ s/\[//;
+	  $hl[2] =~ s/\]//;
+	  $opts{user_feats}{$hl[1]}{colour}=$hl[2] if($hl[0] =~ /user/i or $hl[0] =~ /hmm/i);
+	  $p->die("source for the feature to be highlighted must be either user or hmm: you entered $hl[0]") unless ($hl[0] =~ /user/i or $hl[0] =~ /hmm/i);
+      }
+    $jmol->set_highlight_regions($opts{user_feats});
+  }
 }
