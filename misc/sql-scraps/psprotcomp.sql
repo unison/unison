@@ -4,11 +4,7 @@ CREATE TABLE psprotcomp_location (
 ) WITHOUT OIDS;
 
 grant select on psprotcomp_location to PUBLIC;
-
-create function protcomp_psloc_id(text) returns integer
-strict immutable language sql as '
-select psloc_id from psprotcomp_location where location=$1;
-';
+comment on table psprotcomp_location is 'Softberry protcomp location lookup table';
 
 insert into psprotcomp_location(psloc_id,location) values (0,'no prediction');
 insert into psprotcomp_location(location) values ('Cytoplasmic');
@@ -20,8 +16,6 @@ insert into psprotcomp_location(location) values ('Mitochondrial');
 insert into psprotcomp_location(location) values ('Nuclear');
 insert into psprotcomp_location(location) values ('Peroxisomal');
 insert into psprotcomp_location(location) values ('Plasma membrane');
-
-
 
 
 
@@ -96,10 +90,22 @@ CREATE UNIQUE INDEX psprotcomp_search2 ON psprotcomp (params_id,nn_psloc_id,nn_s
 CREATE UNIQUE INDEX psprotcomp_search3 ON psprotcomp (params_id,int_psloc_id,int_score,pseq_id);
 grant select on psprotcomp to PUBLIC;
 grant insert on psprotcomp to loader;
+comment on table psprotcomp is 'Softberry protcomp predictions';
+
+
+create view v_psprotcomp as
+select pseq_id,params_id,sim_psloc_id,sl.location as
+sim_loc,sim_score,nn_psloc_id,nl.location as
+nn_loc,nn_score,int_psloc_id,il.location as int_loc,int_score from
+psprotcomp PC join psprotcomp_location sl on sl.psloc_id=PC.sim_psloc_id
+join psprotcomp_location nl on nl.psloc_id=PC.nn_psloc_id join
+psprotcomp_location il on il.psloc_id=PC.int_psloc_id;
+comment on v_psprotcomp is 'protcomp summary view';
+
 
 
 
 -- pfprotcomp
 -- ----------
 -- tm,sig,gpi
--- COULD BE EXTRACTED FROM result_block
+-- COULD BE EXTRACTED FROM result_block, but aren't yet
