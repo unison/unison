@@ -185,7 +185,7 @@ if ($set) {
   @$set = sort {$a<=>$b} @$set;
   my @rows = map { ["<a href=\"pseq_summary.pl?pseq_id=$_\">$_</a>",$u->best_annotation($_,1)] } @$set;
 
-  print $p->render("Sequence Mining",
+  print $p->render("Sequence Mining Result Set",
 				   $p->group(sprintf("%d $v->{submit} results",$#rows+1),
 							 Unison::WWW::Table::render(['pseq_id','best_annotation'],\@rows)));
   exit(0);
@@ -200,8 +200,8 @@ my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" }
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" }
   @{ $u->selectall_arrayref('select * from pmodelset') };
 
-print $p->render("Sequence Mining",
-				 '$Id: search_sets.pl,v 1.2 2003/10/31 22:55:35 rkh Exp $',
+print $p->render("Sequence Mining Summary",
+				 '$Id: search_sets.pl,v 1.3 2003/11/03 17:53:03 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. Select
