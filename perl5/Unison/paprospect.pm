@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::paprospect2 -- Unison paprospect2 table utilities
-S<$Id: paprospect2.pm,v 1.1 2003/06/30 15:33:50 rkh Exp $>
+S<$Id: paprospect2.pm,v 1.2 2003/07/31 23:56:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -150,7 +150,7 @@ my %pmodel_id;
 sub get_pmodel_id {
   my ($u,$modn) = @_;
   if (not exists $pmodel_id{$modn})	{
-	my $sth = $u->prepare_cached('select pmodel_id from pmprospect2 where name=?');
+	my $sth = $u->prepare_cached('select pmodel_id from pmprospect2 where acc=?');
 	$sth->execute($modn);
 	($pmodel_id{$modn}) = $sth->fetchrow_array();
 	$sth->finish();
