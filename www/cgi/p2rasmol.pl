@@ -26,7 +26,7 @@ my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->ensure_required_params(qw(pseq_id p2params_id templates));
+$p->ensure_required_params(qw(pseq_id run_id templates));
 
 my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 if (not defined $seq)
@@ -40,9 +40,9 @@ if (@missing)
 			"(These are manually derived from the threading templates... go bug Dave)"); }
 my $template = $templates[0];
 
-my $po = $u->get_p2options_by_p2params_id( $v->{p2params_id} );
+my $po = $u->get_p2options_by_run_id( $v->{run_id} );
 if (not defined $po)
-  { $p->die("The p2params_id parameter ($v->p2params_id) is invalid."); }
+  { $p->die("The run_id parameter ($v->run_id) is invalid."); }
 $po->{templates} = \@templates;
 
 try

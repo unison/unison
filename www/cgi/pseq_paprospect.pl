@@ -39,7 +39,7 @@ for(my $i=0; $i<=$#$ar; $i++)
   my $c = ($a[1]<=-1000 or (defined $a[7] and $a[7]=~m/TNF-like/)) ? ' checked="TRUE"' : '';
   unshift(@a, "<input type=\"checkbox\" name=\"templates\" value=\"$a[0]\"$c>");
   if ( -f "$pdbDir/$a[1].pdb" )
-	{ $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id}&run_id=$v->{run_id}&templates=$a[1]\">$a[1]</a>"; }
+	{ $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id};run_id=$v->{run_id};templates=$a[1]\">$a[1]</a>"; }
   $ar->[$i] = \@a;
   }
 
