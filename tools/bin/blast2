@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id: blast2,v 1.2 2003/07/16 18:17:41 rkh Exp $
+# $Id: blast2,v 1.3 2003/08/20 19:49:02 rkh Exp $
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
@@ -18,12 +18,16 @@ use Getopt::Long qw(:config gnu_getopt);
 my %opts =
   ( 'show-report' => 0 );
 
-GetOptions( 'show-report|r+' )
+GetOptions( \%opts,
+			'show-report|r+' )
   || die("$0: you are horribly misguided about my arguments\n");
 
+(@ARGV == 2)
+  || die("I need exactly two args, the Unison pseq_ids of the sequences\n");
 
 
 my ($id1,$id2) = @ARGV;
+
 
 # temp output file & cleanup
 my $bo = "/tmp/bl2seq-$$.out";
