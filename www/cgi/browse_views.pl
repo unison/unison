@@ -11,8 +11,9 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 
-my %cv = %{ $u->selectall_hashref("select cv_id,name,descr,sql from canned_views",
-								  'cv_id') };
+my %cv = %{ $u->selectall_hashref(
+	'select cv_id,name,descr,sql from canned_views where cv_id>0',
+ 	'cv_id') };
 my @cv = sort {$a<=>$b} keys %cv;
 my %cvlabels = map {$_ => sprintf("%s (view %d)",$cv{$_}->{name}, $_)} @cv;
 
@@ -59,17 +60,26 @@ sub do_search {
   my $sql = $cv{$v->{cv_id}}->{sql};
   my $sth = $u->prepare( $sql );
   my $ar = $u->selectall_arrayref($sth);
-  my @f = map {$p->tooltip($_,$coldescr{$_})} @{ $sth->{NAME} };
+  my @f = @{ $sth->{NAME} };
 
-  foreach my $row (@$ar) {
-	$row->[0] = "<a href=\"pseq_summary.pl?pseq_id=$row->[0]\">$row->[0]</a>";
-	$row->[2] = $row->[2] ? 'yes' : '';
-	$row->[3] = $row->[3] ? 'yes' : '';
+
+  for(my $i=0; $i<=$#f; $i++) {
+	if ($f[$i] eq 'pseq_id') {
+	  foreach my $row (@$ar) {
+		$row->[$i] = "<a href=\"pseq_summary.pl?pseq_id=$row->[$i]\">$row->[$i]</a>";
+	  }
+	}
+	elsif ($f[$i] =~ /^pat/) {
+	  foreach my $row (@$ar) {
+		$row->[$i] = $row->[$i] ? 'yes' : '';
+	  }
+	}
   }
 
+  my @colhdrs = map {$p->tooltip($_,$coldescr{$_})} @f;
   return( "<hr>\n",
 		  $p->group(sprintf("%s; %d rows",$cv{$v->{cv_id}}->{name}, $#$ar+1),
-					Unison::WWW::Table::render(\@f,$ar)),
+					Unison::WWW::Table::render(\@colhdrs,$ar)),
 		  $p->sql($sql)
 		);
   }
