@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.9 2005/03/22 05:45:51 rkh Exp $
+# $Id: run-pahmm,v 1.10 2005/03/29 04:10:45 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -21,6 +21,11 @@ use IO::Pipe;
 use Unison::Exceptions;
 use Unison::SQL;
 use Unison;
+
+
+sub fetch_sequences ($$@);
+sub get_pmodel_id ($);
+sub run_and_load ($$);
 
 
 my %pfams = 
@@ -60,6 +65,7 @@ GetOptions(\%opts,
 		   'pmodelset_id|M=i@',
 		   'pfam=s',
 		   'verbose|v+',
+		   'seqs-per-run|N=i',
 		  ) || die("$0: you got usage issues, short stack\n");
 
 (exists $pfams{$opts{pfam}})
@@ -70,7 +76,7 @@ print(STDERR "# using Pfam $opts{pfam}\n");
 
 my $temproot = "/tmp/run-pahmm-$$";
 my $seqfn = "$temproot.fa";
-my $pfamfn;  # filename will be set below
+my $hmmfn;  # filename will be set below
 
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
@@ -91,7 +97,7 @@ if (not defined $opts{porigin_id}) {
 
 
 if ( defined $opts{pmodelset_id} ) {
-	$pfamfn = "$temproot.pfam";
+	$hmmfn = "$temproot.pfam";
 	my $sql = new Unison::SQL;
 	$sql->columns('distinct name')
 		->table('pmhmm M');
@@ -100,16 +106,16 @@ if ( defined $opts{pmodelset_id} ) {
 	$sql->order('name');
 		(@{$opts{'templates'}}) = map {@$_} @{$u->selectall_arrayref("$sql")};
 
-	my $cmd = "hmm-extract <$opts{modelfile} @{$opts{'templates'}} >$pfamfn";
+	my $cmd = "hmm-extract <$opts{modelfile} @{$opts{'templates'}} >$hmmfn";
 	print "$cmd\n" if $opts{verbose};
 	system( $cmd );
 	$? && die("$cmd: $!\n");
 } else {
-	$pfamfn = $opts{modelfile};
+	$hmmfn = $opts{modelfile};
 }
 
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
-my @cl = (split(' ',$clo), '--acc', $pfamfn, $seqfn);
+my @cl = (split(' ',$clo), '--acc', $hmmfn, $seqfn);
 print "cl: ",join(' ',@cl),"\n" if $opts{verbose};
 
 my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
@@ -120,26 +126,41 @@ my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
 my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 my $N = $#pseq_ids+1;
 my $n = 0;
-
+my $totseqs = 0;
+my $tothits = 0;
+my $tothsps = 0;
+my $toterrs = 0;
 
 while( @pseq_ids ) {
   my (@ids) = splice(@pseq_ids,0,$opts{'seqs-per-run'});
+  next unless fetch_sequences($u,$seqfn,@ids);
+  my ($seqs,$hits,$hsps,$errs) = run_and_load($u,$seqfn);
+  $totseqs += $seqs;
+  $tothits += $hits;
+  $tothsps += $hsps;
+  $toterrs += $errs;
+
+  my $Ncomp = $N - ($#pseq_ids+1);
+  printf(STDERR "run-pahmm: $Ncomp/$N (%5.1f%% complete); $totseqs seqs; $tothits hits; $tothsps HSPs; $toterrs errors\n",
+		 $Ncomp / $N * 100);
+}
+
+
+sub fetch_sequences ($$@) {
+  # fetch sequences to temp file
+  my $u = shift;
+  my $seqfn = shift;
+  my @pseq_ids = @_;
+  my $nseq = 0;
 
   my $so = new Bio::SeqIO( -format => 'fasta',
 						   -file => ">$seqfn" )
 	|| die("! couldn't open $seqfn for writing\n");
 
- PSEQ_ID:
-  foreach my $pseq_id (@ids) {
-	foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
-	  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$opts{porigin_id},$m);
-	  if (defined $ran_on and not $opts{update}) {
-		if (not $opts{update}) {
-		  print(STDERR "Unison:$pseq_id run with these options on $ran_on; skipping\n");
-		  next PSEQ_ID;
-		}
-		print(STDERR "Unison:$pseq_id run with these options on $ran_on; running anyway\n");
-	  }
+  foreach my $pseq_id (@pseq_ids) {
+	if ($u->already_ran($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id})) {
+	  warn("Unison:$pseq_id already run with these parameters\n");
+	  next;
 	}
 	my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
 	if (not defined $seq) {
@@ -148,10 +169,20 @@ while( @pseq_ids ) {
 	}
 	$so->write_seq( new Bio::PrimarySeq( -seq => $seq,
 										 -id => "Unison:$pseq_id" ) );
+	$nseq++;
   }
-
   $so->close();
+  return $nseq;
+}
 
+
+sub run_and_load ($$) {
+  my $u = shift;
+  my $seqfn = shift;
+  my $totseqs = 0;
+  my $tothits = 0;
+  my $tothsps = 0;
+  my $toterrs = 0;
 
   my $hmmerpipe = new IO::Pipe;
   $hmmerpipe->reader( @cl )
@@ -159,54 +190,59 @@ while( @pseq_ids ) {
   my $in = new Bio::SearchIO(-format => 'hmmer',
 							 -fh => $hmmerpipe);
 
-  $u->begin_work();
-  my $nhsps = 0;
-  my $nins = 0;
-  while( my $result = $in->next_result ) {
+  while( my $result = $in->next_result ) {	# "result" is a query sequence
+	$totseqs++;
 	my ($pseq_id) = $result->query_name() =~ m/Unison:(\d+)/;
 	(defined $pseq_id)
 	  || die("couldn't parse pseq_id from hmmer results\n");
+	my $nhits = 0;
+	my $nhsps = 0;
 
-	my $leader = sprintf("\rUnison:%8s (%4d/%4d %5.1f%%)",
-						 $pseq_id, ++$n, $N, $n/$N*100 );
-	print(STDERR $leader, ' 'x20);
+	try {
+	  $u->begin_work();
+	  while( my $hit = $result->next_hit ) {
+		$nhits++;
+		my $acc = $hit->name();
+		my $pmodel_id = get_pmodel_id($acc);
+		if (not defined $pmodel_id) {
+		  die("\n! couldn't look up a pmodel_id for $acc in origin $opts{porigin_id}!\n");
+		}
 
-	while( my $hit = $result->next_hit ) {
-	  my $acc = $hit->name();
-	  my $pmodel_id = get_pmodel_id($acc);
-	  if (not defined $pmodel_id) {
-		die("\n! couldn't look up a pmodel_id for $acc in origin $opts{porigin_id}!\n");
-	  }
-
-	  while( my $hsp = $hit->next_hsp ) {
-		$nhsps++;
-		my @data = ($opts{params_id}, 
-					$pseq_id, $hsp->start('query'), $hsp->end('query'),
-					$pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
-					$hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
-					int($hsp->score()), $hsp->evalue());
-
-		try {
+		while( my $hsp = $hit->next_hsp ) {
+		  $nhsps++;
+		  my @data = ($opts{params_id}, 
+					  $pseq_id, $hsp->start('query'), $hsp->end('query'),
+					  $pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
+					  $hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
+					  int($hsp->score()), $hsp->evalue());
 		  $pahmm_sth->execute(@data);
-		  $nins++;
-		} catch Unison::Exception with {
-		  die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
-		};
+		}
 	  }
-	}
-	my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
-	print(STDERR "$leader: inserted $nins/$nhsps HSPs; $z; committed\n");
+	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
+	  $u->commit();
+	  printf(STDERR "Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed\n");
+	  $tothits += $nhits;
+	  $tothsps += $nhsps;
+	} catch Unison::Exception with {
+	  my $e = $_[0];
+	  if ("$e" =~ m/duplicate key/ or "$e" =~ m/(?:over|under)flow/) {
+		warn("\n$e\nUnison:$pseq_id load failed; rolling back.\n",);
+		$u->rollback();
+		$toterrs++;
+	  } else {
+		die("$e");
+	  }
+	};
   }
-  $hmmerpipe->close();
-  $u->commit();
 
+  $hmmerpipe->close();
+  return( $totseqs, $tothits, $tothsps, $toterrs );
 }
 
 
 
-
 my %pmodel_id_cache;
-sub get_pmodel_id {
+sub get_pmodel_id ($) {
   my $acc = shift;
   if (not exists $pmodel_id_cache{$acc}) {
 	my $sth = $u->prepare_cached('select pmodel_id from pmhmm where acc=? and porigin_id=? order by added desc');
