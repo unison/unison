@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.34 2005/02/16 23:07:46 rkh Exp $>
+S<$Id: Page.pm,v 1.35 2005/02/17 05:10:18 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -104,7 +104,9 @@ sub new {
 
   $self->{userprefs} = $self->{unison}->get_userprefs();
   $self->{readonly} = 1;
-  
+  $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
+		      {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
+
   # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
   # as a CGI, or in /tmp/ if run on the command line 
   if (defined $ENV{DOCUMENT_ROOT}) {
@@ -119,7 +121,6 @@ sub new {
 	$self->{tmproot} = '';
 	$self->{tmpdir} = "$self->{tmproot}/tmp";
   }
-  
   # if we've made it this far, we'll eventually get a page out
   $self->start_html;
 
@@ -188,6 +189,23 @@ sub header {
   return $p->SUPER::header();
 }
 
+######################################################################
+## add_html()
+
+=pod
+
+=item B<< $p->add_html() >>
+
+adds HTML tags
+
+=cut
+sub add_html {
+  my $self = shift;
+  my (@params) = @_;
+  foreach my $i (0..$#params) {
+    push @{$self->{js_tags}}, $params[$i+1]  if ($params[$i] eq '-script' and ref($params[$i+1]) eq 'HASH');
+  }
+}
 
 ######################################################################
 ## start_html()
@@ -202,6 +220,7 @@ returns a Unison-specific preamble for a web page.
 
 sub start_html {
   my $self = shift;
+
   return $self->SUPER::start_html
 	( @_,
 	  -head => [
@@ -210,8 +229,7 @@ sub start_html {
 			   ],
 	  -style => { -src => ['../styles/unison.css', '../styles/ToolTips.css'] },
 	  -onload => 'javascript:{ initToolTips(); }',
-	  -script => [ {-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
-				   {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'} ]
+	  -script => $self->{js_tags},
 	);
 }
 
@@ -712,6 +730,7 @@ sub navbar {
 	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	   ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
 	   ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
+	   ['Structure',	'structural features', 				'pseq_structure.pl', $pseq_id ],
 	   ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
 	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id;params_id=1"],
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
