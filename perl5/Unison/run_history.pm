@@ -1,3 +1,23 @@
+=head1 NAME
+
+Unison::run_history -- API to the Unison run_history table
+
+S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
+
+=head1 SYNOPSIS
+
+ use Unison;
+ use Unison::run_history;
+ my $u = new Unison(...);
+
+=head1 DESCRIPTION
+
+B<Unison::blat> provides BLAT-related methods to the B<Unison::>
+namespace.
+
+=cut
+
+
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -6,11 +26,38 @@ use strict;
 use warnings;
 
 
+=pod
+
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## upd_run_history
+
+=pod
+
+=item B<< $u->upd_run_history( C<pseq_id>, C<params_id>, C<porigin_id>, C<pmodelset_id> ) >>
+
+=cut
+
 sub upd_run_history(@) {
   my $u = shift;
   return $u->selectrow_array("select upd_run_history(?,?,?,?)",undef,@_);
 }
 
+
+######################################################################
+## fx upd_run_histories
+
+=pod
+
+=item B<< $u->upd_run_histories( C<pseq_id>, C<params_id>, C<[porigin_ids]>, C<[pmodelset_ids]> ) >>
+
+=cut
 
 sub upd_run_histories($$$$$) {
   my ($u,$pseq_id,$params_id,$O,$M) = @_;
@@ -26,19 +73,20 @@ sub upd_run_histories($$$$$) {
 }
 
 
+######################################################################
+##  get_run_timestamp
+
+=pod
+
+=item B<< $u->get_run_timestamp( C<pseq_id>, C<params_id>, C<porigin_id>, C<pmodelset_id> ) >>
+
+=cut
+
 sub get_run_timestamp(@) {
   my $u = shift;
   return $u->selectrow_array("select get_run_timestamp(?,?,?,?)",undef,@_);
 }
 
-
-sub params_commandline_by_params_id($$) {
-  warn_deprecated();
-  my $u = shift;
-  my $params_id = shift;
-  my ($cl) = $u->selectrow_array("select commandline from params where params_id=$params_id");
-  return $cl;
-}
 
 
 
@@ -52,12 +100,27 @@ sub last_run_update($$) {
   return $u->selectrow_array("select last_run_update($pseq_id,$run_id)");
 }
 
-sub run_commandline_by_run_id($$) {
-  warn_deprecated();
-  params_commandline_by_params_id($_[0],$_[1]);
-}
 
+=pod
 
+=back
 
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see C<perldoc Unison> for contact information
+
+=cut
 
 1;
