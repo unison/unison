@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::SQL -- Unison pseq table utilities
-S<$Id: SQL.pm,v 1.2 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: SQL.pm,v 1.3 2004/05/04 04:46:33 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -25,63 +25,116 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use strict;
 use warnings;
-use overload '""' => \&sql;
+use overload '""' => \&stringify;
+use Unison::Exceptions;
 
 
 sub new {
   my $class = shift;
   bless({tables => [],
+		 distinct => [],
 		 columns => [],
 		 where => [],
-		 order => []
+		 order => [],
+		 offset => undef,
+		 limit => undef,
 		},$class);
   }
 
 
 sub columns {
   my $self = shift;
-  push( @{$self->{columns}}, @_);
+  if (@_) {
+	if (defined $_[0]) {
+	  push( @{$self->{columns}}, @_);
+	} else {
+	  $self->{columns} = [];
+	}
+  }
+  return $self;
+}
+
+sub distinct {
+  my $self = shift;
+  if (@_) {
+	if (defined $_[0]) {
+	  push( @{$self->{distinct}}, @_);
+	} else {
+	  $self->{distinct} = [];
+	}
+  }
   return $self;
 }
 
 sub table { $_[0]->join(splice(@_,1)) }
 sub join {
   my $self = shift;
-  push( @{$self->{tables}}, @_);
+  if (@_) {
+	if (defined $_[0]) {
+	  push( @{$self->{tables}}, @_);
+	} else {
+	  $self->{tables} = [];
+	}
+  }
   return $self;
 }
 
 sub where {
   my $self = shift;
-  push( @{$self->{where}}, @_);
+  if (@_) {
+	if (defined $_[0]) {
+	  push( @{$self->{where}}, @_);
+	} else {
+	  $self->{where} = [];
+	}
+  }
   return $self;
 }
 
 sub order {
   my $self = shift;
-  push( @{$self->{order}}, @_);
+  if (@_) {
+	if (defined $_[0]) {
+	  push( @{$self->{order}}, @_);
+	} else {
+	  $self->{order} = [];
+	}
+  }
+  return $self;
+}
+
+sub limit {
+  my $self = shift;
+  $self->{limit} = $_[0];
+  return $self;
+}
+
+sub offset {
+  my $self = shift;
+  $self->{offset} = $_[0];
   return $self;
 }
 
 
-
 sub sql {
   my $self = shift;
-  return '' unless @{$self->{columns}};
-  CORE::join(' ',
-	   'select', CORE::join( ',', @{$self->{columns}} ),
-	   (@{$self->{tables}}
-		? ' from ' . CORE::join( "   join ", @{$self->{tables}})
-		: ''),
-	   (@{$self->{where}}
-		? ' where ' . CORE::join( '  and  ', @{$self->{where}})
-		: ''),
-	   (@{$self->{order}}
-		? ' order by ' . CORE::join( ',', @{$self->{order}})
-		: ''),
-	  );
-  }
 
+  (@{$self->{columns}})
+	|| throw Unison::Exception::RuntimeError('Nothing selected in Unison::SQL object');
+
+  my @sql = 'SELECT';
+  push(@sql, 'DISTINCT ON', '(', CORE::join( ',', @{$self->{distinct}}), ')') if @{$self->{distinct}};
+  push(@sql, CORE::join( ',', @{$self->{columns}} ) );
+  push(@sql, 'FROM', CORE::join( "   JOIN ", @{$self->{tables}})) if @{$self->{tables}};
+  push(@sql, 'WHERE', CORE::join( '  AND  ', @{$self->{where}})) if @{$self->{where}};
+  push(@sql, 'ORDER BY', CORE::join( ',', @{$self->{order}})) if @{$self->{order}};
+  push(@sql, 'OFFSET', $self->{offset}) if defined $self->{offset};
+  push(@sql, 'LIMIT', $self->{limit}) if defined $self->{limit};
+
+  wantarray ? @sql : CORE::join(' ', @sql);
+}
+
+sub stringify { scalar($_[0]->sql()) }
 
 
 

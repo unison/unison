@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.13 2004/05/20 01:16:17 rkh Exp $
+# $Id: get-seq,v 1.14 2004/06/11 20:18:23 rkh Exp $
 
 use warnings;
 use strict;
@@ -129,7 +129,7 @@ sub SPDI_lookup {
 sub SPDI_lookup1 {
   my ($pfx,$id) = @_;
   my $sth = $u->prepare_cached(q/select pseq_id from palias where alias=? and
- 								porigin_id=porigin_id_lookup('SPDI')/);
+ 								porigin_id=porigin_id_lookup('GenenGenes')/);
   $sth->execute("$pfx$id");
   my $rv = $sth->fetchrow_array;
   $sth->finish();
@@ -146,7 +146,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.13 2004/05/20 01:16:17 rkh Exp $>
+S<$Id: get-seq,v 1.14 2004/06/11 20:18:23 rkh Exp $>
 
 =head1 SYNOPSIS
 

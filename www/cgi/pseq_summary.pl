@@ -26,7 +26,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id$ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.20 2004/06/14 23:40:24 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
@@ -34,7 +34,7 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 				 '<p>', aliases_group($p),
 				 '<p>', homologs_group($p),
 				 '<p>', features_group($p),
-                                 '<p>', mint_group($p),
+				 '<p>', mint_group($p),
 				);
 
 exit(0);
@@ -55,7 +55,9 @@ sub sequence_group ($) {
 			'<pre>', 
 			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id},1), "\n",
 			$wrapped_seq,
-			'</pre>' )
+			'</pre>',
+			"You may also <a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download</a> this sequence in FASTA format",
+			)
 }
 
 
@@ -100,7 +102,7 @@ sub homologs_group ($) {
 	my $sql_h = "select gene_symbol, pseq_id2, best_annotation(pseq_id2),
   	tax_id2gs(tax_id2) from v_homologene where pseq_id1=$v->{pseq_id} order by 1,4";
 	my $hr = $u->selectall_arrayref($sql_h);
-	do { $_->[0] = shrintf('<a href="$homologene_url?db=homologene&cmd=search&term=%s">%s</a>',$_->[0],$_->[0]) } for @$hr;
+	do { $_->[0] = shrintf('<a href="$homologene_url?db=homologene;cmd=search;term=%s">%s</a>',$_->[0],$_->[0]) } for @$hr;
 	do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$hr;
 
 	return 
@@ -134,14 +136,14 @@ sub homologs_group ($) {
   my $sql_p = "select gene_symbol, pseq_id2, best_annotation(pseq_id2),
   	tax_id2gs(tax_id2) from v_homologene_paralogs where pseq_id1=$v->{pseq_id} order by 1,4";
   my $pr = $u->selectall_arrayref($sql_p);
-  do { $_->[0] = sprintf('<a href="$homologene_url?db=homologene&cmd=search&term=%s">%s</a>',$_->[0],$_->[0]) } for @$pr;
+  do { $_->[0] = sprintf('<a href="$homologene_url?db=homologene;cmd=search;term=%s">%s</a>',$_->[0],$_->[0]) } for @$pr;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$pr;
 
   # orthologs:
   my $sql_o = "select gene_symbol, pseq_id2, best_annotation(pseq_id2),
   	tax_id2gs(tax_id2) from v_homologene_orthologs where pseq_id1=$v->{pseq_id} order by 1,4";
   my $or = $u->selectall_arrayref("$sql_o");
-  do { $_->[0] = sprintf('<a href="$homologene_url?db=homologene&cmd=search&term=%s">%s</a>',$_->[0],$_->[0]) } for @$or;
+  do { $_->[0] = sprintf('<a href="$homologene_url?db=homologene;cmd=search;term=%s">%s</a>',$_->[0],$_->[0]) } for @$or;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$or;
 
   $p->group( ('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene">Homologene</a>'
@@ -197,8 +199,8 @@ sub mint_group ($) {
   my $v = $p->Vars();
 
   my $sql = qq/select sprot_a, best_alias(pseq_id_a), sprot_b, pseq_id_b, best_alias(pseq_id_b), count(*)
-      from sulin.v_mint
-      where pseq_id=$v->{pseq_id} group by sprot_a, sprot_b, pseq_id_a, pseq_id_b/;
+      from v_mint
+      where pseq_id_a=$v->{pseq_id} group by sprot_a, sprot_b, pseq_id_a, pseq_id_b/;
 
   my $ar = $u->selectall_arrayref($sql);
   do { $_->[0] = alias_link($_->[0],'Mint') } for @$ar;

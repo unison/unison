@@ -12,7 +12,7 @@ my $key;
 
 meta_di($u,'nseqs','(select count(*) from pseq)');
 
-foreach my $o (qw( manual PDB Swiss-Prot TrEMBL Ensembl SPDI
+foreach my $o (qw( manual PDB Swiss-Prot TrEMBL Ensembl GenenGenes
  Celera/Genscan NHGD30/Genscan IPI Proteome Refseq Prospect2
  EMBOSS/sigcleave 
  pred nr patent dblast hum

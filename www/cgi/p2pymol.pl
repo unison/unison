@@ -46,20 +46,23 @@ if (not defined $po) {
 }
 $po->{templates} = \@templates;
 
+
 try {
   my $pf = new Bio::Prospect::LocalClient( {options=>$po} );
-#  my $pt = new Bio::Prospect::Transformation;
   my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
 									-format => 'pdb')->next_structure();
   my $thr = ($pf->thread( $seq ))[0];
+  $thr->qname($v->{pseq_id});
   print("Content-type: application/x-pymol\n",
 		sprintf("Content-disposition: attachment; filename=%s-%s-%s.pml\n",
 				$v->{pseq_id},$template,$v->{params_id}),
 		"\n",
-		$thr->output_pymol_script( $str ),
+		$thr->output_pymol_script( $str,
+								   "$v->{pseq_id}-$template"),
 	   );
 } catch Bio::Prospect::RuntimeError with {
-  $p->die("couldn't generate rasmol script",$@)
+  $p->die("couldn't generate rasmol script",@_)
 };
+
 
 exit(0);

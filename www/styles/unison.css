@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.13 2004/02/24 19:23:54 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.14 2004/04/22 21:27:07 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -29,7 +29,7 @@ TABLE.page TD.body {
  border: #150067 thin dashed;
  padding: 5px;
 }
-TABLE.page TD.contact {
+TABLE.page TD.footer {
  border: #150067 thin dashed;
  vertical-align: middle;
  padding: 0px;

@@ -38,7 +38,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.21 2003/07/31 22:37:56 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.22 2004/02/24 19:20:57 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $opts{origin} (porigin_id=$porigin_id)\n");
 
 
@@ -143,7 +143,7 @@ sub process_seq  {
   # @ids is the SET of ids to which we'll link this sequence
   my @ids = ();
 
-  if ($opts{origin} =~ m/SPDI/i) {
+  if ($opts{origin} =~ m/GenenGenes/i) {
 	my %ids;
 	# NO UNQs in database -- not unique!
 	# $ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
@@ -151,7 +151,7 @@ sub process_seq  {
 	$ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
 	$ids{$id}++;
 	@ids = sort keys %ids;
-	#warn("! $id: SPDI sequence didn't match 2 identifiers (@ids)\n") unless $#ids==1;
+	#warn("! $id: GenenGenes sequence didn't match 2 identifiers (@ids)\n") unless $#ids==1;
   } else {
 	@ids = ( $id );
   }

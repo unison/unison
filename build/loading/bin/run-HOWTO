@@ -1,5 +1,9 @@
 Let's migrate options to the following standard:
 
+load -- load data file
+run -- run based on things in the db (e.g., ids, params, etc)
+
+
 options:
 Unison::DBI opts: -d, -U, -h
 

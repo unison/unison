@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.13 2004/04/02 00:34:05 rkh Exp $
+# $Id: run-paprospect2,v 1.14 2004/06/04 00:04:07 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -36,7 +36,7 @@ my %opts = (
 GetOptions(\%opts,
 		   'debug+',
 		   'params_id|p=i',
-		   'pmodelset_id|m=i@',
+		   'pmodelset_id|M=i@',
 		   'porigin_id|o=i@',
 		   'template-file|tfile|T=s',
 		   'templates|t=s@',
@@ -177,6 +177,9 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.14  2004/06/04 00:04:07  rkh
+# periodic sync
+#
 # Revision 1.13  2004/04/02 00:34:05  rkh
 # periodic sync
 #

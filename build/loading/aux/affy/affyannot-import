@@ -11,16 +11,10 @@ my $dsn = 'dbi:Oracle:ghubprd';
 my $dbh = DBI->connect($dsn, 'bioinfo', 'bioinfo')
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
-my @adn = 
-  (
-   'Proteome',
-   'SST',
-   'SwissProt', 
-   'LocusLink'
-  );
-
-my @lm = 
-  (
+my @db_names = qw( HGU133A HGU133B HGU133P ); #Agilent );
+my @annot_db_names = qw( Proteome SST SwissProt LocusLink );
+my @link_methods = 
+  ( 
    'BLASTn-blocks',
    'Secondary Linking-verified',
    'Affy Annotation',
@@ -32,9 +26,9 @@ my $sql =
 "SELECT DISTINCT DB_NAME,RECORD_NAME,ANNOT_DB_NAME,ANNOT_RECORD_NAME,LINK_METHOD
 FROM affyannot
 WHERE
-  DB_NAME LIKE 'HGU133%'
-  AND (" . join(' OR ', map { "ANNOT_DB_NAME = '$_'" } @adn) . ")
-  AND (" . join(' OR ', map { "LINK_METHOD = '$_'" } @lm) . ")
+      (" . join(' OR ', map { "DB_NAME = '$_'"       } @db_names)       . ")
+  AND (" . join(' OR ', map { "ANNOT_DB_NAME = '$_'" } @annot_db_names) . ")
+  AND (" . join(' OR ', map { "LINK_METHOD = '$_'"   } @link_methods)   . ")
 ";
 
 
@@ -63,6 +57,16 @@ create index affyannot_search1 on affyannot(DB_NAME,RECORD_NAME);
 create index affyannot_search2 on affyannot(ANNOT_DB_NAME,ANNOT_RECORD_NAME);
 comment on table affyannot is 'selected high-reliability affy assignments from GeneHub & Yan Zhang';
 grant select on affyannot to PUBLIC;
+
+
+create or replace view v_pseq2probeset as
+SELECT pseq_id, db_name AS chip, record_name AS probeset, link_method AS method
+FROM palias a
+JOIN affyannot aa ON a.alias = aa.annot_record_name
+WHERE (a.porigin_id = porigin_id('GenenGenes'::text) AND aa.record_name = 'SST'::text)
+  OR  (a.porigin_id = porigin_id('Swiss-Prot'::text) AND aa.annot_db_name = 'SwissProt'::text)
+  OR  annot_db_name = 'LocusLink'::text;
+
 EOT
 
 

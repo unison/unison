@@ -14,7 +14,7 @@ use Text::Wrap;
 
 sub alias_link {
   my ($alias,$origin) = @_;
-  if ($origin eq 'SPDI') {
+  if ($origin eq 'GenenGenes') {
 	return( alias_gglink($alias) );
   } elsif ($origin eq 'Swiss-Prot') {
 	return( alias_splink($alias) ) 
@@ -65,7 +65,7 @@ sub alias_enslink {
   }
 
 sub alias_mint_link {
-    "<a tooltip=\"link to Mint:$_[0]\" href=\"http://160.80.34.4/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
+  "<a tooltip=\"link to Mint:$_[0]\" href=\"http://160.80.34.4/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
 }
 
 sub alias_pubmed_link {

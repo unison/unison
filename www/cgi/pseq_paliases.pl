@@ -14,6 +14,7 @@ use Unison::WWW::utilities qw(alias_link text_wrap);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.20 2004/06/14 23:40:24 rkh Exp $ ');
 
 my $sql = qq/select O.origin,AO.alias,AO.descr from pseqalias SA
 			join paliasorigin AO on AO.palias_id=SA.palias_id

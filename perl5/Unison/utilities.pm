@@ -2,7 +2,7 @@
 
 Unison::utilities -- general Unison utilities
 
-S<$Id: utilities.pm,v 1.7 2004/06/02 23:05:48 rkh Exp $>
+S<$Id: utilities.pm,v 1.8 2004/06/04 00:04:31 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -27,7 +27,8 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use base Exporter;
 @EXPORT = ();
-@EXPORT_OK = qw( warn_deprecated range_to_enum clean_sequence sequence_md5 );
+@EXPORT_OK = qw/ warn_deprecated range_to_enum clean_sequence
+				 sequence_md5 wrap /;
 
 use strict;
 use warnings;
@@ -150,5 +151,28 @@ sub sequence_md5 ($) {
   my $seq = shift;
   return md5_hex(clean_sequence($seq));
 }
+
+
+## ==========================================================================
+
+=head2 wrap( C<sequence> )
+
+=over
+
+wraps the sequence at 60 columns
+
+=back
+
+=cut
+
+sub wrap ($) {
+  my $seq = shift;
+  $seq =~ s/.{1,60}/$&\n/g;
+  return $seq;
+}
+
+
+
+
 
 1;
