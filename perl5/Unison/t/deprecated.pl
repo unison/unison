@@ -7,7 +7,7 @@ use Unison::utilities;
 
 # A: single use, one level deep
 sub A1 {
-  Unison::warn_deprecated();
+  Unison::warn_deprecated('single level, one level deep, with message');
 }
 
 
