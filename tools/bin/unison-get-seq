@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- retrieve sequences from unison
-# $Id: get-seq,v 1.5 2003/05/27 22:33:45 rkh Exp $
+# $Id: get-seq,v 1.6 2003/07/03 16:47:14 rkh Exp $
 
 use warnings;
 use strict;
@@ -34,6 +34,7 @@ if (@ARGV) {
   }
 } else {
   while (my $id=<>)	{
+	chomp $id;
 	process1($id) }
 }
 
@@ -97,7 +98,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.5 2003/05/27 22:33:45 rkh Exp $>
+S<$Id: get-seq,v 1.6 2003/07/03 16:47:14 rkh Exp $>
 
 =head1 SYNOPSIS
 
