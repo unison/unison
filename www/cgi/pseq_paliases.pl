@@ -5,7 +5,7 @@ use warnings;
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
-use Unison::WWW::Utils qw(alias_link);
+use Unison::WWW::Utils qw(alias_link text_wrap);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -22,7 +22,7 @@ my @f = qw( origin alias description );
 do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
 
 # break really log "words" into fragments
-do { $_->[2] =~ s/(\S{30,}?)(?=\S+)/$1-- /g;} for @$ar;
+do {$_->[2] = text_wrap($_->[2])} for @$ar;
 
 print $p->render("Aliases of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),

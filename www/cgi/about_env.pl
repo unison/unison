@@ -18,6 +18,9 @@ print $p->render("Unison Environment",
 				 '<br>uptime: <code>', `uptime`, '</code>',
 				 '<br>running jobs:<br><pre>', `ps --sort=-pcpu r -wopid,ppid,stime,etime,cputime,pcpu,pmem,cmd -ucompbio 2>&1`, '</pre>',
 
+				 '<hr>PostgreSQL information:',
+				 pg_info(),
+
 				 '<hr>Unison connection information:',
 				 (map { "<br><code>$_: "
 						. (defined $p->{unison}->{$_} ? $p->{unison}->{$_} : '(undef)')
@@ -28,11 +31,29 @@ print $p->render("Unison Environment",
 				 (map { "<br><code>$_: $ENV{$_}</code>\n" }
 				  qw(REMOTE_USER KRB5CCNAME)),
 
-				 "<hr>perl include paths:\n<pre>\@INC = (\n", 
-				 (map {"$_\n"} @INC, ");</pre>\n\n"),
+				 "<hr>perl include paths:\n",
+				 join("\n&nbsp;&nbsp;", '<pre>@INC = (', @INC, ");</pre>\n\n"),
 
 				 "<hr>Unison modules found in:\n<pre>",
 				 (map { sprintf("$_ => $INC{$_}\n") } sort grep {/Unison/} keys %INC), "</pre>\n\n",
 
 				);
 
+
+
+sub pg_info {
+  my @rv;
+
+  my @settings = qw( effective_cache_size max_connections search_path
+  shared_buffers sort_mem );
+  my $settings = join(',', map {"'$_'"} @settings);
+
+  return('Not Connected') unless defined $u;
+
+  push( @rv, ['version', $u->selectrow_array('select version()')] );
+
+  push( @rv, map { [$_->[0],$_->[1]] }
+				   @{ $u->selectall_arrayref("select name,setting from pg_settings where name in ($settings)") } ); 
+
+  return map { "<br>&nbsp;&nbsp;&nbsp;$_->[0]: <code>$_->[1]</code>\n" } @rv;
+  }
