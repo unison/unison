@@ -15,14 +15,14 @@ my $u = $p->{unison};
 my %defaults = 
   ( 
    pset_id => 5,
-   pmodelset_id => 2,
+   pmodelset_id => 3,
    hmm => 0,
-   hmm_eval => '1e-5',
+   hmm_eval => '1e-10',
    pssm => 0,
-   pssm_eval => '1e-5',
+   pssm_eval => '1e-10',
    p2 => 0,
    p2_run_id => 1,
-   p2_svm => 11,
+   p2_svm => 12,
    p2_raw => -500,
   );
 
@@ -33,22 +33,6 @@ $v = \%v;
 
 my (@SP) = map { $_->[0] } @{ $u->selectall_arrayref("select pseq_id from pseqset where pset_id=$v->{pset_id}") };
 my $nSP = $#SP+1;
-
-
-#my (@hmm_P,@hmm_TP,@hmm_FN,@hmm_UP);
-my ($hmm_P,$hmm_TP,$hmm_FN,$hmm_UP) = ('','','','');
-
-#my (@pssm_P,@pssm_TP,@pssm_FN,@pssm_UP);
-my ($pssm_P,$pssm_TP,$pssm_FN,$pssm_UP) = ('','','','');
-
-#my (@p2_P,@p2_TP,@p2_FN,@p2_UP);
-my ($p2_P,$p2_TP,$p2_FN,$p2_UP) = ('','','','');
-
-my %P;										# counts # of times pseq_id was hit for U_ & I_
-my ($I_P,$I_TP,$I_FN,$I_UP) = ('','','','');
-my ($U_P,$U_TP,$U_FN,$U_UP) = ('','','','');
-
-my $set;									# pseq_id array ref; if set below, show seq list
 
 
 
@@ -65,6 +49,15 @@ my $set;									# pseq_id array ref; if set below, show seq list
 ## - compute p2_* if needed
 ## - compute U_*
 ## - compute I_ unless we're showing a list of U_*
+
+
+my %P;										# counts # of times pseq_id was hit for U_ & I_
+my $set;									# pseq_id array ref; if set below, show seq list
+my ($hmm_P,$hmm_TP,$hmm_FN,$hmm_UP) = ('','','',''); 	  # <method>_<set>
+my ($pssm_P,$pssm_TP,$pssm_FN,$pssm_UP) = ('','','','');  # stores the cell contents
+my ($p2_P,$p2_TP,$p2_FN,$p2_UP) = ('','','','');          # for each method and
+my ($I_P,$I_TP,$I_FN,$I_UP) = ('','','','');              # classification set
+my ($U_P,$U_TP,$U_FN,$U_UP) = ('','','','');              # U=Union, I=intersection
 
 
 if (exists $v->{submit}) {
@@ -194,14 +187,13 @@ if ($set) {
 
 
 # default case: prepare the form and summary statistics
-
-my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" } 
-  @{ $u->selectall_arrayref("select pset_id,name from pset order by pset_id") };
-my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" }
-  @{ $u->selectall_arrayref('select * from pmodelset order by pmodelset_id') };
+my @xs = @{ $u->selectall_arrayref("select pset_id,name from pset order by pset_id") };
+my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" } @xs;
+my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset order by pmodelset_id') };
+my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.5 2003/11/03 18:22:04 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.6 2003/11/03 18:46:49 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. Select
@@ -225,7 +217,7 @@ print $p->render("Sequence Mining Summary",
 				 ,'</th>',
 				 '<th align="center" colspan="3">Compare to sequences in set:<br>',
 				 $p->popup_menu(-name => 'pset_id',
-								-values => [sort keys %xs],
+								-values => [map {$_->[0]} @xs],
 								-labels => \%xs,
 								-default => "$v->{pset_id}"),
 
@@ -233,9 +225,9 @@ print $p->render("Sequence Mining Summary",
 				 '</tr>',"\n",
 
 				 '<tr>', 
-				 '<th align="left" colspan="2">Select sequences matching models in set:<br>',
+				 '<th align="left" colspan="2">Select sequences matching any model in<br>',
 				 $p->popup_menu(-name => 'pmodelset_id',
-								-values => [keys %ms],
+								-values => [map {$_->[0]} @ms],
 								-labels => \%ms,
 								-default => "$v->{pmodelset_id}"),
 				 '</th>',
@@ -335,6 +327,7 @@ print $p->render("Sequence Mining Summary",
 				 '<tr>',
 				 '<td>',
 				 $p->tooltip('Union','Sequences which occur in ANY of the selected methods'),
+				 ' (hit by ANY of the above)',
 				 '</td>',
 				 '<td align="right">', $U_P ,'</td>',
 				 '<td align="right">', $U_TP,'</td>',
@@ -345,6 +338,7 @@ print $p->render("Sequence Mining Summary",
 				 '<tr>',
 				 '<td>',
 				 $p->tooltip('Intersection','Sequences which occur in ALL of the selected methods'),
+				 ' (hit by ALL of the above)',
 				 '</td>',
 				 '<td align="right">', $I_P ,'</td>',
 				 '<td align="right">', $I_TP,'</td>',
@@ -367,6 +361,7 @@ print $p->render("Sequence Mining Summary",
 sub _hmm_sql {
   my @models = sort { $a<=>$b }
 	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmhmm where pmodelset_id=$v->{pmodelset_id}" ) });
+  return undef unless @models;
   my $sql = Unison::SQL->new()
 	->table('pahmm A')
 	->columns('distinct A.pseq_id')
@@ -376,13 +371,17 @@ sub _hmm_sql {
 }
 sub _get_hmm_hits {
   my $sql = _hmm_sql();
-#  print(STDERR "hmm: $sql\n");
+  if (not defined $sql) {
+	warn("$0: no hmm models for pmodelset_id=$v->{pmodelset_id}\n");
+	return ();
+  }
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
 sub _pssm_sql {
   my @models = sort { $a<=>$b }
 	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmpssm where pmodelset_id=$v->{pmodelset_id}" ) });
+  return undef unless @models;
   my $sql = Unison::SQL->new()
 	->table('papssm A')
 	->columns('distinct A.pseq_id')
@@ -392,13 +391,17 @@ sub _pssm_sql {
 }
 sub _get_pssm_hits {
   my $sql = _pssm_sql();
-#  print(STDERR "pssm: $sql\n");
+  if (not defined $sql) {
+	warn("$0: no pssm models for pmodelset_id=$v->{pmodelset_id}\n");
+	return ();
+  }
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
 sub _p2_sql {
   my @models = sort { $a<=>$b }
 	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{pmodelset_id}" ) });
+  return undef unless @models;
   my $sql = Unison::SQL->new()
 	->table('paprospect2 A')
 	->columns('distinct A.pseq_id')
@@ -408,7 +411,10 @@ sub _p2_sql {
 }
 sub _get_p2_hits {
   my $sql = _p2_sql();
-#  print(STDERR "p2: $sql\n");
+  if (not defined $sql) {
+	warn("$0: no prospect2 models for pmodelset_id=$v->{pmodelset_id}\n");
+	return ();
+  }
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
