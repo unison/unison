@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.6 2003/10/28 22:34:36 rkh Exp $>
+S<$Id: palias.pm,v 1.7 2004/02/24 19:23:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -32,32 +32,35 @@ tables for the existing porigin_id and pseq_id.
 =cut
 
 sub add_palias {
-  my ($self,$pseq_id,$porigin_id,$alias,$descr) = @_;
+  my ($self,$pseq_id,$porigin_id,$alias,$descr,$tax_id) = @_;
   $self->is_open()
-	|| croak("Unison connection not established");
+  || croak("Unison connection not established");
 
   if (defined $descr and $descr =~ /\w/) {
-	$descr =~ s/([\'])/\\$1/g;
-	$descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
-	$descr = "'$descr'";
+    $descr =~ s/([\'])/\\$1/g;
+    $descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
+    $descr = "'$descr'";
   } else {
-	$descr = 'NULL'; 
+    $descr = 'NULL'; 
   }
+
+  $tax_id = ( defined $tax_id ) ? $tax_id : 'NULL';
 
   if ( not defined $pseq_id 
      or not defined $porigin_id
      or not defined $alias 
      or not defined $descr) {
-	confess(sprintf("<pseq_id,porigin_id,alias,descr>=<%s,%s,%s,%s>",
-					defined $pseq_id ? $pseq_id : 'undef',
-					defined $porigin_id ? $porigin_id : 'undef',
-					defined $alias ? $alias : 'undef',
-					defined $descr ? $descr : 'undef' ));
+  confess(sprintf("<pseq_id,porigin_id,alias,descr>=<%s,%s,%s,%s>",
+          defined $pseq_id ? $pseq_id : 'undef',
+          defined $porigin_id ? $porigin_id : 'undef',
+          defined $alias ? $alias : 'undef',
+          defined $descr ? $descr : 'undef' ));
   }
 
-  $self->do( "insert into palias (pseq_id,porigin_id,alias,descr) "
-       . "values ($pseq_id,$porigin_id,'$alias',$descr)",
-         { PrintError=>1 } );
+  my $sql = "insert into palias (pseq_id,porigin_id,alias,descr,tax_id) "
+       . "values ($pseq_id,$porigin_id,'$alias',$descr,$tax_id)";
+  print STDERR "sql: $sql\n" if $ENV{DEBUG};
+  $self->do( $sql, { PrintError=>1 } );
   return;
 }
 
@@ -80,7 +83,7 @@ sub add_palias {
 ###   my ($u,$alias) = @_;
 ###   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
 ###   (defined $alias) 
-### 	|| throw Unison::RuntimeError("alias not defined");
+###   || throw Unison::RuntimeError("alias not defined");
 ###   # this'll be screwed up if the alias contains a ' quote... better to use bind vars...
 ### 
 ###   my $sql;
@@ -118,20 +121,20 @@ sub get_pseq_id_from_alias {
   my ($u,$alias) = @_;
   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
   (defined $alias) 
-	|| throw Unison::RuntimeError("alias not defined");
+  || throw Unison::RuntimeError("alias not defined");
   my @ids;
 
-  if (not $alias =~ m%^[~/^]%) {			# doesn't smell like a regexp
-	(@ids) = $u->get_pseq_id_from_alias_exact( $alias );
-	return(@ids) if @ids;
+  if (not $alias =~ m%^[~/^]%) {      # doesn't smell like a regexp
+  (@ids) = $u->get_pseq_id_from_alias_exact( $alias );
+  return(@ids) if @ids;
 
-	(@ids) = $u->get_pseq_id_from_alias_casefolded( $alias );
-	return(@ids) if @ids;
+  (@ids) = $u->get_pseq_id_from_alias_casefolded( $alias );
+  return(@ids) if @ids;
   }
 
   if (length($alias) >= 5 or $alias =~ /^[~^]/) {
-	(@ids) = $u->get_pseq_id_from_alias_regexp( $alias );
-	return(@ids);
+  (@ids) = $u->get_pseq_id_from_alias_regexp( $alias );
+  return(@ids);
   }
 
   return;
@@ -151,7 +154,7 @@ sub get_pseq_id_from_alias_exact {
   my ($u,$alias) = @_;
   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
   (defined $alias) 
-	|| throw Unison::RuntimeError("alias not defined");
+  || throw Unison::RuntimeError("alias not defined");
   my $sql = 'select distinct pseq_id from palias where alias = ?';
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
@@ -169,7 +172,7 @@ sub get_pseq_id_from_alias_casefolded {
   my ($u,$alias) = @_;
   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
   (defined $alias) 
-	|| throw Unison::RuntimeError("alias not defined");
+  || throw Unison::RuntimeError("alias not defined");
   my $sql = 'select distinct pseq_id from palias where upper(alias) = ?';
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, uc($alias)) } );
 }
@@ -192,15 +195,15 @@ sub get_pseq_id_from_alias_regexp {
   my ($u,$alias) = @_;
   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
   (defined $alias)
-	|| throw Unison::RuntimeError("alias not defined");
+  || throw Unison::RuntimeError("alias not defined");
   my $op = $alias =~ s/^(~\*?)//g ? $1 : '~';
-  #$alias =~ s%^/(.+)/$%$1%;					# remove // from /<regexp>/
+  #$alias =~ s%^/(.+)/$%$1%;          # remove // from /<regexp>/
   my $sql = 'select distinct pseq_id from palias where ';
   if ($op eq '~') {
-	$sql .= 'alias ~ ?';
+  $sql .= 'alias ~ ?';
   } else {
-	$sql .= 'upper(alias) ~ ?';
-	$alias = uc($alias);
+  $sql .= 'upper(alias) ~ ?';
+  $alias = uc($alias);
   }
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
@@ -219,7 +222,7 @@ sub get_pseq_id_from_alias_fuzzy {
   my ($u,$alias) = @_;
   $u->is_open() || throw Unison::RuntimeError("Unison connection not established");
   (defined $alias) 
-	|| throw Unison::RuntimeError("alias not defined");
+  || throw Unison::RuntimeError("alias not defined");
   #my $sth = $u->prepare($sql);
   #$sth->execute($alias);
   my $sql = 'select distinct pseq_id from palias where alias ilike ?';
