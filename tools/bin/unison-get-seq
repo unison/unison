@@ -1,14 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.15 2004/06/25 00:20:34 rkh Exp $
-
-use warnings;
-use strict;
-use Unison;
-use Getopt::Long qw(:config gnu_getopt);
-use Pod::Usage;
-
-
+# $Id: get-seq,v 1.16 2004/12/24 00:09:54 rkh Exp $
 
 =pod
 
@@ -16,7 +8,7 @@ use Pod::Usage;
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.15 2004/06/25 00:20:34 rkh Exp $>
+S<$Id: get-seq,v 1.16 2004/12/24 00:09:54 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -37,37 +29,23 @@ STDOUT, optionally with aliases or annotations.
 
 
 
+use warnings;
+use strict;
+use Unison;
+use Getopt::Long qw(:config gnu_getopt);
+use Pod::Usage;
 
-my %opts = 
-  (
-   'best-alias' => 0,
-   'best-annotation' => 0,
-   'all-aliases' => 0,
-   'pro_id' => undef,
-   'verbose' => 0,
-   'pset_id' => undef,
-   'unison-id' => 0,
-   'help' => 0,
-   'version' => 0,
-  );
-GetOptions( \%opts,
-			'best-alias|best-oa|b+',
-			'best-annotation|best-oad|B+',
-			'all-aliases|a+',
 
-			'pro_id|proid|P=s@',
-			'pset_id|S=i',
-			'porigin_id|O=i',
-			'unison-id|u+',
+# PROTOTYPES
+sub parse_options();
+sub map_args_to_pseq_ids($@);
 
-			'verbose|v+',
-			'help|?+',
-			'version|V',
-		  )
-  || die("$0: you got usage issues, homey\n");
+
+# We begin...
+my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: gltop,v 1.6 2004/06/10 00:31:29 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.16 2004/12/24 00:09:54 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -76,66 +54,198 @@ if ( $opts{help} ) {
 }
 
 
+# open a connection to Unison
 my $u = new Unison();
-die( "! couldn't open a connection to unison\n" ) unless $u;
+(defined $u)
+  || die( "! couldn't open a connection to unison\n" );
 
-if (defined $opts{pset_id} and (defined $opts{pro_id} or @ARGV)) {
-  die("$0: cannot specify pset_id with other sequence selection options\n");
+
+# args from command line or stdin, but not both
+my (@args) = @ARGV ? @ARGV : <>;
+@args = map_args_to_pseq_ids( \%opts, @args );
+for(my $i=0; $i<=$#args; $i++) {
+  printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
+		 $i+1,$#args+1, ($i+1)/($#args+1)*100, $args[$i]) if $opts{verbose};
+  process1($args[$i]);
 }
-
-if (defined $opts{porigin_id} and (defined $opts{pro_id} or @ARGV)) {
-  die("$0: cannot specify pset_id with other sequence selection options\n");
-}
-
-if ( not ($opts{'best-alias'}
-		  or $opts{'best-annotation'}
-		  or $opts{'all-aliases'}) ) {
-  $opts{'unison-id'}++;
-}
-
-
-if (@ARGV) {
-  # expand ranges like 1..5 to {1,2,3,4,5}
-  if (my @bad = grep {/[^\d.]/} @ARGV) {
-	die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
-  }
-  @ARGV = map { eval "$_" } @ARGV;
-} elsif (defined $opts{pset_id}) {
-  my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from pseqset where pset_id=$opts{pset_id}")};
-  if (not @Q) {
-	die("$0: pset $opts{pset_id} apparently contains no sequences\n");
-  }
-  printf(STDERR "# %d sequence ids in pset_id=%d\n", $#Q+1, $opts{pset_id}) if $opts{verbose};
-  unshift(@ARGV, @Q);
-} elsif (defined $opts{porigin_id}) {
-  my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from palias where porigin_id=$opts{porigin_id}")};
-  if (not @Q) {
-	die("$0: porigin $opts{porigin_id} apparently contains no sequences\n");
-  }
-  printf(STDERR "# %d sequence ids in porigin_id=%d\n", $#Q+1, $opts{porigin_id}) if $opts{verbose};
-  unshift(@ARGV, @Q);
-} elsif (defined $opts{pro_id}) {
-  @{$opts{pro_id}} = map {split(/,/,$_)} @{$opts{pro_id}};
-  unshift(@ARGV, SPDI_lookup('PRO',@{$opts{pro_id}}));
-}
-
-
-if (@ARGV) {
-  for(my $i=0; $i<=$#ARGV; $i++) {
-	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
-		   $i+1,$#ARGV+1, ($i+1)/($#ARGV+1)*100, $ARGV[$i]) if $opts{verbose};
-	process1($ARGV[$i]);
-  }
-  print(STDERR "\n") if $opts{verbose};
-} else {
-  while (my $id=<>)	{
-	chomp $id;
-	process1($id) }
-}
+printf(STDERR "\n") if $opts{verbose};
 
 exit(0);
 
+
+
 ############################################################################
+
+sub parse_options() {
+  my %opts = 
+	(
+	 # how to select sequences
+	 'select-by-alias' => 0,
+	 'select-by-alias-fuzzy' => 0,
+	 'select-by-porigin' => 0,
+	 'select-by-pset' => 0,
+	 'select-by-unison-id' => 0,
+
+	 # what to display with sequences
+	 'best-alias' => 0,
+	 'best-annotation' => 0,
+	 'all-aliases' => 0,
+	 'unison-id' => 0,
+
+	 # generic options
+	 'verbose' => 0,
+	 'help' => 0,
+	 'version' => 0,
+	);
+  my $optsum;
+  my @opts;
+
+  GetOptions( \%opts,
+			  'select-by-alias|A+',
+			  'select-by-alias-fuzzy|F+',
+			  'select-by-porigin|porigin|origin|O+',
+			  'select-by-pset|pset|set|S+',
+			  'select-by-unison-id|unison|U+',
+
+			  'best-alias|best-oa|b+',
+			  'best-annotation|best-oad|B+',
+			  'all-aliases|a+',
+			  'unison-id|unison_id|u+',
+
+			  'verbose|v+',
+			  'help|?+',
+			  'version|V',
+			)
+	|| die("$0: you got usage issues, homey\n");
+
+
+  @opts = qw(select-by-alias select-by-alias-fuzzy
+			 select-by-pset select-by-porigin select-by-unison-id);
+  $optsum = eval join('+', map {$opts{$_}} @opts);
+  if ($optsum == 0) {
+	$opts{'select-by-unison-id'}++;
+  } elsif ($optsum > 1) {
+	die("$0: may only specifiy one of {", join(',',@opts), "}.\n");
+  }
+
+  @opts = qw(best-alias best-annotation all-aliases);
+  $optsum = eval join('+', map {$opts{$_}} @opts);
+  if ($optsum == 0) {
+	$opts{'unison-id'}++;
+  } elsif ($optsum > 1) {
+	die("$0: may only specifiy one of {", join(',',@opts), "}.\n");
+  }
+
+  return %opts;
+}
+
+
+
+
+sub map_args_to_pseq_ids($@) {
+  # args may be origins, porigin_ids, set names, pset_ids, aliases, or
+  # unison_ids, or unison_id ranges. 
+  # These all need to be reduced to enumerated unison_ids.  Although this
+  # is mild wasteful space-wise, it's not so bad in practice.
+
+  my $or = shift;
+  my @pseq_ids;
+
+  if ($or->{'select-by-unison-id'}) {
+	# expand ranges like 1..5 to (1,2,3,4,5)
+	if (my @bad = grep {/^[^-\d]$/} @_) {
+	  die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
+	}
+	@pseq_ids = map { eval "$_" } @_;
+	printf(STDERR "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};
+  }
+
+  elsif ($or->{'select-by-pset'}) {
+	my $sth_psetid_from_name = $u->prepare('select pset_id from pset where name=?');
+	my $sth_name_from_psetid = $u->prepare('select name from pset where pset_id=?');
+	my $sth_pseqid_from_psetid = $u->prepare('select pseq_id from pseqset where pset_id=?');
+
+	foreach my $arg (@_) {
+	  my ($pset_id, $pset_name);
+	  if ($arg =~ m/^\d+$/) {
+		($pset_name) = $u->selectrow_array($sth_name_from_psetid,undef,$arg);
+		if (not defined $pset_name) {
+		  warn("! pset with pset_id=$arg doesn't exist\n");
+		  next;
+		}
+		$pset_id = $arg;
+	  } else {
+		($pset_id) = $u->selectrow_array($sth_psetid_from_name,undef,$arg);
+		if (not defined $pset_id) {
+		  warn("! pset named '$arg' doesn't exist (and $arg doesn't look like a numeric pset id)\n");
+		  next;
+		}
+		$pset_name = $arg;
+	  }
+
+	  my (@Q) = map {$_->[0]} @{ $u->selectall_arrayref($sth_pseqid_from_psetid,undef,$pset_id) };
+	  if (not @Q) {
+		warn("$0: pset '$pset_name' (pset_id=$pset_id) contains 0 sequences\n")
+	  }
+	  printf(STDERR "# %d sequence ids in set '$pset_name' ($pset_id)\n", $#Q+1) if $opts{verbose};
+	  push(@pseq_ids, @Q);
+	}
+	printf(STDERR "# %d sequences selected by set\n", $#pseq_ids+1) if $opts{verbose};
+  }
+
+  elsif ($or->{'select-by-porigin'}) {
+	my $sth_poriginid_from_origin = $u->prepare('select porigin_id from porigin where origin=?');
+	my $sth_origin_from_poriginid = $u->prepare('select origin from porigin where porigin_id=?');
+	my $sth_pseqid_from_poriginid = $u->prepare('select pseq_id from palias where porigin_id=?');
+
+	foreach my $arg (@_) {
+	  my ($porigin_id, $porigin_origin);
+	  if ($arg =~ m/^\d+$/) {
+		($porigin_origin) = $u->selectrow_array($sth_origin_from_poriginid,undef,$arg);
+		if (not defined $porigin_origin) {
+		  warn("! porigin with porigin_id=$arg doesn't exist\n");
+		  next;
+		}
+		$porigin_id = $arg;
+	  } else {
+		($porigin_id) = $u->selectrow_array($sth_poriginid_from_origin,undef,$arg);
+		if (not defined $porigin_id) {
+		  warn("! porigin named '$arg' doesn't exist (and $arg doesn't look like a numeric porigin id)\n");
+		  next;
+		}
+		$porigin_origin = $arg;
+	  }
+
+	  my (@Q) = map {$_->[0]} @{ $u->selectall_arrayref($sth_pseqid_from_poriginid,undef,$porigin_id) };
+	  if (not @Q) {
+		warn("$0: porigin '$porigin_origin' (porigin_id=$porigin_id) contains 0 sequences\n")
+	  }
+	  printf(STDERR "# %d sequence ids in origin '$porigin_origin' ($porigin_id)\n", $#Q+1) if $opts{verbose};
+	  push(@pseq_ids, @Q);
+	}
+	printf(STDERR "# %d sequences selected by origin\n", $#pseq_ids+1) if $opts{verbose};
+  }
+
+  elsif ($or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'}) {
+	foreach my $arg (@_) {
+	  my (@Q) = ( $or->{'select-by-alias'} 
+				  ? $u->get_pseq_id_from_alias_exact( $arg )
+				  : $u->get_pseq_id_from_alias( $arg ) );
+	  if (not @Q) {
+		warn("$0: no sequences found for alias '$arg'\n");
+	  } elsif ($#Q > 0 and $or->{'select-by-alias'}) {
+		# no warning for fuzzy searches
+		# this can only happen for aliases in multiple origins
+		warn("$0: multiple sequences found for alias '$arg'\n");
+	  }
+	  push(@pseq_ids, @Q);
+	}
+	printf(STDERR "# %d sequences selected by alias\n", $#pseq_ids+1) if $opts{verbose};
+  }
+
+  return @pseq_ids;
+}
+
 
 sub process1 {
   my $pseq_id = shift;
@@ -171,25 +281,3 @@ sub get1 {
   #print(STDERR "# $pseq_id (", $descr[0]||'<no description>', ")\n") if $opts{verbose};
   return $rv;
 }
-
-
-
-sub SPDI_lookup {
-  my $pfx = shift;
-  return map {SPDI_lookup1($pfx,$_)} @_;
-}
-
-sub SPDI_lookup1 {
-  my ($pfx,$id) = @_;
-  my $sth = $u->prepare_cached(q/select pseq_id from palias where alias=? and
- 								porigin_id=porigin_id_lookup('GenenGenes')/);
-  $sth->execute("$pfx$id");
-  my $rv = $sth->fetchrow_array;
-  $sth->finish();
-  return $rv;
-}
-
-
-
-
-
