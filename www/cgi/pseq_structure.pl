@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$ID = $Id$;
+#$ID = q$Id: pseq_structure.pl,v 1.1 2005/02/17 00:41:07 mukhyala Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;

@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$ID = $Id$;
+#$ID = q$Id: Jmol.pm,v 1.1 2005/02/17 00:22:35 mukhyala Exp $;
 #utilities for calling jmol functions
 ###########################################################
 package Unison::Jmol;
