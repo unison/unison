@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
+S<$Id: palias.pm,v 1.2 2003/06/11 00:17:05 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -27,7 +27,7 @@ sub add_palias
   my ($pseq_id,$porigin_id,$alias,$descr) = @_;
   if (defined $descr and $descr =~ /\w/)
   {
-  $descr =~ s/([\'])/\\\1/g;
+  $descr =~ s/([\'])/\\$1/g;
   $descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
   $descr = "'$descr'";
   }
