@@ -20,7 +20,7 @@ my $v = $p->Vars();
 
 if (not exists $v->{submit}) {
   print $p->render("Property Mining",
-				   '$Id: search_by_properties.pl,v 1.3 2003/09/20 00:04:09 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.4 2003/11/03 19:16:10 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
@@ -82,7 +82,7 @@ if (exists $v->{al_prospect2}) {
   @models = sort { $a<=>$b } @models;
   $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
 	->where("T.svm>=$v->{al_prospect2_svm}::real")
-	->where("T.run_id=$v->{al_prospect2_run_id}")
+	->where("T.params_id=$v->{al_prospect2_params_id}")
 	->where('T.pmodel_id in (' . join(',',@models) . ')');
 
 #  $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
@@ -116,7 +116,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.3 2003/09/20 00:04:09 rkh Exp $',
+				 '$Id: search_by_properties.pl,v 1.4 2003/11/03 19:16:10 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
@@ -224,7 +224,7 @@ sub spit_form {
 					  -values => [qw(13 12 11 10 9 8 7 6 5)],
 					  -default => '9'),
 	   ' using parameter set ',
-	   $p->popup_menu(-name => 'al_prospect2_run_id',
+	   $p->popup_menu(-name => 'al_prospect2_params_id',
 					  -values => [qw(1)],
 					  -default => '1'),
 	   '<hr>',
