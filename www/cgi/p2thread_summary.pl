@@ -17,12 +17,13 @@ use Prospect2::Options;
 use Prospect2::LocalClient;
 use Prospect2::Align;
 
+my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+$p->ensure_required_params(qw(pseq_id p2params_id));
 
-$v->{p2params_id} = 1 unless defined $v->{p2params_id};
 $v->{offset} = 1 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
@@ -35,13 +36,14 @@ for(my $i=0; $i<=$#$ar; $i++)
   {
   my @a = @{$ar->[$i]};
   splice( @a,0,2 );
-  my $c = ($a[1]<=-1000 or $a[7]=~m/TNF-like/) ? ' checked="TRUE"' : '';
+  my $c = ($a[1]<=-1000 or (defined $a[7] and $a[7]=~m/TNF-like/)) ? ' checked="TRUE"' : '';
   unshift(@a, "<input type=\"checkbox\" name=\"templates\" value=\"$a[0]\"$c>");
-  $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id}&p2params_id=$v->{p2params_id}&templates=$a[1]\">$a[1]</a>";
+  if ( -f "$pdbDir/$a[1].pdb" )
+	{ $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id}&p2params_id=$v->{p2params_id}&templates=$a[1]\">$a[1]</a>"; }
   $ar->[$i] = \@a;
   }
 
-my @f = ('ckbox','name','raw','svm','mutation',
+my @f = ('aln?','name','raw','svm','mutation',
 		 'pairwise','singleton','gap','SCOP fold/superfamily/family');
 
 print $p->render("threading summary for unison:$v->{pseq_id} (p2arams_id=$v->{p2params_id})",
