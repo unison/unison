@@ -9,8 +9,7 @@ use Bio::SeqIO;
 use Getopt::Long qw(:config gnu_getopt);
 use DBI;
 use Digest::MD5  qw(md5_hex);
-
-use lib ('./perl5', '/home/rkh/unison/perl5', "$ENV{HOME}/unison/perl5");
+use Data::Dumper;
 use Genentech::Unison;
 
 
@@ -18,19 +17,18 @@ my $origin;
 my $filelist;
 my $startafter;
 my $maxlen = 10000;
-my $md5fn;
 my $sqlonly;
 GetOptions( 'origin|o=s' => \$origin,
 			'filelist|f=s' => \$filelist,
 			'startafter|A=s' => \$startafter,
 			'maxlen|L=s' => \$maxlen,
 			'sqlonly' => \$sqlonly,
-			'md5|m=s' => \$md5fn,
 			@Genentech::Unison::OPTS
 		  )
   || die("$0: bad usage\n");
 defined $origin
   || die("$0: --origin (-o) is mandatory\n");
+$origin = uc($origin);
 
 
 # whee... globals
@@ -42,7 +40,6 @@ my %md5 = $udb->pseq_md5map();
 printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 #printf(STDERR "# %d extant sequence aliases from $origin\n", scalar keys %alias);
 printf(STDERR "# %d sequence md5s from pseq\n", scalar keys %md5);
-
 
 
 my $nloaded = 0;
@@ -74,9 +71,6 @@ else
 
 printf(STDERR "# %d extant aliases, %d extant md5s, %d new sequences added\n",
 	   scalar keys %alias, scalar keys %md5, $nloaded);
-#printf(STDERR "# %d md5s added to $md5fn\n",
-#	   $nloaded);
-#$md5fh->close() if defined $md5fh;
 
 exit(0);
 
@@ -101,7 +95,7 @@ sub process_seq
   my $descr = $bs->desc();
   my $seq = $bs->seq();
   my $oseq = $seq;
-  $seq =~ s/[^-\*\?A-Z]//g;
+  $seq =~ s/[^-\*\?A-Z]//g; $seq = uc($seq);
   my $md5 = md5_hex($seq);
 
   if ($seq ne $oseq)
@@ -118,7 +112,7 @@ sub process_seq
   $descr =~ s/\s+$//;
   if ($origin eq 'SPDI')
 	{
-	$descr =~ s/\[min\]\s+//;
+	$descr =~ s/\[(?:min|full)\]\s+//;
 	$descr =~ s/\# converted.+//;
 	}
 
@@ -133,8 +127,6 @@ sub process_seq
 	}
   elsif (defined %alias and exists $alias{$id})
 	{ $skip = 'extant alias (pseq_id='.$alias{$id}.')'; }
-  elsif (defined %md5 and exists $md5{ $md5 })
-	{ $skip = 'sequence md5 in database (pseq_id='.$md5{$md5}.')'; }
   elsif (defined $maxlen and length($seq)>$maxlen)
 	{ $skip = sprintf("too long (%d AA; maxlen=$maxlen",length($seq)); }
   elsif (length($seq) == 0)
@@ -152,7 +144,7 @@ sub process_seq
 	push(@ids,$1) if $descr =~ s/(UNQ\d+)\s+//;
 	push(@ids,$1) if $descr =~ s/(PRO\d+)\s+//;
 	push(@ids,$id);
-	warn("$id: didn't match 3 SPDI identifiers (@ids)\n") unless $#ids==2;
+	warn("! $id: didn't match 3 SPDI identifiers (@ids)\n") unless $#ids==2;
     }
   else
 	{
@@ -167,17 +159,26 @@ sub process_seq
 
   # select/insert sequences, then link aliases
   my $pseq_id;
-  my $pseq_id = $udb->pseq_i_pseq_id($bs->seq());
+  my $frommd5='';
+  if (defined %md5 and exists $md5{ $md5 })
+	{
+	$pseq_id = $md5{ $md5 };
+	$frommd5='*';
+    }
+  else
+	{
+	$pseq_id = $udb->pseq_i_pseq_id( $seq );
+	$md5{ $md5 } = $pseq_id;
+	}
 
   if (not defined $pseq_id)
-	{ warn("failed to add $id"); return 0; }
-
-  $md5{ $md5 } = $pseq_id;
+	{ warn("! failed to add $id"); return 0; }
 
   foreach my $upd_id (@ids)
 	{ $udb->add_palias($pseq_id,$porigin_id,$upd_id,$descr); }
 
-  printf(STDERR "# added pseq_id=$pseq_id, len=%d, aliases={@ids}, md5=$md5, descr=%s\n",
+  printf(STDERR "# added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
 		length($seq), $descr);
+
   return 1;
   }
