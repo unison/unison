@@ -26,21 +26,24 @@ while( my $dir = shift ) {
 
   # collect pgdump filenames, binned by YYYY-MM
   while( my $de = $d->read() ) {
-	my $de_p = "$dir/$de";					# path, perhaps relative
+	my $de_p = "$dir/$de";
+
+	# check error files
 	if ($de_p =~ m/\.err$/) {
 	  my $sz = (stat($de_p))[7];
-	  if ($sz >= 40) {
+	  if ($sz >= 40) {						# time -p output = ~35 bytes
 		die("! $de_p is $sz bytes; check for errors in that backup!\n");
 	  }
 	}
 
-	next unless $de_p =~ s/\.$dsfx$//;
+	# skip if this isn't a pgdump file (ends in $dsfx); strip $dsfx
+	next unless $de =~ s/^(200\d-[01]\d-\d\d-\d\d:\d\d)\.$dsfx$/$1/;
 
 	my ($YYYY_MM) = $de =~ m%^(200\d-[01]\d)-%;
 	if (not defined $YYYY_MM) {
 	  die("couldn't infer YYYYMM from $de\n");
 	}
-	push( @{ $files{$YYYY_MM} }, $de_p );
+	push( @{ $files{$YYYY_MM} }, "$dir/$de" );
   }
 
   $d->close();
@@ -84,12 +87,12 @@ foreach my $YYYY_MM (sort keys %files) {
 	push(@del, splice(@kept,$deli,1));		# transfer selected to @del
   }
 
-  printf(STDERR "# $YYYY_MM (age=$age): $N orig; want %d; delete %d; kept %d%s\n",
+  printf(STDERR "# $YYYY_MM (age=$age): $N orig; want %s; delete %d; kept %d%s\n",
 		 (defined $nkeep ? $nkeep  : 'all'),
 		 $#del+1,
 		 $#kept+1, ( (defined $nkeep and $#kept+1<$nkeep) ? '<' : '=')
 		);
-  print(STDERR "# kept: @kept\n");
+  #print(STDERR "# kept: @kept\n");
 
   print map {"$_.$dsfx\n$_.$esfx\n"} @del;
 
