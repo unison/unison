@@ -7,7 +7,6 @@ use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::SQL;
-use Data::Dumper;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -31,10 +30,6 @@ my %v = (%defaults, %$v);
 $v = \%v;
 
 
-my (@SP) = map { $_->[0] } @{ $u->selectall_arrayref("select pseq_id from pseqset where pset_id=$v->{pset_id}") };
-my $nSP = $#SP+1;
-
-
 
 ## This cgi really has two modes: a summary display and a sequence list
 ## display.  The summary is shown by default; if $v->{submit} =~
@@ -51,6 +46,8 @@ my $nSP = $#SP+1;
 ## - compute I_ unless we're showing a list of U_*
 
 
+my (@SP) = map { $_->[0] } @{ $u->selectall_arrayref("select pseq_id from pseqset where pset_id=$v->{pset_id}") };
+my $nSP = $#SP+1;
 my %P;										# counts # of times pseq_id was hit for U_ & I_
 my $set;									# pseq_id array ref; if set below, show seq list
 my %data = (
@@ -75,9 +72,9 @@ if (exists $v->{submit}) {
 	  ($FNr,$UPr,$TPr) = acomm(\@SP,$P);
 	  $data{hmm}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
 	  if ($nSP>0) {
-		$data{hmm}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{hmm}{TP} = sprintf('<a href="%s;submit=U_TP">%d<br>(%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$data{hmm}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{hmm}{FN} = sprintf('<a href="%s;submit=U_FN">%d<br>(%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
 	  $data{hmm}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
@@ -95,9 +92,9 @@ if (exists $v->{submit}) {
 	  ($FNr,$UPr,$TPr) = acomm(\@SP,$P);
 	  $data{pssm}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
 	  if ($nSP>0) {
-		$data{pssm}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{pssm}{TP} = sprintf('<a href="%s;submit=U_TP">%d<br>(%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$data{pssm}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{pssm}{FN} = sprintf('<a href="%s;submit=U_FN">%d<br>(%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
 	  $data{pssm}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
@@ -115,9 +112,9 @@ if (exists $v->{submit}) {
 	  ($FNr,$UPr,$TPr) = acomm(\@SP,$P);
 	  $data{p2}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
 	  if ($nSP>0) {
-		$data{p2}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{p2}{TP} = sprintf('<a href="%s;submit=U_TP">%d<br>(%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$data{p2}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{p2}{FN} = sprintf('<a href="%s;submit=U_FN">%d<br>(%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
 	  $data{p2}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
@@ -132,9 +129,9 @@ if (exists $v->{submit}) {
 	($FNr,$UPr,$TPr) = acomm(\@SP,\@U_P);
 	$data{U}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#U_P+1);
 	if ($nSP>0) {
-		$data{U}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{U}{TP} = sprintf('<a href="%s;submit=U_TP">%d<br>(%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$data{U}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{U}{FN} = sprintf('<a href="%s;submit=U_FN">%d<br>(%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
 	$data{U}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
@@ -158,9 +155,9 @@ if (exists $v->{submit}) {
 	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@I_P);
 	  $data{I}{P}  = sprintf('<a href="%s;submit=I_P">%d</a>',$url, $#I_P+1);
 	  if ($nSP>0) {
-		$data{I}{TP} = sprintf('<a href="%s;submit=I_TP">%d (%5.1f%%)</a>',
+		$data{I}{TP} = sprintf('<a href="%s;submit=I_TP">%d<br>(%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$data{I}{FN} = sprintf('<a href="%s;submit=I_FN">%d (%5.1f%%)</a>',
+		$data{I}{FN} = sprintf('<a href="%s;submit=I_FN">%d<br>(%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
 	  $data{I}{UP}  = sprintf('<a href="%s;submit=I_UP">%d</a>',
@@ -185,7 +182,6 @@ if (exists $v->{submit}) {
 if ($set) {
   @$set = sort {$a<=>$b} @$set;
   my @rows = map { ["<a href=\"pseq_summary.pl?pseq_id=$_\">$_</a>",$u->best_annotation($_,1)] } @$set;
-
   print $p->render("Sequence Mining Result Set",
 				   $p->group(sprintf("%d $v->{submit} results",$#rows+1),
 							 Unison::WWW::Table::render(['pseq_id','best_annotation'],\@rows)));
@@ -195,13 +191,13 @@ if ($set) {
 
 
 # default case: prepare the form and summary statistics
-my @xs = @{ $u->selectall_arrayref("select pset_id,name from pset order by pset_id") };
+my @xs = @{ $u->selectall_arrayref("select pset_id,name from pset where pset_id>0 order by pset_id") };
 my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" } @xs;
 my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset order by pmodelset_id') };
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.9 2003/11/04 01:13:34 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.10 2003/11/04 21:55:16 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -212,8 +208,8 @@ print $p->render("Sequence Mining Summary",
 				 hits, TP, FN, and UP columns will show sequences in those
 				 sets.',
 
-				 $p->tip($p->tooltip('Green text','This is sample descriptive text')
-						 . ' indicates elements with descriptive mouseover text.'),
+				 $p->tip($p->tooltip('Green text','This is sample descriptive text'),
+						 ' indicates elements with descriptive mouseover text.'),
 
 				 $p->start_form(-method=>'GET'),
 
@@ -223,7 +219,13 @@ print $p->render("Sequence Mining Summary",
 				 '<th colspan="3">',
 				 $p->submit(-name=>'submit', -value=>'vroom'),
 				 ,'</th>',
-				 '<th align="center" colspan="3">Compare to sequences in set:<br>',
+				 '<th align="center" colspan="3">',
+				 $p->tooltip('Compare to sequences in set',
+							 'Sequences selected by the models will be 
+							 classified as true positives, false negatives,
+							 and "unknown" positives by comparing against
+							 this set.'),
+				 ':<br>',
 				 $p->popup_menu(-name => 'pset_id',
 								-values => [map {$_->[0]} @xs],
 								-labels => \%xs,
@@ -239,8 +241,9 @@ print $p->render("Sequence Mining Summary",
 								-labels => \%ms,
 								-default => "$v->{pmodelset_id}"),
 				 '</th>',
-				 '<th align="center" colspan="2">', $p->tooltip("SP ($nSP sequences)",
+				 '<th align="center" colspan="2">', $p->tooltip('SP',
 																'Set Positives -- the members of the set (SP=TP+FN)'),
+                 "<br>($nSP sequences)",
 				 '</th>',
 				 '<th></th>',
 				 '</tr>',"\n",
@@ -418,7 +421,8 @@ sub _get_p2_hits {
 	$sql = Unison::SQL->new()
 	  ->table('paprospect2 A')
 	  ->columns('distinct A.pseq_id')
-	  ->where("A.svm>=$v->{p2_svm}")
+	  ->where("A.svm>=$v->{p2_svm}::real")
+	  ->where("A.run_id=$v->{p2_run_id}")
 	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
   @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
   }
