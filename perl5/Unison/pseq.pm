@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.16 2004/05/14 20:39:53 rkh Exp $>
+S<$Id: pseq.pm,v 1.17 2004/06/02 23:06:04 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -192,7 +192,8 @@ sub pseq_id_by_sequence {
 	|| croak("exactly one sequence needed\n");
   my $seq = uc(shift);
   my $sth = "select _pseq_seq_lookup(?)";
-  return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sth,undef,$seq) } );
+
+  return( $self->{'dbh'}->selectrow_array($sth,undef,$seq) );
 
 =pod
 
