@@ -28,9 +28,9 @@ my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id params_id profiles));
 
 my $modelfile = '/gne/compbio/share/pfam-14.0/Pfam_fs.hmm';
-my ($hmmfh, $hmmfn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.hmm');
-my ($seqfh, $seqfn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.fasta');
-my ($htmlfh, $htmlfn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.html');
+my ($hmmfh, $hmmfn) = $p->tempfile(SUFFIX=>'.hmm');
+my ($seqfh, $seqfn) = $p->tempfile(SUFFIX=>'.fasta');
+my ($htmlfh, $htmlfn) = $p->tempfile(SUFFIX=>'.html');
 
 my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 if (not defined $seq)
