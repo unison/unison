@@ -31,7 +31,7 @@ else
 	mkdir -p "$XLINK_DIR"
 fi
 
-echo '# $Id: xlink,v 1.6 2004/05/05 03:43:16 rkh Exp $' 1>&2
+echo '# $Id: xlink,v 1.7 2004/05/06 21:58:42 rkh Exp $' 1>&2
 echo '# started' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
 echo "# XLINK_DIR=$XLINK_DIR; CREATE=$CREATE; LOAD=$LOAD" 1>&2
 echo "# PSEQ_LIMIT=$PSEQ_LIMIT" 1>&2
@@ -87,10 +87,11 @@ CREATE OR REPLACE VIEW pro_pseq AS
 SELECT
 	TO_NUMBER(SUBSTR(alias,4)) AS "PROID",
 	aliases.pseq_id,
-	md5
+	md5,
+	len
 FROM aliases, pseq
 WHERE
-	origin='SPDI' AND alias NOT LIKE '%\_' ESCAPE '\'
+	origin='SPDI' AND alias NOT LIKE '%\_%' ESCAPE '\'
 	AND aliases.pseq_id=pseq.pseq_id;
 GRANT SELECT ON pro_pseq TO PUBLIC;
 COMMENT ON TABLE pro_pseq IS 'proid <-> pseq_id mapping with md5s';
