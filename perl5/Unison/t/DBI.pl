@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Unison;
-use CBT::Exceptions;
+use Unison::Exceptions;
 
 my $u = new Unison();
 
@@ -23,9 +23,11 @@ try {
 	my (@r) = map { defined $_ ? $_ : 'undef'} $u->selectrow_array($sql);
 	print("$sql returns <",join(',',@r),">\n");
   }
+} catch Unison::Exception::DBIError with {
+  warn("======= caught a DBI error:\n", $_[0]);
 } catch Unison::Exception with {
-  die($_[0]);
-}
+  warn("======= caught this error:\n", $_[0]);
+};
 
 
 
