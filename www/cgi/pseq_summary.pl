@@ -24,23 +24,25 @@ do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
 my @f = qw( origin alias description );
 
 my $seq = $u->get_sequence_by_pseq_id($v->{pseq_id});
-$seq =~ s/.{60}/$&\n/g;
+my $wrapped_seq = $seq; $wrapped_seq =~ s/.{60}/$&\n/g;
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
-				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
+				 $p->best_annotation($v->{pseq_id}),
 
-				 $p->group("Sequence",
+				 '<p>',
+				 $p->group(sprintf("Sequence (%d AA)", length($seq)),
 						   '<pre>', 
-						   '&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}), "\n",
-						   $seq,
+						   '&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id},1), "\n",
+						   $wrapped_seq,
 						   '</pre>' ),
 
-				 $p->group("Aliases",
+				 '<p>',
+				 $p->group(sprintf('Aliases (%d)',$#$ar+1),
 						   'These are the aliases from the most reliable sources only; see also ',
 						   '<a href="pseq_paliases.pl?pseq_id=', $v->{pseq_id}, '">other aliases</a><p>',
 						   Unison::WWW::Table::render(\@f,$ar)),
 
-
+				 '<p>',
 				 $p->group("Features",
 						   "<center><img src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\"></center>")
 				);
