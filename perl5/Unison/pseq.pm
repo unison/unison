@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.14 2004/05/04 04:48:22 rkh Exp $>
+S<$Id: pseq.pm,v 1.15 2004/05/14 00:16:32 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -30,7 +30,7 @@ use strict;
 use warnings;
 use vars qw( %alias %md5 );
 use Digest::MD5  qw(md5_hex);
-
+use Unison::utilities qw(clean_sequence);
 
 
 sub pseq_si_pseq_id {
@@ -278,8 +278,7 @@ sub process_seq  {
 
   my $tax_id;
   my $descr = $bs->desc();
-  my $oseq = $seq;
-  $seq = uc($seq); $seq =~ s/[^-\*\?A-Z]//g;
+  $seq = clean_sequence($seq);
   my $md5 = &md5_hex($seq);
   $rv->{nseen}++;
 
@@ -324,11 +323,12 @@ sub process_seq  {
 
   if ($opts->{origin} =~ m/SPDI/i) {
     my %ids;
-    # NO UNQs in database -- not unique!
-    $ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
     $ids{$1}++ if $descr =~ s/(PRO\d+)\s+//;
-    $ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
-    $ids{$id}++;
+    # Don't put UNQs or DNAs in database -- unqs aren't unique and dnas
+    # are proteins
+	# $ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
+    # $ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
+    # $ids{$id}++;
     @ids = sort keys %ids;
   } else {
     @ids = ( $id );
