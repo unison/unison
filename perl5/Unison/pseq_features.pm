@@ -2,12 +2,12 @@ package Unison::pseq_features;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
-use base 'Exporter';
-@EXPORT = ();
-@EXPORT_OK = qw( pseq_features_panel );
-
 use strict;
 use warnings;
+
+use base 'Exporter';
+our @EXPORT = ();
+our @EXPORT_OK = qw( pseq_features_panel %opts );
 
 use Bio::Graphics;
 use Bio::Graphics::Feature;
@@ -21,22 +21,10 @@ my %opts =
    width => 750,
    verbose => 0,
    pad => 10,
+   logo_margin=> 10,
   );
 
 sub pseq_features_panel($%);
-sub features_graphic($$;$);
-
-
-
-sub features_graphic($$;$) {
- warn_deprecated();
- my %opts = %::opts;
- $opts{pseq_id} = $_[1];
- $opts{width} = $_[2] if defined $_[2];
- my $panel = pseq_features_panel($_[0], %opts);
- return $panel->gd->png();
-}
-
 
 sub pseq_features_panel($%) {
   my $u = shift;
@@ -80,7 +68,7 @@ sub pseq_features_panel($%) {
   add_paprospect2( $u, $panel, $opts{pseq_id} );
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.5 2004/06/25 00:20:44 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.6 2004/07/21 23:25:31 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -230,19 +218,30 @@ sub add_paprospect2 {
 								-sort_order => 'high_score',
 							   );
   foreach my $row ( @{$feats} ) {
-    my %scop;
-    for ( my $i=0; $i<scalar(@{$row->{scop}}); $i++ ) {
-	  $scop{$row->{scop}[$i]->{sfname}}++;
+    my %scopsf;								# superfamily names
+	my $scop = '';							# scop classifications (cl > sf > dm)
+	my $scoplink = '';
+
+	my @scops = @{$row->{scop}};
+    for ( my $i=0; $i<$#scops+1; $i++ ) {
+	  my %scopi = %{$scops[$i]};
+	  $scopsf{$scopi{sfname}}++;
+	  $scop .= sprintf("%s > %s > %s\n",
+					   @scopi{qw(clname sfname dmname)});
+	  $scoplink = sprintf('http://scop.berkeley.edu/search.cgi?sunid=%d',$scopi{dmid});
 	}
-	;
-    my $name = sprintf("%s; raw=%s; svm=%s; (%s)",$row->{acc},$row->{raw},$row->{svm},join(' AND ',sort keys %scop));
+
+    my $name = sprintf("%s; raw=%s; svm=%s; (%s)",$row->{acc},$row->{raw},$row->{svm},
+					   join(' AND ',sort keys %scopsf));
     printf(STDERR " add track: $name\n") if $opts{verbose};
     $track->add_feature( 
 						Bio::Graphics::Feature->new( 
 													-start => $row->{start},
 													-end   => $row->{stop},
 													-score => $row->{svm},
-													-name  => $name
+													-name  => $name,
+													-attributes => { tooltip => $scop, 
+																	 href => $scoplink }
 												   ));
     $nadded++;
     last if $nadded == $topN;
@@ -299,20 +298,19 @@ sub add_pahmm {
   my ($u, $panel, $q) = @_;
   my ($eval_thr,$topN) = (5,4);
   my $nadded = 0;
-  my $sql = 
-	'select A.start,A.stop,M.acc as "model",A.mstart,A.mstop,M.len,A.score,A.eval,M.descr
-   from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
-   where params_id=13 and pseq_id='.$q.' and score>1 and eval<=5 order by eval';
+  my $sql = <<EOSQL;
+SELECT start,stop,ends,score,eval,acc,name,descr
+FROM v_pahmm
+WHERE pseq_id=? AND params_id=15 AND eval<=1
+EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $featref = $u->selectall_arrayref( $sql );
-  my $nfeat = $#$featref+1;
-  splice(@$featref,$topN) if $#$featref>$topN;
+  my $featref = $u->selectall_arrayref( $sql, undef, $q );
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 1,
 								 -max_score => 25,
 								 -sort_order => 'high_score',
-								 -key => sprintf('HMM (top %d hits of %d w/eval<%s)',
-												 ($#$featref+1),$nfeat,$eval_thr),
+								 -key => sprintf('HMM (%d w/eval<%s)',
+												 ($#$featref+1),$eval_thr),
 								 -bgcolor => 'blue',
 								 -bump => +1,
 								 -label => 1,
@@ -328,12 +326,11 @@ sub add_pahmm {
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
-									 -score => $r->[6],
-									 -name => sprintf("%s; %s%s; S=%s; E=%s; %s)",
-													  $r->[2],
-													  $r->[0]==1?'[':'.',
-													  $r->[1]==$r->[5]?']':'.',
-													  $r->[6], $r->[7],$r->[8])
+									 -score => $r->[3],
+									 -name => sprintf("%s; %s; S=%s; E=%s)",
+													  @$r[6,2,3,4]),
+									 -attributes => { tooltip => sprintf("%s: %s", @$r[5,7]),
+													  href => "http://pfam.wustl.edu/cgi-bin/getdesc?name=$r->[6]" }
 								   ) );
 	$nadded++;
   }
@@ -476,9 +473,14 @@ sub add_pfregexp {
 package Unison;
 use Unison::utilities qw( warn_deprecated );
 sub features_graphic($$;$) {
-  warn_deprecated();
-  return Unison::pseq_features::features_graphic($_[0],$_[1]);
+ warn_deprecated();
+ my %opts = %Unison::pseq_features::opts;
+ $opts{pseq_id} = $_[1];
+ $opts{width} = $_[2] if defined $_[2];
+ my $panel = Unison::pseq_features::pseq_features_panel($_[0], %opts);
+ return $panel->gd->png();
 }
+
 
 
 
