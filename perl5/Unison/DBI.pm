@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.8 2003/10/09 17:52:46 rkh Exp $>
+S<$Id: DBI.pm,v 1.9 2004/02/24 19:23:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -95,20 +95,23 @@ immediately and an exception thrown if unsuccessful.
 sub connect {
   my $self = shift;
   my $dsn = "dbi:Pg:dbname=$self->{dbname}";
-  $dsn .= ";host=$self->{host}" if (defined $self->{host} and $self->{host} ne '');
+  if (defined $self->{host} and $self->{host} ne '') {
+	$dsn .= ";host=$self->{host}" ;
+  }
   my $dbh = DBI->connect($dsn,
 						 $self->{username},
 						 $self->{password},
 						 $self->{attr});
   if (not defined $dbh)	{
-	throw Unison::Exception::ConnectionFailed( "couldn't connect to Unison: ",
-											   'DBI ERROR: '.DBI->errstr()."\n"
-											   . "dsn=$dsn\n"
-											   . 'username='.$self->{username}."\n"
-											   . 'password='.(defined $self->{password} ?
-															'<hidden>' : '<undef>'),
-											   'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
-											 );
+	throw Unison::Exception::ConnectionFailed
+	  ( "couldn't connect to Unison: ",
+		'DBI ERROR: '.DBI->errstr()."\n"
+		. "dsn=$dsn\n"
+		. 'username='.$self->{username}."\n"
+		. 'password='.(defined $self->{password} ?
+					   '<hidden>' : '<undef>'),
+		'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
+	  );
   }
 
   $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
