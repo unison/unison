@@ -29,11 +29,17 @@ my @f = qw( origin alias description );
 my $seq = $u->get_sequence_by_pseq_id($v->{pseq_id});
 my $wrapped_seq = $seq; $wrapped_seq =~ s/.{60}/$&\n/g;
 
-$sql = qq/select b.pseq_id,best_alias(b.pseq_id),tax_id2gs(b.tax_id) from homologene a, 
+$sql = qq/select b.gene_symbol,b.pseq_id,best_alias(b.pseq_id),tax_id2gs(b.tax_id) from homologene a, 
   homologene b where a.pseq_id=$v->{pseq_id} and b.hid=a.hid and b.pseq_id!=a.pseq_id 
-  order by 3,1/;
+  and b.tax_id in (gs2tax_id('HUMAN'),gs2tax_id('MOUSE'),gs2tax_id('RAT'),gs2tax_id('CAEEL'),,gs2tax_id('DROME'),
+				   gs2tax_id('BOVIN'),gs2tax_id('BRARE'),gs2tax_id('RAT'),gs2tax_id('YEAST'))
+  order by 4,2/;
 my $or = $u->selectall_arrayref($sql);
-do { $_->[0] = pseq_summary_link($_->[0],$_->[0]) } for @$or;
+do { $_->[0] = sprintf('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene&term=%s&cmd=search">%s</a>',$_->[0],$_->[0]) } for @$or;
+do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$or;
+
+
+#&cmd_current=&query_key=6&dopt=DocSum&dispmax=20&SendTo=Text&CrntRpt=DocSum&showndispmax=20&page=0
 
 
 
@@ -67,7 +73,7 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 
          '<p>',
          $p->group(sprintf('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene">Homologene</a> (%d)',$#$or+1),
-               Unison::WWW::Table::render(['pseq_id','alias','genus/species'],$or)),
+               Unison::WWW::Table::render(['gene','pseq_id','alias','genus/species'],$or)),
 
          '<p>',
 
