@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::papseq -- Unison papseq table utilities
-S<$Id: papseq.pm,v 1.4 2003/06/13 17:11:41 cavs Exp $>
+S<$Id: papseq.pm,v 1.5 2003/08/08 16:57:46 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -40,13 +40,13 @@ sub load_blast_report {
   my($u,$file) = @_;
 
   my $report = new Bio::Tools::BPlite(-file=>$file);
-  my $q_pseq_id = $u->_get_pseq_id_from_name($report->query());
+  my $q_pseq_id = $u->_get_pseq_id_from_FASTA_name($report->query());
   if ( !defined $q_pseq_id ) {
     throw Unison::RuntimeError("No pseq_id defined for this query sequence: " . 
       $report->query() );
   }
   while(my $sbjct = $report->nextSbjct) {
-    my $t_pseq_id = $u->_get_pseq_id_from_name($sbjct->name());
+    my $t_pseq_id = $u->_get_pseq_id_from_FASTA_name($sbjct->name());
 		throw Unison::RuntimeError( "No pseq_id defined for this target sequence: " 
 		  . $sbjct->name() ) if ( !defined $t_pseq_id );
 		if ( $q_pseq_id == $t_pseq_id ) {
@@ -130,7 +130,7 @@ sub insert_hsp_swap {
   my $sql = $sql_start . "values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
   my $sth = $u->prepare_cached($sql);
   my @values = ( $pseq_id, $hsp->query->start, $hsp->query->end, $pmodel_id, $hsp->hit->start,
-    $hsp->hit->end,  $hsp->length, $hsp->match, $hsp->positive, $hsp->gaps, $hsp->score,
+    $hsp->hit->end,  $hsp->hsplength, $hsp->match, $hsp->positive, $hsp->gaps, $hsp->score,
     $hsp->P, $hsp->percent );
   print "sql: $sql_start values (" . join(',',@values) . ")\n" if $ENV{'DEBUG'};
   $sth->execute( @values );
@@ -140,19 +140,19 @@ sub insert_hsp_swap {
 
 
 #-------------------------------------------------------------------------------
-# _get_pseq_id_from_name()
+# get_pseq_id_from_FASTA_name()
 #-------------------------------------------------------------------------------
 
-=head2 _get_pseq_id_from_name()
+=head2 get_pseq_id_from_FASTA_name()
 
- Name:      _get_pseq_id_from_name()
+ Name:      get_pseq_id_from_FASTA_name()
  Purpose:   retrieve pseq_id from a FASTA header
  Arguments: FASTA header
  Returns:   pseq_id (or undef if not found)
 
 =cut
 
-sub _get_pseq_id_from_name {
+sub get_pseq_id_from_FASTA_name {
   my ($u,$name) = @_;
   my $pseq_id;
 
