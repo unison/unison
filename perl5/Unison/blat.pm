@@ -1,22 +1,21 @@
 =head1 NAME
 
-Unison::blat -- BLAT-related functions in the Unison:: namespace.
+Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: utilities.pm,v 1.5 2004/05/07 21:36:21 rkh Exp $>
+S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
 
 =head1 SYNOPSIS
 
+ use Unison;
  use Unison::blat;
- my $u = new Unison();
+ my $u = new Unison(...);
+ $u->get_p2gblataln_info( pseq_id )
+ $u->get_p2gblataln_id( genasm_id, chr, gstart, gstop )
 
 =head1 DESCRIPTION
 
 B<Unison::blat> provides BLAT-related methods to the B<Unison::>
 namespace.
-
-
-
-=head1 ROUTINES AND METHODS
 
 =cut
 
@@ -27,14 +26,24 @@ use Unison::utilities qw( warn_deprecated );
 
 
 
-=head2 $u->get_p2gblataln_info( B<pseq_id> )
+=pod
+
+=head1 ROUTINES AND METHODS
 
 =over
 
+=cut
+
+
+######################################################################
+## get_p2gblataln_info
+
+=pod
+
+=item $u->get_p2gblataln_info( B<pseq_id> )
+
 returns an array of <genasm_id,chr,gstart,gstop,p2gblataln_id> for a given
 B<pseq_id> from the blatloci table.
-
-=back
 
 =cut
 
@@ -49,14 +58,14 @@ sub get_p2gblataln_info {
 
 
 
+######################################################################
+## get_p2gblataln_id
 
-=head2 $u->get_p2gblataln_id( B<genasm_id>, B<chr>, B<gstart>, B<gstop> )
+=pod
 
-=over
+=item $u->get_p2gblataln_id( B<genasm_id>, B<chr>, B<gstart>, B<gstop> )
 
 returns an array of p2gblataln_ids for a given genomic region.
-
-=back
 
 =cut
 
@@ -74,9 +83,6 @@ sub get_p2gblataln_id {
 													   $chr,$gstart,$gstop) };
   return(@retval);
 }
-
-
-
 
 
 
@@ -132,5 +138,20 @@ sub get_blataln_id {
 }
 
 
+=pod
+
+=head1 SEE ALSO
+
+=over
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see perldoc Unison for contact information
+
+=cut
 
 1;
