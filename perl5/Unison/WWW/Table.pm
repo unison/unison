@@ -31,7 +31,6 @@ sub render {
   $rv .= "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
   $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
   foreach(my $i; $i<=$#_; $i++) {
-	
   }
   $rv .= "</table>\n";
   return($rv);
@@ -56,8 +55,8 @@ sub render_compat {
   $rv .= "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
   if ($#$ar > -1) {
 	if (defined $opts->{highlight_column}) {
-	  $rv .= '<tr>' . join('', map { '<th align="left"'
-									 .($_==$opts->{highlight_column} ? ' class="highlighted"' : '').'>'
+	  $rv .= '<tr>' . join('', map { '<th'
+									 . ($_==$opts->{highlight_column} ? ' class="highlighted"' : '').'>'
 									 . $fr->[$_] .'</th>'
 									   }
 						   0..$#$fr) . "</tr>\n";
@@ -65,14 +64,14 @@ sub render_compat {
 		$rv .= "<tr>";
 		my @row = @{ $ar->[$r] };
 		for(my $c=0; $c<=$#row; $c++) {
-		  $rv .= '<td' . ($c==$opts->{highlight_column} ? ' class="highlighted"' : '') . '>';
-		  $rv .= $row[$c];
-		  $rv .= '</td>';
+		  my $cl = $c==$opts->{highlight_column} ? 'class="highlighted"' : '';
+		  my $al = 'align="' . guess_alignment($row[$c]) . '"';
+		  $rv .= "<td $cl $al>$row[$c]</td>";
 		}
 		$rv .= "</tr>\n";
 	  }
 	} else {
-	  $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
+	  $rv .= "<tr>" . join('',map {'<th align="'.guess_alignment($_).'">'.$_.'</th>'} @$fr)."</tr>\n";
 	  $rv .= "<tr>" . join('',map {'<td>'.$_.'</td>'} @$_) . "</tr>\n" for @$ar; 
 	}
   } else {
@@ -81,5 +80,11 @@ sub render_compat {
   $rv .= "</table>\n";
   return $rv;
 }
+
+sub guess_alignment {
+  my $s = shift;
+  return $s =~ m/[^-.\d]/ ? 'left' : 'right';
+  }
+
 
 1;
