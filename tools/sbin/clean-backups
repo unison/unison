@@ -1,0 +1,105 @@
+#!/usr/bin/env perl
+# clean-backups -- select csb backups to delete based upon date
+# usage: clean-backups [dirs...]
+# output: a list of .pgdump.gz and .pgdump.err files to be deleted
+
+
+use strict;
+use warnings;
+use IO::Dir;
+
+sub YxM ($$);
+
+my %files;  								# $files{YYYY-MM}[]
+
+
+my $dsfx = 'pgdump.gz';
+my $esfx = 'pgdump.err';
+
+
+# collect filenames and bin into YYYY-MM bins
+while( my $dir = shift ) {
+  my $d = new IO::Dir $dir;
+
+  (defined $d)
+	or die("$0: $dir: $!\n");
+
+  # collect pgdump filenames, binned by YYYY-MM
+  while( my $de = $d->read() ) {
+	my $de_p = "$dir/$de";					# path, perhaps relative
+	if ($de_p =~ m/\.err$/) {
+	  my $sz = (stat($de_p))[7];
+	  if ($sz >= 40) {
+		die("! $de_p is $sz bytes; check for errors in that backup!\n");
+	  }
+	}
+
+	next unless $de_p =~ s/\.$dsfx$//;
+
+	my ($YYYY_MM) = $de =~ m%^(200\d-[01]\d)-%;
+	if (not defined $YYYY_MM) {
+	  die("couldn't infer YYYYMM from $de\n");
+	}
+	push( @{ $files{$YYYY_MM} }, $de_p );
+  }
+
+  $d->close();
+}
+
+
+
+# Reverse-chronologically sort files within each bin
+# Although this is an alphanumeric sort, the syntax of the filenames
+# guarantees that this is chronological.
+foreach my $YYYY_MM (sort keys %files) {
+  @{ $files{$YYYY_MM} } = sort {$b cmp $a} @{ $files{$YYYY_MM} };
+}
+
+
+# Pop the N-most recent from each bin off each YYYY_MM bin.
+# These will be the files which are preserved. 
+# Filenames which remain in the lists are deletion candidates.
+my @now = localtime();
+my $curYxM = YxM($now[5]+1900,$now[4]+1);
+foreach my $YYYY_MM (sort keys %files) {
+  my $N = $#{ $files{$YYYY_MM} } + 1;
+  my ($Y,$M) = $YYYY_MM =~ m/(\d{4})-(\d{2})/;
+  my $YxM = YxM($Y,$M);
+  my $age = $curYxM - $YxM;
+  my $nkeep =
+	    $age >= 6 ? 1						# keep 1/mo if >=6 mos old,
+  	  : $age >= 3 ? 2						# 2/mo if >=3 mos old
+	  : $age >= 1 ? 4						# 4/mo if 1 or 2 mos old
+	  : undef;								# else all
+
+  my @deli = ();							# indices of files to delete
+  if (defined $nkeep and $#{$files{$YYYY_MM}}+1>$nkeep) {
+	my $mod = int($N / $nkeep + 1);
+	@deli  = grep { $_ % $mod} 0..$#{$files{$YYYY_MM}};
+  }
+
+  my @kept = @{$files{$YYYY_MM}};			# by default, keep all
+  my @del;
+  foreach my $deli (sort {$b<=>$a} @deli) {
+	push(@del, splice(@kept,$deli,1));		# transfer selected to @del
+  }
+
+  printf(STDERR "# $YYYY_MM (age=$age): $N orig; want %d; delete %d; kept %d%s\n",
+		 (defined $nkeep ? $nkeep  : 'all'),
+		 $#del+1,
+		 $#kept+1, ( (defined $nkeep and $#kept+1<$nkeep) ? '<' : '=')
+		);
+  print(STDERR "# kept: @kept\n");
+
+  print map {"$_.$dsfx\n$_.$esfx\n"} @del;
+
+}
+
+
+
+# convert YYYY-MM to number of months since YYYYMM=000000.
+# This is to simplify computing month deltas
+sub YxM ($$) {
+  my $rv = 12*$_[0] + ($_[1]-1);
+  return $rv;
+}
