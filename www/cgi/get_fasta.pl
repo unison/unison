@@ -23,7 +23,7 @@ my $alias;
 
 try {
   $seq = $u->get_sequence_by_pseq_id($v->{pseq_id});
-  $alias = $u->best_annotation($v->{pseq_id},1)
+  $alias = $u->best_annotation($v->{pseq_id})
 } catch Unison::Exception with {
   $p->die(@_);
 };

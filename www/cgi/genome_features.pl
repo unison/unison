@@ -5,7 +5,7 @@
 # PURPOSE: web script to output pseq aligned to a genome
 # USAGE: genome_features.pl?genasm_id=<genasm_id>;[(chr=<chr>;gstart=<gstart>;gstop=<gstop>)||(pseq_id=<pseq_id>)]
 #
-# $Id: genome_features.pl,v 1.11 2005/02/20 00:10:07 rkh Exp $
+# $Id: genome_features.pl,v 1.12 2005/03/21 21:42:55 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -54,7 +54,7 @@ try {
 	my $fname = $feature->name; # should be unique
 	next if not defined $fname;
 	if (my ($pseq_id) = $fname =~ m/^Unison:(\d+)/) {
-	  my $text = $u->best_annotation($pseq_id,1) || '?';
+	  my $text = $u->best_annotation($pseq_id) || '?';
 	  $imagemap .= qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">\n);
 	}
   }

@@ -26,7 +26,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.24 2005/03/19 21:38:21 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.25 2005/03/21 21:32:53 mukhyala Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
@@ -53,7 +53,7 @@ sub sequence_group ($) {
 
   $p->group(sprintf("Sequence (%d&nbsp;AA)", length($seq)),
 			'<pre>', 
-			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id},1), "\n",
+			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}), "\n",
 			$wrapped_seq,
 			'</pre>',
 			"<br>You may also <a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download</a> this sequence in FASTA format",
