@@ -91,6 +91,9 @@ sub process_seq
   if ($id !~ m/\w/ or length($seq->seq()) == 0)
 	{ warn("$id ($desc) is invalid; skipping\n"); return; }
 
+  if ($desc =~ m%/type=(\w+)% and $1 ne 'gene')
+	{ warn("$id ($desc): genscan and not a gene; skipping\n"); return; }
+
   my $pseq_id = $udb->si_pseq_id($seq->seq());
   if (not defined $pseq_id)
 	{ warn("failed to add $id"); return; }

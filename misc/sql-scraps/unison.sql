@@ -1,15 +1,15 @@
 -- unison database schema
 -- Reece Hart <rkh@gene.com>
--- revision: $Id: unison.sql,v 1.3 2002/12/10 19:48:12 rkh Exp $
+-- revision: $Id: unison.sql,v 1.4 2002/12/13 23:27:02 rkh Exp $
 
 -- unison is a proteomic annotation database
 -- written for Postgres (http://www.postgresql.org/)
 
-\echo =======================================================================
-\echo $Id: unison.sql,v 1.3 2002/12/10 19:48:12 rkh Exp $
+-- THIS ASSUMES WE'RE ALREADY CONNECTED TO THE DATABASE
 
--- assume already connected to database
-COMMENT ON DATABASE unison IS 'integrated proteomic annotation database';
+
+\echo =======================================================================
+\echo $Id: unison.sql,v 1.4 2002/12/13 23:27:02 rkh Exp $
 
 \i functions.sql
 
