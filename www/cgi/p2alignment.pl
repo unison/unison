@@ -8,9 +8,9 @@ use Data::Dumper;
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
-use Prospect::Options;
-use Prospect::LocalClient;
-use Prospect::Align;
+use Bio::Prospect::Options;
+use Bio::Prospect::LocalClient;
+use Bio::Prospect::Align;
 
 
 my $p = new Unison::WWW::Page;
@@ -30,10 +30,10 @@ if (not defined $po)
   { $p->die("The params_id parameter ($v->params_id) is invalid."); }
 $po->{templates} = \@templates;
 
-my $pf = new Prospect::LocalClient( {options=>$po} );
+my $pf = new Bio::Prospect::LocalClient( {options=>$po} );
 
 my @threads = $pf->thread( $seq );
-my $pa = new Prospect::Align( -debug=>0,-threads => \@threads );
+my $pa = new Bio::Prospect::Align( -debug=>0,-threads => \@threads );
 
 
 
