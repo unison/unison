@@ -6,10 +6,10 @@
 # arguments: 
 #   --p2params_id|-p <p2params_id>: p2params_id for loading (required)
 #   --tfile|-t <template file>: file containing a list of templates (optional)
-#   --update|-u: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
+#   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --p2params_id <p2params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-p2,v 1.5 2003/06/10 20:46:48 cavs Exp $
+# $Id: run-p2,v 1.6 2003/06/19 00:14:36 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -30,7 +30,7 @@ use Error qw(:try);
 my %opts = (update=>0);
 GetOptions(\%opts,
 		   'p2params_id|p=i',
-		   'tfile=s',						# name of template file
+		   'tfile|t=s',						# name of template file
 		   'update'							# delete rows before insert
 		  )
   or die("$0: bad usage\n");
@@ -45,8 +45,8 @@ if ( defined $ENV{'PGPASSWD'} ) {
 	$u = new Unison();
 }
 
-my $po = $u->get_p2options_by_p2params_id($opts{p2params_id});
-$po->{tfile} = $opts{tfile} if exists $opts{tfile};
+my $po = $u->get_p2options_by_run_id($opts{p2params_id});
+$po->{tfile} = $opts{tfile} || '/apps/compbio/share/prospect2/tfiles/all';
 my $pc = new Prospect2::LocalClient( options=>$po );
 
 
@@ -79,4 +79,9 @@ PSEQ_ID: while( my $pseq_id = shift ) {
 
 
 ############################################################################
-# $Log$
+# $Log: run-p2,v $
+# Revision 1.6  2003/06/19 00:14:36  rkh
+# * reworked options to use hashes
+# * set $po->{tfile} only when $opt{tfile} is set
+# * pretty print progress
+#

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id$
+# $Id: blast2,v 1.1 2003/07/07 22:59:27 rkh Exp $
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
@@ -35,7 +35,6 @@ my $factory = Bio::Tools::Run::StandAloneBlast->new(program => 'blastp',
 $factory->bl2seq($s1,$s2);
 
 
-
 my $report = Bio::Tools::BPbl2seq->new(-file => $bo);
 $report->sbjctName;
 $report->sbjctLength;
@@ -46,6 +45,8 @@ while(my $hsp = $report->next_feature) {
 		 $hsp->length(), $hsp->score(), $hsp->P() );
 }
 
+print("BLAST REPORT FOLLOWS\n");
+system("cat $bo");
 
 cleanup();
 exit(0);

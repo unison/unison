@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # read tblastn results and output SQL for plocus inserts
-# $Id$
+# $Id: tblastn2sql,v 1.1 2003/07/04 18:25:41 rkh Exp $
 
 use warnings;
 use strict;
@@ -35,7 +35,7 @@ while( my $sbj = $in->nextSbjct() ) {
 	warn("-- couldn't get base chromosomal offset for $sname\n"); next;
   }
   while( my $hsp = $sbj->nextHSP() ) {
-	next unless $hsp->hsplength() >= 15;
+	next unless $hsp->hsplength() >= 45;	# nt; |aa|=nt/3 (duh)
 	next unless $hsp->gaps() <= 3;
 	next unless $hsp->length() - $hsp->positive() <= 3;	# <= 3 mismatches
 	next unless $hsp->percent() >= 95;
@@ -53,4 +53,4 @@ while( my $sbj = $in->nextSbjct() ) {
 
 
 ############################################################################
-# $Log: run-p2,v $
+# $Log: tblastn2sql,v $
