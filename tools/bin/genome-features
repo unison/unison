@@ -98,7 +98,7 @@ if ( defined $opts{pseq_id} ) {
 
 $panel->add_track( ) for 1..2;         # spacing
 $panel->add_track( 
-  -key => '$Id: genome-features,v 1.2 2004/02/20 00:50:42 cavs Exp $',
+  -key => '$Id: genome-features,v 1.3 2004/02/21 00:55:39 cavs Exp $',
   -key_font => 'gdSmallFont',
   -bump => +1,
 );
@@ -122,7 +122,7 @@ if ( defined $opts{imap} ) {
     my $pseq_id = $1;
     my $text = $u->best_annotation($pseq_id);
 
-    print FP qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TITLE="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">), "\n";
+    print FP qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">), "\n";
   }
   print FP "</MAP>\n";
   close(FP);
