@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.2 2003/05/02 06:08:04 rkh Exp $>
+S<$Id: pseq.pm,v 1.3 2003/05/16 00:21:01 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -92,7 +92,7 @@ porigin.ann_pref ranking.  See also best_annotation.
   $self->is_open()
 	|| croak("Unison connection not established");
   ($#_==0)
-	|| croak("exactly one porigin_id needed\n");
+	|| croak("exactly one pseq_id needed\n");
   my $sth = $self->prepare_cached("select best_alias(?)");
   $sth->execute(shift);
   my $ba = $sth->fetchrow_array;
@@ -120,7 +120,7 @@ Compare with the C<best_alias> method and see that for a definition of
   $self->is_open()
 	|| croak("Unison connection not established");
   ($#_==0)
-	|| croak("exactly one porigin_id needed\n");
+	|| croak("exactly one pseq_id needed\n");
   my $sth = $self->prepare_cached("select best_annotation(?)");
   $sth->execute(shift);
   my $ba = $sth->fetchrow_array;
