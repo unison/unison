@@ -1,7 +1,11 @@
 #!/usr/bin/env perl
+# pdb2fa -- write PDB SEQRES records as a fasta file
+
 
 use warnings;
 use strict;
+use Data::Dumper;
+
 
 my %ONECODE =
   (
@@ -16,11 +20,9 @@ my %ONECODE =
 
 
 if (@ARGV) {
-  while(my $fn = shift) 
-	{ chomp($fn); process1($fn); }
+  while(my $fn = shift) { chomp($fn); process1($fn); }
 } else {
-  while(my $fn = <>)
-	{ chomp($fn); process1($fn); }
+  while(my $fn = <>) { chomp($fn); process1($fn); }
 }
 
 
@@ -41,9 +43,22 @@ sub process1 {
 
 sub read1 {
   my $fn = shift;
-  my $pdb = `gzip -cdq $fn`;
-  my (@desc) = map {s/\s+\d\w\w\w   \d//;$_} $pdb=~m/^TITLE\s+(?:\d\s)?(.+)/mg;
-  my $desc = join(' ',@desc);
+  die("read1: fn undefined") unless defined $fn;
+  my ($pdbid) = $fn =~ m/(\d\w\w\w)\.(?:pdb|ent)/;
+  die("read1: pdbid undefined for '$fn'") unless defined $pdbid;
+
+  my $pdb = ($fn =~ m/\.(gz|Z|z)$/) ? `gzip -cdq $fn` : `cat $fn`;
+
+  my (@desc);
+  if ($pdb =~ m/^TITLE/m) {
+	(@desc) = $pdb =~ m/^TITLE\s+(?:\d\s)?(.+)/mg;
+  } else {
+	(@desc) = $pdb=~m/^(?:HEADER|SOURCE)\s+(?:\d\s)?(.+)/mg;
+  }
+  (@desc) = map {s/\s+\U$pdbid\E\w?\s+\d$//;$_} @desc; # strip pdbid on right
+  (@desc) = map {s/\s*\d\d-[A-Z][A-Z][A-Z]-\d\d\s+\U$pdbid\E//;$_} @desc; # date + pdb code
+  my $desc = join(' ', @desc);
+
   $desc =~ s/\s+/ /g; $desc =~ s/^\s//; $desc =~ s/\s$//;
   my %sr;
   my %len;
