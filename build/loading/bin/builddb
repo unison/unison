@@ -1,0 +1,35 @@
+#!/bin/sh -e
+
+DB=unison
+ROOT=/home/rkh/$DB
+LIB=$ROOT/lib
+
+cd $ROOT
+
+
+cont ()		{ if [ -t 0 ]; then echo "looks okay; hit return to continue"; read z; fi }
+myexit ()	{ v=$1; shift; echo "$@"; exit $v; }
+
+
+# ensure that need libs are present
+#cp -upv /usr/lib/pgsql/contrib/pgcrypto/libpgcrypto.so lib/
+#cp -upv /usr/lib/pgsql/plpgsql.so lib/
+echo "checking libraries..."
+ls -lF lib/libperl.so lib/libpgcrypto.so lib/plperl.so lib/plpgsql.so lib/unison.so
+([ $? == 0 ] && cont) || myexit 1 "please install missing libraries"
+
+
+echo "dropping & creating $DB"
+dropdb $DB || true
+createdb $DB
+([ $? == 0 ] && cont) || myexit 2 "couldn't create database $DB"
+
+
+echo "adding languages to $DB"
+createlang -d $DB -L $LIB plpgsql || true
+createlang -d $DB -L $LIB plperl || true
+cont || myexit 2 "couldn't create database $DB"
+
+
+cd schema
+psql --set ON_ERROR_STOP=1 -q -d $DB -f unison.sql
