@@ -2,8 +2,13 @@
 -- NAME: assign_tax_id.sql
 -- PURPOSE: assign tax_id in the paliasorigin table
 --
--- $Id$
+-- $Id: assign_tax_id.sql,v 1.6 2004/03/23 23:15:11 cavs Exp $
 -- -----------------------------------------------------------------------------
+
+
+
+
+
 
 -- swissprot - key off the gs info in the accession
 UPDATE paliasorigin SET tax_id=gs2tax_id('HUMAN') 
