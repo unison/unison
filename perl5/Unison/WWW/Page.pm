@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.32 2005/01/25 01:21:44 rkh Exp $>
+S<$Id: Page.pm,v 1.33 2005/02/03 00:21:11 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -102,13 +102,22 @@ sub new {
 
   $self->{userprefs} = $self->{unison}->get_userprefs();
   $self->{readonly} = 1;
-  #$self->{readonly} = 0 if ($self->{unison}->{dbname} eq 'csb-dev' 
-  #							and $self->{unison}->{username} =~ m/^(rkh|cavs)$/
-  #							and exists $v->{update} );
-
-  $self->{tmproot} = exists $ENV{'DOCUMENT_ROOT'} ? "$ENV{'DOCUMENT_ROOT'}" : '';
-  $self->{tmpdir} = "$self->{tmproot}/tmp";
-
+  
+  # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
+  # as a CGI, or in /tmp/ if run on the command line 
+  if (defined $ENV{DOCUMENT_ROOT}) {
+	$self->{tmproot} = $ENV{DOCUMENT_ROOT};
+	my @lt = localtime();
+	$self->{tmpdir} = sprintf("$self->{tmproot}/tmp/%4d%02d%02d",
+							  $lt[5]+1900, $lt[4]+1, $lt[3]);
+	(-d $self->{tmpdir})
+	  || mkdir($self->{tmpdir})
+	  || warn("mkdir($self->{tmpdir}: $!\n");
+  } else {
+	$self->{tmproot} = '';
+	$self->{tmpdir} = "$self->{tmproot}/tmp";
+  }
+  
   # if we've made it this far, we'll eventually get a page out
   $self->start_html;
 
@@ -577,7 +586,8 @@ sub page_connect ($) {
 
   # If KRB5CCNAME is set, we're doing kerberos authentication.
   if (exists $ENV{KRB5CCNAME}) {
-	$v->{username} = $ENV{REMOTE_USER};
+	$v->{username} = $ENV{REMOTE_USER} 		# from webserver...
+	                 || `/usr/bin/id -un`;	# ... or running on command line
 	$v->{username} =~ s/@.+//;				# strip domain name
   }
 

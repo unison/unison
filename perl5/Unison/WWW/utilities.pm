@@ -12,13 +12,14 @@ our @EXPORT = ();
 use Text::Wrap;
 
 
+
 sub alias_link {
   my ($alias,$origin) = @_;
   if ($origin eq 'GenenGenes') {
 	return( alias_gglink($alias) );
   } elsif ($origin eq 'Swiss-Prot') {
 	return( alias_splink($alias) )
-  } elsif ($origin =~ m/^Uniprot/) {
+  } elsif ($origin =~ m/^uniprot/i) {
 	return( alias_uniprot_link($alias) )
   } elsif ($origin eq 'Ensembl') {
 	return( alias_enslink($alias) )
