@@ -82,6 +82,9 @@ sub new {
 							and $self->{unison}->{username} =~ m/^(rkh|cavs)$/
 							and exists $v->{update} );
 
+  $self->{tmproot} = exists $ENV{'DOCUMENT_ROOT'} ? "$ENV{'DOCUMENT_ROOT'}" : '';
+  $self->{tmpdir} = "$self->{tmproot}/tmp";
+
   # if we've made it this far, we'll eventually get a page out
   $self->start_html;
 
@@ -96,10 +99,10 @@ sub page_connect ($) {
   # choose database based on port unless explicitly set
   # SERVER_PORT is always set, EXCEPT when debugging from the command line
   if (not exists $v->{dbname}) {
-	my ($port) = $ENV{SERVER_PORT} || 80;
-	$v->{dbname} = ($port == 8080) ? 'csb-dev'
+	my ($port) = $ENV{SERVER_PORT} || 8080;
+	$v->{dbname} = ($port == 8000) ? 'csb'
 	  			 : ($port == 8040) ? 'csb-stage'
-	             :                   'csb';
+	             :                   'csb-dev';
   }
 
   # establish session authentication, preferably via kerberos
@@ -108,9 +111,11 @@ sub page_connect ($) {
 	$v->{username} = $ENV{REMOTE_USER};
 	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$v->{username}";
 	$v->{host} = 'csb';
+  } else {
+	$v->{username} = `id -nu`
+	#$v->{username} = 'PUBLIC' unless defined $v->{username};
   }
 
-  #else: $v->{username} = 'PUBLIC' unless defined $v->{username};
 
 
   # NOTE: password=>undef works for PUBLIC and krb auth
