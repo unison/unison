@@ -1,11 +1,14 @@
 package Unison::WWW::Page;
 use base Exporter;
-use CGI qw( :standard *table -debug -nosticky );
+use CGI qw( -debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
 
 BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
+use strict;
+use warnings;
 use Unison::Exceptions;
 use Unison;
+use Data::Dumper;
 
 our $infer_pseq_id = 0;
 
@@ -49,6 +52,9 @@ sub new {
 					  qw(REMOTE_USER KRB5CCNAME)),
 					);
   };
+
+
+  $self->{userprefs} = $self->{unison}->get_userprefs();
 
 
   # Most pages should refer to sequences by pseq_id. If pseq_id isn't
@@ -122,7 +128,6 @@ sub new {
   }
 
 
-
 sub header {
   my $p = shift;
   return '' if $p->{already_did_header}++;
@@ -133,8 +138,8 @@ sub start_html {
   my $self = shift;
   return $self->SUPER::start_html( @_,
 								   -head => [
-											 Link({-rel => 'shortcut icon',
-												   -href => '../av/favicon.png'})
+											 $self->Link({-rel => 'shortcut icon',
+														  -href => '../av/favicon.png'})
 										    ],
 								   -style => { -src => ['../unison.css', '../styles/ToolTips.css'] },
 								   -onload => 'javascript:{ initToolTips(); }',
@@ -208,9 +213,9 @@ sub group {
   if (ref $name eq 'ARRAY') {
 	($name,$ctl) = @$name;
   }
-  return("<table class=\"group\">\n" .
-		 "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n" .
-		 "<tr><td colspan=\"2\">\n".join('',@_)."\n</td></tr>\n" .
+  return("<table class=\"group\">\n",
+		 "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
+		 "<tr><td colspan=\"2\">\n",@_,"\n</td></tr>\n",
 		 "</table>\n");
 }
 
@@ -224,19 +229,27 @@ sub Vars {
 
 sub navbar {
   my $p = shift;
-  my $v = $p->Vars();
+  my $v = $p->Vars() || {};
+  my $pseq_id = exists $v->{pseq_id} ? "pseq_id=$v->{pseq_id}" : '';
   my @navs =
+	## format: @navs = ( menu, menu, ... );
+	## where each menu is
+	## [ [ name, tooltip ],
+	##   [ sub1, tooltip1, script1, args1 ],
+	##   [ sub2, tooltip2, script2, args2 ],
+	##   ...
+	## ]
 	( [ # analyze MENU
 	   ['Analyze', 		'display precomputed analyses for a given sequence'],
-	   ['Summary', 		'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
-	   ['Aliases', 		'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Patents', 		'patents on this sequence', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Features',		'sequences features', 'pseq_features.pl', "pseq_id=$v->{pseq_id}"],
-	   ['BLAST', 		'BLAST-related sequences', 'pseq_blast.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Prospect2', 	'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id};run_id=1"],
-	   ['HMM', 			'Hidden Markov Model alignments', 'pseq_pahmm.pl', "pseq_id=$v->{pseq_id}"],
-	   ['PSSM',			'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Loci',			'genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Summary', 		'summary of sequence information', 'pseq_summary.pl', 	$pseq_id ],
+	   ['Aliases', 		'all aliases of this sequence', 'pseq_paliases.pl', 	$pseq_id ],
+	   ['Patents', 		'patents on this sequence', 'pseq_patents.pl', 			$pseq_id ],
+	   ['Features',		'sequences features', 'pseq_features.pl', 				$pseq_id ],
+	   ['BLAST', 		'BLAST-related sequences', 'pseq_blast.pl', 			$pseq_id ],
+	   ['Prospect2', 	'Prospect2 threadings', 'pseq_paprospect2.pl', 			$pseq_id.';run_id=1'],
+	   ['HMM', 			'Hidden Markov Model alignments', 'pseq_pahmm.pl', 		$pseq_id ],
+	   ['PSSM',			'PSSM alignments', 'pseq_papssm.pl', 					$pseq_id ],
+	   ['Loci',			'genomic localization', 'pseq_loci.pl', 				$pseq_id ],
 	  ],
 
 	  [ # search menu
@@ -244,6 +257,7 @@ sub navbar {
 	   ['By Sequence',	'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
 	   ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
 	   ['By Properties','mine for sequences based on properties', 'search_by_properties.pl'],
+	   ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
 	  ],
 
 	  [ # browse menu
@@ -252,6 +266,20 @@ sub navbar {
 	  # ['SCOP', undef, 'browse_scop.pl'],
 	  # ['Origins', undef, 'browse_origins.pl']
 	  ],
+
+	  # empty list forces right-justification of subsequent menu
+	  [ [ '' ]  ],
+
+	  [
+	   ['Info', 		'about Unison'],
+	   ['About', 		'about unison', 				'about_unison.pl'],
+	   ['Contents', 	'show unison meta information', 'about_contents.pl'],
+	   ['Credits', 		'thanks, ma!',					'about_credits.pl'],
+	   ['Home', 		'go to Unison\'s low budget home page', '..'],
+	   ['Env', 			'Environment info', 			'about_env.pl'],
+	   ['Prefs',		'User Prefs', 					'about_prefs.pl'],
+	  ]
+
 
 	  #[ # run menu
 	  # ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
@@ -270,34 +298,26 @@ sub navbar {
 	  # ['Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
 	  #],
 
-	  # empty list forces right-justification of subsequent menu
-	  [ [ '' ]  ],
-
-	  [
-	   ['Info', 		'about Unison'],
-	   ['About', 		'about unison', 	'about_unison.pl'],
-	   ['Contents', 	'show unison meta information', 'about_contents.pl'],
-	   ['Credits', 		'thanks, ma!',		'about_credits.pl'],
-	   ['Home', 		'go to Unison\'s low budget home page', '..'],
-	   ['Env', 			'Environment info', 'about_env.pl'],
-	  ],
 	);
 
   my ($navi,$subnavi) = $p->find_nav_ids(@navs);
-  if (not defined $navi) {
-	# oops... not in @navs
-	push( @navs, [ $p->{Nav} ] );
-	$navi = $#navs;
-  }
-  if (not defined $subnavi) {
-	# oops... not in @{$navs[$navi]}
-	push( @{$navs[$navi]}, [ $p->{SubNav}, undef ] );
-	$subnavi = $#{$navs[$navi]};
-  }
-  my $rv;
+  # if (not defined $navi) {
+  # 	# oops... not in @navs
+  # 	push( @navs, [ $p->{Nav} ] );
+  # 	$navi = $#navs;
+  # }
+  # if (not defined $subnavi) {
+  # 	# oops... not in @{$navs[$navi]}
+  # 	push( @{$navs[$navi]}, [ $p->{SubNav}, undef ] );
+  # 	$subnavi = $#{$navs[$navi]};
+  # }
+
+  my $rv = '';
   $rv .= make_navbar($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs);
-  my @sn = @{$navs[$navi]}; shift @sn;
-  $rv .= make_navbar($subnavi, @sn);
+  if (defined $navi) {
+	my @sn = @{$navs[$navi]}; shift @sn;
+	$rv .= make_navbar($subnavi, @sn);
+  }
   return $rv;
 }
 
@@ -315,6 +335,18 @@ sub find_nav_ids {
   return;
   }
 
+
+sub best_annotation {
+  my $p = shift;
+  my $pseq_id = shift;
+
+  return( $p->tooltip( 'current "best" annotation', 'Best annotations are
+					   a guess about the most informative and reliable
+					   annotation for this sequence from all source
+					   databases. Click the Aliases tab to see all
+					   annotations' )
+		  . ': ' . $p->{unison}->best_annotation($pseq_id,1) );
+}
 
 sub make_navbar {
   # $sel is which is selected
@@ -360,9 +392,17 @@ sub sql {
 }
 
 sub tip {
-  shift;
+  my $self = shift;
+  return '' unless $self->{userprefs}->{'show_tips'};
   return( "\n",'<p><div class="tip"><b>Tip:</b> ', 
-		  join(' ',@_), '</div>', "\n" );
+		  join(' ',@_), '</div>', "\n");
+}
+
+sub tooltip {
+  shift;
+  my ($text,$tooltip) = @_;
+  $tooltip =~ s/\n/ /g;
+  return( '<span class="tipped" tooltip="'.$tooltip.'">'.$text.'</span>' );
 }
 
 sub warn {
@@ -401,7 +441,9 @@ sub debug {
 
 
 
-# build a url from the CGI query object
+# build a url from the CGI query object with values from a specified variable list
+# use:
+# 
 sub make_url {
   my $p = shift;
   my $vars = $p->Vars();
