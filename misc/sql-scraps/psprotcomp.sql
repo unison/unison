@@ -100,9 +100,22 @@ nn_loc,nn_score,int_psloc_id,il.location as int_loc,int_score from
 psprotcomp PC join psprotcomp_location sl on sl.psloc_id=PC.sim_psloc_id
 join psprotcomp_location nl on nl.psloc_id=PC.nn_psloc_id join
 psprotcomp_location il on il.psloc_id=PC.int_psloc_id;
-comment on v_psprotcomp is 'protcomp summary view';
+
+grant select on v_psprotcomp to PUBLIC;
+comment on view v_psprotcomp is 'protcomp summary view';
 
 
+create view v_psprotcomp_reliable as
+select pseq_id,params_id,sim_psloc_id as psloc_id,sim_loc as loc,
+   'sequence similarity' as "method" from v_psprotcomp
+WHERE sim_psloc_id!=0
+UNION
+SELECT pseq_id,params_id,nn_psloc_id as psloc_id,nn_loc as loc,
+   'nn & integral agreement' as "method" from v_psprotcomp
+WHERE sim_psloc_id=0 and int_psloc_id=nn_psloc_id;
+
+grant select on v_psprotcomp_reliable to PUBLIC;
+comment on view v_psprotcomp_reliable is 'reliable protcomp predictions';
 
 
 -- pfprotcomp
