@@ -1,313 +1,48 @@
 #!/usr/bin/env perl
 # genome-features -- prepare png of genome features
 
-
 use strict;
 use warnings;
 use Unison;
-use Unison::WWW::Page;
-use Bio::Graphics;
-use Bio::Graphics::Feature;
+use Unison::genome_features;
 use Getopt::Long qw(:config gnu_getopt);
-use Data::Dumper;
 
-my $logo_margin = 10;
 
 my %opts = (
-  show_all => undef,
-   genasm_id => undef,
-   gstart => undef,
-   gstop => undef,
-   chr => undef,
-   margin => 0,
-   imap => undef,
-   png => undef,
-   pseq_id => undef,
-   width => 750,
-   verbose => 0
-);
-GetOptions( \%opts,
-      'show_all|a+',
-      'genasm_id|q=i',
-      'chr|c=s',
-      'gstart|b=i',
-      'gstop|e=i',
-      'margin|m=i',
-      'imap|i=s',
-      'pseq_id|p=i',
-      'width|w=i',
-      'png|f=s',
-      'verbose|v+',
-) || die("$0: usage issues, chief\n");
+			%Unison::genome_features::opts,
+			margin => 1000,
+		   );
 
-die("$0: usage issues, chief\n") if 
-  ! ( defined $opts{genasm_id} && (( defined $opts{chr} && defined $opts{gstart} && defined $opts{gstop} ) || (  defined $opts{pseq_id} ) ));
+GetOptions( \%opts,
+			'show_all|a+',
+			'genasm_id|g=i',
+			'pseq_id|q=i',
+			'chr|c=s',
+			'gstart|b=i',
+			'gstop|e=i',
+			'margin|m=i',
+			'width|w=i',
+			'verbose|v+',
+		  )
+  || die("$0: usage issues, chief\n");
+
+
+if (not defined $opts{genasm_id}) {
+  die("$0: you must provide a genasm_id\n");
+}
+
+if ( (not defined $opts{pseq_id})
+	 and
+	 (not (defined $opts{chr}
+		   and defined $opts{gstart}
+		   and defined $opts{gstop})) ) {
+  die("$0: you must specify either a pseq_id or <chr,gstart,gstop>\n");
+}
+
 
 my $u = new Unison;
+my $panel = Unison::genome_features::genome_features_panel($u,%opts);
 
+print( $panel->gd()->png() );
 
-if ( defined $opts{pseq_id}) {
-  ($opts{chr},$opts{gstart},$opts{gstop},$opts{p2gblataln_id}) = &get_blataln($u,$opts{pseq_id});
-}
-
-# expand gstart and gstop to include margin
-$opts{gstart} -= $opts{margin};
-$opts{gstop}  += $opts{margin};
-
-my $len = int($opts{gstop}-$opts{gstart});
-
-my $panel = Bio::Graphics::Panel->new( 
-  -length => $len,
-  -width => $opts{width},
-  -start => $opts{gstart},
-  -stop => $opts{gstop},
-  -grid => 'true',
-  -gridcolor => 'gainsboro',
-  -pad_top => 10,
-  -pad_left => 10,
-  -pad_right => 100,
-  -pad_bottom => 10,
-  -key_style => 'between'
-);
-
-$panel->add_track( Bio::Graphics::Feature->new
-  (-start => $opts{gstart}, -end => $opts{gstop}),
-  -glyph => 'arrow',
-  -tick => 1,
-  -fgcolor => 'black',
-  -double => 0,
-  -label => 1, -description=>1
-);
-
-
-
-#print STDERR "pseq_id: $opts{pseq_id}, start: $opts{gstart}, stop: $opts{gstop}, p2gblataln_id: $opts{p2gblataln_id}\n";
-if ( defined $opts{pseq_id} ) {
-  $panel->add_track( 
-    -key => "Chr$opts{chr} from $opts{gstart} to $opts{gstop}",
-    -key_font => 'gdSmallFont',
-    -bump => +1,
-  );
-  add_p2gblataln( $u, $panel, $opts{p2gblataln_id} );
-  if (defined $opts{show_all} || $opts{show_all} ) {
-    add_blatloci( $u, $panel, $opts{genasm_id}, $opts{chr}, $opts{gstart}, $opts{gstop} );
-  }
-} else {
-  add_blatloci( $u, $panel, $opts{genasm_id}, $opts{chr}, $opts{gstart}, $opts{gstop} );
-}
-
-$panel->add_track( ) for 1..2;         # spacing
-$panel->add_track( 
-  -key => '$Id: genome-features,v 1.4 2004/02/25 20:48:40 rkh Exp $',
-  -key_font => 'gdSmallFont',
-  -bump => +1,
-);
-
-#print(STDERR map {sprintf("[%3d,%3d,%3d,%3d]\n",@$_[1..4])} @{$panel->boxes()});
-
-my $gd = $panel->gd();
-
-open(FP,">$opts{png}") or die("can't open $opts{png} for writing png");
-print FP $gd->png();
-close(FP);
-
-if ( defined $opts{imap} ) {
-  open(FP,">$opts{imap}") or die("can't open $opts{imap} for writing IMAGEMAP");
-  print FP q(<MAP NAME="GENOME_MAP">), "\n";
-  foreach my $box ( $panel->boxes() ) {
-    my ($feature, $x1, $y1, $x2, $y2) = @$box;
-    my $fstart = $feature->start; # should be unique
-    my $fname = $feature->name; # should be unique
-    next if ! defined $fname || $fname !~ m/^Unison:(\d+)/;
-    my $pseq_id = $1;
-    my $text = $u->best_annotation($pseq_id);
-
-    print FP qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">), "\n";
-  }
-  print FP "</MAP>\n";
-  close(FP);
-}
-  
 exit(0);
-
-
-#-------------------------------------------------------------------------------
-# NAME: add_blatloci_features
-# PURPOSE: add blat loci features to a panel
-#-------------------------------------------------------------------------------
-sub add_blatloci {
-  my ($u, $panel, $genasm_id, $chr, $gstart, $gstop) = @_;
-  my $nadded = 0;
-  my $plus_strand_track = $panel->add_track( 
-    -glyph => 'graded_segments',
-    -min_score => 0,
-    -max_score => 1,
-    -sort_order => 'high_score',
-    -bgcolor => 'blue',
-    -key => '+',
-    -bump => +1,
-    -label => 1,
-    -fgcolor => 'black',
-    -fontcolor => 'black',
-    -font2color => 'red',
-    -description => 1,
-    -height => 4,
-  );
-  my $separator_track = $panel->add_track( Bio::Graphics::Feature->new
-										   (-start => $opts{gstart},
-											-end => $opts{gstop},
-										   -glyph => 'generic',
-										   -fgcolor => 'black',
-										   -double => 0,
-										   -label => 0,
-										 ));
-  my $rev_strand_track = $panel->add_track( 
-    -glyph => 'graded_segments',
-    -min_score => 0,
-    -max_score => 1,
-    -sort_order => 'high_score',
-    -bgcolor => 'red',
-    -key => '-',
-    -bump => +1,
-    -label => 1,
-    -fgcolor => 'black',
-    -fontcolor => 'black',
-    -font2color => 'red',
-    -description => 1,
-    -height => 4,
-  );
-  my $sql = "select p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand from cavs.v_p2gblataln where " .
-    "genasm_id=$genasm_id and ".
-    "chr='$chr' and ".
-    "gstart>=$gstart and ".
-    "gstop<=$gstop";
-
-  print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $sth = $u->prepare($sql);
-  $sth->execute();
-  my $p2gblataln_id = -1;
-  my ($plus_strand,$feat);
-  while( my $r = $sth->fetchrow_hashref ) {
-    # new BLAT alignment - create a new feature
-    if ( $r->{p2gblataln_id} != $p2gblataln_id ) {
-      # if we have a feat defined, then add it to the appropriate strand track
-      if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
-        if ( $plus_strand ) {
-          $plus_strand_track->add_feature($feat);
-        } else {
-          $rev_strand_track->add_feature($feat);
-        }
-      }
-      $p2gblataln_id = $r->{p2gblataln_id};
-      $plus_strand = $r->{plus_strand};
-      print STDERR "Get a new feature\n" if $opts{verbose};
-      $feat = new Bio::Graphics::Feature->new(-name=>sprintf('Unison:%d (%s)',
-															 $r->{pseq_id}, $u->best_alias($r->{pseq_id})));
-      print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
-      $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
-    }
-
-    # same alignment - add sub features
-    else {
-      print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
-      $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
-    }
-    
-  }
-
-  # add remaining feature
-  if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
-    if ( $plus_strand ) {
-      $plus_strand_track->add_feature($feat);
-    } else {
-      $rev_strand_track->add_feature($feat);
-    }
-    $nadded++;
-  }
-
-  return $nadded;
-}
-
-
-#-------------------------------------------------------------------------------
-# NAME: add_p2gblataln
-# PURPOSE: add blat alignment features to a track given a p2gblataln_id
-#-------------------------------------------------------------------------------
-sub add_p2gblataln {
-  my ($u, $panel, $p2gblataln_id) = @_;
-  my $nadded = 0;
-
-  my $sql = "select * from p2gblatalnhsp natural join p2gblathsp where " .
-    "p2gblataln_id=? order by gstart";
-
-  my $sth = $u->prepare($sql);
-  $sth->execute($p2gblataln_id);
-
-  my $track = $panel->add_track(
-    -glyph => 'graded_segments',
-    -connector=>'solid',
-    -min_score => 0,
-    -max_score => 1,
-    -sort_order => 'high_score',
-    -bgcolor => 'green',
-    -bump => +1,
-    -label => 1,
-    -fgcolor => 'black',
-    -fontcolor => 'black',
-    -font2color => 'red',
-    -description => 1,
-    -height => 4,
-    );
-
-  print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $feat = new Bio::Graphics::Feature->new();
-  while (my $r = $sth->fetchrow_hashref) {
-    $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
-    $nadded++;
-  }
-  $track->add_feature($feat);
-
-  return $nadded;
-}
-
-
-
-#-------------------------------------------------------------------------------
-# NAME: get_blataln
-# PURPOSE: retrieve blataln info
-#-------------------------------------------------------------------------------
-sub get_blataln {
-  my ($u, $pseq_id) = @_;
-
-  my $sql = "select chr,gstart,gstop,p2gblataln_id from blatloci where pseq_id=?";
-
-  my $sth = $u->prepare($sql);
-  $sth->execute($pseq_id);
-
-  print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my @f;
-  foreach my $r ($sth->fetchrow_hashref) {
-    return $r->{chr},$r->{gstart},$r->{gstop},$r->{p2gblataln_id};
-  }
-}
-
-
-#-------------------------------------------------------------------------------
-# NAME: get_blataln_id
-# PURPOSE: retrieve blataln_ids for a given genomic region
-#-------------------------------------------------------------------------------
-sub get_blataln_id {
-  my ($u, $genasm_id, $chr, $gstart, $gstop) = @_;
-
-  my $sql = "select ah.p2gblataln_id from p2gblatalnhsp ah, p2gblathsp h where " .
-    "h.gstart>=$gstart and h.gstop<=$gstop and h.chr=$chr and h.genasm_id=$genasm_id " .
-    "and ah.p2gblathsp_id=h.p2gblathsp_id";
-  my $sth = $u->prepare($sql);
-  $sth->execute();
-  print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my @retval;
-  while ( my $row = $sth->fetchrow_arrayref() ) {
-    push @retval,$row->[0];
-  }
-  return(@retval);
-}
