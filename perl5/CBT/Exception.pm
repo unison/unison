@@ -1,12 +1,19 @@
 =head1 NAME
 
 CBT::Exception -- base class for exceptions
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id: Exception.pm,v 1.1 2003/04/30 21:11:21 rkh Exp $>
 
 =head1 SYNOPSIS
 
  package MyModule::Exception;
  use base CBT::Exception;
+
+ package MyModule;
+ ...
+ if ($failed)
+   { throw MyModule::Exception; }
+ ...
+
 
 =head1 DESCRIPTION
 
@@ -57,7 +64,7 @@ use strict;
 use warnings;
 
 use CBT::debug;
-our $VERSION = CBT::debug::RCSVersion( '$Revision$ ' );
+our $VERSION = CBT::debug::RCSVersion( '$Revision: 1.1 $ ' );
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use base qw(Error);
@@ -70,6 +77,21 @@ our $show_advice = exists $ENV{EX_ADVICE} ? $ENV{EX_ADVICE} : 1;
 
 sub new
   {
+=pod
+
+=over
+
+=item B<::new( {error=E<gt>...,
+                detail=E<gt>...,
+                advice=E<gt>...} )>
+
+=item B<::new( error, detail, advice )>
+
+creates a new exception with the spe
+
+=back
+
+=cut
   my $self = shift;
   my %ex;
   if (ref $_[0])							# throw Ex ( {...} )
@@ -94,44 +116,31 @@ sub new
 	  $ex{error} = 'unknown error';
 	  }
 	}
-  $ex{detail} = $! if (not defined $ex{detail} and $!);
+  #$ex{detail} = $! if (not defined $ex{detail} and $!);
+
 
   my @args = ();
   local $Error::Debug = exists $ex{stacktrace} ? $ex{stacktrace} 
 	: $show_stacktrace;
   local $Error::Depth = $Error::Depth + 1;
   $self->SUPER::new(%ex, @args);
-=pod
-
-=over
-
-=item B<::new( {text=E<gt>..., advice=E<gt>...} )>
-
-=item B<::new( text, advice )>
-
-creates a new exception.
-
-=back
-
-=cut
   }
 
 
 
 ## INTERNAL FUNCTIONS
-
 sub stringify($)
   {
   my $self = shift;
   my $r = "! " . (ref($self)||$self) . " occurred: " . $self->error() . "\n";
-  $r .= "Detail:" . wrap("\t", "\t", $self->detail()) . "\n" 
-	if $self->detail();
-  $r .= "Advice:" . wrap("\t", "\t", $self->advice()) . "\n" 
-	if $show_advice and $self->advice();
-  $r .= $self->stacktrace() . "\n" if $show_stacktrace;
+  if ( $self->detail() )
+	{ $r .= "Detail:" . wrap("\t", "\t", $self->detail()) . "\n" }
+  if ( $show_advice and $self->advice() )
+	{ $r .= "Advice:" . wrap("\t", "\t", $self->advice()) . "\n" }
+  if ( $show_stacktrace )
+	{ $r .= "Trace:\t" . $self->stacktrace() . "\n"; }
   return $r;
   }
-
 sub error($)   { $_[0]->{error};  }
 sub detail($)  { $_[0]->{detail}; }
 sub advice($)  { $_[0]->{advice}; }
@@ -161,7 +170,7 @@ Error.pm -- where all the hard work's done
 
 ## TODO-
 ## -- on-the-fly exception class creation, e.g.,
-##    throw YetUnamedException ('you blew it')
+##    throw YetUnamedException ('you blew it') by overloading throw?
 ## -- consider carefully which exception classes to generate
 ##    perhaps Dave could research this, using java and python as examples
 ## -- -level field to control severity w/ run-time control of
