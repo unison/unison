@@ -14,7 +14,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.2 2004/04/13 21:36:31 cavs Exp $
+# $Id: load-pseq,v 1.3 2004/04/16 00:31:34 cavs Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -24,6 +24,7 @@ use strict;
 use Bio::SeqIO;
 use Getopt::Long qw(:config gnu_getopt);
 use Unison;
+use IO::Zlib;
 
 my %af = ( fthelper => 1,
   multifile => 1, abi => 1, ace => 1, alf => 1,
@@ -57,10 +58,18 @@ GetOptions( \%opts,
   die("$0: --format (-f) is mandatory and must be one of (",join(',',sort {$a cmp $b} keys %af),")\n$usage\n");
 my $u = new Unison;
 
+
+my $fh = new IO::Zlib;
 foreach my $fn ( @ARGV ) {
-  my $stream = Bio::SeqIO->new(-file => $fn, -format => $opts{format});
+  $fh->open($fn, 'rb')
+	|| die("$fn: $!\n");
+  my $stream = Bio::SeqIO->new(-fh => $fh, 
+							   -format => $opts{format});
   my $rv = $u->process_stream($stream, \%opts);
   print "fn: $fn, nseen: $rv->{nseen}, nskipped: $rv->{nskipped}, nadded: $rv->{nadded}\n";
 }
+
 $opts{porigin_id} = $u->porigin_porigin_id_by_origin($opts{origin});
-print "update porigin set last_updated='",$u->porigin_last_updated($opts{porigin_id},1),"' where porigin_id=$opts{porigin_id}\n";
+print( "update porigin set last_updated='",
+	   $u->porigin_last_updated($opts{porigin_id},1),
+	   "' where porigin_id=$opts{porigin_id}\n");
