@@ -2,7 +2,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
+S<$Id: run_history.pm,v 1.6 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -51,7 +51,7 @@ sub upd_run_history(@) {
 
 
 ######################################################################
-## fx upd_run_histories
+## upd_run_histories
 
 =pod
 
@@ -71,6 +71,33 @@ sub upd_run_histories($$$$$) {
   }
   return $z;
 }
+
+
+
+######################################################################
+## already_ran
+
+=pod
+
+=item B<< $u->already_ran( C<pseq_id>, C<params_id>, C<[porigin_ids]>, C<[pmodelset_ids]> ) >>
+
+=cut
+
+sub already_ran ($$$$$) {
+  my ($u,$pseq_id,$params_id,$O,$M) = @_;
+  my (@O) = defined $O ? ref $O ? @$O : ($O) : (undef);
+  my (@M) = defined $M ? ref $M ? @$M : ($M) : (undef);
+
+  foreach my $o (@O) {
+	foreach my $m (@M) {
+	  if ($u->get_run_timestamp($pseq_id,$params_id,$o,$m)) {
+		return 1;
+	  }
+	}
+  }
+  return 0;
+}
+
 
 
 ######################################################################
