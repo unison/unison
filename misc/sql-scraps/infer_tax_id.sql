@@ -98,11 +98,14 @@ SELECT CASE
     WHEN ($1 = ''dblast'')
     THEN
         (SELECT CASE
+			-- for Swiss-Prot-like aliases...
 	        WHEN ($2 ~ ''_'' AND gs2tax_id(substr($2,strpos($2,''_'')+1)) IS NOT NULL)
 							 					 	THEN gs2tax_id( substr($2,strpos($2,''_'')+1) )
-            WHEN ($3 ~ '' - human'')   		     	THEN gs2tax_id(''HUMAN'')
-            WHEN ($3 ~ '' - mouse'')   		     	THEN gs2tax_id(''MOUSE'')
-            WHEN ($3 ~ '' - rat'')   		     	THEN gs2tax_id(''RAT'')
+			-- otherwise fish the species out of the descr; special cases for
+			-- human, mouse, rat for speed (I hope)
+            WHEN ($3 ~ '' - human$'')  		     	THEN gs2tax_id(''HUMAN'')
+            WHEN ($3 ~ '' - mouse$'')  		     	THEN gs2tax_id(''MOUSE'')
+            WHEN ($3 ~ '' - rat$'')   		     	THEN gs2tax_id(''RAT'')
 			ELSE (SELECT tax_id FROM tax.spspec WHERE UPPER(latin) = UPPER(_dblast_species($3)))
         END)
 
