@@ -8,6 +8,7 @@ use Unison::WWW::Table;
 use Prospect2::Options;
 use Prospect2::LocalClient;
 use Prospect2::Align;
+use Data::Dumper;
 
 my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 
@@ -23,20 +24,23 @@ $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort};
 
 
+#            colname        sort_ob
 my @cols = (['aln?',					],
 			['acc', 		'acc'		],
+			['%ide',		'pide'		],
 			['raw', 		'raw'		],
 			['svm', 		'svm'		],
 			['mutation',				],
 			['pairwise',	'pairwise'	],
 			['singleton',	'singleton'	],
 			['gap',						],
-			['SCOP/superfamily/family' ]
+			['SCOP&nbsp;fold/superfamily/family'  ]
 		   );
 my @f = map { $_->[0] } @cols;
 my %colnum = map {$cols[$_]->[1] => $_} grep {defined $cols[$_]->[1]} 0..$#cols;
 my $ob = { 
 		  acc => 'acc',
+		  pide => '"%ide" desc',
 		  raw => 'raw desc',
 		  svm => 'svm desc',
 		  pairwise => 'pairwise',
@@ -46,13 +50,13 @@ my $ob = {
 
 my $N = $u->selectrow_array("select count(*) from paprospect2 where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}");
 
-my $sql = "select * from v_paprospect2_scop where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}  order by $ob  limit $v->{limit} offset $v->{offset}";
+my $sql = "select acc,\"%ide\",raw,svm,mutation,pairwise,singleton,gap,\"SCOP fold class / superfamily / family\"   from v_paprospect2_scop where pseq_id=$v->{pseq_id} and run_id=$v->{run_id}  order by $ob  limit $v->{limit} offset $v->{offset}";
 my $ar = $u->selectall_arrayref($sql);
 for(my $i=0; $i<=$#$ar; $i++)
   {
   my @a = @{$ar->[$i]};
-  splice( @a,0,2 );
-  my $c = ($a[1]<=-1000 or (defined $a[7] and $a[7]=~m/TNF-like/)) ? ' checked="TRUE"' : '';
+  my $c = ''; 
+  #$c = ($a[1]<=-1000 or (defined $a[7] and $a[7]=~m/TNF-like/)) ? ' checked="TRUE"' : '';
   unshift(@a, "<input type=\"checkbox\" name=\"templates\" value=\"$a[0]\"$c>");
   if ( -f "$pdbDir/$a[1].pdb" )
 	{ $a[1] = "<a href=\"p2rasmol.pl?pseq_id=$v->{pseq_id};run_id=$v->{run_id};templates=$a[1]\">$a[1]</a>"; }
