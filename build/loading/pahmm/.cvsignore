@@ -1,3 +1,4 @@
+[A-Z]
 *.var
 *.ids
 no
@@ -5,3 +6,5 @@ no
 *.mt
 logs*
 ns*
+load
+load*
