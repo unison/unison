@@ -45,11 +45,14 @@ sub start_html
   {
   my $self = shift;
   return $self->SUPER::start_html( @_,
-								   -head =>[
-											Link({-rel=>'shortcut icon',
-												  -href=>'../av/favicon.png'})
-										   ],
-								   -style=>{'src'=>'../unison.css'}
+								   -head => [
+											 Link({-rel => 'shortcut icon',
+												   -href => '../av/favicon.png'})
+										    ],
+								   -style => { -src => ['../unison.css', '../styles/ToolTips.css'] },
+								   -onload => 'javascript:{ initToolTips(); }',
+								   -script => [ {-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
+												{-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'} ]
 								 );
   }
 
@@ -72,7 +75,7 @@ sub render
 
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td class="cnav">[wasted space?]</td>', "\n",
+		  '  <td class="cnav"><span tooltip=\'hi there\'>[wasted space?]</span></td>', "\n",
 		  '  <td>', 
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
@@ -96,10 +99,9 @@ sub render
 sub group {
   my $self = shift;
   my $name = shift;
-  my $contents = shift;
   return("<table class=\"group\">\n" .
 		 "<tr><th class=\"grouptag\">$name</th><th></th></tr>\n" .
-		 "<tr><td colspan=\"2\">\n".$contents."\n</td></tr>\n" .
+		 "<tr><td colspan=\"2\">\n".join('',@_)."\n</td></tr>\n" .
 		 "</table>\n");
 }
 
@@ -131,30 +133,37 @@ sub navbar {
   my $p = shift;
   my $v = $p->Vars();
   my @navs =
-	( [ 'Analysis',
+	( [ ['Analysis', 'display precomputed analyses'],
 		['Summary', 'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
 		['Aliases', 'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
 		['Patents', 'Patents on this sequences', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
 		['Features', 'Sequences features', 'pseq_features.pl', "pseq_id=$v->{pseq_id}"],
 		['BLAST', 'BLAST-related sequences', 'pseq_blast.pl', "pseq_id=$v->{pseq_id}"],
-		['Prospect2', 'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id};run_id=1"],
+		['Prospect2', 'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id}"],
 		['HMM', 'Hidden Markov Model alignments', 'pseq_pahmm.pl', "pseq_id=$v->{pseq_id}"],
 		['PSSM', 'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
 		['Loci', 'Genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
 	  ],
-	  [ 'Mining',
+	  [ ['Mining', 'mine for sequences based on precomputed features' ],
 		['By Sequence', undef, 'seq_find.pl'],
 		['By Feature', undef, 'feature_find.pl'],
 	  ],
-	  [ 'Browse',
+	  [ ['Browse', 'browse sets of sequences'],
 		['Sets', undef, 'sets.pl'],
 		['Origins', undef, 'origins.pl']
 	  ],
-	  [ 'Update',
-		['Aliases', 'update aliases', 'aliases.pl', 'upd=1']
+	  [ ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
+		['BLAST', undef, 'run_blast.pl'],
+		['Pfam', undef, 'run_pfam.pl']
 	  ],
-	  [ 'Help',
-		['About', undef, '..']
+#	  [ ['Admin', 'Unison administration'],
+#		['Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
+#	  ],
+	  [ [ '' ]  ],
+	  [ ['About', 'about Unison'],
+		['Contents', 'show unison meta information', 'about_contents.pl'],
+		['Credits', 'thanks, ma!', 'about_credits.pl'],
+		['Home', 'go to Unison\'s low budget home page', '..']
 	  ],
 	);
 
@@ -170,7 +179,7 @@ sub navbar {
 	$subnavi = $#{$navs[$navi]};
   }
   my $rv;
-  $rv .= make_navbar($navi, map {[$_->[0],$_->[1]->[1]]} @navs);
+  $rv .= make_navbar($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs);
   my @sn = @{$navs[$navi]}; shift @sn;
   $rv .= make_navbar($subnavi, @sn);
   return $rv;
@@ -193,25 +202,31 @@ sub find_nav_ids {
 
 sub make_navbar {
   # $sel is which is selected
-  # @tu = array ref of [title,url]
+  # @tu = array ref of [title,descr,url,params]
   my ($sel,@tu) = @_;
+  my $spacer = '<td width="%80"></td>';
   my @nav = ();
   for(my $i=0; $i<=$#tu; $i++) {
-	my $cl = 'unselected';
 	my ($text,$title,$url,$params) = @{$tu[$i]};
-	$title = " title=\"$title\"" if defined $title;
+	if ($text eq '') {
+	  push(@nav, $spacer);
+	  $spacer = '';
+	  next;
+	}
+	my $cl = 'unselected';
+	my $tooltip = defined $title ? ' tooltip="'.$title.'"' : '';
 	$url .= "?$params" if defined $params;
 	if (defined $sel and $sel == $i) {
 	  $cl = 'selected';
 	  $url = undef;
 	}
 	push(@nav, "<td class=\"$cl\">"
-		 . (defined $url ? "<a href=\"$url\"$title>$text</a>" : $text)
+		 . (defined $url ? "<a href=\"$url\"$tooltip>$text</a>" : "<span$tooltip>$text</span>")
 		 . "</td>" );
   }
   return( '<table class="nav" width="100%">'
 		  . join('<td class="spc" width=1></td>', @nav)
-		  . '<td width="%80"></td>'
+		  . $spacer
 		  . '</table>' );
 }
 
@@ -221,4 +236,8 @@ sub where {
   return $self;
 }
 
+sub sql {
+  return( '<p><div class="sql"><b>SQL query:</b> ' . $_[1] . '</span>' );
+  # return '<br><span class="sql">', '<b>SQL query:</b>', $_[0], '</span>'
+}
 1;
