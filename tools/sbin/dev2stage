@@ -1,35 +1,39 @@
 #!/bin/sh -e
 # copy dev database to stage
-# $Id: dev2stage,v 1.1 2004/04/28 21:44:47 rkh Exp $
+# $Id: dev2stage,v 1.2 2004/04/28 22:05:10 rkh Exp $
 
-unset PGDATABASE
+echo '# $Id: dev2stage,v 1.2 2004/04/28 22:05:10 rkh Exp $' 1>&2
+
+if [ $# != 1 -o -z "$1" ]; then
+	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
+	exit 1;
+fi
+
+export PGDATABASE="$1"
 export PGUSER=compbio
-STAGENAME=$1
-
-echo '# $Id: dev2stage,v 1.1 2004/04/28 21:44:47 rkh Exp $' 1>&2
 
 # attempt to connect to STAGENAME and fail if connection succeeds
-if psql -d$STAGENAME </dev/null >/dev/null 2>/dev/null; then
-	echo "$STAGENAME already exists; aborting" 1>&2
+if psql </dev/null >/dev/null 2>/dev/null; then
+	echo "$PGDATABASE already exists; aborting" 1>&2
 	exit 1
 fi
 
-
 # create the new database with necessary languages
-createdb "$STAGENAME";
-createlang -d"$STAGENAME" plpgsql
-createlang -d"$STAGENAME" plperl
-createlang -d"$STAGENAME" plperlu
+createdb "$PGDATABASE";
+createlang plpgsql
+createlang plperl
+createlang plperlu
 
 
-# restore selected schemas
-SCHEMAS="go scop tax unison"
+# restore selected schemas; order is important
+SCHEMAS="gong scop tax unison"
 for s in $SCHEMAS; do
-	time -p pg_dump -n "$s" "csb-dev" | psql -d"$STAGENAME" -qaf-
+	time -p pg_dump -n "$s" "csb-dev" | psql -qaf-
 done
 
 
-
-psql -d"$STAGENAME" -qaf - <<EOF
-alter database "$STAGENAME" set search_path = unison,go,scop,tax;
+psql -qaf- <<EOF
+alter database "$PGDATABASE" set search_path = unison,gong,scop,tax;
+analyze verbose;
 EOF
+
