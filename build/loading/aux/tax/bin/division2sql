@@ -1,0 +1,17 @@
+#!/bin/env perl
+
+use strict;
+use warnings;
+
+print "set search_path = 'taxonomy';\n";
+while( my $l = <> )
+  {
+  my @F = split(/\s*\|\s*/,$l);
+  push(@F,undef);							# for comment-less
+  printf("insert into division (division_id,code,name,comments) values (%s,%s,%s,%s);\n",
+		 sql_quote(@F));
+  }
+
+
+sub sql_quote
+  { map { defined $_ ? "'$_'" : 'NULL' } @_ }
