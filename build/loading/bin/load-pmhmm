@@ -1,31 +1,69 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.1 2003/06/18 22:39:15 rkh Exp $
+# $Id: load-pmhmm,v 1.2 2003/07/10 15:39:51 rkh Exp $
 # load pfam HMM summary info (not the HMM itself) into unison
 # $ load-pmhmm <Pfam_fs
 
 use strict;
 use warnings;
 use Unison;
+use Getopt::Long qw(:config gnu_getopt);
 
 
-my $udb = new Unison;
+my %opts;
+GetOptions( \%opts,
+			'origin|o=s' )
+  || die("Sarge, you've got usage problems; see code\n");
 
-my $origin = 'Pfam_fs';
-my $porigin_id = $udb->porigin_si_porigin_id($origin);
-printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 
-my $sth = $udb->prepare("insert into pmhmm (porigin_id,name,acc,descr,len,nseq,cksum) ".
+if (not exists $opts{origin}) {
+  die("$0: missing required --origin option\n");
+}
+
+my $u = new Unison;
+my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
+printf(STDERR "# loading sequences into $opts{origin} (porigin_id=$porigin_id)\n");
+
+my $sth_fetch_by_acc = $u->prepare_cached('select pmodel_id,cksum from pmhmm where acc=?');
+my $sth_update_origin = $u->prepare("update pmhmm set porigin_id=? where pmodel_id=?");
+my $sth_insert_pmhmm = $u->prepare("insert into pmhmm (porigin_id,name,acc,descr,len,nseq,cksum) ".
 						"values ($porigin_id,?,?,?,?,?,?)");
 
-$/ = "\nHMMER2.0";
-while(my $blk = <>)
-  {
-  my ($name) = $blk =~ m/^NAME\s+(.+)/m;
-  my ($acc) = $blk =~ m/^ACC\s+(.+)/m;
-  my ($descr) = $blk =~ m/^DESC\s+(.+)/m;
-  my ($len) = $blk =~ m/^LENG\s+(\d+)/m;
-  my ($nseq) = $blk =~ m/^NSEQ\s+(\d+)/m;
-  my ($cksum) = $blk =~ m/^CKSUM\s+(\d+)/m;
 
-  $sth->execute($name,$acc,$descr,$len,$nseq,$cksum);
+$/ = "\nHMMER2.0";
+while(my $blk = <>) {
+  my ($name,$acc,$descr,$len,$nseq,$cksum) 
+	= map {$blk =~ m/^$_\s+(.+)/m}  qw(NAME ACC DESC LENG NSEQ CKSUM);
+
+  # cases:
+  # 1) model acc in old and new
+  #   a) cksum =?
+  #     update origin
+  #   b) cksum !=?
+  #     insert new
+  # 2) model acc in new, not in old
+  #   insert
+  # 3) model acc in old, not in new
+  #   nothing (we wouldn't know about it solely from input file)
+
+  my (@extant) = extant_models_by_acc($u,$acc);
+  my (@update_ids) = map {$_->[0]} grep {$_->[1]==$cksum} @extant;
+
+  if (@update_ids) {
+	printf(STDERR "updating %d ids (%s) for for acc=$acc\n",
+		   $#update_ids+1,join(',',@update_ids) );
+	$sth_update_origin->execute($porigin_id,$_) for @update_ids;
+  } else {
+	printf(STDERR "inserting $name / $acc\n");
+	$sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum);
   }
+}
+
+
+
+sub extant_models_by_acc {
+  my ($u,$acc) = @_;
+  $sth_fetch_by_acc->execute($acc);
+  my $rv = $sth_fetch_by_acc->fetchall_arrayref();
+  $sth_fetch_by_acc->finish();
+  return(@$rv);
+}
