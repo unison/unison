@@ -1,4 +1,8 @@
 package Unison::utils;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+
 use base Exporter;
 @EXPORT = ();
 @EXPORT_OK = qw( range_to_enum );

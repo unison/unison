@@ -1,24 +1,19 @@
 #!/usr/bin/env perl
-# run p2 and insert into Unison
-#-------------------------------------------------------------------------------
-# name: run-p2
-# purpose: run prospect locally and insert the results into Unison
+# run-paprospect2 -- run and insert prospect threads into Unison
 # arguments: 
-#   --p2params_id|-p <p2params_id>: p2params_id for loading (required)
+#   --params_id|-p <params_id>: params_id for loading (required)
 #   --tfile|-t <template file>: file containing a list of templates (optional)
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
-# usage: run-p2 [psql options] --p2params_id <p2params_id> [--tfile <template file>] [--update]
+# usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-p2,v 1.8 2003/10/28 22:29:05 rkh Exp $
+# $Id: run-paprospect2,v 1.9 2004/01/08 02:17:38 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
 use strict;
 
-select STDERR; $|++;
-select STDOUT; $|++;
-
 use Unison;
+use Unison::SQL;
 use Bio::Prospect::Options;
 use Bio::Prospect::LocalClient;
 use Bio::Prospect::Exceptions;
@@ -28,59 +23,138 @@ use Error qw(:try);
 
 
 my %opts = (
-			update =>0,
-			templates => [] );
+			'debug' => 0,
+			'params_id' => undef,
+			'pmodelset_id' => undef,
+			'porigin_id' => undef,
+			'template-file' => undef,		# file of template names
+			'templates' => undef,				# template names
+			'update' => 0,					# try update before insert
+			'verbose' => 1,
+		   );
 GetOptions(\%opts,
-		   'p2params_id|p=i',
-		   'tfile|T=s',						# name of template file
-#		   'templates|t=s' => \@{$opts{templates}},
-		   'update'							# delete rows before insert
+		   'debug+',
+		   'params_id|p=i',
+		   'pmodelset_id|m=i@',
+		   'porigin_id|o=i@',
+		   'template-file|tfile|T=s',
+		   'templates|t=s@',
+		   'update',
+		   'verbose!',
 		  )
   or die("$0: bad usage\n");
 
-if ( not exists $opts{p2params_id} or $opts{p2params_id} eq '' ) {
-  die( "--p2params_id|-p parameter missing\n" ); }
 
+(defined $opts{params_id})
+  || die( "$0: --params_id|-p parameter missing\n" );
+if (defined $opts{'template-file'} or defined $opts{'templates'}) {
+  (defined $opts{'template-file'} and defined $opts{'templates'})
+	&& die("$0: may not specify both --template-file and --templates\n");
+  (defined $opts{'pmodelset_id'} or defined $opts{'porigin_id'})
+	&& die("$0: may not specify pmodelset_id or porigin_id with --template-file or --templates\n");
+}
+
+
+if ($opts{debug}) {
+  select STDERR; $|++;
+  select STDOUT; $|++;
+  print Dumper(\%opts);
+}
 
 my $u = new Unison;
 
-my $po = $u->get_p2options_by_params_id($opts{p2params_id});
-$po->{tfile} = $opts{tfile}
-  || '/apps/compbio/share/prospect2/tfiles/all';
+my $po = $u->get_p2options_by_params_id($opts{params_id});
+
+if (defined $opts{'pmodelset_id'} or defined $opts{'porigin_id'}) {
+  # given pmodelset_id and/or porigin_id, shove list of models in $opts{templates}
+  my $sql = new Unison::SQL;
+  $sql->columns('acc')
+	->table('pmprospect2 M');
+  if (defined $opts{pmodelset_id}) {
+	$sql->join('pmsm_prospect2 S on M.pmodel_id=S.pmodel_id')
+	  ->where('S.pmodelset_id in (' . join(',',@{$opts{pmodelset_id}}) . ')');
+  }
+  if (defined $opts{porigin_id}) {
+	$sql->where('M.porigin_id in (' . join(',',@{$opts{porigin_id}}) . ')' );
+  }
+  $sql->order('acc');
+  (@{$opts{'templates'}}) = map {@$_} @{$u->selectall_arrayref("$sql")};
+}
+
+if (defined $opts{'templates'}) {
+  $po->{templates} = $opts{templates};
+  printf(STDERR "threading against %d templates\n", 1+$#{$opts{templates}});
+} elsif (defined $opts{'template-file'}) {
+  $po->{tfile} = $opts{'template-file'}
+} else {
+  $po->{tfile} = '/apps/compbio/share/prospect2/tfiles/all';
+}
+
 my $pc = new Bio::Prospect::LocalClient( options=>$po );
 
 
+
+
 PSEQ_ID: while( my $pseq_id = shift ) {
+  my $leader = "\rUnison:$pseq_id";
+  print(STDERR $leader);
+
+  foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
+  foreach my $o (defined $opts{porigin_id} ? @{$opts{porigin_id}} : undef) {
+	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$o,$m);
+	if (defined $ran_on and not $opts{update}) {
+	  print(STDERR "$leader: run with these options on $ran_on; skipping\n");
+	  next PSEQ_ID;
+	}
+  }}
+
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  if (length($seq)>2000) {
+	print("$leader: skipping because it's >2000 AA\n");
+    next PSEQ_ID;
+  }
+  $leader .= " (" . length($seq) . " AA)";
+
   my (@summaries);
   try {
-	printf("threading $pseq_id (%d AA)...", length($seq));
+	print(STDERR "$leader: threading...");
     (@summaries) = $pc->thread_summary( $seq );
   } catch Bio::Prospect::RuntimeError with {
-    my $e = shift;
-    print STDERR "Caught Bio::Prospect::RuntimeError: " . $e->detail() . "\n";
+	print(STDERR $_[0]);
     print STDERR "Skipping this pseq_id ($pseq_id)\n";
     next PSEQ_ID;
   } catch Bio::Prospect::Exception with {
-    my $e = shift;
-    print STDERR "Caught Bio::Prospect::Exception: " . $e->detail() . "\n";
+	print(STDERR $_[0]);
     print STDERR "Skipping this pseq_id ($pseq_id)\n";
     next PSEQ_ID;
   };
-  print "\ndone";
+
   for( my $i=0; $i<=$#summaries; $i++) {
 	my $ts = $summaries[$i];
-	printf(STDERR "\rloading %8s (%4d/%4d %3d%%)...", 
+	printf(STDERR "$leader: loading %8s (%4d/%4d %3d%%)...", 
 		   $ts->tname(), ($i+1), ($#summaries+1), ($i+1)/($#summaries+1)*100 );
-    $u->delete_thread($pseq_id,$opts{p2params_id},$ts) if $opts{update};
-    $u->insert_thread($pseq_id,$opts{p2params_id},$ts);
+    $u->delete_thread($pseq_id,$opts{params_id},$ts) if $opts{update};
+	try {
+	  $u->insert_thread($pseq_id,$opts{params_id},$ts);
+	} catch Unison::Exception::DBIError with {
+	  print(STDERR "\n$_[0]");
+	};
   }
+
+  foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
+  foreach my $o (defined $opts{porigin_id} ? @{$opts{porigin_id}} : undef) {
+	$u->upd_run_history($pseq_id,$opts{params_id},$o,$m);
+  }}
+
   print(STDERR "done\n");
 }
 
 
 ############################################################################
-# $Log: run-p2,v $
+# $Log: run-paprospect2,v $
+# Revision 1.9  2004/01/08 02:17:38  rkh
+# sync with DEV
+#
 # Revision 1.8  2003/10/28 22:29:05  rkh
 # * new Unison doesn't require special handling for PGPASSWORD (see U::DBI)
 #

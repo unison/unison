@@ -9,6 +9,8 @@ use warnings;
 use Unison::Exceptions;
 use Unison;
 use Data::Dumper;
+use Unison::WWW::utils qw( text_wrap );
+
 
 our $infer_pseq_id = 0;
 
@@ -25,7 +27,14 @@ sub new {
   my $self = $class->SUPER::new( @_ );
   my $username = 'PUBLIC';
   my $v = $self->Vars();
-  my $host;
+
+  # choose database based on url unless explicitly set
+  # (:80=csb, :8080=csb-dev)
+  if (not exists $v->{dbname}) {
+	my ($port) = $self->url(-base=>1) =~ m/:(\d+)/;
+	$v->{dbname} = (defined $port and $port == 8080) ? 'csb-dev' : 'csb';
+	#$v->{dbname} = 'csb';
+  }
 
   # establish session authentication, preferably via kerberos
   if (exists $v->{username}) {
@@ -34,16 +43,18 @@ sub new {
 		   and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
 	$username = $ENV{REMOTE_USER};
 	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$username";
-	$host = 'svc';							# must be svc for krb5 auth
+	$v->{host} = 'svc';						# must be svc for krb5 auth
   }
+
+  $v->{debug} = 0 unless defined $v->{debug};
 
   try {
 	$self->{unison} = new Unison( username => $username,
 								  password => undef,
-								  host => $host,
-								  dbname => $v->{dbname} || 'csb' );
+								  host => $v->{host},
+								  dbname => $v->{dbname} );
   }	catch Unison::Exception with {
-	my $msg = escapeHTML($_[0]);
+	my $msg = CGI::escapeHTML($_[0]);
 	__PACKAGE__->die('Unison Connection Failed', 
 					 '<pre>'.$msg.'</pre>',
 					 '<p>',
@@ -56,6 +67,7 @@ sub new {
 
   $self->{userprefs} = $self->{unison}->get_userprefs();
 
+  $self->{starttime} = time;
 
   # Most pages should refer to sequences by pseq_id. If pseq_id isn't
   # defined, then we attempt to infer it from given 'seq', 'md5', or
@@ -68,6 +80,7 @@ sub new {
 	  and not exists $v->{seq}
 	  and not exists $v->{md5}
 	  and not exists $v->{alias}) {
+	
 	my $q = $v->{'q'};
 	if ($q !~ m/\D/) {						# all digits => is a pseq_id
 	  $v->{pseq_id} = $q;
@@ -130,7 +143,7 @@ sub new {
 
 sub header {
   my $p = shift;
-  return '' if $p->{already_did_header}++;
+  return '' if ref $p and $p->{already_did_header}++;
   return $p->SUPER::header();
 }
 
@@ -141,7 +154,7 @@ sub start_html {
 											 $self->Link({-rel => 'shortcut icon',
 														  -href => '../av/favicon.png'})
 										    ],
-								   -style => { -src => ['../unison.css', '../styles/ToolTips.css'] },
+								   -style => { -src => ['../styles/unison.css', '../styles/ToolTips.css'] },
 								   -onload => 'javascript:{ initToolTips(); }',
 								   -script => [ {-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
 												{-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'} ]
@@ -151,6 +164,21 @@ sub start_html {
 sub render {
   my $p = shift;
   my $title = shift;
+
+  my $cnav = '';
+  my $elapsed = '';
+
+  if (ref $p and exists $p->{unison} and $p->{unison}->is_open()) {
+	$cnav = join('<p>',
+				 map {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
+				 (map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
+				  qw(username host dbname)),
+				 ['release',
+				  $p->{unison}->selectrow_array
+				  ('select value::date from meta where key=\'release timestamp\'')]);
+	
+	$elapsed = 'page generated in ' . (time - $p->{starttime}) . ' seconds';
+  }
 
   return ($p->header(),
 
@@ -169,15 +197,7 @@ sub render {
 
 		  '<tr>', "\n",
 		  "\n<!-- ========== begin subnav content ========== -->\n",
-		  '  <td class="cnav">',
-		  (join('<p>',
-				map {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
-				(map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
-				 qw(username host dbname)),
-				['release',
-				 $p->{unison}->selectrow_array
-				 ('select value::date from meta where key=\'release timestamp\'')])),
-		  '</td>', "\n",
+		  '  <td class="cnav">', $cnav, '</td>', "\n",
 		  "\n<!-- ========== end subnav content ========== -->\n",
 
 		  "\n<!-- ========== begin page content ========== -->\n",
@@ -191,7 +211,7 @@ sub render {
 		  "\n<!-- ========== begin footer ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" src="../av/poweredby_postgresql.gif"></a></td>', "\n",
-		  '  <td class="contact">Please contact <a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a> with suggestions or problems</td>', "\n",
+		  '  <td class="contact">Please contact <a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a> with suggestions or problems<br>', $elapsed, '</td>', "\n",
 		  '</tr>', "\n",
 		  "\n<!-- ========== end footer ========== -->\n",
 
@@ -221,6 +241,7 @@ sub group {
 
 sub Vars {
   my $p = shift;
+  return unless ref $p;
   if (not exists $p->{Vars}) {
 	$p->{Vars} = $p->SUPER::Vars();
   }
@@ -241,15 +262,16 @@ sub navbar {
 	## ]
 	( [ # analyze MENU
 	   ['Analyze', 		'display precomputed analyses for a given sequence'],
-	   ['Summary', 		'summary of sequence information', 'pseq_summary.pl', 	$pseq_id ],
-	   ['Aliases', 		'all aliases of this sequence', 'pseq_paliases.pl', 	$pseq_id ],
-	   ['Patents', 		'patents on this sequence', 'pseq_patents.pl', 			$pseq_id ],
-	   ['Features',		'sequences features', 'pseq_features.pl', 				$pseq_id ],
-	   ['BLAST', 		'BLAST-related sequences', 'pseq_blast.pl', 			$pseq_id ],
-	   ['Prospect2', 	'Prospect2 threadings', 'pseq_paprospect2.pl', 			$pseq_id.';run_id=1'],
-	   ['HMM', 			'Hidden Markov Model alignments', 'pseq_pahmm.pl', 		$pseq_id ],
-	   ['PSSM',			'PSSM alignments', 'pseq_papssm.pl', 					$pseq_id ],
-	   ['Loci',			'genomic localization', 'pseq_loci.pl', 				$pseq_id ],
+	   ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
+	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
+	   ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
+	   ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
+	   ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
+	   ['Prospect2', 	'Prospect2 threadings', 		'pseq_paprospect2.pl',	"$pseq_id;params_id=1"],
+	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
+	   ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
+	   ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
+	   ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	  ],
 
 	  [ # search menu
@@ -269,6 +291,11 @@ sub navbar {
 
 	  # empty list forces right-justification of subsequent menu
 	  [ [ '' ]  ],
+
+	  [
+	   ['Help', 		'Help using Unison'],
+	   ['Tips',			'Tips', 						'about_prefs.pl'],
+	  ],
 
 	  [
 	   ['Info', 		'about Unison'],
@@ -344,8 +371,9 @@ sub best_annotation {
 					   a guess about the most informative and reliable
 					   annotation for this sequence from all source
 					   databases. Click the Aliases tab to see all
-					   annotations' )
-		  . ': ' . $p->{unison}->best_annotation($pseq_id,1) );
+					   annotations' ),
+		  ': ',
+		  $p->{unison}->best_annotation($pseq_id,1) );
 }
 
 sub make_navbar {
@@ -386,29 +414,33 @@ sub where {
 }
 
 sub sql {
-  shift;
+  my $self = shift;
+  return '' unless $self->{userprefs}->{'show_sql'};
   return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
-		  join(' ',@_), '</div>', "\n" );
+		  (map {CGI::escapeHTML($_)} text_wrap(@_)), '</div>', "\n" );
 }
 
 sub tip {
   my $self = shift;
   return '' unless $self->{userprefs}->{'show_tips'};
-  return( "\n",'<p><div class="tip"><b>Tip:</b> ', 
-		  join(' ',@_), '</div>', "\n");
+  return( "\n",'<p><div class="tip"><b>Tip:</b> ', @_, '</div>', "\n");
 }
 
 sub tooltip {
-  shift;
+  my $self = shift;
   my ($text,$tooltip) = @_;
-  $tooltip =~ s/\n/ /g;
-  return( '<span class="tipped" tooltip="'.$tooltip.'">'.$text.'</span>' );
+  $tooltip =~ s/\s+/ /g;
+  return( '<span class="tipped" tooltip="',
+		  CGI::escapeHTML($tooltip),
+		  '">',
+		  CGI::escapeHTML($text),
+		  '</span>' );
 }
 
 sub warn {
-  shift;
+  my $self = shift;
   return( "\n",'<p><div class="warning"><b>Warning:</b> ', 
-		  join(' ',@_), '</div>', "\n" );
+		  @_, '</div>', "\n" );
 }
 
 sub ensure_required_params {

@@ -1,0 +1,128 @@
+#!/usr/bin/env perl
+# run-pfregexp -- insert pfregexp entries into Unison
+
+# NOTE: this script should be fixed to run on only on the given sequence list
+
+
+use warnings;
+use strict;
+
+use Unison;
+use Unison::SQL;
+use Getopt::Long qw(:config gnu_getopt);
+use Data::Dumper;
+use Error qw(:try);
+use Base::arrayUtilities qw(acomm);
+
+sub get_regexps($$$);
+sub get_matching_pseq_ids($@);
+sub firstN($@);
+
+my %opts = (
+			'debug' => 0,
+			'params_id' => undef,
+			'pmodelset_id' => undef,
+			'porigin_id' => undef,
+			'verbose' => 1,
+		   );
+GetOptions(\%opts,
+		   'debug+',
+		   'pmodelset_id|M=i@',
+		   'porigin_id|O=i@',
+		   'verbose!',
+		  )
+  or die("$0: bad usage\n");
+
+
+if ($opts{debug}) {
+  select STDERR; $|++;
+  select STDOUT; $|++;
+  print Dumper(\%opts);
+}
+
+my $u = new Unison;
+my %regexps;
+
+
+# regexp currently have only one params type, so we can get
+# it directly from Unison
+$opts{params_id} = $u->get_params_id_by_name('regexp');
+(defined $opts{params_id})
+  || die("$0: couldn't find params_id for params `regexp'\n");
+
+
+# for @ of pmodelset_id and/or @ of porigin_id, get list of ppmodel_ids
+if (not (defined $opts{'pmodelset_id'} or defined $opts{'porigin_id'})) {
+  die("$0: you must specify either --modelset_id or --origin_id to select models\n");
+}
+
+
+# get the models as a hash of pmodel_id => regexp
+%regexps = get_regexps($u,$opts{pmodelset_id},$opts{porigin_id});
+my @pmodel_ids = sort keys %regexps;
+printf("%d models selected\n", $#pmodel_ids+1);
+
+## now filter the requested pseq_ids for those which actually hit any of the regexps
+##my (%hits) = map {$_=>1} get_matching_pseq_ids($u,values %regexps);
+##my (@pseq_ids) = grep {exists $hits{$_}} map {eval "$_"} @ARGV;
+my (@pseq_ids) = map {eval "$_"} @ARGV;
+my $N = $#pseq_ids+1;
+
+
+my $insert_sth = $u->prepare('insert into pfregexp (pseq_id,start,stop,params_id,pmodel_id) values (?,?,?,?,?)');
+
+for(my $i=0; $i<=$#pseq_ids; $i++) {
+  my $pseq_id = $pseq_ids[$i];
+  my $seq = $u->get_sequence_by_pseq_id($pseq_id);
+  my $leader = sprintf("Unison:%-8d (%5d AA) %d/%d (%5.1f%%)",
+					   $pseq_id, length($seq), $i+1, $N, ($i+1)/$N*100);
+  foreach my $pmodel_id (@pmodel_ids) {
+	my $re = $regexps{$pmodel_id};
+	while ($seq =~ m/$re/g) {
+	  my $e = pos($seq);
+	  my $b = $e-length($&)+1;
+	  #printf(STDERR "\n# $pseq_id,$b,$e,$opts{params_id},$pmodel_id\n");
+	  try {
+		$insert_sth->execute($pseq_id,$b,$e,$opts{params_id},$pmodel_id);
+	  } catch Unison::Exception::DBIError with {
+		print(STDERR "\n$_[0]");
+	  };
+	}
+  }
+  $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_ids},$opts{pmodelset_id});
+}
+
+
+
+
+sub get_regexps($$$) {
+  # return hash of pmodel_id => regexp for pmodelset and porigin ids.
+  my ($u,$m,$o) = @_;
+  my $sql = new Unison::SQL;
+  $sql->columns('M.pmodel_id,M.regexp')
+      ->table('pmregexp M');
+  if (defined $m) {
+	$sql->join('pmsm_regexp S on M.pmodel_id=S.pmodel_id')
+	    ->where('S.pmodelset_id in (' . join(',',@$m) . ')');
+  }
+  if (defined $opts{porigin_id}) {
+	$sql->where('M.porigin_id in (' . join(',',@$o) . ')' );
+	$sql->order('M.porigin_id');
+  }
+  $sql->order('M.pmodel_id');
+  return( map {$_->[0]=>$_->[1]} @{$u->selectall_arrayref("$sql")} );
+}
+
+sub get_matching_pseq_ids($@) {
+  my ($u,@re) = @_;
+  my $sql = 'select distinct pseq_id from pseq where ('
+	. join(' or ', map {"seq~'$_'"} @re)
+	. ') order by pseq_id';
+  return( map {@$_} @{$u->selectall_arrayref($sql)} );
+}
+
+sub firstN($@) {
+  my $N = shift;
+  return '' unless (defined @_);
+  return join(',', $#_<$N ? @_ : (@_[0..$N],'...') );
+}

@@ -1,6 +1,10 @@
 use Error qw(:try);
 
+
 package Unison::Exception;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use base 'CBT::Exception';
 
 
@@ -13,11 +17,13 @@ use base 'Unison::Exception';
 package Unison::Exception::ConnectionFailed;
 use base 'Unison::Exception';
 
-package Unison::BadUsage;
+package Unison::Exception::BadUsage;
 use base 'Unison::Exception';
  
-package Unison::RuntimeError;
+package Unison::Exception::RuntimeError;
 use base 'Unison::Exception';
 
+package Unison::Exception::DBIError;
+use base 'Unison::Exception';
 
 1;

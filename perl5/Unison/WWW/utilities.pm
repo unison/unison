@@ -1,7 +1,15 @@
-package Unison::WWW::Utils;
+package Unison::WWW::utils;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+use strict;
+use warnings;
 use base 'Exporter';
-@EXPORT_OK = qw( alias_link alias_gglink alias_splink alias_reflink );
-@EXPORT = ();
+our @EXPORT_OK = qw
+  (alias_link alias_gglink alias_splink alias_reflink text_wrap coalesce );
+our @EXPORT = ();
+
+use Text::Wrap;
 
 
 sub alias_link {
@@ -37,5 +45,18 @@ sub alias_enslink {
   "<a href=\"http://www.ensembl.org/Homo_sapiens/textview?species=All&idx=Protein&q=$_[0]\">$_[0]</a>";
   }
 
+sub text_wrap {
+  #local $Text::Wrap::break = qr/\s|(?:[,=])/;
+  local $Text::Wrap::unexapand = 0;
+  return Text::Wrap::wrap('','', map {s/,/, /g;$_} grep { defined } @_);
+  }
+
+sub coalesce {
+  # return first not null element of args, or undef
+  # à la SQL's coalesce
+  while (@_ and not defined $_[0]) {
+	shift; }
+  return $_[0];								# may be undef if list exhausted
+  }
 
 1;

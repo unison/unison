@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.5 2003/10/09 19:51:42 rkh Exp $>
+S<$Id: pseq.pm,v 1.6 2003/10/28 22:35:34 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -22,6 +22,8 @@ B<> is a
 =cut
 
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 
 
@@ -31,6 +33,7 @@ sub pseq_si_pseq_id {
 	|| croak("Unison connection not established");
   my $dbh = $self->{'dbh'};
   my $sth = $dbh->prepare_cached("select pseq_si_pseq_id(?)");
+  print(STDERR $seq, "\n");
   my ($rv) = $dbh->selectrow_array($sth,undef,$seq);
   return $rv;
 
@@ -214,6 +217,16 @@ return the pseq_id for a given sequence
 =cut
 }
 
+
+
+
+### DEPRECATED FUNCTIONS
+
+sub get_seq {
+  warn_deprecated();
+  my $self = shift;
+  return $self->get_sequence_by_pseq_id(@_);
+}
 
 
 

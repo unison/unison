@@ -2,10 +2,6 @@
 # load fasta sequences into unison
 # $ load-fasta -o origin <fastafile
 
-# TODO: There's too much origin-specific code in here... it should be
-# moved to origin-specific coversion scripts and this should be used
-# SOLELY to load fasta files.
-
 
 use strict;
 use warnings;
@@ -16,78 +12,65 @@ use Getopt::Long qw(:config gnu_getopt);
 use IO::File;
 use Unison;
 
-select(STDERR); $|++;
-select(STDOUT); $|++;
-
-my $origin;
-my $filelist;
-my $startafter;
-# maxlen is no longer needed to workaround a bug in clean_sequence
-my $maxlen;  #= 8200;						# empirical limit
-my $sqlonly = 0;
-my $nomd5 = 1;								# now default!
-my $noalias = 1;							# now default!
-my $inclsubex = 0;
-GetOptions( @Unison::options,
-			'origin|o=s' => \$origin,
-			'startafter|A=s' => \$startafter,
-			'maxlen|L=s' => \$maxlen,
-			'sqlonly' => \$sqlonly,
-			'inclsubex' => \$inclsubex,
-		  )
+my %opts = (origin => undef,
+			filelist => undef,
+			'start-after' => undef,
+			'sql-only' => 0,
+			'include-subex' => 0);
+GetOptions( \%opts,
+			'origin|o=s',
+			'start-after|startafter|A=s',
+			'sql-only|sqlonly',
+			'incl-subex|inclsubex' )
   || die("$0: bad usage\n");
-defined $origin
+(defined $opts{origin})
   || die("$0: --origin (-o) is mandatory\n");
 
 
+
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
 # whee... globals
 my $u = new Unison;
-my $porigin_id = $u->porigin_si_porigin_id($origin);
+my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
 my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.20 2003/07/25 17:38:21 rkh Exp $ ',"\n");
-print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
-if (not $noalias)
-  {
-  %alias = map {$_=>1} $u->get_alias_in_porigin_id($porigin_id);
-  printf(STDERR "# %d extant sequence aliases from $origin\n", scalar keys %alias);
-  }
-if (not $nomd5)
-  {
-  %md5 = $u->pseq_md5map();
-  printf(STDERR "# %d sequence md5s from pseq\n", scalar keys %md5);
-  }
+print(STDERR '# $Id: load-fasta,v 1.21 2003/07/31 22:37:56 rkh Exp $ ',"\n");
+print(STDERR "# loading sequences into $opts{origin} (porigin_id=$porigin_id)\n");
 
+
+
+
+# append filenames in the filelist file to @ARGV
+if (defined $opts{filelist}) {
+  my $fh = new IO::File;
+  $fh->open("<$opts{filelist}")
+	|| die("$opts{filelist}: $!\n");
+  while( my $fn = <$fh> ) {
+	push(@ARGV,$fn);
+  }
+  $fh->close();
+}
+
+# if ARGV is empty so far, there was no filelist and no files
+# on the command line => read from stdin
+if (not @ARGV) {
+  push(@ARGV,'-');
+}
 
 
 my ($nseen,$nskipped,$nadded) = (0,0,0);
-if (defined $filelist)
-  {
-  my $fh = new IO::File;
-  $fh->open("<$filelist")
-	|| die("$filelist: $!\n");
-  while( my $fn = <$fh> )
-	{
-	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>$fn );
-	process_stream($in);
-	}
-  $fh->close();
+while( defined (my $fn = shift) ) {
+  my $in  = Bio::SeqIO->new('-format' => 'Fasta',
+							'-file' => $fn );
+  if (not defined $in) {
+	die("$fn: $!\n");
   }
-elsif (@ARGV)
-  {
-  while( @ARGV )
-	{
-	my $in  = Bio::SeqIO->new('-format' => 'Fasta', '-file'=>shift );
-	process_stream($in);
-	}
-  }
-else
-  {
-  my $in = Bio::SeqIO->new('-format' => 'Fasta');
   process_stream($in);
-  }
+}
 
 printf(STDERR "# before: %d extant aliases, %d extant md5s\n"
 	   . "# %d sequences scanned; %d skipped; %d added or extant\n",
@@ -103,25 +86,23 @@ exit(0);
 # ________________________________________________________________________ #
 # ________________________________________________________________________ #
 
-sub process_stream
-  {
+sub process_stream {
   my $in = shift;
-  while( my $seq = $in->next_seq() )
-	{
-	process_seq($seq);
-#	if (not $u->ready())
-#	  {	die("! connection closed prematurely\n"); }
-	}
-  return;
+  while( my $bs = $in->next_seq() ) {
+	process_seq($bs);
   }
+  return;
+}
 
-sub process_seq
-  {
+sub process_seq  {
   my $bs = shift;
   my $id = $bs->display_id();
   my $seq = $bs->seq();
-  if (not defined $seq)
-	{ warn("$id: sequence not defined\n"); return; }
+
+  if (not defined $seq)	{
+	warn("$id: sequence not defined\n"); 
+	return;
+  }
 
   my $descr = $bs->desc();
   my $oseq = $seq;
@@ -129,49 +110,40 @@ sub process_seq
   my $md5 = md5_hex($seq);
   $nseen++;
 
-#  if ($seq ne $oseq)
-#	{
-#	warn("! $id: sequence modified by s/^[-\*\?A-Z]//g\n",
-#		 "orig: $seq\n",
-#		 "strp: $oseq\n");
-#	}
-
   # description reformatting
   $descr = '' unless defined $descr;
   $descr =~ s/\s{2,}/ /g;
   $descr =~ s/^\s+//;
   $descr =~ s/\s+$//;
-  if ($origin =~ m/spdi/i)
-	{
+  if ($opts{origin} =~ m/spdi/i) {
 	$descr =~ s/\[(?:min|full)\]\s+//;
 	$descr =~ s/\# converted.+//;
-	}
+  }
 
   # skip sequences in various conditions
   my $skip;
-  if ($id !~ m/\w/)
-	{ $skip = "doesn't look like a valid sequence id"; }
-  elsif (defined $startafter)
-	{
-	$skip = "haven't reached $startafter yet";
-	undef $startafter if ($id eq $startafter);
-	}
-  elsif (%alias and exists $alias{$id})
-	{ $skip = 'extant alias'; }
-  elsif (defined $maxlen and length($seq)>$maxlen)
-	{ $skip = sprintf("too long (%d AA; maxlen=$maxlen",length($seq)); }
-  elsif (length($seq) == 0)
-	{ $skip = "zero-length"; }
-  elsif (!$inclsubex and $descr =~ m%/type=(\w+)% and $1 ne 'gene')
-	{ $skip = "non-gene genescan transcript"; }
-  if (defined $skip)
-	{ warn("# skipping $id: $skip ($descr)\n"); $nskipped++; return; }
+  if ($id !~ m/\w/)	{
+	$skip = "doesn't look like a valid sequence id"; 
+  } elsif (defined $opts{'start-after'})	{
+	$skip = "haven't reached $opts{'start-after'} yet";
+	undef $opts{'start-after'} if ($id eq $opts{'start-after'});
+  } elsif (%alias and exists $alias{$id}) {
+	$skip = 'extant alias';
+  } elsif (length($seq) == 0) {
+	$skip = "zero-length";
+  } elsif (!$opts{'incl-subex'} and $descr =~ m%/type=(\w+)% and $1 ne 'gene') {
+	$skip = "non-gene genescan transcript";
+  }
+  if (defined $skip) {
+	warn("# skipping $id: $skip ($descr)\n");
+	$nskipped++;
+	return;
+  }
 
   # @ids is the SET of ids to which we'll link this sequence
   my @ids = ();
 
-  if ($origin =~ m/SPDI/i)
-	{
+  if ($opts{origin} =~ m/SPDI/i) {
 	my %ids;
 	# NO UNQs in database -- not unique!
 	# $ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
@@ -180,41 +152,38 @@ sub process_seq
 	$ids{$id}++;
 	@ids = sort keys %ids;
 	#warn("! $id: SPDI sequence didn't match 2 identifiers (@ids)\n") unless $#ids==1;
-    }
-  else
-	{
+  } else {
 	@ids = ( $id );
-	}
+  }
 
-  if ($sqlonly)
-	{
+  if ($opts{'sql-only'}) {
 	printf("insert into pseq (seq,len) values ('$seq',%d);\n",
 		   length($seq)); return 1;
-	}
+  }
 
   # select/insert sequences, then link aliases
   my $pseq_id;
   my $frommd5='';
-  if (%md5 and exists $md5{ $md5 })
-	{
+  if (%md5 and exists $md5{ $md5 })	{
 	$pseq_id = $md5{ $md5 };
 	$frommd5='*';
-    }
-  else
-	{
+  } else {
 	$pseq_id = $u->pseq_si_pseq_id( $seq );
 	$md5{ $md5 } = $pseq_id;
-	}
+  }
 
-  if (not defined $pseq_id)
-	{ warn("! failed to add $id"); return 0; }
+  if (not defined $pseq_id)	{
+	warn("! failed to add $id");
+	return 0;
+  }
 
-  foreach my $upd_id (@ids)
-	{ $u->add_palias($pseq_id,$porigin_id,$upd_id,$descr); }
+  foreach my $upd_id (@ids)	{
+	$u->add_palias($pseq_id,$porigin_id,$upd_id,$descr);
+  }
 
   printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
 		length($seq), $descr);
   $nadded++;
 
   return;
-  }
+}

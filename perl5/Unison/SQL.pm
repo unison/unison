@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::SQL -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.4 2003/06/11 00:15:16 cavs Exp $>
+S<$Id: SQL.pm,v 1.1 2003/10/09 19:38:00 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -20,6 +20,8 @@ B<> is a
 =cut
 
 package Unison::SQL;
+use strict;
+use warnings;
 use overload '""' => \&sql;
 
 
@@ -27,7 +29,8 @@ sub new {
   my $class = shift;
   bless({tables => [],
 		 columns => [],
-		 where => []
+		 where => [],
+		 order => []
 		},$class);
   }
 
@@ -51,17 +54,28 @@ sub where {
   return $self;
 }
 
+sub order {
+  my $self = shift;
+  push( @{$self->{order}}, @_);
+  return $self;
+}
+
+
+
 sub sql {
   my $self = shift;
   return '' unless @{$self->{columns}};
-  join(' ',
-	   'select', join( ',', @{$self->{columns}} ),
+  CORE::join(' ',
+	   'select', CORE::join( ',', @{$self->{columns}} ),
 	   (@{$self->{tables}}
-		? ' from ' . join( "   join ", @{$self->{tables}})
+		? ' from ' . CORE::join( "   join ", @{$self->{tables}})
 		: ''),
 	   (@{$self->{where}}
-		? ' where ' . join( '  and  ', @{$self->{where}}) 
-		: '')
+		? ' where ' . CORE::join( '  and  ', @{$self->{where}})
+		: ''),
+	   (@{$self->{order}}
+		? ' order by ' . CORE::join( ',', @{$self->{order}})
+		: ''),
 	  );
   }
 

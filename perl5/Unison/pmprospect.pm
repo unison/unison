@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pmprospect2 -- Unison p2params table utilities
-S<$Id: pmprospect2.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
+S<$Id: pmprospect2.pm,v 1.1 2003/06/30 15:33:50 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -18,6 +18,10 @@ B<> is a
 =cut
 
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+
 
 ###############################################################################################
 ## pmprospect2

@@ -15,16 +15,38 @@ IMPORTANT:
   wipes out corresponding paliasorigin & pseqalias rows
   (or, just set not current?)
 
+* load-fasta
+  option to generate tax_id with alias from tagline
+
+* Unison::DBI should use wrap DBI to use exceptions.
 
 
-NEXT BACKUP:
-
-* timestamp wihtout time zone => with tz (same space, for consistency) ?
-
-
+TO-DO AT NEXT BACKUP/RESTORE:
+* standardize on timestampe WITHOUT timezone
+  no issue, just for consistency
 
 
 BACKBURNER:
+
+* changes to pmodelsets and porigins are not tracked by run_history
+run_history refers to pmodelsets and porigins. It is possible that the set
+of models (pmodel_ids) implied by using either or both of these criteria
+will change over time, thereby making run_history data incorrect. The
+options are to make such sets immutable (not possible for porigin), or
+better, attach time stamps to pmodelset and porigin rows, or to simply
+remove run_history rows when a pmodelset or porigin set is changed.
+
+
+* pftypes, params, run_history
+problems:
+- some params map to multiple types (e.g., tmdetect). This happens
+  whenever a program returns >1 type of feature (but multiple features of
+  1 type is okay) 
+- what's the right way to ask run_history whether (e.g.)
+  Pfam has been run on a sequence. One solution is to have a modelset of
+  Pfam models, but that's a deviation from the original intent of
+  modelsets: to collect models related by function, not by model type.  
+
 
 * standardize naming conventions better (e.g., last_run instead of lastrun?)
 

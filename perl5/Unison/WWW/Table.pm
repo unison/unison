@@ -1,7 +1,10 @@
 # U:W:Table -- spit an HTML Table from an array ref of 
 package Unison::WWW::Table;
+use strict;
+use warnings;
 
 use base 'CBT::Hash';
+use Unison::WWW::utils;
 
 
 # title
@@ -27,6 +30,7 @@ sub render {
 
   # BELOW THIS POINT IS EXPERIMENTAL
   my $self = shift;
+  my $fr = shift;
   my $rv = '';
   $rv .= "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
   $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
@@ -59,14 +63,14 @@ sub render_compat {
   my $rv = $tbl_start;
 
   if ($#$ar == -1) {
-	$rv .= sprintf("<tr><td bgcolor=\"$highlight_color\" colspan=\"%d\">query returned no data</td></tr>\n",$#$fr+1);
+	$rv .= sprintf("<tr><td colspan=\"%d\">query returned no data</td></tr>\n",$#$fr+1);
 	$rv .= $tbl_end;
 	return $rv;
   }
 
   if (not defined $opts->{highlight_column}) {
 	$rv .= "<tr>" . join('',map {'<th align="'.guess_alignment($_).'">'.$_.'</th>'} @$fr)."</tr>\n";
-	$rv .= "<tr>" . join('',map {'<td ailgn="'.guess_alignment($_).'">'.$_.'</td>'} @$_) ."</tr>\n" for @$ar; 
+	$rv .= "<tr>" . join('',map {'<td ailgn="'.guess_alignment($_).'">'.Unison::WWW::utils::coalesce($_,'').'</td>'} @$_) ."</tr>\n" for @$ar; 
 	$rv .= $tbl_end;
 	return $rv;
   }
@@ -83,7 +87,7 @@ sub render_compat {
 	for(my $c=0; $c<=$#row; $c++) {
 	  my $cl = $c==$opts->{highlight_column} ? 'class="highlighted"' : '';
 	  my $al = 'align="' . guess_alignment($row[$c]) . '"';
-	  $rv .= "<td $cl $al>$row[$c]</td>";
+	  $rv .= "<td $cl $al>" . Unison::WWW::utils::coalesce($row[$c],'') . "</td>";
 	}
 	$rv .= "</tr>\n";
   }
@@ -95,7 +99,7 @@ sub render_compat {
 
 sub guess_alignment {
   my $s = shift;
-  return $s =~ m/^[-.e\d]+$/ ? 'right' : 'left';
+  return (defined $s and $s =~ m/^[-.e\d]+$/) ? 'right' : 'left';
   }
 
 

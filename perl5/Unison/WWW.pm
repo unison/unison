@@ -1,4 +1,7 @@
 package Unison::WWW;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 
 # prepend the full path of ../perl5/ to @INC
 # this facilitates tree relocation / dev trees in user directories
