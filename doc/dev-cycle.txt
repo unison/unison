@@ -1,25 +1,33 @@
 CSB-DB LIFE CYCLE
 -----------------
-$Id$
+$Id: dev-cycle.txt,v 1.1 2004/01/08 02:18:09 rkh Exp $
 
-                |----------------- database phases (db-names) -----------------|
-                development ---DS--->   staging         ---SP--->   production
-                (csb-dev)               (csb-stage)                 (csb)
-
-schema              X                                                   
-changes                                                                 
-                                                                        
-data                X                       X                           
-loading                                                                 
-                                                                        
-API testing         X                       X                           
-                                                                        
-command line        X                       X                           
-tool testing                                                            
-                                                                        
-read-only                                                               X
-access
-
+                    +<----<----<----<---- PD <----<----<---<+
+                    v                                       ^
+ 	phase:     		development   -DS-> staging       -SP->	production
+    database:  		csb-dev             csb-stage           csb
+----------------|-------------------|-------------------|-------------------|
+Database:     	|					|					|					|
+  schema      	|	RW				|	RO				|	RO				|
+              	|					|					|					|
+  data        	|	RW				|	RW				|	RO				|
+              	|					|					|					|
+  backups     	|	nightly?		|	none			|	none			|
+              	|	semi-weekly?	|					|					|
+              	|					|					|					|
+----------------|-------------------|-------------------|-------------------|
+Software:		|					|					|					|
+  cvs tag		|	dev-X.Y			|	stage-X.Y		|	rel-X.Y			|
+  				|					|					|					|
+  API testing 	|	some			|	most			|					|
+              	|					|					|					|
+  command line	|	some			|	most			|					|
+  tool testing	|					|					|					|
+  				|					|					|					|
+  web interface	|	some			|	most			|					|
+  				|					|					|					|
+----------------|-------------------|-------------------|-------------------|
+								
 
 
 in csb-dev:
@@ -43,3 +51,6 @@ unison schema (user schemas remain writable)
 in csb:
 - schema and data are frozen
 - access to unison schema tables are read-only
+
+PD: production-to-development
+- csb is copied to development so that dev begins on current prod database
