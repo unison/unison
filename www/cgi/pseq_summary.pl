@@ -6,7 +6,7 @@ use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::Utils qw(alias_link);
-use Unison::features;
+use Unison::pseq_features;
 use File::Temp qw(tempfile);
 
 
