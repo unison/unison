@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2params -- Unison p2params table utilities
-S<$Id: params.pm,v 1.7 2004/02/25 00:41:26 cavs Exp $>
+S<$Id: params.pm,v 1.8 2004/05/04 04:51:18 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -47,13 +47,17 @@ sub get_params_id_by_name($$) {
 sub get_p2options_by_params_id($) {
   my ($self,$run_id) = @_;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   my $sth = $self->prepare_cached("select * from params_prospect2 where params_id=?");
   $sth->execute($run_id);
   my $h = $sth->fetchrow_hashref();
   ## FIX: only seqfile threading is supported below:
-  my $po = new Bio::Prospect::Options( $h->{global} ? (global=>1) : (global_local=>1),
-                   seq=>1, );
+  my $po = new Bio::Prospect::Options
+	( 
+	 $h->{global} ? (global=>1) : (global_local=>1),
+	 $h->{commandline} =~ m/-scop/ ? (scop=>1) : (scop=>0),
+	 seq=>1,
+	);
   return $po;
 =pod
 

@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.12 2004/05/04 04:52:13 rkh Exp $>
+S<$Id: palias.pm,v 1.13 2004/06/10 22:00:26 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -23,6 +23,10 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use strict;
 use warnings;
+
+use Unison::SQL;
+use Unison::Exceptions;
+
 
 =pod
 
@@ -91,6 +95,28 @@ sub get_pseq_id_from_alias {
   (defined $alias)
 	|| throw Unison::RuntimeError("alias not defined");
   my @ids;
+
+  # Genentech-only: if it looks like an Genentech UNQ, DNA, or PRO, 
+  # do that search only.
+  ## THIS DOESN'T BELONG HERE, BUT IT'S USEFUL.
+  if ($alias =~ m%^(UNQ|DNA|PRO|FAM)(\d+)$%i) {
+	my ($type,$id) = (uc($1),$2);
+	my $sql;
+
+	if ($type eq 'PRO' or $type eq 'DNA' or $type eq 'UNQ') {
+	  $sql = sprintf('select distinct pseq_id from sst.v_sst_unison where %sID=%d',
+					 $type,$id);
+	} elsif ($type eq 'FAM') {
+	  $sql = sprintf('select distinct pseq_id from sst.v_fam_pseq where %sID=%d',
+					 $type,$id);
+	} else {
+	  throw Unison::Exception('Unmatched SST entry type',
+							  "I don't know what a $type entry is");
+	};
+
+	(@ids) = map {@$_} @{ $u->selectall_arrayref($sql) };
+	return(@ids);
+  }
 
   if (not $alias =~ m%^[~/^]%) {
 	# doesn't smell like a regexp
