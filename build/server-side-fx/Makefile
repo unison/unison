@@ -1,6 +1,6 @@
 .PHONY: FORCE
 
-I=-I$(shell pg_config --includedir)
+I=-I$(shell pg_config --includedir)/server
 
 D=$(shell pg_config --pkglibdir)
 
