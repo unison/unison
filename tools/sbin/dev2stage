@@ -1,0 +1,31 @@
+#!/bin/sh -e
+# copy dev database to stage
+# $Id$
+
+unset PGDATABASE
+export PGUSER=compbio
+STAGENAME=$1
+
+echo '# $Id$' 1>&2
+
+# attempt to connect to STAGENAME and fail if connection succeeds
+if psql -d$STAGENAME </dev/null >/dev/null 2>/dev/null; then
+	echo "$STAGENAME already exists; aborting" 1>&2
+	exit 1
+fi
+
+
+# create the new database
+psql -dtemplate1 -qaf - <<EOF
+create database "$STAGENAME";
+grant create on database "$STAGENAME" to rkh;
+grant create on database "$STAGENAME" to cavs;
+EOF
+
+
+# restore selected schemas
+SCHEMAS="compbio scop tax gong unison"
+for s in $SCHEMAS; do
+	time -p pg_dump -n "$s" "csb-dev" | psql -d"$STAGENAME" -qaf-
+done
+
