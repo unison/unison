@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.5 2004/06/25 00:20:27 rkh Exp $
+# $Id: run-pahmm,v 1.6 2004/07/14 00:06:30 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 use warnings;
@@ -88,7 +88,7 @@ my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps t
 my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
 										   join(',',@fields), join(',',map {'?'} @fields)));
 
-my @pseq_ids = map {eval "$_"} (@ARGV);
+my @pseq_ids = map {eval "$_"} (@ARGV || <>);
 my $N = $#pseq_ids+1;
 my $n = 0;
 PSEQ_ID:
@@ -97,7 +97,7 @@ while( my $pseq_id = shift(@pseq_ids) ) {
   print(STDERR $leader, ' 'x20);
 
   foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
-	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,$m);
+	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$opts{porigin_id},$m);
 	if (defined $ran_on and not $opts{update}) {
 	  if (not $opts{update}) {
 		print(STDERR "$leader: run with these options on $ran_on; skipping\n");
@@ -122,6 +122,7 @@ while( my $pseq_id = shift(@pseq_ids) ) {
   $so->close();
 
 
+  print(STDERR "$leader: running");
   my $hmmerpipe = new IO::Pipe;
   $hmmerpipe->reader( @cl )
 	|| die("couldn't do @cl\n");
@@ -135,7 +136,7 @@ while( my $pseq_id = shift(@pseq_ids) ) {
 	while( my $hit = $result->next_hit ) {
 	  my $acc = $hit->name();
 	  my $pmodel_id = get_pmodel_id($acc);
-	  print(STDERR "$leader: loading $acc");
+	  print(STDERR "$leader: loading $acc", ' 'x10);
 
 	  if (not defined $pmodel_id) {
 		die("\n! couldn't look up a pmodel_id for $acc!\n");
@@ -159,8 +160,8 @@ while( my $pseq_id = shift(@pseq_ids) ) {
   }
   $hmmerpipe->close();
 
-  $u->upd_run_histories($pseq_id,$opts{params_id},undef,$opts{pmodelset_id});
-  print(STDERR "$leader: inserted $nins/$nhsps HSPs\n");
+  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
+  print(STDERR "$leader: inserted $nins/$nhsps HSPs; $z\n");
 }
 
 
