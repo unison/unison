@@ -1,0 +1,43 @@
+/* $Id$ */
+
+/* #C4C0E2 */
+/* #9e9efa */
+/* #BDB6F3 */
+TABLE.page {
+	border: grey thin dashed;
+	}
+TABLE.page TD {
+	border: grey thin dashed;
+	}
+
+
+TABLE.group {
+	width: 100%;
+	}
+TABLE.group TH.grouptag {
+	border: black thin solid;
+	background-color: #BDB6F3;
+	width: 30%;
+	font-size: largest;
+	text-decoration: underline;
+	}
+TABLE.group TD {
+	border: black thin solid;
+	background-color: #cccccc;
+	}
+
+TABLE.uwtable {
+	background-color: #BDB6F3;
+	}
+TABLE.uwtable TH {
+	border: black thin solid;
+	font-size: 100%;
+	background-color: #BDB6F3;
+	}
+TABLE.uwtable TD {
+	background-color: white;
+	}
+
+SPAN.error {
+	color: red
+	}
