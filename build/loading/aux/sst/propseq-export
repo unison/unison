@@ -31,13 +31,13 @@ else
 	mkdir -p "$XLINK_DIR"
 fi
 
-echo '# $Id: xlink,v 1.4 2004/05/05 03:13:06 rkh Exp $' 1>&2
+echo '# $Id: xlink,v 1.5 2004/05/05 03:20:56 rkh Exp $' 1>&2
 echo '# started' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
 echo "# XLINK_DIR=$XLINK_DIR; CREATE=$CREATE; LOAD=$LOAD" 1>&2
 echo "# PSEQ_LIMIT=$PSEQ_LIMIT" 1>&2
 
 
-table_sql="$XLINK_DIR/tables.sql"
+tables_sql="$XLINK_DIR/tables.sql"
 pseq_ctl="$XLINK_DIR/pseq.ctl"
 pseq_dat="$XLINK_DIR/pseq.dat"
 pseq_log="$XLINK_DIR/pseq.log"
@@ -53,7 +53,7 @@ descr_max=`echo $DESCR_SIZE-$truncated_len | bc`
 
 if [ "$CREATE" = 1 ]; then
 	echo "# creating table-building SQL..." 1>&2
-	cat <<EOSQL >$table_sql
+	cat <<EOSQL >$tables_sql
 drop table pseq cascade constraints;
 drop table aliases cascade constraints;
 create table pseq (
@@ -85,11 +85,10 @@ EOSQL
 	echo `wc -l <"$pseq_dat"` records 1>&2
 	cat <<EOLDR1 >"$pseq_ctl"
 load data
-infile $pseq_dat
+infile "$pseq_dat"
 append into table pseq
 fields terminated by '	'
 (pseq_id, len, md5)
-BEGINDATA
 EOLDR1
 	
 
@@ -98,11 +97,10 @@ EOLDR1
 	echo `wc -l <"$aliases_dat"` records 1>&2
 	cat <<EOLDR1 >"$aliases_ctl"
 load data
-infile $aliases_dat
+infile "$aliases_dat"
 append into table aliases
 fields terminated by '	'
 (pseq_id,ann_pref,origin,alias,descr,gs)
-BEGINDATA
 EOLDR1
 
 fi								# end CREATE=1
@@ -111,7 +109,7 @@ fi								# end CREATE=1
 
 if [ "$LOAD" = 1 ]; then
 	echo "# dropping & creating pseq & aliases tables..." 1>&2
-	sqlplus "$LOGIN" "@$table_sql" 1>/dev/null 2>/dev/null
+	sqlplus "$LOGIN" "@$tables_sql" 1>/dev/null 2>/dev/null
 
 	echo "# loading pseq..." 1>&2
 	/bin/rm -f "$pseq_log" "$pseq_bad"
