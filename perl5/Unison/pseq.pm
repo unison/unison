@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.11 2004/04/21 18:18:15 rkh Exp $>
+S<$Id: pseq.pm,v 1.12 2004/04/21 20:09:28 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -353,7 +353,7 @@ sub process_seq  {
   # select/insert sequences, then link aliases
   my $pseq_id;
   my $frommd5='';
-  if (%md5 and exists $md5{ $md5 }) {
+  if (%md5 and defined $md5{ $md5 }) {
     $pseq_id = $md5{ $md5 };
     $frommd5='*';
   } else {
