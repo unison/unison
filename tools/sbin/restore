@@ -1,6 +1,10 @@
 #!/bin/sh
+# csb-db restore script
+# $Id$
+#
+# eg$ PGUSER=me PGPASSWORD=blah PGDATABASE=dbname restore pgdump.gz
+#
 
-unset PGHOST
 
 set -e
 
@@ -10,8 +14,8 @@ case "`uname -n`" in
 esac
 
 if [ -z "$PGPASSWORD" -o -z "$PGDATABASE" -o -z "PGUSER" ]; then
-	echo "PGPORT, PGUSER, PGDATABASE, and PGPASSWORD must be set:" 1>&2
-	echo "  PGPORT=6543 PGUSER=me PGPASSWORD=blah PGDATABASE=dbname $0" 1>&2
+	echo "PGUSER, PGDATABASE, and PGPASSWORD must be set:" 1>&2
+	echo "  PGUSER=me PGPASSWORD=blah PGDATABASE=dbname $0" 1>&2
 	exit 2
 fi
 
@@ -23,6 +27,16 @@ if psql -UPUBLIC -c'\q' >/dev/null 2>/dev/null; then
 fi
 
 
+logger () { 
+		echo "#restore:" `date +"%H:%M:%S:"` "$@"
+}
+
+
+echo ======================================================================
+echo '$Id$'
+echo restore started at `date "+%Y-%m-%d %H:%M:%S"`
+
+logger "creating database"
 psql -dtemplate1 -qaf - <<EOF
 create database "$PGDATABASE";
 grant create on database "$PGDATABASE" to rkh;
@@ -30,11 +44,17 @@ grant create on database "$PGDATABASE" to cavs;
 grant create on database "$PGDATABASE" to mukhyala;
 EOF
 
+logger "starting restore from $1"
+/bin/ls -l "$1"
 case "$1" in
-	*.gz) GZIP= gzip -cd "$1" | /usr/bin/time -p psql -qaf -;;
+	*.gz)	GZIP= gzip -cd "$1" | /usr/bin/time -p psql -qaf -;;
 	*) /usr/bin/time -p psql -qaf $1;;
 esac
 
+logger "setting database search path"
+psql -c "alter database \"$PGDATABASE\" set search_path = \"\$user\",unison,gong,scop,tax";
 
-psql -c "alter database \"$PGDATABASE\" set search_path = \"$user\",unison,gong,scop,tax";
+logger "analyzing database"
 psql -c 'analyze verbose';
+
+echo restore finished at `date "+%Y-%m-%d %H:%M:%S"`
