@@ -3,7 +3,10 @@
 
 use strict;
 use Unison;
+use Unison::Exceptions;
 use Data::Dumper;
+
+my $commit_interval = 50;
 
 sub _parseBlock($);
 
@@ -67,7 +70,7 @@ while( my $blk = <> ) {
 	next;
   }
 
-  if (++$n % 250 == 0) {
+  if (++$n % $commit_interval == 0) {
 	$u->commit();
 	$u->begin_work();
 	print("$n ($pb->{ac}): committed and reopened transaction\n");
@@ -101,7 +104,15 @@ while( my $blk = <> ) {
 			 @weights,
 			 $pb->{features},
 			 $blk );
-  $ins_sth->execute(@d);
+
+  try {
+	$ins_sth->execute(@d);
+	$u->upd_run_history( $pseq_id, $params_id, undef, undef );
+  } catch Unison::Exception with {
+	$u->commit();
+	$u->begin_work();
+	die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
+  };
 }
 $u->commit();
 
