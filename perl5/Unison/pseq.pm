@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.7 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: pseq.pm,v 1.8 2004/04/16 00:37:19 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -220,36 +220,59 @@ return the pseq_id for a given sequence
 }
 
 
+
+
 #-------------------------------------------------------------------------------
-# NAME: process_stream
-# PURPOSE: parse Bio::SeqIO stream and load sequences into Unison
-# ARGUMENTS: Bio::SeqIO object, option hashref:
-#   'origin' => name of porigin (REQUIRED)
-#   'start-after' => skip seqs until this accession
-#   'sql-only' => boolean for sql output only (no loading in Unison)
-#   'incl-subex' => boolean for whether to include subex gene predictions
-#   'verbose' => boolean for whether to output more information
-# RETURNS: hash with process info keys: nseen, nskipped, nadded
+# process_stream()
 #-------------------------------------------------------------------------------
+ 
+=head2 process_stream()
+
+ NAME: process_stream
+ PURPOSE: parse Bio::SeqIO stream and load sequences into Unison
+ ARGUMENTS: Bio::SeqIO object, option hashref:
+   'origin' => name of porigin (REQUIRED)
+   'start-after' => skip seqs until this accession
+   'sql-only' => boolean for sql output only (no loading in Unison)
+   'incl-subex' => boolean for whether to include subex gene predictions
+   'verbose' => boolean for whether to output more information
+ RETURNS: hash with process info keys: nseen, nskipped, nadded
+ 
+=cut
+
 sub process_stream {
   my ($u,$in,$opts) = @_;
   my %rv = ( nseen => 0, nskipped => 0, nadded => 0 );
   $opts->{porigin_id} = $u->porigin_si_porigin_id($opts->{origin});
+
+  # build a hash of tax_ids in tax.spspec only load tax_id if found in this
+  # hash.  hack to handle the fact that swissprot doesn't have all of the 
+  # tax_ids in their schema.
+  my %tax_id = map {$_->[0],1} @{$u->selectall_arrayref( 'select distinct tax_id from tax.spspec' )};
+
   while( my $bs = $in->next_seq() ) {
-    $u->process_seq($bs,$opts,\%rv);
+    $u->process_seq($bs,$opts,\%rv,\%tax_id);
   }
   return(\%rv);
 }
 
 
 #-------------------------------------------------------------------------------
-# NAME: process_seq
-# PURPOSE: parse Bio::Seq object and load seq and alia into Unison
-# ARGUMENTS: Bio::Seq object, option hashref, process info hashref (keys: nseen, nskipped, nadded)
-# RETURNS: nada
+# process_seq()
 #-------------------------------------------------------------------------------
+
+=head2 process_seq()
+
+ NAME: process_seq
+ PURPOSE: parse Bio::Seq object and load seq and alia into Unison
+ ARGUMENTS: Bio::Seq object, option hashref, 
+  process info hashref (keys: nseen, nskipped, nadded), hashref of allowable tax_ids
+ RETURNS: nada
+ 
+=cut
+
 sub process_seq  {
-  my ($u,$bs,$opts,$rv) = @_;
+  my ($u,$bs,$opts,$rv,$tax_id_allowed) = @_;
   my $id = $bs->display_id();
   my $seq = $bs->seq();
 
@@ -332,9 +355,11 @@ sub process_seq  {
     return 0;
   }
 
-  # see if there's species info.  if so, get the tax_id to insert with the
-  # alias
-  if (defined $bs->species && defined $bs->species->ncbi_taxid()) {
+  # see if there's species info and make sure that the tax_id is in the set of allowable
+  # tax_ids (see description of process_stream method for more info).  if so, get the 
+  # tax_id to insert with the # alias
+  if (defined $bs->species && defined $bs->species->ncbi_taxid() && 
+    defined $tax_id_allowed->{$bs->species->ncbi_taxid()} ) {
     $tax_id = $bs->species->ncbi_taxid();
   } else {
     $tax_id = 'NULL';
