@@ -1,23 +1,14 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.17 2004/08/02 21:58:42 rkh Exp $>
+S<$Id: DBI.pm,v 1.18 2004/10/14 19:54:34 rkh Exp $>
 
 =head1 SYNOPSIS
 
- use Unison::DBI;
- my $u = new Unison::DBI;
+ use Unison;
+ my $u = new Unison;
  $u->prepare( ... );
- $u->execute( ....);
-
- use Unison::pseq;
- use Unison::Exceptions;
- my $sequence;
- try {
-   $sequence = $u->get_sequence_by_pseq_id( 22 );
- } catch Unison::Exception with {
-   warn($_[0]);                             # print Exception and continue
- };
+ $u->execute( ... );
 
 =head1 DESCRIPTION
 
@@ -25,10 +16,8 @@ B<Unison::DBI> provides an object-oriented interface to the Unison
 database.  It provides connection defaults for public access.  Unison
 objects may be used anywhere that a standard DBI handle can be used.
 
-B<Unison::DBI> handles throw exceptions when SQL queries cause an
-error. These errors should be trapped with Unison::Exceptions.
-
-=head1 ROUTINES & METHODS
+B<Unison::DBI> handles throw exceptions subclassed from
+B<Unison::Exception> when the underlying DBI fails.
 
 =cut
 
@@ -43,31 +32,15 @@ use warnings;
 use Carp;
 use DBI;
 use Unison::Exceptions;
-
-
-# Really, this should probably all be moved to an import subroutine (or a
-# separate Unison::Options module?) which does this optionally.  By doing
-# it here, we get standardized options but at the expense of prohibiting
-# the use of these flags for other meanings.
 use Getopt::Long;
-my $parser = new Getopt::Long::Parser;
-$parser->configure( qw(gnu_getopt pass_through) );
-
-my $thishost = `hostname`; $thishost =~ s/\n$//;
 
 our %opts =
   (
    # use PGHOST if it's not '', otherwise set based on whether we're
    # on csb (local), comp* (cvs), else exo-cluster (csb)
    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
-   host => ( (exists $ENV{PGHOST})  and ($ENV{PGHOST} =~ m/\w/) ) ? $ENV{PGHOST}
-   		: $thishost =~ m/^csb/ ? 'csb'	    # local connection when possible
-											# I want this to be undef, but
-											# krb auth doesn't work on
-											# local
-		: $thishost =~ m/^comp\d/ ? 'svc'	# intra-cluster (192.168/16)
-   		: 'csb',							# everywhere else
-
+   host => ( (exists $ENV{PGHOST})
+			 and ($ENV{PGHOST} =~ m/\w/) ) ? $ENV{PGHOST} : 'csb',
    dbname => $ENV{PGDATABASE} || 'csb',
    username => $ENV{PGUSER} || eval {my $tmp = `/usr/bin/id -un`;
 									 chomp $tmp; $tmp},
@@ -76,11 +49,16 @@ our %opts =
 			PrintError => 0,
 			RaiseError => 0,
 			AutoCommit => 1,
+			# XXX: does the following work?
+			# HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
 		   },
   );
 
 
-
+# Really, this should probably all be moved to an import subroutine (or a
+# separate Unison::Options module?) which does this optionally.  By doing
+# it here, we get standardized options but at the expense of prohibiting
+# the use of these flags for other meanings.
 our @options;
 push( 
 	 @options, 
@@ -88,20 +66,28 @@ push(
 	 'host|h=s' => \$opts{host},
 	 'username|U=s' => \$opts{username}
 	);
+
+my $parser = new Getopt::Long::Parser;
+$parser->configure( qw(gnu_getopt pass_through) );
 $parser->getoptions( @options );
 
 
 
+=pod
+
+=head1 ROUTINES & METHODS
+
+=over
+
+=cut
+
 
 ######################################################################
 ## new
-sub new {
 
 =pod
 
-=head2 ::new( {<DBI options>} );
-
-=over
+=item ::new( {<DBI options>} );
 
 Creates a new instance of Unison::DBI.  A connection is attempted
 immediately and an exception thrown if unsuccessful. See
@@ -110,10 +96,9 @@ in:
 
   my $u = new Unison( username=>'rkh', dbname=>'csb-dev' );
 
-=back
-
 =cut
 
+sub new {
   my $type = shift;
   my %self = (%opts, @_);
   my $self = bless(\%self,$type);
@@ -126,13 +111,10 @@ in:
 
 ######################################################################
 ## connect
-sub connect {
 
 =pod
 
-=head2 ::connect( )
-
-=over
+=item ::connect( )
 
 Establishes a connection to the Unison database.
 
@@ -140,10 +122,9 @@ The PGUSER, PGPASSWORD, PGHOST, PGPORT, and PGDATABASE environment
 variables are honored if set. If not, reasonable defaults for the
 Genentech environment are used.
 
-=back
-
 =cut
 
+sub connect {
   my $self = shift;
   if (not defined $self->{dbname}) {
 	throw Unison::Exception::ConnectionFailed
@@ -177,6 +158,7 @@ Genentech environment are used.
 	  );
   }
 
+  # this causes ALL DBI errors to be handled by Unison::Exception::DBIError (yea!)
   $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
 
   $self->{dbh} = $dbh;
@@ -189,40 +171,32 @@ Genentech environment are used.
 
 ######################################################################
 ## connect
-sub DESTROY {
 
 =pod
 
-=head2 ::DESTROY( )
+=item ::DESTROY( )
 
-=over
-
-disconnects from the database before destroying the database handle.
-
-=back
+Disconnects from the database before destroying the database handle.
 
 =cut
 
+sub DESTROY {
   $_[0]->dbh()->disconnect() if $_[0]->dbh();
 }
 
 
 ######################################################################
 ## dbh
-sub dbh {
 
 =pod
 
-=head2 ::dbh( )
-
-=over
+=item ::dbh( )
 
 returns the internal database handle
 
-=back
-
 =cut
 
+sub dbh {
   $_[0]->{dbh};
 }
 
@@ -230,20 +204,16 @@ returns the internal database handle
 
 ######################################################################
 ## is_open
-sub is_open {
 
 =pod
 
-=head2 ::is_open( )
-
-=over
+=item ::is_open( )
 
 returns true if a connection to the database is open.
 
-=back
-
 =cut
 
+sub is_open {
   defined $_[0]->{'dbh'}
 };
 
@@ -252,6 +222,19 @@ returns true if a connection to the database is open.
 
 ######################################################################
 ## AUTOLOAD
+
+=pod
+
+=item ::AUTOLOAD( )
+
+AUTOLOAD is the basis for providing the appearance of a Unison instance as
+a subclass of DBI. Any method which is not explicitly provided by any of
+the Unison:: modules is passed to DBI, if such a method exists. In order
+to make subsequent calls to the same method faster, AUTOLOAD defines a
+shadow method on-the-fly.
+
+=cut
+
 sub AUTOLOAD {
   my $self = $_[0];
   my $method = our $AUTOLOAD;
@@ -281,31 +264,31 @@ EOF
   # Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
   # die("$method...ooops");
   throw Unison::Exception::NotImplemented ("can't find method $method");
-
-=pod
-
-=head2 ::AUTOLOAD( )
-
-=over
-
-autoloads any unresolved method calls to DBI.
-
-=back
-
-=cut
-
 }
 
 
+
 =pod
+
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=item * perldoc Unison::Exceptions
+
+=back
 
 =head1 AUTHOR
 
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department             
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+see C<perldoc Unison> for contact information
 
 =cut
 
