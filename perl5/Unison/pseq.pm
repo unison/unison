@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.9 2004/04/16 21:11:53 cavs Exp $>
+S<$Id: pseq.pm,v 1.10 2004/04/20 21:51:27 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -253,7 +253,11 @@ sub process_stream {
   my %tax_id = map {$_->[0],1} @{$u->selectall_arrayref( 'select distinct tax_id from tax.spspec' )};
 
   while ( my $bs = $in->next_seq() ) {
-	$u->process_seq($bs,$opts,\%rv,\%tax_id);
+	try {
+	  $u->process_seq($bs,$opts,\%rv,\%tax_id);
+	} catch Unison::Exception with {
+	  warn($_[0]);
+	};
   }
   return(\%rv);
 }
@@ -280,10 +284,9 @@ sub process_seq  {
   my $id = $bs->display_id();
   my $seq = $bs->seq();
 
-  if (not defined $seq) {
-    warn("$id: sequence not defined\n"); 
-    return;
-  }
+  (defined $seq)
+	|| throw Unison::Exception::RuntimeError("$id: sequence not defined");
+
 
   my $tax_id;
   my $descr = $bs->desc();
@@ -339,7 +342,6 @@ sub process_seq  {
     $ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
     $ids{$id}++;
     @ids = sort keys %ids;
-    #warn("! $id: SPDI sequence didn't match 2 identifiers (@ids)\n") unless $#ids==1;
   } else {
     @ids = ( $id );
   }
@@ -356,14 +358,15 @@ sub process_seq  {
     $pseq_id = $md5{ $md5 };
     $frommd5='*';
   } else {
-	$pseq_id = $u->pseq_si_pseq_id( $seq );
+	try {
+	  $pseq_id = $u->pseq_si_pseq_id( $seq );
+	} catch Unison::Exception with {
+	  throw Unison::Exception::RuntimeError( "Failed to load sequence $ids[0] ($descr)",
+											 $_[0] );
+	};
     $md5{ $md5 } = $pseq_id;
   }
 
-  if (not defined $pseq_id) {
-    warn("! failed to add $id"); 
-    return 0;
-  }
 
   # see if there's species info and make sure that the tax_id is in the set of allowable
   # tax_ids (see description of process_stream method for more info).  if so, get the 
