@@ -1,0 +1,708 @@
+<PGModel Align="68" DisplayFlags="1" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" DatabaseType="PostgreSQL" FontBold="0" DatabaseName="csb" FontItalic="0" TextFlag="2048" FontStrikeOut="0" Name="csb" Version="1.0" NextOID="89" FontFamily="Sans" >
+ <Validation>
+  <Rule Name="Reference name missing" Value="Warning" />
+  <Rule Name="Reference name duplicate" Value="Warning" />
+  <Rule Name="Reference description missing" Value="Information" />
+  <Rule Name="Reference child table missing" Value="Error" />
+  <Rule Name="Reference parent table missing" Value="Error" />
+  <Rule Name="Model name missing" Value="Error" />
+  <Rule Name="Model description missing" Value="Warning" />
+  <Rule Name="Model database type missing" Value="Error" />
+  <Rule Name="Model database name missing" Value="Warning" />
+  <Rule Name="Model target missing" Value="Warning" />
+  <Rule Name="Model author name missing" Value="Warning" />
+  <Rule Name="Domain name missing" Value="Error" />
+  <Rule Name="Domain name duplicate" Value="Error" />
+  <Rule Name="Domain description missing" Value="Information" />
+  <Rule Name="Domain data type missing" Value="Error" />
+  <Rule Name="Procedure name missing" Value="Error" />
+  <Rule Name="Procedure description missing" Value="Warning" />
+  <Rule Name="Procedure definition missing" Value="Error" />
+  <Rule Name="Table name missing" Value="Error" />
+  <Rule Name="Table name duplicate" Value="Error" />
+  <Rule Name="Table index missing" Value="Warning" />
+  <Rule Name="Table description missing" Value="Information" />
+  <Rule Name="Table column missing" Value="Error" />
+  <Rule Name="Table column not really a foreign key" Value="Warning" />
+  <Rule Name="Table primary key missing" Value="Warning" />
+  <Rule Name="View name missing" Value="Error" />
+  <Rule Name="View description missing" Value="Information" />
+  <Rule Name="View definition missing" Value="Warning" />
+  <Rule Name="Column name missing" Value="Error" />
+  <Rule Name="Column description missing" Value="Information" />
+  <Rule Name="Column is primary key but not mandatory" Value="Error" />
+  <Rule Name="Column data type missing" Value="Error" />
+  <Rule Name="Column too large for data type" Value="Warning" />
+  <Rule Name="Column scale too large for data type" Value="Warning" />
+  <Rule Name="Column scale too small for data type" Value="Warning" />
+  <Rule Name="Column mandatory flag invalid for data type" Value="Warning" />
+  <Rule Name="Column data type unknown" Value="Error" />
+  <Rule Name="Index name missing" Value="Error" />
+  <Rule Name="Index description missing" Value="Information" />
+  <Rule Name="Index column missing" Value="Error" />
+  <Rule Name="Index column name missing" Value="Error" />
+  <Rule Name="Index column not in table" Value="Error" />
+  <Rule Name="Inherit name missing" Value="Information" />
+  <Rule Name="Inherit description missing" Value="Warning" />
+  <Rule Name="Inherit derived table missing" Value="Error" />
+  <Rule Name="Inherit base table missing" Value="Error" />
+ </Validation>
+ <DRectangle width="386" x="458" TextField="2" Align="68" y="123" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Dash" FontColor="#000000" FontPointSize="10" OID="72" height="97" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8509228" NextOID="1" FontFamily="Sans" />
+ <DRectangle width="1276" x="670" TextField="2" Align="68" y="1203" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Dash" FontColor="#000000" FontPointSize="10" OID="74" height="121" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8509df8" NextOID="1" FontFamily="Sans" />
+ <DRectangle width="1712" x="244" TextField="2" Align="68" y="563" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Dash" FontColor="#000000" FontPointSize="10" OID="75" height="405" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x850c720" NextOID="1" FontFamily="Sans" />
+ <DRectangle width="1191" x="793" TextField="2" Align="68" y="984" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Dash" FontColor="#000000" FontPointSize="10" OID="73" height="205" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x850e2a0" NextOID="1" FontFamily="Sans" />
+ <PGTable width="135" x="862" TextField="2" Align="68" y="1211" LineColor="#000000" FillStyle="Solid" LineWidth="3" FontUnderline="0" FillColor="#afeeee" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="21" height="60" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm" id="0x850fd60" NextOID="7" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA["protein modelset model" -- defines membership of models in sets]]><sink x="0.496296" y="0.483333" OID="1" id="0x8511ee8" />
+  <sink x="0.451852" y="0.183333" OID="6" id="0x8511908" />
+  <PGColumn ForeignKey="1" OID="2" DataType="integer" Name="pmodelset_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="pmodel_id" NextOID="1" Mandatory="1" />
+  <PGIndex OID="4" AccessMethod="btree" Name="pmsm_pmodelset_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodelset_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="5" AccessMethod="btree" Name="pmsm_pmodel_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <DRectangle width="825" x="592" TextField="2" Align="68" y="239" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Dash" FontColor="#000000" FontPointSize="10" OID="70" height="180" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8515430" NextOID="1" FontFamily="Sans" />
+ <PGTable width="131" x="1216" TextField="2" Align="68" y="1234" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="1" height="80" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="cla" id="0x8516b90" NextOID="17" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[SCOP domain classification (http://scop.berkeley.edu/)]]><sink x="0.477273" y="0.445946" OID="16" id="0x8518548" />
+  <PGColumn PrimaryKey="1" OID="2" DataType="integer" Name="sunid" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="text" Name="sid" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" Length="4" DataType="character" Name="pdb" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="text" Name="def" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="text" Name="sccs" NextOID="1" Mandatory="1" />
+  <PGColumn OID="7" DataType="integer" Name="cl" NextOID="1" Mandatory="1" />
+  <PGColumn OID="8" DataType="integer" Name="cf" NextOID="1" Mandatory="1" />
+  <PGColumn OID="9" DataType="integer" Name="sf" NextOID="1" Mandatory="1" />
+  <PGColumn OID="10" DataType="integer" Name="fa" NextOID="1" Mandatory="1" />
+  <PGColumn OID="11" DataType="integer" Name="dm" NextOID="1" Mandatory="1" />
+  <PGColumn OID="12" DataType="integer" Name="sp" NextOID="1" Mandatory="1" />
+  <PGIndex OID="13" AccessMethod="btree" Name="pdb" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pdb" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="14" AccessMethod="btree" Name="sid" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="sid" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="15" AccessMethod="btree" Name="sccs" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="sccs" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="154" x="1053" TextField="2" Align="68" y="421" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="4" height="150" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="p2params" id="0x85208e8" NextOID="8" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[Prospect2 threading parameters]]><PGColumn PrimaryKey="1" OID="1" DataType="integer" Name="p2params_id" Default="nextval('unison.p2params_p2params_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="2" DataType="text" Name="name" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="text" Name="commandline" NextOID="1" />
+  <PGColumn OID="4" DataType="boolean" Name="pairwise" NextOID="1" />
+  <PGColumn OID="5" DataType="boolean" Name="ss" NextOID="1" />
+  <PGColumn OID="6" DataType="boolean" Name="profile" NextOID="1" />
+  <PGColumn OID="7" DataType="boolean" Name="global" NextOID="1" />
+ </PGTable>
+ <PGTable width="158" x="1069" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="5" height="169" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="p2template" id="0x8525450" NextOID="16" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[Prospect2 threading backbone (inherits from pmodel)]]><sink x="0.496124" y="0.494048" OID="1" id="0x85276d0" />
+  <sink x="0.496124" y="0.494048" OID="2" id="0x8527190" />
+  <sink x="0.437984" y="0.529762" OID="15" id="0x8526c60" />
+  <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="text" Name="name" NextOID="1" Mandatory="1" />
+  <PGColumn OID="7" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
+  <PGColumn OID="8" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="9" DataType="integer" Name="len" NextOID="1" Mandatory="1" />
+  <PGColumn OID="10" DataType="integer" Name="ncores" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="11" DataType="integer" Name="sunid" NextOID="1" />
+  <PGIndex OID="12" AccessMethod="btree" Name="p2template_name" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="name" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="13" AccessMethod="btree" Name="p2template_pseq_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="14" AccessMethod="btree" Name="p2template_sunid" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="sunid" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="197" x="1053" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="6" height="384" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="p2thread" id="0x852e340" NextOID="27" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[single Prospect2 threading alignment (unique <pseq_id,p2params_id,p2template_id>)]]><sink x="0.497462" y="0.497396" OID="2" id="0x852f7c0" />
+  <PGColumn OID="4" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="5" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="6" DataType="integer" Name="pftype_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="7" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="8" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="9" DataType="text" Name="........pg.dropped.6........" NextOID="1" />
+  <PGColumn OID="10" DataType="real" Name="confidence" NextOID="1" />
+  <PGColumn OID="11" DataType="integer" Name="p2params_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="12" DataType="integer" Name="pmodel_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="13" DataType="integer" Name="nident" NextOID="1" Mandatory="1" />
+  <PGColumn OID="14" DataType="integer" Name="nalign" NextOID="1" Mandatory="1" />
+  <PGColumn OID="15" DataType="real" Name="raw" NextOID="1" Mandatory="1" />
+  <PGColumn OID="16" DataType="real" Name="mutation" NextOID="1" Mandatory="1" />
+  <PGColumn OID="17" DataType="real" Name="singleton" NextOID="1" Mandatory="1" />
+  <PGColumn OID="18" DataType="real" Name="pairwise" NextOID="1" Mandatory="1" />
+  <PGColumn OID="19" DataType="real" Name="gap" NextOID="1" Mandatory="1" />
+  <PGColumn OID="20" DataType="real" Name="ssfit" NextOID="1" Mandatory="1" />
+  <PGColumn OID="21" DataType="real" Name="zscore" NextOID="1" />
+  <PGColumn OID="22" DataType="real" Name="svm" NextOID="1" />
+  <PGColumn OID="23" DataType="real" Name="rgyr" NextOID="1" Mandatory="1" />
+  <PGIndex OID="24" AccessMethod="btree" Name="p2thread_p2params_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="p2params_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="25" AccessMethod="btree" Name="p2thread_pmodel_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="26" AccessMethod="btree" Name="p2thread_uniqueness" NextOID="4" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="p2params_id" NextOID="1" />
+   <PGIndexColumn OID="3" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="252" x="1694" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="7" height="330" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pahmm" id="0x853ce90" NextOID="29" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[table of HMM alignments (mostly from Pfam)]]><PGColumn OID="1" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="2" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="pftype_id" Default="pftype_id_lookup('HMM'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="5" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="6" DataType="text" Name="........pg.dropped.6........" NextOID="1" />
+  <PGColumn OID="7" DataType="real" Name="confidence" NextOID="1" />
+  <PGColumn OID="8" DataType="integer" Name="pmodel_id" NextOID="1" />
+  <PGColumn OID="9" DataType="smallint" Name="mstart" NextOID="1" Mandatory="1" />
+  <PGColumn OID="10" DataType="smallint" Name="mstop" NextOID="1" Mandatory="1" />
+  <PGColumn OID="11" DataType="smallint" Name="ident" NextOID="1" />
+  <PGColumn OID="12" DataType="smallint" Name="sim" NextOID="1" />
+  <PGColumn OID="13" DataType="smallint" Name="gaps" NextOID="1" />
+  <PGColumn OID="14" DataType="smallint" Name="qgaps" NextOID="1" />
+  <PGColumn OID="15" DataType="smallint" Name="tgaps" NextOID="1" />
+  <PGColumn OID="16" DataType="smallint" Name="score" NextOID="1" />
+  <PGColumn OID="17" DataType="double precision" Name="eval" NextOID="1" />
+  <PGIndex OID="18" AccessMethod="btree" Name="pahmm_eval" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="eval" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="19" AccessMethod="btree" Name="pahmm_score" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="score" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="20" AccessMethod="btree" Name="pahmm_gap" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="gaps" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="21" AccessMethod="btree" Name="pahmm_sim" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="sim" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="22" AccessMethod="btree" Name="pahmm_ident" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="ident" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="23" AccessMethod="btree" Name="pahmm_pmodel_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="24" AccessMethod="btree" Name="pahmm_confidence" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="confidence" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="25" AccessMethod="btree" Name="pahmm_pseq_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="26" AccessMethod="btree" Name="pahmm_start" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="start" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="27" AccessMethod="btree" Name="pahmm_stop" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="stop" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="28" AccessMethod="btree" Name="pahmm_redundant_feature" NextOID="7" ><![CDATA[prohibit inadvertent duplicate loading of features]]><PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="start" NextOID="1" />
+   <PGIndexColumn OID="3" Order="" Name="stop" NextOID="1" />
+   <PGIndexColumn OID="4" Order="" Name="pmodel_id" NextOID="1" />
+   <PGIndexColumn OID="5" Order="" Name="mstart" NextOID="1" />
+   <PGIndexColumn OID="6" Order="" Name="mstop" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="130" x="924" TextField="2" Align="68" y="258" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="8" height="114" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="paliasorigin" id="0x8551b50" NextOID="11" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[alias (names) given by a particular origin]]><sink x="0.492308" y="0.491228" OID="1" id="0x8552be0" />
+  <sink x="0.492308" y="0.491228" OID="3" id="0x85527a0" />
+  <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="palias_id" Default="nextval('unison.paliasorigin_palias_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="5" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="text" Name="alias" NextOID="1" Mandatory="1" />
+  <PGColumn OID="7" DataType="text" Name="descr" NextOID="1" />
+  <PGColumn OID="8" DataType="integer" Name="spspec_id" NextOID="1" />
+  <PGIndex OID="9" AccessMethod="btree" Name="palias_alias" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="alias" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="10" AccessMethod="btree" Name="palias_alias_unique_in_origin" NextOID="3" >
+   <PGIndexColumn OID="1" Order="" Name="porigin_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="alias" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="252" x="799" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="3" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="9" height="330" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="palignment" id="0x8557b40" NextOID="19" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[superclass table of sequence-model alignments]]><sink x="0.496032" y="0.49697" OID="1" id="0x8558f58" />
+  <PGColumn OID="2" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="integer" Name="pftype_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="6" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="7" DataType="text" Name="........pg.dropped.6........" NextOID="1" />
+  <PGColumn OID="8" DataType="real" Name="confidence" NextOID="1" />
+  <PGColumn ForeignKey="1" OID="9" DataType="integer" Name="pmodel_id" NextOID="1" />
+  <PGColumn OID="10" DataType="smallint" Name="mstart" NextOID="1" Mandatory="1" />
+  <PGColumn OID="11" DataType="smallint" Name="mstop" NextOID="1" Mandatory="1" />
+  <PGColumn OID="12" DataType="smallint" Name="ident" NextOID="1" />
+  <PGColumn OID="13" DataType="smallint" Name="sim" NextOID="1" />
+  <PGColumn OID="14" DataType="smallint" Name="gaps" NextOID="1" />
+  <PGColumn OID="15" DataType="smallint" Name="qgaps" NextOID="1" />
+  <PGColumn OID="16" DataType="smallint" Name="tgaps" NextOID="1" />
+  <PGColumn OID="17" DataType="smallint" Name="score" NextOID="1" />
+  <PGColumn OID="18" DataType="double precision" Name="eval" NextOID="1" />
+ </PGTable>
+ <PGTable width="177" x="1258" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="10" height="312" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="papseq" id="0x8561750" NextOID="27" ScriptCreateDrop="0" FontFamily="Sans" >
+  <PGColumn OID="1" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="2" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="pftype_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="5" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="6" DataType="real" Name="confidence" NextOID="1" />
+  <PGColumn OID="7" DataType="integer" Name="pmodel_id" NextOID="1" />
+  <PGColumn OID="8" DataType="smallint" Name="mstart" NextOID="1" Mandatory="1" />
+  <PGColumn OID="9" DataType="smallint" Name="mstop" NextOID="1" Mandatory="1" />
+  <PGColumn OID="10" DataType="smallint" Name="ident" NextOID="1" />
+  <PGColumn OID="11" DataType="smallint" Name="sim" NextOID="1" />
+  <PGColumn OID="12" DataType="smallint" Name="gaps" NextOID="1" />
+  <PGColumn OID="13" DataType="smallint" Name="qgaps" NextOID="1" />
+  <PGColumn OID="14" DataType="smallint" Name="tgaps" NextOID="1" />
+  <PGColumn OID="15" DataType="smallint" Name="score" NextOID="1" />
+  <PGColumn OID="16" DataType="double precision" Name="eval" NextOID="1" />
+  <PGIndex Unique="1" OID="17" AccessMethod="btree" Name="papseq_pkey" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pfeature_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="18" AccessMethod="btree" Name="papseq_qss" NextOID="4" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="start" NextOID="1" />
+   <PGIndexColumn OID="3" Order="" Name="stop" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="19" AccessMethod="btree" Name="papseq_confidence" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="confidence" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="20" AccessMethod="btree" Name="papseq_pmodel_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="21" AccessMethod="btree" Name="papseq_redundant" NextOID="7" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="start" NextOID="1" />
+   <PGIndexColumn OID="3" Order="" Name="stop" NextOID="1" />
+   <PGIndexColumn OID="4" Order="" Name="pmodel_id" NextOID="1" />
+   <PGIndexColumn OID="5" Order="" Name="mstart" NextOID="1" />
+   <PGIndexColumn OID="6" Order="" Name="mstop" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="22" AccessMethod="btree" Name="papseq_ident" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="ident" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="23" AccessMethod="btree" Name="papseq_sim" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="sim" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="24" AccessMethod="btree" Name="papseq_gaps" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="gaps" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="25" AccessMethod="btree" Name="papseq_score" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="score" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="26" AccessMethod="btree" Name="papseq_eval" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="eval" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="252" x="1440" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="11" height="330" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="papssm" id="0x8575f10" NextOID="29" ScriptCreateDrop="0" FontFamily="Sans" >
+  <PGColumn OID="1" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="2" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="pftype_id" Default="pftype_id_lookup('PSSM'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="5" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="6" DataType="text" Name="........pg.dropped.6........" NextOID="1" />
+  <PGColumn OID="7" DataType="real" Name="confidence" NextOID="1" />
+  <PGColumn OID="8" DataType="integer" Name="pmodel_id" NextOID="1" />
+  <PGColumn OID="9" DataType="smallint" Name="mstart" NextOID="1" Mandatory="1" />
+  <PGColumn OID="10" DataType="smallint" Name="mstop" NextOID="1" Mandatory="1" />
+  <PGColumn OID="11" DataType="smallint" Name="ident" NextOID="1" />
+  <PGColumn OID="12" DataType="smallint" Name="sim" NextOID="1" />
+  <PGColumn OID="13" DataType="smallint" Name="gaps" NextOID="1" />
+  <PGColumn OID="14" DataType="smallint" Name="qgaps" NextOID="1" />
+  <PGColumn OID="15" DataType="smallint" Name="tgaps" NextOID="1" />
+  <PGColumn OID="16" DataType="smallint" Name="score" NextOID="1" />
+  <PGColumn OID="17" DataType="double precision" Name="eval" NextOID="1" />
+  <PGIndex OID="18" AccessMethod="btree" Name="papssm_pfeature_id_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pfeature_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="19" AccessMethod="btree" Name="papssm_pseq_id_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="20" AccessMethod="btree" Name="papssm_start" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="start" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="21" AccessMethod="btree" Name="papssm_stop" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="stop" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="22" AccessMethod="btree" Name="papssm_pmodel_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="23" AccessMethod="btree" Name="papssm_confidence" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="confidence" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="24" AccessMethod="btree" Name="papssm_ident" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="ident" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="25" AccessMethod="btree" Name="papssm_sim" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="sim" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="26" AccessMethod="btree" Name="papssm_gap" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="gaps" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="27" AccessMethod="btree" Name="papssm_score" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="score" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="28" AccessMethod="btree" Name="papssm_eval" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="eval" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="210" x="258" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="3" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="12" height="150" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pfeature" id="0x8588510" NextOID="14" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[parent table of all features; inherited by "subclass" feature tables]]><sink x="0.495238" y="0.493333" OID="2" id="0x8589878" />
+  <sink x="0.5" y="0.486667" OID="13" id="0x85890e0" />
+  <PGColumn PrimaryKey="1" OID="3" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="5" DataType="integer" Name="pftype_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="7" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="8" DataType="text" Name="........pg.dropped.6........" NextOID="1" />
+  <PGColumn OID="9" DataType="real" Name="confidence" NextOID="1" />
+  <PGIndex OID="10" AccessMethod="btree" Name="pfeature_pseq_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="11" AccessMethod="btree" Name="pfeature_pftype_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pftype_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="12" AccessMethod="btree" Name="pfeature_start_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="start" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="197" x="598" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="13" height="168" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pfsigcleave" id="0x858fd70" NextOID="18" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[protein feature from EMBOSS sigcleave]]><PGColumn OID="3" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="5" DataType="integer" Name="pftype_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="7" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="8" DataType="text" Name="........pg.dropped.6........" NextOID="1" />
+  <PGColumn OID="9" DataType="real" Name="confidence" NextOID="1" />
+  <PGColumn OID="10" DataType="real" Name="score" NextOID="1" />
+  <PGIndex Unique="1" OID="11" AccessMethod="btree" Name="pfsigcleave_sc_exists" NextOID="4" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="start" NextOID="1" />
+   <PGIndexColumn OID="3" Order="" Name="stop" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="12" AccessMethod="btree" Name="pfsigcleave_score_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="score" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="13" AccessMethod="btree" Name="pfsigcleave_pftype_id_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pftype_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="14" AccessMethod="btree" Name="pfsigcleave_pseq_id_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="15" AccessMethod="btree" Name="pfsigcleave_quality_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="confidence" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="16" AccessMethod="btree" Name="pfsigcleave_stop_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="stop" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="17" AccessMethod="btree" Name="pfsigcleave_start_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="start" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="122" x="472" TextField="2" Align="68" y="575" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffff00" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="14" height="132" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pftmdetect" id="0x859beb0" NextOID="9" ScriptCreateDrop="0" FontFamily="Sans" >
+  <PGColumn OID="1" DataType="integer" Name="pfeature_id" Default="nextval('unison.pfeature_pfeature_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="2" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="pftype_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="integer" Name="start" NextOID="1" />
+  <PGColumn OID="5" DataType="integer" Name="stop" NextOID="1" />
+  <PGColumn OID="6" DataType="real" Name="confidence" NextOID="1" />
+  <PGIndex Unique="1" OID="7" AccessMethod="btree" Name="pftmdetect_pkey" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pfeature_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="8" AccessMethod="btree" Name="pftmdetect_qss" NextOID="4" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="start" NextOID="1" />
+   <PGIndexColumn OID="3" Order="" Name="stop" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="124" x="262" TextField="2" Align="68" y="790" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="15" height="60" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pftype" id="0x85a28a8" NextOID="7" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[enumeration of feature types]]><sink x="0.532258" y="0.583333" OID="6" id="0x85a3e90" />
+  <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="pftype_id" Default="nextval('unison.pftype_pftype_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="text" Name="name" NextOID="1" />
+ </PGTable>
+ <PGTable width="245" x="1709" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="16" height="186" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmhmm" id="0x85a5470" NextOID="15" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[protein hidden Markov models (inherts from pmodel)]]><sink x="0.497959" y="0.494624" OID="1" id="0x85a6d98" />
+  <PGColumn OID="3" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="text" Name="name" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
+  <PGColumn OID="7" DataType="text" Name="acc" NextOID="1" Mandatory="1" />
+  <PGColumn OID="8" DataType="text" Name="descr" NextOID="1" Mandatory="1" />
+  <PGColumn OID="9" DataType="smallint" Name="len" NextOID="1" Mandatory="1" />
+  <PGColumn OID="10" DataType="smallint" Name="nseq" NextOID="1" Mandatory="1" />
+  <PGColumn OID="11" DataType="smallint" Name="cksum" NextOID="1" Mandatory="1" />
+  <PGIndex Unique="1" OID="12" AccessMethod="btree" Name="pmhmm_pkey" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="13" AccessMethod="btree" Name="pmhmm_origin_name_idx" NextOID="3" >
+   <PGIndexColumn OID="1" Order="" Name="porigin_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="name" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="14" AccessMethod="btree" Name="pmhmm_name_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="name" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="258" x="800" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="3" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="17" height="96" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmodel" id="0x85ae7e8" NextOID="9" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[generic protein model information]]><sink x="0.496124" y="0.489583" OID="2" id="0x85b0268" />
+  <sink x="0.51938" y="0.427083" OID="8" id="0x85afd38" />
+  <PGColumn PrimaryKey="1" OID="3" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="text" Name="name" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
+  <PGIndex OID="7" AccessMethod="btree" Name="pmodel_name" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="name" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="148" x="675" TextField="2" Align="68" y="1256" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="18" height="60" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmodelset" id="0x85b34a8" NextOID="7" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[set of protein models (possibly heterogeneous); see pmsm_* for linking]]><sink x="0.493243" y="0.483333" OID="4" id="0x85b4cc8" />
+  <PGColumn PrimaryKey="1" OID="5" DataType="integer" Name="pmodelset_id" Default="nextval('unison.pmodelset_pmodelset_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="text" Name="name" NextOID="1" />
+ </PGTable>
+ <PGTable width="245" x="1451" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="19" height="114" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmpssm" id="0x85b6268" NextOID="10" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[Position Specific Scoring Matrix models (e.g., structure based profiles) ]]><sink x="0.497959" y="0.491228" OID="1" id="0x85b7c18" />
+  <PGColumn OID="2" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="text" Name="name" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
+  <PGColumn OID="6" Length="32" DataType="character" Name="md5" NextOID="1" />
+  <PGIndex Unique="1" OID="7" AccessMethod="btree" Name="pmpssm_pmodel_id_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="8" AccessMethod="btree" Name="pmpssm_md5_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="md5" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="9" AccessMethod="btree" Name="pmpssm_name_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="name" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="177" x="1263" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="20" height="121" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmseq" id="0x85bd198" NextOID="7" ScriptCreateDrop="0" FontFamily="Sans" >
+  <PGColumn OID="2" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="text" Name="name" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
+  <PGColumn ForeignKey="1" OID="6" DataType="integer" Name="pseq_id" NextOID="1" />
+ </PGTable>
+ <PGTable width="135" x="1072" TextField="2" Align="68" y="1211" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#afeeee" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="22" height="60" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm_p2template" id="0x85c0f20" NextOID="6" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[pmsm for p2templates (inherits from pmsm, which see)]]><sink x="0.496296" y="0.483333" OID="2" id="0x85c2840" />
+  <PGColumn ForeignKey="1" OID="3" DataType="integer" Name="pmodelset_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="pmodel_id" NextOID="1" Mandatory="1" />
+  <PGIndex Unique="1" OID="5" AccessMethod="btree" Name="pmsm_p2template_model_already_in_set" NextOID="3" >
+   <PGIndexColumn OID="1" Order="" Name="pmodelset_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="135" x="1803" TextField="2" Align="68" y="1211" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#afeeee" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="23" height="60" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm_pmhmm" id="0x85c5510" NextOID="6" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[pmsm for pmhmms (inherits from pmsm, which see)]]><sink x="0.496296" y="0.483333" OID="2" id="0x85c6b98" />
+  <PGColumn ForeignKey="1" OID="3" DataType="integer" Name="pmodelset_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="pmodel_id" NextOID="1" Mandatory="1" />
+  <PGIndex Unique="1" OID="5" AccessMethod="btree" Name="pmsm_pmhmm_model_already_in_set" NextOID="3" >
+   <PGIndexColumn OID="1" Order="" Name="pmodelset_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="135" x="1524" TextField="2" Align="68" y="1211" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#afeeee" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="24" height="60" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm_pmpssm" id="0x85c9660" NextOID="6" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[pmsm for pmpssm (inherits from pmsm, which see)]]><sink x="0.496296" y="0.483333" OID="1" id="0x85caee8" />
+  <PGColumn ForeignKey="1" OID="3" DataType="integer" Name="pmodelset_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="pmodel_id" NextOID="1" Mandatory="1" />
+  <PGIndex Unique="1" OID="5" AccessMethod="btree" Name="pmsm_pmpssm_model_already_in_set" NextOID="3" >
+   <PGIndexColumn OID="1" Order="" Name="pmodelset_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="pmodel_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="126" x="1118" TextField="2" Align="68" y="264" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="25" height="114" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="porigin" id="0x85cd9b0" NextOID="10" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[origin (database or algorithm) of protein alias (sequence)]]><sink x="0.492063" y="0.491228" OID="3" id="0x85cf250" />
+  <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="porigin_id" Default="nextval('unison.porigin_porigin_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="text" Name="origin" NextOID="1" Mandatory="1" />
+  <PGColumn OID="6" DataType="text" Name="url" NextOID="1" />
+  <PGColumn OID="7" DataType="text" Name="descr" NextOID="1" />
+  <PGColumn OID="8" DataType="integer" Name="ann_pref" NextOID="1" />
+  <PGIndex Unique="1" OID="9" AccessMethod="btree" Name="porigin_origin" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="origin" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="250" x="260" TextField="2" Align="68" y="265" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="26" height="132" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pseq" id="0x85d2c50" NextOID="20" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[table of unique protein sequences]]><sink x="0.496" y="0.492424" OID="1" id="0x85d58c0" />
+  <sink x="0.496" y="0.492424" OID="2" id="0x85d52d0" />
+  <sink x="0.496" y="0.492424" OID="3" id="0x85d4ef8" />
+  <sink x="0.496" y="0.492424" OID="4" id="0x85d49b8" />
+  <sink x="0.496" y="0.492424" OID="8" id="0x85d4418" />
+  <PGColumn PrimaryKey="1" OID="10" DataType="integer" Name="pseq_id" Default="nextval('unison.pseq_pseq_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="11" DataType="integer" Name="palias_id" NextOID="1" />
+  <PGColumn OID="12" DataType="text" Name="seq" NextOID="1" Mandatory="1" />
+  <PGColumn OID="13" DataType="smallint" Name="len" NextOID="1" Mandatory="1" />
+  <PGColumn OID="14" Length="32" DataType="character" Name="md5" NextOID="1" Mandatory="1" />
+  <PGColumn OID="15" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" Mandatory="1" />
+  <PGIndex OID="16" AccessMethod="btree" Name="pseq_palias_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="palias_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="17" AccessMethod="btree" Name="pseq_seqhash" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="seq" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="18" AccessMethod="btree" Name="pseq_md5" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="md5" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="19" AccessMethod="btree" Name="pseq_len" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="len" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="253" x="606" TextField="2" Align="68" y="263" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="27" height="132" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pseqalias" id="0x85dc428" NextOID="12" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[aliases for a given sequence]]><sink x="0.498024" y="0.492424" OID="1" id="0x85de210" />
+  <sink x="0.498024" y="0.492424" OID="2" id="0x85dde00" />
+  <sink x="0.498024" y="0.492424" OID="3" id="0x85dd760" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="palias_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="5" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="6" DataType="integer" Name="ref_pseq_id" NextOID="1" />
+  <PGColumn OID="7" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" Mandatory="1" />
+  <PGColumn OID="8" DataType="integer" Name="version" Default="1" NextOID="1" Mandatory="1" />
+  <PGColumn OID="9" DataType="boolean" Name="iscurrent" Default="true" NextOID="1" Mandatory="1" />
+  <PGIndex Unique="1" OID="10" AccessMethod="btree" Name="pseqalias_unq_duple" NextOID="3" >
+   <PGIndexColumn OID="1" Order="" Name="palias_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="version" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="11" AccessMethod="btree" Name="pseqalias_pseq_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="115" x="445" TextField="2" Align="68" y="424" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="28" height="103" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pseqprop" id="0x85e3920" NextOID="8" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[miscellaneous sequence properties]]><sink x="0.491228" y="0.489583" OID="1" id="0x85e4f08" />
+  <PGColumn ForeignKey="1" OID="2" DataType="integer" Name="pseq_id" NextOID="1" />
+  <PGColumn OID="3" DataType="real" Name="sigpredict" NextOID="1" />
+  <PGColumn OID="4" DataType="real" Name="sigsensor" NextOID="1" />
+  <PGColumn OID="5" DataType="real" Name="sighmm" NextOID="1" />
+  <PGIndex OID="6" AccessMethod="btree" Name="pseqprop_sigpredict" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="sigpredict" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="7" AccessMethod="btree" Name="pseqprop_pseq_id_idx" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="103" x="476" TextField="2" Align="68" y="149" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="29" height="60" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pseqset" id="0x85e8fd8" NextOID="8" ScriptCreateDrop="0" FontFamily="Sans" >
+  <sink x="0.495146" y="0.483333" OID="1" id="0x85eac58" />
+  <sink x="0.495146" y="0.483333" OID="2" id="0x85ea6f0" />
+  <PGColumn ForeignKey="1" OID="3" DataType="integer" Name="pset_id" NextOID="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="pseq_id" NextOID="1" />
+  <PGIndex OID="5" AccessMethod="btree" Name="pseqset_pset_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pset_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex OID="6" AccessMethod="btree" Name="pseqset_pseq_id" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+  <PGIndex Unique="1" OID="7" AccessMethod="btree" Name="pseqset_unique" NextOID="3" >
+   <PGIndexColumn OID="1" Order="" Name="pset_id" NextOID="1" />
+   <PGIndexColumn OID="2" Order="" Name="pseq_id" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGTable width="113" x="711" TextField="2" Align="68" y="133" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="30" height="78" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pset" id="0x85ef250" NextOID="6" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[set name and id for sets of sequences]]><sink x="0.495575" y="0.487179" OID="1" id="0x85f08e0" />
+  <PGColumn PrimaryKey="1" OID="2" DataType="integer" Name="pset_id" Default="nextval('unison.pset_pset_id_seq'::text)" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="text" Name="name" NextOID="1" Mandatory="1" />
+  <PGColumn OID="4" DataType="text" Name="descr" NextOID="1" />
+  <PGIndex Unique="1" OID="5" AccessMethod="btree" Name="pset_name" NextOID="2" >
+   <PGIndexColumn OID="1" Order="" Name="name" NextOID="1" />
+  </PGIndex>
+ </PGTable>
+ <PGView width="104" x="1291" TextField="2" Align="68" y="247" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="31" height="153" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="palias" id="0x85f3488" NextOID="1" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[backwardly compatible - joins paliasorigin and pseqalias tables]]><Definition><![CDATA[SELECT pa.palias_id, pv.pseq_id, pa.porigin_id, pa.alias, pa.descr, pv.ref_pseq_id, pv.added FROM paliasorigin pa, pseqalias pv WHERE ((pv.palias_id = pa.palias_id) AND (pv.iscurrent = true));]]></Definition>
+ </PGView>
+ <PGView width="388" x="964" TextField="2" Align="68" y="1333" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="32" height="204" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="v_p2thread_scop" id="0x85f8158" NextOID="1" ScriptCreateDrop="0" FontFamily="Sans" >
+  <Definition><![CDATA[SELECT t.pseq_id, t.p2params_id, b.name, t.raw, t.svm, t.mutation, t.pairwise, t.singleton, t.gap, ((((cfdes.descr || ' / '::text) || sfdes.descr) || ' / '::text) || fades.descr) AS "SCOP fold class / superfamily / family" FROM (((((p2thread t JOIN p2template b ON ((t.pmodel_id = b.pmodel_id))) LEFT JOIN cla ON ((b.sunid = cla.sunid))) LEFT JOIN des cfdes ON ((cfdes.sunid = cla.cf))) LEFT JOIN des sfdes ON ((sfdes.sunid = cla.sf))) LEFT JOIN des fades ON ((fades.sunid = cla.fa))) ORDER BY t.svm DESC;]]></Definition>
+ </PGView>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="NO ACTION" EndArrowDirection="3145776" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="33" BeginArrowDirection="6029412" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="p2template" FontItalic="0" ScriptCreate="1" OnUpdate="NO ACTION" Parent="cla" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="p2template_sunid_exists" BeginTruncate="1" id="0x85fe648" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="1138" y="1078" sinkobjectid="0x8525450" OID="1" id="0x85ff830" sinkid="0x8526c60" />
+  <point x="1278" y="1269" sinkobjectid="0x8516b90" OID="2" id="0x85ffdc8" sinkid="0x8518548" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="sunid" Parent="sunid" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="6029412" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="35" BeginArrowDirection="6881375" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="p2thread" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="p2template" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="p2thread_pmodel_id_exists" BeginTruncate="1" id="0x8601018" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="1151" y="766" sinkobjectid="0x852e340" OID="1" id="0x8602578" sinkid="0x852f7c0" />
+  <point x="1147" y="1072" sinkobjectid="0x8525450" OID="2" id="0x8602b68" sinkid="0x8527190" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pmodel_id" Parent="pmodel_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="7471215" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="37" BeginArrowDirection="7340080" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="paliasorigin" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="porigin" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="porigin_id_exists" BeginTruncate="1" id="0x8603d20" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="988" y="314" sinkobjectid="0x8551b50" OID="1" id="0x8605040" sinkid="0x85527a0" />
+  <point x="1180" y="320" sinkobjectid="0x85cd9b0" OID="2" id="0x8605898" sinkid="0x85cf250" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="porigin_id" Parent="porigin_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="NO ACTION" EndArrowDirection="7274595" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="38" BeginArrowDirection="6750324" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="palignment" FontItalic="0" ScriptCreate="1" OnUpdate="NO ACTION" Parent="pmodel" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="$1" BeginTruncate="1" id="0x8606a70" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="924" y="739" sinkobjectid="0x8557b40" OID="1" id="0x8608020" sinkid="0x8558f58" />
+  <point x="928" y="1036" sinkobjectid="0x85ae7e8" OID="2" id="0x8608558" sinkid="0x85b0268" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pmodel_id" Parent="pmodel_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="7602222" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="39" BeginArrowDirection="7602288" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pfeature" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pseq" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pseq_id_exists" BeginTruncate="1" id="0x8609728" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="362" y="648" sinkobjectid="0x8588510" OID="1" id="0x860acf0" sinkid="0x8589878" />
+  <point x="384" y="329" sinkobjectid="0x85d2c50" OID="2" id="0x860b290" sinkid="0x85d4418" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pseq_id" Parent="pseq_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="6029412" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="40" BeginArrowDirection="6881375" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pfeature" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pftype" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pftype_id_exists" BeginTruncate="1" id="0x860c478" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="363" y="648" sinkobjectid="0x8588510" OID="1" id="0x860da68" sinkid="0x85890e0" />
+  <point x="329" y="825" sinkobjectid="0x85a28a8" OID="2" id="0x860dfb8" sinkid="0x85a3e90" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pftype_id" Parent="pftype_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="3145776" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="46" BeginArrowDirection="3145820" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pmsm" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pmodelset" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm_pmodelset_id_exists" BeginTruncate="1" id="0x860f178" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="928" y="1240" sinkobjectid="0x850fd60" OID="1" id="0x8610798" sinkid="0x8511ee8" />
+  <point x="748" y="1285" sinkobjectid="0x85b34a8" OID="2" id="0x8610d18" sinkid="0x85b4cc8" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="4456517" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="47" BeginArrowDirection="4784198" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pmsm_p2template" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="p2template" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm_p2template_pmodel_id_exists" BeginTruncate="1" id="0x8611858" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="1140" y="1240" sinkobjectid="0x85c0f20" OID="1" id="0x8612d50" sinkid="0x85c2840" />
+  <point x="1147" y="1072" sinkobjectid="0x8525450" OID="2" id="0x8613300" sinkid="0x85276d0" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pmodel_id" Parent="pmodel_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="63" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="49" BeginArrowDirection="30" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pmsm_pmhmm" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pmhmm" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm_pmhmm_pmodel_id_exists" BeginTruncate="1" id="0x86144d8" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="1871" y="1240" sinkobjectid="0x85c5510" OID="1" id="0x8615b10" sinkid="0x85c6b98" />
+  <point x="1831" y="1081" sinkobjectid="0x85a5470" OID="2" id="0x8616078" sinkid="0x85a6d98" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="72" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="52" BeginArrowDirection="448" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pmsm_pmpssm" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pmpssm" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pmsm_pmpssm_pmodel_id_exists" BeginTruncate="1" id="0x8616c40" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="1592" y="1240" sinkobjectid="0x85c9660" OID="1" id="0x8617fd8" sinkid="0x85caee8" />
+  <point x="1573" y="1045" sinkobjectid="0x85b6268" OID="2" id="0x86186b8" sinkid="0x85b7c18" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pmodel_id" Parent="pmodel_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="6029412" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="54" BeginArrowDirection="6881375" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pseqalias" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="paliasorigin" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="palias_fk" BeginTruncate="1" id="0x86198a8" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="732" y="327" sinkobjectid="0x85dc428" OID="1" id="0x861add0" sinkid="0x85dd760" />
+  <point x="988" y="314" sinkobjectid="0x8551b50" OID="2" id="0x861b3a8" sinkid="0x8552be0" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="palias_id" Parent="palias_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="0" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="55" BeginArrowDirection="0" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pseqalias" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pseq" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pseq_id_exists" BeginTruncate="1" id="0x861c5a0" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="732" y="327" sinkobjectid="0x85dc428" OID="1" id="0x861dac0" sinkid="0x85dde00" />
+  <point x="384" y="329" sinkobjectid="0x85d2c50" OID="2" id="0x861e100" sinkid="0x85d49b8" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pseq_id" Parent="pseq_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="NO ACTION" EndArrowDirection="6553705" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="56" BeginArrowDirection="6226033" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pseqalias" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pseq" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="ref_pseq_id_exists" BeginTruncate="1" id="0x861f2f0" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="732" y="327" sinkobjectid="0x85dc428" OID="1" id="0x86207b0" sinkid="0x85de210" />
+  <point x="384" y="329" sinkobjectid="0x85d2c50" OID="2" id="0x8620e68" sinkid="0x85d4ef8" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="ref_pseq_id" Parent="pseq_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="6553705" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="57" BeginArrowDirection="6226033" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pseqprop" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pseq" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pseqprop_pseq_id_exists" BeginTruncate="1" id="0x8622060" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="502" y="474" sinkobjectid="0x85e3920" OID="1" id="0x86234e0" sinkid="0x85e4f08" />
+  <point x="384" y="329" sinkobjectid="0x85d2c50" OID="2" id="0x8623bd0" sinkid="0x85d52d0" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pseq_id" Parent="pseq_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="0" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="58" BeginArrowDirection="69213405" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pseqset" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pseq" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pseq_id_exists" BeginTruncate="1" id="0x8624d88" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="527" y="177" sinkobjectid="0x85e8fd8" OID="1" id="0x86260c8" sinkid="0x85ea6f0" />
+  <point x="384" y="329" sinkobjectid="0x85d2c50" OID="2" id="0x8626940" sinkid="0x85d58c0" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pseq_id" Parent="pseq_id" NextOID="1" />
+ </PGReference>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="12648255" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="59" BeginArrowDirection="12648255" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="pseqset" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="pset" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="pset_id_exists" BeginTruncate="1" id="0x8627ab8" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="527" y="177" sinkobjectid="0x85e8fd8" OID="1" id="0x8628fa0" sinkid="0x85eac58" />
+  <point x="767" y="171" sinkobjectid="0x85ef250" OID="2" id="0x8629630" sinkid="0x85f08e0" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+  <ColumnRef OID="4" Child="pset_id" Parent="pset_id" NextOID="1" />
+ </PGReference>
+ <DText width="401" x="961" TextField="2" Align="68" y="57" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="61" height="136" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x862a7e8" NextOID="1" FontFamily="Sans" ><![CDATA[NOTES:
+1) _id is the suffix for all primary-foreign key relationships; primary keys always have the format <table>_id (except for subclass tables).
+2) Not all pk-fk relationships are depicted.
+3) Some column attributes (e.g., 'fk') are missing.
+4) Thick borders on tables denotes supertables; subclasses of those tables appear in the same color to the right.]]></DText>
+ <DText width="308" x="54" TextField="2" Align="68" y="67" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="67" height="47" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x862c3d0" NextOID="1" FontFamily="Sans" ><![CDATA[http://resdev:8080/projects/unison/
+Reece Hart <rkh@gene.com>
+Genentech, Inc.]]></DText>
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" EndArrowDirection="0" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="68" BeginArrowDirection="0" BeginArrowType="0" FontBold="0" Child="pmsm" FontItalic="0" ScriptCreate="1" Parent="pmodel" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" BeginTruncate="1" id="0x862e000" NextOID="4" ScriptCreateDrop="0" FontFamily="Sans" >
+  <point x="923" y="1222" sinkobjectid="0x850fd60" OID="1" id="0x862f5a0" sinkid="0x8511908" />
+  <point x="934" y="1030" sinkobjectid="0x85ae7e8" OID="2" id="0x862fb48" sinkid="0x85afd38" />
+  <texthandle x="0.45" y="0.5" OID="3" />
+ </PGReference>
+ <DText width="375" x="21" TextField="2" Align="68" y="24" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="24" OID="69" height="36" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8630638" NextOID="1" FontFamily="Sans" ><![CDATA[Unison / CSB Schema]]></DText>
+ <DText width="1" x="513" TextField="2" Align="68" y="122" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="71" height="1" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8632768" NextOID="1" FontFamily="Sans" ><![CDATA[sequence sets]]></DText>
+ <DRectangle width="1" x="1959" TextField="2" Align="68" y="978" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="76" height="1" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x86344c8" NextOID="1" FontFamily="Sans" />
+ <DText width="27" x="364" TextField="2" Align="68" y="304" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="84" height="25" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x863cef0" NextOID="1" FontFamily="Sans" ><![CDATA[text]]></DText>
+ <DText width="157" x="437" TextField="2" Align="68" y="119" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="81" height="25" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x863eab8" NextOID="1" FontFamily="Sans" ><![CDATA[sets of sequences]]></DText>
+ <DText width="824" x="595" TextField="2" Align="68" y="398" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="85" height="21" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8640748" NextOID="1" FontFamily="Sans" ><![CDATA[sequence origins (databases or algorithms), aliases (unique keys within the origin), and alias versions (to accommodate sequence changes)]]></DText>
+ <DText width="422" x="231" TextField="2" Align="68" y="941" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="86" height="28" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8642240" NextOID="1" FontFamily="Sans" ><![CDATA[protein features (locatable entities on sequences) and alignments]]></DText>
+ <DText width="1" x="608" TextField="2" Align="68" y="1033" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="87" height="1" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8643e10" NextOID="1" FontFamily="Sans" ><![CDATA[text]]></DText>
+ <DText width="109" x="672" TextField="2" Align="68" y="1205" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="83" height="16" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x86459e0" NextOID="1" FontFamily="Sans" ><![CDATA[sets of sequences]]></DText>
+ <DText width="306" x="794" TextField="2" Align="68" y="1161" LineColor="#000000" FillStyle="none" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="none" FontColor="#000000" FontPointSize="10" OID="88" height="35" FontBold="0" FontItalic="0" TextFlag="2048" FontStrikeOut="0" id="0x8647660" NextOID="1" FontFamily="Sans" ><![CDATA[models -- anything to which a sequence might align]]></DText>
+</PGModel>
