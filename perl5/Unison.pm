@@ -2,7 +2,7 @@
 
 Unison -- Unison database API for perl
 
-S<$Id: Unison.pm,v 1.11.2.2 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: Unison.pm,v 1.12 2005/03/19 21:29:34 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -80,6 +80,8 @@ use Unison::common;
 =head1 SEE ALSO
 
 =over
+
+=item perldoc Unison::intro
 
 =item perldoc Unison::common
 
