@@ -15,7 +15,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 $v->{params_id} = 15 unless defined $v->{params_id};
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.7 2004/07/13 23:58:31 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.8 2004/07/14 00:20:25 rkh Exp $ ');
 
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
@@ -24,7 +24,7 @@ select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.
   where pseq_id=%d and params_id=%d order by eval
 EOSQL
 my $ar = edit_rows( $u->selectall_arrayref($sql,undef) );
-my @f = ('name', 'start-stop', 'mstart-mstop', '[]', 'score', 'eval');
+my @f = ('aln?', 'name', 'start-stop', 'mstart-mstop', '[]', 'score', 'eval');
 
 
 my @ps = @{ $u->selectall_arrayref("select params_id,name from params where name~'^Pfam' order by name") };
@@ -48,11 +48,17 @@ print $p->render
 
    '<!-- results -->',
    (($#$ar==-1 and $v->{params_id}==15)
-	? $p->warn("No alignments... consider selecting the Pfam_fs 12.0 parameter set and clicking redisplay.")
-	: ''),
+    ? $p->warn("No alignments... consider selecting the Pfam_fs 12.0 parameter set and clicking redisplay.")
+    : ''),
+
+   '<!-- HMM profile alignment -->',
+   $p->start_form(-action=>'hmm_alignment.pl'),
+   $p->hidden('pseq_id',$v->{pseq_id}),
+   $p->hidden('params_id',$v->{params_id}),
+   '<p>', $p->submit(-value=>'align checked'),
 
    $p->group("HMM alignments",
-			 Unison::WWW::Table::render(\@f,$ar)),
+	     Unison::WWW::Table::render(\@f,$ar)),
 
    '<!-- sql -->',
    $p->sql($sql)
@@ -62,6 +68,10 @@ print $p->render
 sub edit_rows {
   my $ar = shift;
   foreach my $r (@$ar) {
+    my $rnew; #will replace r with an extra aln checkbox column at the start
+    # build checkbox for alignment
+    push @$rnew, "<input type=\"checkbox\" name=\"profiles\" "
+      . "value=\"$r->[0]\">";
 	#my ($acc) = $r->[$#$r] =~ m/^(PF\d+)/;
 	#$r->[0] = sprintf('<a href="http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s">%s</a>',
 	#				   $acc, $r->[0]);
@@ -71,6 +81,9 @@ sub edit_rows {
 	splice( @$r,3,2, sprintf("%d-%d",@$r[3..4]) );
 	splice( @$r,1,2, sprintf("%d-%d",@$r[1..2]) );
 	pop(@$r);
+
+    push @$rnew, @$r;
+    $r = $rnew;
   }
   return $ar;
-  }
+}
