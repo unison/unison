@@ -4,9 +4,8 @@
 # NAME: genome_features.pl
 # PURPOSE: web script to output pseq aligned to a genome
 # USAGE: genome_features.pl?genasm_id=<genasm_id>&[(chr=<chr>&gstart=<gstart>&gstop=<gstop>)||(pseq_id=<pseq_id>)]
-# NOTE: web wrapper around the genome-features command-line scripto
 #
-# $Id: genome_features.pl,v 1.6 2004/04/02 00:16:32 rkh Exp $
+# $Id: genome_features.pl,v 1.7 2004/04/30 23:48:38 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -17,46 +16,57 @@ use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page;
+use Unison;
+use Unison::Exceptions;
+use Unison::genome_features;
 use File::Temp;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
+
 # verify parameters
 if ( ! ( defined $v->{genasm_id} && (
   ( defined $v->{chr} && defined $v->{gstart} && defined $v->{gstop} ) ||
   ( defined $v->{pseq_id} ) ) )) { $p->die( &usage ); }
 
+# merge defaults and options
+my %opts = (%Unison::genome_features::opts, %$v);
+
 # get tempfiles for the genome-feature png and imagemap
-my ($png_fh, $png_fn)   = File::Temp::tempfile(DIR => "$ENV{'DOCUMENT_ROOT'}/tmp/genome-features");
-my ($imap_fh, $imap_fn) = File::Temp::tempfile(DIR => "$ENV{'DOCUMENT_ROOT'}/tmp/genome-features");
+my ($png_fh, $png_fn)   = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.png');
+my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
 
-# run genome-features, pass in temp filenames
-my $cmd = "../../bin/genome-features -d$p->{unison}->{dbname} -UPUBLIC -w750 -q$v->{genasm_id} -f$png_fn -i$imap_fn";
-if ( defined $v->{margin} ) {
-  $cmd .= " -m$v->{margin} ";
-}
-if ( defined $v->{pseq_id} ) {
-  $cmd .= " -p$v->{pseq_id}";
-  if ( defined $v->{show_all} && $v->{show_all} ) {
-    $cmd .= ' -a ';
+my $imagemap = '';
+
+
+try {
+  my $panel = Unison::genome_features::genome_features_panel($u,%opts);
+
+  # write the png to the temp file
+  $png_fh->print( $panel->gd()->png() );
+  $png_fh->close();
+
+  # assemble the imagemap as a string
+  foreach my $box ( $panel->boxes() ) {
+	my ($feature, $x1, $y1, $x2, $y2) = @$box;
+	my $fstart = $feature->start; # should be unique
+	my $fname = $feature->name; # should be unique
+	next if not defined $fname;
+	if (my ($pseq_id) = $fname =~ m/^Unison:(\d+)/) {
+	  my $text = $u->best_annotation($pseq_id,1);
+	  $imagemap .= qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">\n);
+	}
   }
-} else {
-  $cmd .= " -c$v->{chr} -b$v->{gstart} -e$v->{gstop}";
-}
-system($cmd);
+} catch Unison::Exception with {
+  $p->die(@_);
+};
 
-open(FP,"$imap_fn") or die("can't open $imap_fn for reading");
-my $imap = '';
-while(<FP>) { $imap .= $_; }
-close(FP);
 
-$png_fn =~ m#^(.*)(/tmp/genome-features/)(.*)$#;
-my $fn = "$2$3";
 print $p->render("Genome Map",
-				 "<center><img src=\"$fn\" usemap=\"#GENOME_MAP\"></center>",
-				 $imap
+				 "<center><img src=\"$png_urn\" usemap=\"#GENOME_MAP\"></center>",
+				 "<MAP NAME=\"GENOME_MAP\">\n", $imagemap, "</MAP>\n"
 				);
 
 
@@ -69,3 +79,6 @@ sub usage {
      "[(chr=&lt;chr&gt; & gstart=&lt;gstart&gt; & gstop=&lt;gstop&gt; " .
      "|| pseq_id=&lt;pseq_id&gt;]" );
 }
+
+
+
