@@ -2,8 +2,8 @@
 
 unset PGHOST
 
-if [ "`uname -n`" != "interceptor" ]; then
-	echo "this should be run on interceptor" 1>&2
+if [ "`uname -n`" != "csb" ]; then
+	echo "this should be run on csb" 1>&2
 	exit 1
 fi
 
