@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.8 2004/12/24 00:09:46 rkh Exp $
+# $Id: run-pahmm,v 1.9 2005/03/22 05:45:51 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -37,6 +37,12 @@ my %pfams =
    '14fsld' => {modelfile => '/gne/compbio/share/pfam-14.0/Pfam_fs.hmmb',
 			  origin => 'Pfam_fs 14.0',
 			  params => 'Pfam_fs 14.0 (ldhmmer)'},
+   '17fs' => {modelfile => '/gne/compbio/share/pfam-17.0/Pfam_fs.hmmb',
+			  origin => 'Pfam_fs 17.0',
+			  params => 'Pfam_fs 17.0'},
+   '17ls' => {modelfile => '/gne/compbio/share/pfam-17.0/Pfam_ls.hmmb',
+			  origin => 'Pfam_ls 17.0',
+			  params => 'Pfam_ls 17.0'},
   );
 
 my %opts = 
@@ -45,7 +51,8 @@ my %opts =
    params_id => undef,
    pmodelset_id => undef,
    verbose => 0,
-   pfam => '14fsld'
+   pfam => '17fs',
+   'seqs-per-run' => 100
   );
 GetOptions(\%opts,
 		   'force|f+',
@@ -76,7 +83,7 @@ if (not defined $opts{params_id}) {
 }
 
 if (not defined $opts{porigin_id}) {
-  $opts{porigin_id} = $u->get_porigin_id_by_origin($opts{origin});
+  $opts{porigin_id} = $u->porigin_porigin_id_by_origin($opts{origin});
   if (not defined $opts{porigin_id}) {
 	die("$0: couldn't find porigin_id for params `$opts{origin}'\n");
   }
@@ -109,41 +116,43 @@ my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps t
 my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
 										   join(',',@fields), join(',',map {'?'} @fields)));
 
+
 my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 my $N = $#pseq_ids+1;
 my $n = 0;
-PSEQ_ID:
-while( my $pseq_id = shift(@pseq_ids) ) {
-  my $leader = sprintf("\rUnison:%8s (%4d/%4d %5.1f%%)", $pseq_id, ++$n, $N, $n/$N*100 );
-  print(STDERR $leader, ' 'x20);
-
-  foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
-	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$opts{porigin_id},$m);
-	if (defined $ran_on and not $opts{update}) {
-	  if (not $opts{update}) {
-		print(STDERR "$leader: run with these options on $ran_on; skipping\n");
-		next PSEQ_ID;
-	  }
-	  print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
-	}
-  }
 
 
-  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  if (not defined $seq) {
-	warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
-	next;
-  }
+while( @pseq_ids ) {
+  my (@ids) = splice(@pseq_ids,0,$opts{'seqs-per-run'});
 
   my $so = new Bio::SeqIO( -format => 'fasta',
 						   -file => ">$seqfn" )
 	|| die("! couldn't open $seqfn for writing\n");
-  $so->write_seq( new Bio::PrimarySeq( -seq => $seq,
-									   -id => "Unison:$pseq_id" ) );
+
+ PSEQ_ID:
+  foreach my $pseq_id (@ids) {
+	foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
+	  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$opts{porigin_id},$m);
+	  if (defined $ran_on and not $opts{update}) {
+		if (not $opts{update}) {
+		  print(STDERR "Unison:$pseq_id run with these options on $ran_on; skipping\n");
+		  next PSEQ_ID;
+		}
+		print(STDERR "Unison:$pseq_id run with these options on $ran_on; running anyway\n");
+	  }
+	}
+	my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+	if (not defined $seq) {
+	  warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+	  next;
+	}
+	$so->write_seq( new Bio::PrimarySeq( -seq => $seq,
+										 -id => "Unison:$pseq_id" ) );
+  }
+
   $so->close();
 
 
-  print(STDERR "$leader: running");
   my $hmmerpipe = new IO::Pipe;
   $hmmerpipe->reader( @cl )
 	|| die("couldn't do @cl\n");
@@ -154,11 +163,17 @@ while( my $pseq_id = shift(@pseq_ids) ) {
   my $nhsps = 0;
   my $nins = 0;
   while( my $result = $in->next_result ) {
+	my ($pseq_id) = $result->query_name() =~ m/Unison:(\d+)/;
+	(defined $pseq_id)
+	  || die("couldn't parse pseq_id from hmmer results\n");
+
+	my $leader = sprintf("\rUnison:%8s (%4d/%4d %5.1f%%)",
+						 $pseq_id, ++$n, $N, $n/$N*100 );
+	print(STDERR $leader, ' 'x20);
+
 	while( my $hit = $result->next_hit ) {
 	  my $acc = $hit->name();
 	  my $pmodel_id = get_pmodel_id($acc);
-	  print(STDERR "$leader: loading $acc", ' 'x10);
-
 	  if (not defined $pmodel_id) {
 		die("\n! couldn't look up a pmodel_id for $acc in origin $opts{porigin_id}!\n");
 	  }
@@ -170,6 +185,7 @@ while( my $pseq_id = shift(@pseq_ids) ) {
 					$pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
 					$hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
 					int($hsp->score()), $hsp->evalue());
+
 		try {
 		  $pahmm_sth->execute(@data);
 		  $nins++;
@@ -178,12 +194,12 @@ while( my $pseq_id = shift(@pseq_ids) ) {
 		};
 	  }
 	}
+	my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
+	print(STDERR "$leader: inserted $nins/$nhsps HSPs; $z; committed\n");
   }
   $hmmerpipe->close();
-  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
   $u->commit();
 
-  print(STDERR "$leader: inserted $nins/$nhsps HSPs; $z; committed\n");
 }
 
 
