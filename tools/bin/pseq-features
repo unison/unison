@@ -46,6 +46,7 @@ $panel->add_track( Bio::SeqFeature::Generic->new
 
 add_pftmdetect( $u, $panel, $opts{pseq_id} );
 add_pahmm( $u, $panel, $opts{pseq_id} );
+add_papssm( $u, $panel, $opts{pseq_id} );
 add_paprospect2( $u, $panel, $opts{pseq_id} );
 
 print $panel->png();
@@ -91,7 +92,7 @@ sub add_pftmdetect {
 sub add_paprospect2 {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
-  my $track = $panel->add_track( -glyph => 'box',
+  my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -bgcolor => 'green',
 								 -key => 'prospect',
 								 -bump => +1,
@@ -100,7 +101,9 @@ sub add_paprospect2 {
 								 -font2color => 'red',
 								 -description => 1,
 								 -height => 4,
-								 -bgcolor => 'green'
+								 -bgcolor => 'green',
+								 -min_score => 7,
+								 -max_score => 14
 							   );
   my $featref = $u->selectall_arrayref(
 	'select tmp.*,best_annotation(tmp.pseq_id)
@@ -109,14 +112,15 @@ sub add_paprospect2 {
 		  JOIN pmprospect2 b ON t.pmodel_id=b.pmodel_id
           LEFT JOIN cla ON b.sunid = cla.sunid
           LEFT JOIN des sfdes ON sfdes.sunid = cla.sf
-          WHERE t.pseq_id='.$q.' and t.svm>7 ORDER BY t.svm DESC limit 5) tmp');
+          WHERE t.pseq_id='.$q.' and t.svm>7 ORDER BY t.svm DESC limit 15) tmp');
   foreach my $r (@$featref) {
 	next unless defined $r->[0];
 	$track->add_feature
 	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
 									   -end => $r->[1],
-									   -seq_id => sprintf("%s (%s)",
-														  $r->[4], $r->[6]||'<?>')
+									   -score => $r->[3],
+									   -seq_id => sprintf("%s; raw=%s; svm=%s; (%s)",
+														  @$r[4,2,3], $r->[6]||'<?>')
 									 ) );
 	$nadded++;
   }
@@ -128,8 +132,8 @@ sub add_pahmm {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
   my $track = $panel->add_track( -glyph => 'graded_segments',
-								 -min_score => 1e-20,
-								 -max_score => 1,
+								 -min_score => 1,
+								 -max_score => 25,
 								 -bgcolor => 'blue',
 								 -key => 'HMM',
 								 -bump => +1,
@@ -143,7 +147,7 @@ sub add_pahmm {
   my $featref = $u->selectall_arrayref(
 	'select A.start,A.stop,M.name as "model",A.mstart,A.mstop,M.len,A.score,A.eval,M.descr
 	 from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
-	 where pseq_id='.$q.' and eval<=2 order by eval');
+	 where pseq_id='.$q.' and score>1 and eval<=5 order by eval');
   foreach my $r (@$featref) {
 	next unless defined $r->[0];
 	printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
@@ -156,6 +160,42 @@ sub add_pahmm {
 														  $r->[0]==1?'[':'.',
 														  $r->[1]==$r->[5]?']':'.',
 														  $r->[6], $r->[7],$r->[8])
+									 ) );
+	$nadded++;
+  }
+  return $nadded;
+}
+
+
+sub add_papssm {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 100,
+								 -max_score => 500,
+								 -bgcolor => 'red',
+								 -key => 'PSSM/SBP',
+								 -bump => +1,
+								 -label => 1,
+								 -fgcolor => 'black',
+								 -fontcolor => 'black',
+								 -font2color => 'red',
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $featref = $u->selectall_arrayref(
+	'select A.start,A.stop,M.name as "model",A.score,A.eval
+	 from papssm A join pmpssm M on A.pmodel_id=M.pmodel_id
+	 where pseq_id='.$q.' and eval<=5 order by eval');
+  foreach my $r (@$featref) {
+	next unless defined $r->[0];
+	printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
+	$track->add_feature
+	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+									   -end => $r->[1],
+									   -score => $r->[3],
+									   -seq_id => sprintf("%s; S=%s; E=%s)",
+														  $r->[2], $r->[3], $r->[4])
 									 ) );
 	$nadded++;
   }
