@@ -15,7 +15,7 @@ my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-my @statevars = qw(pseq_id run_id offset limit);
+my @statevars = qw(pseq_id run_id offset limit sort);
 
 $p->ensure_required_params(qw(pseq_id run_id));
 
@@ -86,20 +86,25 @@ for(my $fi=0; $fi<=$#f; $fi++) {
 
 
 my @ctl;
-if ($v->{offset}>=$v->{limit}) {
+
+if ($v->{offset}>0) {
+  my $no = $v->{offset}-$v->{limit};
+  $no = 0 if $no<0;
   push(@ctl, 
-	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>0},@statevars), '<span class="button">|&lt;&lt;</span>'),
-	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$v->{offset}-$v->{limit}},@statevars), '<span class="button">&lt;</span>' )
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>0},@statevars), '<span tooltip="first (full) page" class="button">|&lt;&lt;</span>'),
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$no},@statevars), '<span tooltip="back one page" class="button">&lt;</span>' )
 	   );
 }
 push(@ctl,
 	 sprintf("%d-%d of %d</a>",
 			 $v->{offset}+1,$v->{offset}+$v->{limit},$N)
 	);
-if ($N-1-$v->{offset}>=$v->{limit}) {
+if ($N-1-$v->{offset}>0) {
+  my $no = $v->{offset}+$v->{limit};
+  $no=$N-$v->{limit} if $no>$N-1;
   push(@ctl, 
-	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$v->{offset}+$v->{limit}},@statevars), '<span class="button">&gt</span>' ),
-	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$N-$v->{limit}},@statevars), '<span class="button">&gt;&gt;|</span>')
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$no},@statevars), '<span tooltip="ahead one page" class="button">&gt</span>' ),
+	   sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$N-$v->{limit}},@statevars), '<span tooltip="last (full) page" class="button">&gt;&gt;|</span>')
 	  );
 }
 
