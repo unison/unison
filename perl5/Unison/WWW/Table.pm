@@ -54,9 +54,13 @@ sub render_compat {
   my $rv = '';
 
   $rv .= "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
-  $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
   if ($#$ar > -1) {
 	if (defined $opts->{highlight_column}) {
+	  $rv .= '<tr>' . join('', map { '<th align="left"'
+									 .($_==$opts->{highlight_column} ? ' class="highlighted"' : '').'>'
+									 . $fr->[$_] .'</th>'
+									   }
+						   0..$#$fr) . "</tr>\n";
 	  for(my $r=0; $r<=$#$ar; $r++) {
 		$rv .= "<tr>";
 		my @row = @{ $ar->[$r] };
@@ -68,6 +72,7 @@ sub render_compat {
 		$rv .= "</tr>\n";
 	  }
 	} else {
+	  $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
 	  $rv .= "<tr>" . join('',map {'<td>'.$_.'</td>'} @$_) . "</tr>\n" for @$ar; 
 	}
   } else {

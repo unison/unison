@@ -17,7 +17,7 @@ print $p->render("Unison Environment",
 				 (map { "<br><code>$_: "
 						. (defined $p->{unison}->{$_} ? $p->{unison}->{$_} : '(undef)')
 						. "</code>\n" }
-				  qw(username host)),
+				  qw(username host dbname)),
 
 				 '<hr>Kerberos and user information:',
 				 (map { "<br><code>$_: $ENV{$_}</code>\n" }
