@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.16 2004/07/19 22:20:16 rkh Exp $>
+S<$Id: DBI.pm,v 1.17 2004/08/02 21:58:42 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -178,7 +178,6 @@ Genentech environment are used.
   }
 
   $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
-  $dbh->do('SET statement_timeout = 180000'); # 180s
 
   $self->{dbh} = $dbh;
 
