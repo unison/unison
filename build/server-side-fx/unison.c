@@ -142,7 +142,7 @@ char*
 begin_end_hex(char* buf, char* seq, int len) {
   int end = len-1;
   sprintf(buf, 
-		  "%2x %2x %2x %2x %2x .. %2x %2x %2x %2x %2x\0",
+		  "%2x %2x %2x %2x %2x .. %2x %2x %2x %2x %2x",
 		  seq[0],seq[1],seq[2],seq[3],seq[4],
 		  seq[end-4],seq[end-3],seq[end-2],seq[end-1],seq[end-0]);
   return buf;
