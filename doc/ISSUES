@@ -11,10 +11,6 @@ IMPORTANT:
   well.  Ex: given a good thread to pseq_id 333, how does one determine that
   333 is really a sigcleave'd fragment of 222 (case 1 above).
 
-* delete from palias rule
-  wipes out corresponding paliasorigin & pseqalias rows
-  (or, just set not current?)
-
 
 
 TO-DO AT NEXT BACKUP/RESTORE:
@@ -23,10 +19,28 @@ TO-DO AT NEXT BACKUP/RESTORE:
 * w/o oids
   fix 4 tables made by cavs
 * pseq.len: smallint -> int 
+* s/p2/prospect2/
+* porigin_id() needs to be created ahead of dv_*
 
 
 
 BACKBURNER:
+
+* collect UNQ,DNA -> pseq_id mapping (via PRO, presumably)
+
+* drop ins,upd,del from all tables upon staging? how?
+
+* stage and/or prod building should write intermediate dump
+
+* db release should be dump date (I think)
+
+* split unison/ from csb-db/; move tax/, scop/, gong/ to unison/ 
+
+* API documentation is abysmal
+
+* delete from palias rule
+  wipes out corresponding paliasorigin & pseqalias rows
+  (or, just set not current?)
 
 * changes to pmodelsets and porigins are not tracked by run_history
 run_history refers to pmodelsets and porigins. It is possible that the set
@@ -44,7 +58,6 @@ augments with the params_prospect2 data. If not, then we can simply drop
 params_prospect2. Either way, params needs to be the /single/ table with
 the params_id primary key.
 
-
 * pftypes, params, run_history
 problems:
 - some params map to multiple types (e.g., tmdetect). This happens
@@ -55,8 +68,7 @@ problems:
   Pfam models, but that's a deviation from the original intent of
   modelsets: to collect models related by function, not by model type.  
 
-
-* standardize naming conventions better (e.g., last_run instead of lastrun?)
+* standardize naming conventions better
 
 * sequences may be "anonymous", meaning not referenced by any alias
   do we care?
