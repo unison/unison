@@ -2,7 +2,11 @@ package Unison::WWW;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
-our $RELEASE = '$Name$';
+use strict;
+use warnings;
+
+our ($RELEASE) = q$Name: bar $ =~ m/Name:\s+(\S*)\s+/;
+
 
 BEGIN {
   # if this file exists and is writable, then we'll open it for logging.
@@ -21,16 +25,6 @@ BEGIN {
 	}
 	$ENV{DEBUG} = 1;
   }
-
-
-  # Prepend the full path of ../perl5/ to @INC
-  # This facilitates tree relocation / dev trees in user directories.
-  # To be safe, it's probably best to load Unison::WWW after non-Unison
-  # modules.
-  $ENV{SCRIPT_FILENAME} = $0 unless (exists $ENV{SCRIPT_FILENAME});
-  my ($dir) = $ENV{SCRIPT_FILENAME} =~ m%^(.*\/)%;
-  $dir .= '/../perl5';
-  unshift(@INC, $dir) if (-d $dir);
 }
 
 1;
