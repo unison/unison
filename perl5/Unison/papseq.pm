@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::papseq -- Unison papseq table utilities
-S<$Id: papseq.pm,v 1.2 2003/06/12 22:31:01 cavs Exp $>
+S<$Id: papseq.pm,v 1.3 2003/06/13 00:26:50 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -42,7 +42,7 @@ sub load_blast_report {
   my $report = new Bio::Tools::BPlite(-file=>$file);
   my $q_pseq_id = $u->_get_pseq_id_from_name($report->query());
   if ( !defined $q_pseq_id ) {
-    throw Unison::RuntimeError("Nno pseq_id defined for this query sequence: " . 
+    throw Unison::RuntimeError("No pseq_id defined for this query sequence: " . 
       $report->query() );
   }
   while(my $sbjct = $report->nextSbjct) {
@@ -51,7 +51,7 @@ sub load_blast_report {
       warn("No pseq_id defined for this target sequence: " . $sbjct->name() . " - skipping\n" );
       next;
     }
-		# get the pmodel_id for this sequence
+    # get the pmodel_id for this sequence
     my $pmodel_id = $u->_get_pmodel_id_from_pseq_id($t_pseq_id);
 
     while(my $hsp = $sbjct->nextHSP) {
@@ -87,7 +87,7 @@ sub insert_hsp {
   } elsif ( ! defined $hsp or ( ref $hsp ne 'Bio::Tools::BPlite::HSP' ) ) {
     throw Unison::BadUsage( 'Unison::insert_hsp() requires Bio::Tools::BPlite::HSP object' );
   }
-  throw Unison::RuntimeError( 'Unison connection not open' ) if ! $u->is_open();
+  throw Unison::RuntimeError( 'Unison connection is not open' ) if ! $u->is_open();
   
   my $sql_start = "insert into papseq " .
     "(pseq_id, start, stop, pmodel_id, mstart, mstop, len, ident, sim, " .
@@ -117,29 +117,13 @@ sub insert_hsp {
 
 =cut
 
-my %pseq_id_cache;
 sub _get_pseq_id_from_name {
   my ($u,$name) = @_;
   my $pseq_id;
 
-  # use cached value if available
-  return $pseq_id_cache{ $name } if 
-    defined $pseq_id_cache{ $name };
-
-  # if name starts with Unison: expect that numeric
-  # identifier following Unison: is the pseq_id.  this
-  # is the standard when writing out FASTA files from
-  # Unison.  Otherwise, parse the accesion and try
-  # to look up the alias.
   if ( $name =~ m/^Unison:(\d+)/ ) {
     $pseq_id=$1;
-  } else {
-    $name =~ m/^(.*?)\s/;
-    $pseq_id = $u->get_pseq_id_from_alias( $1 );
   }
-
-  # store pseq_id (if available) in cache for the specified name
-  $pseq_id_cache{ $name } = $pseq_id if defined $pseq_id;
   return $pseq_id;
 }
 
@@ -165,17 +149,19 @@ sub _get_pmodel_id_from_pseq_id {
   return $pmodel_id_cache{ $pseq_id } if 
     defined $pmodel_id_cache{ $pseq_id };
 
+  throw Unison::RuntimeError( 'Unison connection is not open' ) if ! $u->is_open();
+
   my $sql = "select pmodel_id from pmpseq where pseq_id=?";
   my $sth = $u->prepare_cached($sql);
   $sth->execute( $pseq_id );
-	my $retval = $sth->fetchrow_arrayref();
-	$sth->finish();
+  my $retval = $sth->fetchrow_arrayref();
+  $sth->finish();
 
   # store pmodel_id (if available) in cache for the specified pseq_id
-	if ( defined  $retval->[0] ) {
-		$pmodel_id_cache{ $pseq_id } = $retval->[0];
-		return $retval->[0];
-	}
+  if ( defined  $retval->[0] ) {
+    $pmodel_id_cache{ $pseq_id } = $retval->[0];
+    return $retval->[0];
+  }
   return;
 }
 
