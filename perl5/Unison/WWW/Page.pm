@@ -4,19 +4,6 @@ use CGI qw( -debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
 
 
-BEGIN {
-  $ENV{DEBUG} = 1;
-  if ($ENV{DEBUG}) {
-	my $fn = '/tmp/unison-web.log';
-	close(STDERR);
-	if (not open(STDERR, ">>$fn")) {
-	  print("$fn: $!\n");
-	  exit(0);
-	}
-  }
-}
-
-
 BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
 use strict;
 use warnings;
