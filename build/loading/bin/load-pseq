@@ -10,11 +10,10 @@ my $usage = <<'EOU';
 #   --format|-f <format>: name of input file format (any format allowed by Bio::SeqIO)
 # OPTIONS:
 #   --start-after|--startafter <acc>: start parsing input file after this acc
-#   --sql-only|--sqlonly: flag to output only sql commands
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.10 2004/06/04 00:04:07 rkh Exp $
+# $Id: load-pseq,v 1.11 2004/06/04 16:39:09 sulin Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -35,20 +34,17 @@ sub process_stream ($$);
 sub process_seq ($$$$);
 
 
-my %af = ( fthelper => 1,
-		   multifile => 1, abi => 1, ace => 1, alf => 1,
-		   asciitree => 1, bsml => 1, chadoxml => 1, ctf => 1,
-		   embl => 1, exp => 1, fasta => 1, fastq => 1,
-		   game => 1, gcg => 1, genbank => 1, kegg => 1,
-		   largefasta => 1, locuslink => 1, metafasta => 1, phd => 1,
-		   pir => 1, pln => 1, qual => 1, raw => 1,
-		   scf => 1, swiss => 1, tab => 1, tigr => 1,
-		   ztr => 1);
+# acceptable file formats (courtesy of Bioperl)
+my @af = qw(fthelper multifile abi ace alf asciitree bsml chadoxml ctf
+		   embl exp fasta fastq game gcg genbank kegg largefasta locuslink
+		   metafasta phd pir pln qual raw scf swiss tab tigr ztr);
+my %af = map { $_=>1 } @af;
+
+
 my %opts = (
 			origin => undef,
 			format => undef,
 			'start-after' => undef,
-			'sql-only' => 0,
 			'include-subex' => 0,
 			'verbose' => 0
 );
@@ -56,7 +52,6 @@ GetOptions( \%opts,
 			'origin|o=s',
 			'format|f=s',
 			'start-after|startafter|A=s',
-			'sql-only|sqlonly',
 			'verbose|v',
 			'incl-subex|inclsubex' )
   || die("$0: bad usage:\n$usage\n");
@@ -71,7 +66,9 @@ GetOptions( \%opts,
 
 my $u = new Unison;
 
-$opts{porigin_id} = $u->porigin_porigin_id_by_origin($opts{origin});
+$opts{porigin_id} = $u->porigin_si_porigin_id($opts{origin});
+(defined $opts{porigin_id})
+  || die("couldn't lookup or insert origin $opts{origin}\n");
 
 
 my %totals = map { $_=>0 } qw(nseen nadded nskipped nfailed naliases);
@@ -132,7 +129,6 @@ sub tally ($%) {
 ## ARGUMENTS: Bio::SeqIO object, option hashref:
 ##'origin' => name of porigin (REQUIRED)
 ##  'start-after' => skip seqs until this accession
-##  'sql-only' => boolean for sql output only (no loading in Unison)
 ##  'incl-subex' => boolean for whether to include subex gene predictions
 ##  'verbose' => boolean for whether to output more information
 ## RETURNS: hash with process info keys: nseen, nskipped, nadded, nfailed
@@ -167,32 +163,16 @@ sub process_seq ($$$$) {
   my ($u,$bs,$rv,$tax_id_allowed) = @_;
   my ( %alias, %md5 );
   my $id = $bs->display_id();
-  my $seq = $bs->seq();
+  my $descr = $bs->desc();
+  my $seq = clean_sequence( $bs->seq() );
+  my $md5 = sequence_md5($seq);
+  my @aliases = ();						  # aliases to be loaded for this sequence
+  my $tax_id = 'NULL';
 
   (defined $seq)
-	|| throw Unison::Exception::RuntimeError("$id: sequence not defined");
+	|| die("$id: sequence not defined");
 
-  my $tax_id;
-  my $descr = $bs->desc();
-  $seq = clean_sequence($seq);
-  my $md5 = sequence_md5($seq);
   $rv->{nseen}++;
-
-  # description reformatting
-  $descr = '' unless defined $descr;
-  $descr =~ s/\s{2,}/ /g;
-  $descr =~ s/^\s+//;
-  $descr =~ s/\s+$//;
-
-  if ($opts{origin} =~ m/spdi/i) {
-	$descr =~ s/\[(?:min|full)\]\s+//;
-	$descr =~ s/\# converted.+//;
-  } elsif ($opts{origin} =~ m/refseq/i) {
-	my $v = $bs->seq_version();
-	if (defined $v) {
-	  $id .= ".$v";
-	}
-  }
 
   # skip sequences in various conditions
   my $skip;
@@ -214,31 +194,43 @@ sub process_seq ($$$$) {
     return;
   }
 
-  # @ids is the SET of ids to which we'll link this sequence
-  my @ids = ();
+  # prepare aliases and description text
+  $descr = '' unless defined $descr;
+  $descr =~ s/\s{2,}/ /g;
+  $descr =~ s/^\s+//;
+  $descr =~ s/\s+$//;
 
-  if ($opts{origin} =~ m/SPDI/i) {
-    my %ids;
-    $ids{$1}++ if $descr =~ s/(PRO\d+)\s+//;
-    # Don't put UNQs or DNAs in database -- unqs aren't unique and dnas
-    # are proteins
-	# $ids{$1}++ if $descr =~ s/(UNQ\d+)\s+//;
-    # $ids{$1}++ if $descr =~ s/(DNA\d+)\s+//;
-    # $ids{$id}++;
-    @ids = sort keys %ids;
+  # see if there's species info and make sure that the tax_id is in the set of allowable
+  # tax_ids (see description of process_stream method for more info).  if so, get the 
+  # tax_id to insert with the # alias
+  if (defined $bs->species && defined $bs->species->ncbi_taxid() && 
+	  defined $tax_id_allowed->{$bs->species->ncbi_taxid()} ) {
+    $tax_id = $bs->species->ncbi_taxid();
+  }
+
+  # origin-specific loading
+  @aliases = ( $id );
+  if ($opts{origin} =~ m/refseq/i) {
+	my $v = $bs->seq_version();
+	if (defined $v) {
+	  $id .= ".$v";
+	}
   } elsif ($opts{origin} =~ m/Swiss-Prot/i) {
-  	@ids = ( $id );
-	push (@ids, $bs->accession());
+	# load S-P accession as well
+  	push( @aliases, $bs->accession() );
+  } elsif ($opts{origin} =~ m/SPDI/i) {
+	$descr =~ s/\[(?:min|full)\]\s+//;
+	$descr =~ s/\# converted.+//;
+  } elsif ($opts{origin} =~ m/^TNF6F/i) {
+	# this is a hack to remove extraneous comments from the tnf-filter
+	# it should really be addressed there...
+	$descr =~ s%/coords.+trans=[FR]\d %%;
+	$tax_id = 9606;
   } else {
-    @ids = ( $id );
   }
 
-  if ($opts{'sql-only'}) {
-    printf("insert into pseq (seq,len) values ('$seq',%d);\n",
-		   length($seq)); return 1;
-  }
 
-  # select/insert sequences, then link aliases
+  # select/insert sequence to get a pseq_id
   my $pseq_id;
   my $frommd5='';
   if (%md5 and defined $md5{ $md5 }) {
@@ -249,36 +241,26 @@ sub process_seq ($$$$) {
 	  $pseq_id = $u->pseq_si_pseq_id( $seq );
 	} catch Unison::Exception with {
 	  $rv->{nfailed}++;
-	  throw Unison::Exception::RuntimeError( "Failed to load sequence $ids[0] ($descr)",
-											 $_[0] );
+	  warn("Failed to load sequence $aliases[0] ($descr)\n",
+		   $_[0] );
+	  return;
 	};
     $md5{ $md5 } = $pseq_id;
 	$rv->{nadded}++;
   }
 
-
-  # see if there's species info and make sure that the tax_id is in the set of allowable
-  # tax_ids (see description of process_stream method for more info).  if so, get the 
-  # tax_id to insert with the # alias
-  if (defined $bs->species && defined $bs->species->ncbi_taxid() && 
-	  defined $tax_id_allowed->{$bs->species->ncbi_taxid()} ) {
-    $tax_id = $bs->species->ncbi_taxid();
-  } else {
-    $tax_id = 'NULL';
-  }
-
-  foreach my $upd_id (@ids)  {
+  # load aliases for this pseq_id
+  foreach my $alias (@aliases)  {
 	try {
-	  $u->add_palias($pseq_id,$opts{porigin_id},$upd_id,$descr,$tax_id);
+	  $u->add_palias($pseq_id,$opts{porigin_id},$alias,$descr,$tax_id);
 	} catch Unison::Exception with {
-	  $rv->{nfailed}++;
-	  throw Unison::Exception::RuntimeError( "Failed to load one or more aliases for $pseq_id",
-											 $_[0] );
+	  warn("Failed to load alias $alias for Unison:$pseq_id\n",
+		   $_[0]);
 	};
 	$rv->{naliases}++;
   }
 
-  printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
+  printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@aliases}, descr=%s\n",
 		 length($seq), $descr) if $opts{verbose};
 
   return;
