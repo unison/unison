@@ -5,41 +5,47 @@
 # PURPOSE: parse BLAT psl output for protein-to-genome alignments. load
 #          output into set of unison tables.
 # 
-# $Id: load-blat,v 1.4 2004/03/04 18:47:16 cavs Exp $
+# $Id: load-blat,v 1.5 2004/04/02 19:35:02 cavs Exp $
 #-------------------------------------------------------------------------------
 
+use strict;
 use warnings;
 use Bio::Tools::ProteinToGenomeBlat;
 use Getopt::Long;
 use Unison;
-use strict;
+use Unison::Exceptions;
 
-my ($help,$score_cutoff,$pct_ident_cutoff,$genasm_id,$verbose);
+my %opts =
+  (
+   genasm_id => undef,
+   pct_ident_cutoff => 80,
+   score_cutoff => 50,
+   verbose => 0,
+  );
 
-GetOptions( 
-  'help|h' => \$help,
-  'pct_ident_cutoff|p=i' => \$pct_ident_cutoff,
-  'genasm_id|g=i' => \$genasm_id,
-  'score_cutoff|s=i' => \$score_cutoff,
-  'verbose!' => \$verbose
-) || &usage();
+GetOptions(\%opts,
+  'pct_ident_cutoff|p=i',
+  'genasm_id|g=i',
+  'score_cutoff|s=i',
+  'help',
+  'verbose!',
+) || usage();
 
-&usage() if ($#ARGV != 0 || ! defined $genasm_id );
+usage() if ($#ARGV != 0 || ! defined $opts{genasm_id} );
 
-$score_cutoff         = 50 if ! defined $score_cutoff;
-$pct_ident_cutoff     = 50 if ! defined $pct_ident_cutoff;
 
-my $bio = new Bio::Tools::ProteinToGenomeBlat( -file => $ARGV[0] );
 my $uni = new Unison();
-
 my $aln_sth = $uni->prepare( 'select assign_p2gblataln( ?, ?, ?, ?, ?, ? )' );
 my $hsp_sth = $uni->prepare( 'select ins_p2gblathsp( ?, ?, ?, ?, ?, ?, ?, ? )' );
 my $param_name = 'GENOME BLAT';
 my $params_id = $uni->get_params_id_by_name( $param_name );
-die( "Unable to retrieve params_id for name='$param_name'" ) if
-  (! defined $params_id);
+(defined $params_id)
+  || die( "Unable to retrieve params_id for name='$param_name'" );
+
 my %updated;  # keep track of the pseq_ids that have had their run_history updated
 
+
+my $bio = new Bio::Tools::ProteinToGenomeBlat( -file => $ARGV[0] );
 while( my $r = $bio->next_result() ){
   my @pct_ident  = $r->get_tag_values('percent_id');
   my @ident      = $r->get_tag_values('ident');
@@ -49,45 +55,60 @@ while( my $r = $bio->next_result() ){
   my @tgap_bases = $r->get_tag_values('tgap_bases');
 
   my $pseq_id;
-  if ( defined $r->seq_id && $r->seq_id =~ m/Unison:(\d+)/ ) {
+  if ( defined $r->seq_id and $r->seq_id =~ m/Unison:(\d+)/ ) {
     $pseq_id = $1;
   } else {
-    die( "ERROR: can't parse pseq_id from seq_id=(",$r->seq_id,")\n" );
+    die( "ERROR: can't parse pseq_id from seq_id=",$r->seq_id,"\n" );
   }
 
   # insertion criteria: score >= score_cutoff and pct_ident > pct_ident_cutoff
-  if ( $r->score >= $score_cutoff && $pct_ident[0] >= $pct_ident_cutoff ) {
-
-    my (@hsp_ids,$chr);
-    foreach my $f ( $r->get_SeqFeatures() ) {
-      if ( defined $f->seq_id && $f->seq_id =~ m/chr(\w+)/ ) {
-        $chr = $1;
-      } else {
-        die( "ERROR: can't parse chromosome from seq_id=(",$f->seq_id,")\n" );
-      }
-          
-      # load each HSP
-      $hsp_sth->execute( $genasm_id, $chr, ( $f->strand > 0 ) ? 'true' : 'false', $f->start, $f->end, $pseq_id, $f->hstart, $f->hend );
-      push @hsp_ids,$hsp_sth->fetchrow_array;
-    }
-
-    # get serialized hsp_str - probably should use database version
-    my $hsp_str = join (':', @hsp_ids );
-
-    # load the alignment
-    printf "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",$pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1);
-    $aln_sth->execute( $hsp_str, $ident[0], $qgap_cnt[0], $qgap_bases[0], $tgap_cnt[0], $tgap_bases[0] );
-  } elsif ( defined $verbose && $verbose ) {
-    printf "Unison:%-10d BLAT alignment failed cutoffs (ident: %5d (%d), score: %4.2f (%4.2f))\n",
-      $pseq_id,$ident[0],$pct_ident_cutoff,$r->score,$score_cutoff;
+  if ( $r->score < $opts{score_cutoff} 
+	   or $pct_ident[0] <= $opts{pct_ident_cutoff} ) {
+	if ( $opts{verbose} ) {
+	  printf "Unison:%-10d BLAT alignment failed cutoffs (ident: %5d (%d), score: %4.2f (%4.2f))\n",
+		$pseq_id,$ident[0],$opts{pct_ident_cutoff},$r->score,$opts{score_cutoff};
+	}
+	next;
   }
 
-  # update run history (if we haven't yet done so during this session)
-  if ( ! defined $updated{$pseq_id} ) {
-    $uni->upd_run_history($pseq_id,$params_id,undef,undef);
-    $updated{$pseq_id}++;
+  my (@hsp_ids,$chr);
+  foreach my $f ( $r->get_SeqFeatures() ) {
+	if ( defined $f->seq_id and $f->seq_id =~ m/chr(\w+)/ ) {
+	  $chr = $1;
+	} else {
+	  die( "ERROR: can't parse chromosome from seq_id=(",$f->seq_id,")\n" );
+	}
+
+	# load each HSP
+	try {
+	  $hsp_sth->execute( $opts{genasm_id}, $chr, 
+						 ( $f->strand > 0 ) ? 'true' : 'false', 
+						 $f->start, $f->end, $pseq_id, $f->hstart, $f->hend );
+	  push @hsp_ids,$hsp_sth->fetchrow_array;
+	} catch Unison::Exception with {
+	  my $ex = $_[0];
+	  die("$ex") unless $ex->error() =~ m/unique constraint/;
+	};
   }
+
+  # get serialized hsp_str - probably should use database version
+  my $hsp_str = join (':', @hsp_ids );
+
+  # load the alignment
+  printf( "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",
+		  $pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1) );
+  try {
+	$aln_sth->execute( $hsp_str, $ident[0], $qgap_cnt[0], $qgap_bases[0],
+					   $tgap_cnt[0], $tgap_bases[0] );
+  } catch Unison::Exception with {
+	my $ex = $_[0];
+	die("$ex") unless $ex->error() =~ m/unique constraint/;
+  };
+
+  # update run history if we haven't yet done so during this session
+  $uni->upd_run_history($pseq_id,$params_id,undef,undef) unless $updated{$pseq_id}++;
 }
+
 
 
 #-------------------------------------------------------------------------------
