@@ -1,0 +1,40 @@
+#!/usr/bin/env perl
+# load fasta sequences into unison
+# $ load-fasta -o origin <fastafile
+
+$^W++;
+use strict;
+use Bio::SeqIO;
+use Getopt::Long;
+use DBI;
+
+use lib '/home/rkh/unison/perl5';
+use Unison;
+
+
+my $origin = 'pdb';
+
+my $udb = new Unison;
+
+my $porigin_id = $udb->si_porigin_id($origin);
+printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+
+
+my $in  = Bio::SeqIO->new('-format' => 'Fasta');
+while( my $seq = $in->next_seq() )
+  {
+  my $desc = $seq->desc();
+  next unless $desc =~ m%mol:protein%;
+
+  my $id = $seq->display_id();
+  $id =~ s/_//;
+
+  my $pseq_id = $udb->si_pseq_id($seq->seq());
+
+  if (not defined $pseq_id)
+	{ warn("failed to add $id"); next; }
+
+  $udb->add_palias($pseq_id,$porigin_id,$id,$desc);
+
+  print(STDERR "added $id (pseq_id=$pseq_id)\n");
+  }

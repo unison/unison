@@ -18,7 +18,7 @@ my $filelist;
 my $startafter;
 my $maxlen = 8200;							# empirical limit
 my $sqlonly = 0;
-my $nomd5 = 0;
+my $nomd5 = 1;								# now default!
 my $noalias = 0;
 GetOptions( @Genentech::Unison::OPTS,
 			'origin|o=s' => \$origin,
@@ -40,7 +40,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.12 2003/02/04 23:04:38 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.13 2003/02/05 22:14:24 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {

@@ -1,0 +1,25 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+$/ = "\n>";
+
+while( my $block = <> )
+  {
+  my ($u) = $block =~ m/Unison:(\d+)/;
+  if (not defined $u)
+	{ warn("! block doesn't contain a unison id!\n"); next; }
+
+  my (@sc) = $block =~ m/\s----\s+(\d\S+)\s+\d+\s+(\S+)\s+\d+\s+(\S+)/;
+  if (not @sc)
+	{
+	#warn("Unison:$u failed:\n$block\n");
+	@sc = ('NULL','NULL','NULL');
+	}
+
+  print("\\echo $u\n") if $.%100 == 0;
+  print("insert into pseqprop (pseq_id,sigsensor,sighmm,sigpredict) values (",
+		join(',',$u,@sc), ");\n");
+  }
+

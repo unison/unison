@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+use lib ('.', "$ENV{HOME}/unison/perl5");
+use Genentech::Unison;
+
+my $u = new Genentech::Unison;
+
+my $key;
+
+
+meta_di($u,'nseqs','(select count(*) from pseq)');
+
+foreach my $o (qw( manual PDB Swiss-Prot TrEMBL Ensembl SPDI
+ Celera/Genscan NHGD30/Genscan IPI Proteome Refseq Prospect2
+ EMBOSS/sigcleave 
+ pred nr patent dblast hum
+ ))
+  {
+  meta_di($u,"nseqs/$o",
+		  "(select count(distinct(pseq_id)) from palias as a
+          join porigin as o on a.porigin_id=o.porigin_id and o.origin='$o')");
+  }
+meta_di($u,'meta date','CURRENT_TIMESTAMP');
+
+printf("%-20s %s\n",@$_) for @{$u->selectall_arrayref('select * from meta')};
+
+
+sub meta_di
+  {
+  my ($u,$k,$v) = @_;
+  $u->do("delete from meta where key='$k'");
+  $u->do("insert into meta (key,value) values ('$k', $v)");
+  }
+
+

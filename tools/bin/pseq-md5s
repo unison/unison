@@ -1,0 +1,33 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+use lib ('.', "$ENV{HOME}/unison/perl5");
+use Genentech::Unison;
+use Digest::MD5 qw(md5_hex);
+
+my $u = new Genentech::Unison;
+
+while( my $r = shift )
+  { eval "process1(\$_) for $r" }
+
+exit(0);
+
+
+sub process1
+  {
+  my $pseq_id = shift;
+  my $seq = get1($pseq_id);
+  if (not defined $seq)
+	{ warn("Unison:$pseq_id not found\n"); return; }
+  print $seq, "\n";
+  }
+
+sub get1
+  {
+  my $pseq_id = shift;
+  my $seq = $u->get_seq($pseq_id);
+  return unless defined $seq;
+  my $rv = md5_hex($seq) . "\t" . "$pseq_id";
+  return $rv;
+  }
