@@ -1,5 +1,5 @@
 package Unison::WWW::Page;
-use CGI qw( :standard *table -newstyle_urls -debug );
+use CGI qw( :standard *table -debug -nosticky );
 our @ISA = qw(CGI);
 
 use CGI::Carp qw(fatalsToBrowser);
@@ -10,25 +10,34 @@ use Unison;
 sub new {
   my $class = shift;
   my $self = $class->SUPER::new( @_ );
-  my $username = $ENV{REMOTE_USER};
+  my $username = 'PUBLIC';
+  my $v = $self->Vars();
+  my $host;
 
   # establish session authentication, preferably via kerberos
-  if (defined $username and -f "/tmp/krb5cc_$username")
-	{ $ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$username"; }
-  else
-	{ $username = 'PUBLIC'; }
-  $username = 'PUBLIC';
-  try { 
-	$self->{unison} = new Unison( username=>$username, password=>undef ); 
+  if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
+	$username = $ENV{REMOTE_USER};
+	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$username";
+	$host = 'svc';
   }
-  catch Unison::Exception::ConnectionFailed with {
-	die($self->header(),
-		$self->start_html('Unison Connection Failed'),
-		"<h1>Unison Connection Failed</h1>\n",
-		$_[0],
-		$self->end_html());
+
+  try {
+	$self->{unison} = new Unison( username => $username,
+								  password => undef,
+								  host => $host,
+								  dbname => $v->{dbname} || 'csb' ); 
+  }
+  catch Unison::Exception with {
+	my $msg = escapeHTML($_[0]);
+	__PACKAGE__->die('Unison Connection Failed', 
+					 '<pre>'.$msg.'</pre>',
+					'<p>',
+					 '<hr>Kerberos and user information:',
+					 (map { "<br><code>$_: $ENV{$_}</code>\n" }
+					  qw(REMOTE_USER KRB5CCNAME)),
+					);
   };
-#  print(STDERR "## unison = ", $self->{unison}, "\n");
+
   $self->start_html;
   return $self;
   }
@@ -63,21 +72,30 @@ sub render
   my $title = shift;
   return ($p->header(),
 
-		  $p->start_html(-title=>"Unison:$title"), "\n\n\n",
+		  $p->start_html(-title=>"Unison: $title"), "\n\n\n",
 
 		  '<table class="page">', "\n",
 
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td title="Unison home page" class="logo" width="10%"><a href=".."><img class="logo" src="../av/unison.png"></a></td>', "\n",
-		  '  <td padding=0>', $p->navbar(), '</td>', "\n",
+		  '  <td class="logo" width="10%">',
+			 '<a title="Unison home page" href=".."><img height="25px" class="logo" src="../av/unison.png"></a>',
+		     '</td>',"\n",
+		  '  <td class="navbar" padding=0>', $p->navbar(), '</td>', "\n",
 		  '</tr>', "\n",
 		  "<!-- ========== end banner bar ========== -->\n",
 
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td class="cnav"><span tooltip=\'hi there\'>[future<br>expansion]</span></td>', "\n",
-		  '  <td>', 
+		  '  <td class="cnav">',
+		  
+		     (map {"<b>$_:</b><br>"
+					 . (defined $p->{unison}->{$_} ? $p->{unison}->{$_} 
+						: 'unknown')
+					 . '<p>'
+				   } qw(username host dbname)),
+             '</td>', "\n",
+		  '  <td class="body">', 
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
 		  '  </td>', "\n",
@@ -86,7 +104,7 @@ sub render
 		  "\n<!-- ========== begin footer ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" src="../av/poweredby_postgresql.png"></a></td>', "\n",
-		  '  <td valign="top">contact:<a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a></td>', "\n",
+		  '  <td class="contact">Please contact <a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a> with suggestions or problems</td>', "\n",
 		  '</tr>', "\n",
 		  "\n<!-- ========== end footer ========== -->\n",
 
@@ -106,28 +124,6 @@ sub group {
 		 "</table>\n");
 }
 
-sub ensure_required_params
-  {
-  my $p = shift;
-  foreach my $v (@_) {
-	(defined $p->param($v))
-	  || $p->die("The $v parameter wasn't defined.");
-  }
-  return;									# all needed params defined
-}
-
-sub die
-  {
-  my $p = shift;
-  print $p->render("error: $_[0]",'<span class="error">',join('<br>',@_),'</span>');
-  exit(0);
-  }
-
-sub debug {
-  my $p = shift;
-  print $p->render("debug: $_[0]",'<span class="debug">',join('<br>',@_),'</span>');
-}
-
 sub Vars {
   my $p = shift;
   if (not exists $p->{Vars}) {
@@ -140,51 +136,58 @@ sub navbar {
   my $p = shift;
   my $v = $p->Vars();
   my @navs =
-	( [ ['Analyze', 'display precomputed analyses for a given sequence'],
-		['Summary', 'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
-		['Aliases', 'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
-		['Patents', 'Patents on this sequences', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
-		['Features', 'Sequences features', 'pseq_features.pl', "pseq_id=$v->{pseq_id}"],
-		['BLAST', 'BLAST-related sequences', 'pseq_blast.pl', "pseq_id=$v->{pseq_id}"],
-		['Prospect2', 'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id}"],
-		['HMM', 'Hidden Markov Model alignments', 'pseq_pahmm.pl', "pseq_id=$v->{pseq_id}"],
-		['PSSM', 'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
-		['Loci', 'Genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
+	( [ # analyze MENU
+	   ['Analyze', 'display precomputed analyses for a given sequence'],
+	   ['Summary', 'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
+	   ['Aliases', 'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Patents', 'Patents on this sequence', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Features', 'Sequences features', 'pseq_features.pl', "pseq_id=$v->{pseq_id}"],
+	   ['BLAST', 'BLAST-related sequences', 'pseq_blast.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Prospect2', 'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id};run_id=1"],
+	   ['HMM', 'Hidden Markov Model alignments', 'pseq_pahmm.pl', "pseq_id=$v->{pseq_id}"],
+	   ['PSSM', 'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Loci', 'Genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
 	  ],
 
-	  [ ['Mine', 'mine for sequences which match criteria' ],
-		['By Sequence', undef, 'mine_sequence.pl'],
-		['By Alias', undef, 'mine_alias.pl'],
-		['By Feature', undef, 'mine_feature.pl'],
+	  [ # search menu
+	   ['Search', 'search for sequences which match criteria' ],
+	   ['By Sequence', 'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
+	   ['By Alias', 'search for sequences by alias/name/accession', 'search_by_alias.pl'],
+	   ['By Properties', 'mine for sequences based on properties', 'search_by_properties.pl'],
 	  ],
 
-	  [ ['Browse', 'browse sets of sequences'],
-		['Sets', undef, 'browse_sets.pl'],
-		['Origins', undef, 'browse_origins.pl']
-	  ],
+	  #[ # browse menu
+	  # ['Browse', 'browse sets of sequences'],
+	  # ['Sets', undef, 'browse_sets.pl'],
+	  # ['Origins', undef, 'browse_origins.pl']
+	  #],
 
-	  [ ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
-		['BLAST', undef, 'run_blast.pl'],
-		['Pfam', undef, 'run_pfam.pl']
-	  ],
+	  #[ # run menu
+	  # ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
+	  # ['BLAST', undef, 'run_blast.pl'],
+	  # ['Pfam', undef, 'run_pfam.pl']
+	  #],
 
-	  [ ['Special', 'special projects'],
-		['UNQ', 'UNQ browsing']
-	  ],
+	  #[ # special menu
+	  # ['Special', 'special projects'],
+	  # ['UNQ', 'UNQ browsing']
+	  #],
 
-#	  [ ['Admin', 'Unison administration'],
-#		['Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
-#	  ],
+	  #[ # admin menu
+	  # ['Admin', 'Unison administration'],
+	  # ['Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
+	  #],
 
-	  # force right-justified
+	  # empty list forces right-justification of subsequent menu
 	  [ [ '' ]  ],
 
-	  [ ['Info', 'about Unison'],
-		['About', 'about unison', 'about_unison.pl'],
-		['Contents', 'show unison meta information', 'about_contents.pl'],
-		['Credits', 'thanks, ma!', 'about_credits.pl'],
-		['Home', 'go to Unison\'s low budget home page', '..'],
-		['Perl', 'perl info', 'about_perl.pl'],
+	  [
+	   ['Info', 'about Unison'],
+	   ['About', 'about unison', 'about_unison.pl'],
+	   ['Contents', 'show unison meta information', 'about_contents.pl'],
+	   ['Credits', 'thanks, ma!', 'about_credits.pl'],
+	   ['Home', 'go to Unison\'s low budget home page', '..'],
+	   ['Env', 'Environment info', 'about_env.pl'],
 	  ],
 	);
 
@@ -223,19 +226,20 @@ sub find_nav_ids {
 
 sub make_navbar {
   # $sel is which is selected
-  # @tu = array ref of [title,descr,url,params]
+  # @tu = array ref of [text,tooltip,url,params]
   my ($sel,@tu) = @_;
   my $spacer = '<td width="%80"></td>';
   my @nav = ();
   for(my $i=0; $i<=$#tu; $i++) {
-	my ($text,$title,$url,$params) = @{$tu[$i]};
+	my ($text,$tooltip,$url,$params) = @{$tu[$i]};
+	$text =~ s/ /&nbsp;/g;
 	if ($text eq '') {
 	  push(@nav, $spacer);
 	  $spacer = '';
 	  next;
 	}
 	my $cl = 'unselected';
-	my $tooltip = defined $title ? ' tooltip="'.$title.'"' : '';
+	my $tooltip = defined $tooltip ? ' tooltip="'.$tooltip.'"' : '';
 	$url .= "?$params" if defined $params;
 	if (defined $sel and $sel == $i) {
 	  $cl = 'selected';
@@ -258,12 +262,54 @@ sub where {
 }
 
 sub sql {
-  return( "\n".'<p><div class="sql"><b>SQL query:</b> ' . $_[1] . '</div>' . "\n" );
+  shift;
+  return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
+		  join(' ',@_), '</div>', "\n" );
 }
 
 sub tip {
-  return( "\n".'<p><div class="tip"><b>Tip:</b> ' . $_[1] . '</div>' . "\n" );
+  shift;
+  return( "\n",'<p><div class="tip"><b>Tip:</b> ', 
+		  join(' ',@_), '</div>', "\n" );
 }
+
+sub warn
+  {
+  shift;
+  return( "\n",'<p><div class="warning"><b>Warning:</b> ', 
+		  join(' ',@_), '</div>', "\n" );
+  }
+
+sub ensure_required_params
+  {
+  my $p = shift;
+  my @ud = grep { not defined $p->param($_) or $p->param($_) eq '' } @_;
+  return 0 unless @ud;
+  $p->die('Missing parameters',
+		  '<br>The follow parameters were missing:',
+		  '<br>&nbsp;&nbsp;&nbsp; <code>' . join(', ', @ud) . '</code>' );
+  # doesn't return
+}
+
+sub die
+  {
+  my $p = shift;
+  my $t = shift;
+  print $p->render( "Error: $t",
+					'<p><div class="warning">',
+					'<b>Error:</b> ', $t, '<br>',
+					join(' ',@_), 
+					'</div>', "\n" );
+  exit(0);
+  }
+
+sub debug {
+  my $p = shift;
+  print $p->render("debug: $_[0]",'<span class="debug">',join('<br>',@_),'</span>');
+}
+
+
+
 
 
 # build a url from the CGI query object
@@ -288,6 +334,7 @@ sub make_url {
 
   return $url;
 }
+
 
 
 
