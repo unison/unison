@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.36 2005/02/18 03:35:04 mukhyala Exp $>
+S<$Id: Page.pm,v 1.37 2005/02/19 23:24:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -268,6 +268,7 @@ sub start_html {
 							 -href => '../av/favicon.png'})
 			   ],
 	  -style => { -src => ['../styles/unison.css', '../styles/ToolTips.css'] },
+	  -target => '_top',
 	  -onload => 'javascript:{ initToolTips(); }',
 	  -script => $self->{js_tags},
 	);
@@ -339,10 +340,10 @@ sub render {
 
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '  <td class="body">', "\n",
-		  ( dev_instance() ? $self->warn('This is a development
-		  version of Unison. Pages may be unstable and features may change.
-		  Do not bookmark this page.') : ''),
 		  "  <b>$title</b><br>", "\n", 
+		    ( dev_instance() ? $self->warn('This is a development
+		    version of Unison. Pages may be unstable and features may change.
+		    Do not bookmark this page.') : ''),
 		  '  ', @_, "\n",
 		  '  </td>', "\n",
 		  "\n<!-- ========== end page content ========== -->\n",
@@ -692,6 +693,12 @@ sub _page_connect ($) {
 								host => $v->{host},
 								dbname => $v->{dbname} );
 
+  # Set PG vars so that spawned apps connect to the same database
+  # This will only work for kerberos authentication
+  $ENV{PGHOST} = $v->{host};
+  $ENV{PGUSER} = $v->{username};
+  $ENV{PGDATABASE} = $v->{dbname};
+
   return $self->{unison};
 }
 
@@ -791,7 +798,7 @@ sub _navbar {
 	##   [ sub2, tooltip2, script2, args2 ],
 	##   ...
 	## ]
-	( [ # analyze MENU
+	( [ # Analyze MENU
 	   ['Analyze', 		'display precomputed analyses for a given sequence'],
 	   ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
@@ -808,15 +815,7 @@ sub _navbar {
 	   ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	  ],
 
-	  [ # Search menu
-	   ['Search', 		'search for sequences which match criteria' ],
-	   ['By Sequence',	'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
-	   ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
-	   ['By Properties','mine for sequences based on properties', 'search_by_properties.pl'],
-	   ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
-	  ],
-
-	  [ # browse menu
+	  [ # Browse menu
 	   ['Browse', 'browse curated sets of sequences (unimplemented)'],
 	   ['Sets', 'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
 	   ['Views', 'browse dynamic queries of protein sequences', 'browse_views.pl'],
@@ -824,14 +823,22 @@ sub _navbar {
 	  # ['Origins', undef, 'browse_origins.pl']
 	  ],
 
-	  [ # compare menu
-           ['Assess', 'compare sequence sets and analysis methods (not-implemented)'],
-           ['Scores', 'compare scoring systems', 'compare_scores.pl'],
-           ['Methods', 'compare threading methods', 'compare_methods.pl'],
-          ],
+	  [ # Search menu
+	   ['Search', 		'search for sequences which match criteria' ],
+	   ['By Sequence',	'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
+	   ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
+	   ['By Properties','mine for sequences based on properties', 'search_by_properties.pl'],
+	   ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
+	   ['Framework',    'search for sequences matching a set of sequence regions', 'search_framework.pl'],
+	  ],
 
+	  [ # Assess menu
+	   ['Assess', 'compare sequence sets and analysis methods (not-implemented)'],
+	   ['Scores', 'compare scoring systems', 'compare_scores.pl'],
+	   ['Methods', 'compare threading methods', 'compare_methods.pl'],
+	  ],
 
-	  # empty list forces right-justification of subsequent menu
+	  # empty list forces right-justification of subsequent menus
 	  [ [ '' ]  ],
 
 	  [
