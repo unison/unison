@@ -1,7 +1,7 @@
 /* $RCSfile: Jmol.js,v $
- * $Author: migueljmol $
- * $Date: 2004/12/11 22:22:10 $
- * $Revision: 1.28 $
+ * $Author: mukhyala $
+ * $Date: 2005/02/17 00:33:24 $
+ * $Revision: 1.1 $
  *
  * Copyright (C) 2004  The Jmol Development Team
  *
@@ -168,6 +168,105 @@ function jmolLink(script, text, id) {
   if (_jmol.debugAlert)
     alert(t);
   document.write(t);
+}
+
+function jmolChangeStructureLink(script, text, id) {
+  
+    _jmolInitCheck();
+  if (id == undefined || id == null)
+    id = "jmolLink" + _jmol.linkCount;
+  ++_jmol.linkCount;
+		
+  var scriptIndex = _jmolAddScript(script);
+  var t = "<a name='" + id + "' id='" + id + 
+          "' href='javascript:_jmolClick(" + scriptIndex +
+          _jmol.targetText +
+          ");'onClick='pdbid=text; ' onMouseover='_jmolMouseOver(" + scriptIndex +
+          ");return true;' onMouseout='_jmolMouseOut()' " +
+        _jmol.linkCssText + 
+          ">" + text + "</a>";
+  if (_jmol.debugAlert)
+    alert(t);
+  document.write(t);
+}
+
+function jmolChangeStructureLoad(script, text, id) {
+  
+  _jmolInitCheck();
+  pdbid=text;
+  var scriptIndex = _jmolAddScript(script);
+  //alert(pdbid);
+  jmolScript(script);
+}
+
+//gets pdb position from seq_str.pdbid.seq_pos global object
+// and then calls jmolScript
+function jmolSelectPosition(pos, labe, colour, targetSuffix) {
+
+     if(seq_str[pdbid][pos] == '   B ' || seq_str[pdbid][pos] == '   M ' || seq_str[pdbid][pos] == '   E ') 
+       alert("Missing Residue")  ;
+
+    var chain = pdbid.substr(4,1);
+
+    chain = (chain == '' ? '' : ":"+chain);
+
+    colour = (colour == '' ? 'cpk' : colour);
+
+    var re = new RegExp ('\:', 'g') ;
+    if(colour.match(re)) {
+      var rgb = colour.replace(re, ',') ;
+      colour = "["+rgb+"]";
+    }
+    var script = "spacefill off;select within(10.0, "+seq_str[pdbid][pos]+chain+"); hbonds 0.1; ssbonds on; select "+seq_str[pdbid][pos]+chain+"; wireframe 0.5;colour  "+colour+";select "+seq_str[pdbid][pos]+chain+" and *.CA; label "+labe+":"+seq_str[pdbid][pos]+"; colour label white; center "+seq_str[pdbid][pos]+chain+";zoom 400;";
+
+    //alert("spacefill off;hbonds 0.1; ssbonds on; select "+seq_str[pdbid][pos]+chain+"; wireframe 0.5;colour "+colour+";select "+seq_str[pdbid][pos]+chain+" and *.CA; label "+labe+":"+seq_str[pdbid][pos]+"; colour label white; center "+seq_str[pdbid][pos]+chain+";zoom 400;");
+    jmolScript(script);
+}
+
+//gets pdb positions from seq_str.pdbid.seq_pos global object
+// and then calls jmolScript
+function jmolSelectRegion(posone, postwo, labe, colour, targetSuffix) {
+
+
+  while(seq_str[pdbid][posone] == '   B ' || seq_str[pdbid][posone] == '   M ' || seq_str[pdbid][posone] == '   E ') {
+    posone++;
+  } 
+  while(seq_str[pdbid][postwo] == '   B ' || seq_str[pdbid][postwo] == '   M ' || seq_str[pdbid][postwo] == '   E ') {
+    postwo--;
+  }
+    var start = Number(seq_str[pdbid][posone]);
+    var end = Number(seq_str[pdbid][postwo]);
+    var chain = pdbid.substr(4,1);
+
+    chain = (chain == '' ? '' : ":"+chain);
+
+    colour = (colour == '' ? 'red' : colour);
+
+    var re = new RegExp ('\:', 'g') ;
+    if(colour.match(re)) {
+      var rgb = colour.replace(re, ',') ;
+      colour = "["+rgb+"]";
+    }
+
+    var label_pos = start + parseInt((end-start)/2);
+    var script = "select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label white";
+
+    //alert("select "+start+"-"+end+chain+"-"+pdbid+"; colour cartoon "+colour+"; select "+ label_pos +chain+" and *.CA; label "+labe+"; colour label white");
+    jmolScript(script);
+}
+
+//DID NOT WORK
+function jmolSelectPositionLink(pos, labe, text, id) {
+
+    var chain = pdbid.substr(4,1);
+
+    chain = (chain == '' ? '' : ":"+chain);
+
+    var script = "spacefill off;hbonds 0.1; ssbonds on; select "+seq_str[pdbid][pos]+chain+"; wireframe 0.5;colour cpk;select "+seq_str[pdbid][pos]+chain+" and *.CA; label "+labe+":"+seq_str[pdbid][pos]+"; colour label white; center "+seq_str[pdbid][pos]+chain+";zoom 400;";
+
+    //alert("spacefill off; hbonds 0.1; ssbonds on; select "+seq_str[pdbid][pos]+chain+"; wireframe 0.5;colour cpk;select "+seq_str[pdbid][pos]+chain+" and *.CA; label "+labe+":"+seq_str[pdbid][pos]+"; colour label white; center "+seq_str[pdbid][pos]+chain+";zoom 400;");
+    
+    jmolLink(script, text, id);
 }
 
 function jmolMenu(arrayOfMenuItems, size, id) {
@@ -727,4 +826,7 @@ function _jmolOnloadResetForms() {
     }
   }
 }
+
+
+
 
