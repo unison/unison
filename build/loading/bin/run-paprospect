@@ -9,7 +9,7 @@
 #   --update|-u: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --p2params_id <p2params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-p2,v 1.4 2003/06/05 16:49:30 cavs Exp $
+# $Id: run-p2,v 1.5 2003/06/10 20:46:48 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -25,37 +25,36 @@ use Prospect2::Exceptions;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use Error qw(:try);
-$ENV{'DEBUG'} = 1;
 
-my %options;
-my ($p2params_id,$tfile, $update);
-GetOptions(
-       \%options,@Unison::options,
-       'p2params_id=i',\$p2params_id,
-       'tfile=s',\$tfile,     # name of template file
-       'update',\$update      # force update (delete rows before insert)
-      )
+
+my %opts = (update=>0);
+GetOptions(\%opts,
+		   'p2params_id|p=i',
+		   'tfile=s',						# name of template file
+		   'update'							# delete rows before insert
+		  )
   or die("$0: bad usage\n");
 
-die( "--p2params_id|-p parameter missing\n" ) if ( ! defined $p2params_id || $p2params_id eq '' );
+if ( not exists $opts{p2params_id} or $opts{p2params_id} eq '' ) {
+  die( "--p2params_id|-p parameter missing\n" ); }
+
 my $u;
 if ( defined $ENV{'PGPASSWD'} ) {
 	$u = new Unison( 'password' => $ENV{'PGPASSWD'} );
 } else {
 	$u = new Unison();
 }
-$u->do( 'set search_path=public,unison' );
-my $po = $u->get_p2options_by_p2params_id($p2params_id);
-$po->{tfile} = $tfile;
+
+my $po = $u->get_p2options_by_p2params_id($opts{p2params_id});
+$po->{tfile} = $opts{tfile} if exists $opts{tfile};
 my $pc = new Prospect2::LocalClient( options=>$po );
 
+
 PSEQ_ID: while( my $pseq_id = shift ) {
-  print "pseq_id .. $pseq_id\n";
-  print "\tthreading ...\n";
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   my (@summaries);
   try {
-    print "trying to thread ...\n" if $ENV{'DEBUG'};
+	printf("threading $pseq_id (%d AA)...", length($seq));
     (@summaries) = $pc->thread_summary( $seq );
   } catch Prospect2::RuntimeError with {
     my $e = shift;
@@ -68,9 +67,16 @@ PSEQ_ID: while( my $pseq_id = shift ) {
     print STDERR "Skipping this pseq_id ($pseq_id)\n";
     next PSEQ_ID;
   };
-  print "\tloading ...\n";
-  foreach my $ts ( @summaries ) {
-    $u->delete_thread($pseq_id,$p2params_id,$ts) if $update;
-    $u->insert_thread($pseq_id,$p2params_id,$ts);
+  print "\ndone";
+  for( my $i=0; $i<=$#summaries; $i++) {
+	my $ts = $summaries[$i];
+	printf(STDERR "\rloading %8s (%3d%%)...", $ts->tname(), ($i+1)/($#summaries+1)*100 );
+    $u->delete_thread($pseq_id,$opts{p2params_id},$ts) if $opts{update};
+    $u->insert_thread($pseq_id,$opts{p2params_id},$ts);
   }
+  print(STDERR "done\n");
 }
+
+
+############################################################################
+# $Log$
