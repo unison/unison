@@ -2,7 +2,7 @@
 
 Unison::utilities -- general Unison utilities
 
-S<$Id: utilities.pm,v 1.10 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: misc.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -17,7 +17,7 @@ methods) and may used outside of B<Unison::>.
 
 =cut
 
-package Unison::Utilities::utilities;
+package Unison::Utilities::misc;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 

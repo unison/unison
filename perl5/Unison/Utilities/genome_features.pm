@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.4 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: genome_features.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -16,7 +16,7 @@ objects may be used anywhere that a standard DBI handle can be used.
 =cut
 
 
-package Unison::genome_features;
+package Unison::Utilities::genome_features;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
@@ -141,7 +141,7 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.4 2005/01/20 01:05:17 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
