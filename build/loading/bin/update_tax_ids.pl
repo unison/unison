@@ -40,7 +40,9 @@ GetOptions(\%opts,
 		   'reassign|r+',
 		   'nullify|n+',
 
-		   'all|A' => sub { $opts{assign} = $opts{reassign} = $opts{nullify} = 1 }
+		   'all|A' => sub { $opts{assign}++;
+							$opts{reassign}++;
+							$opts{nullify}++; }
 		   )
   || die("$0: aye, you've got usage issues, mate\n");
 
@@ -54,11 +56,14 @@ select(STDERR); $|++;
 select(STDOUT); $|++;
 
 
+print(STDERR '$Id$ ', "\n");
+
+
 my $u = new Unison;
 
-
 if (not defined $opts{'palias-id-max'}) {
-  $opts{'palias-id-max'} = $u->selectrow_array('select max(palias_id) from paliasorigin');
+  $opts{'palias-id-max'} = $u->selectrow_array
+	('select max(palias_id) from paliasorigin');
 }
 
 
@@ -70,7 +75,7 @@ $nrows_changed += assign_tax_ids($u)	if $opts{'assign'};
 $nrows_changed += reassign_tax_ids($u)	if $opts{'reassign'};
 $nrows_changed += nullify_tax_ids($u)	if $opts{'nullify'};
 
-printf("%-57s                   %9d\n",
+printf(STDERR "%-57s                   %9d\n",
 	   "TOTAL (assigned, reassigned, or nulled)",
 	   $nrows_changed);
 
@@ -79,7 +84,8 @@ exit(0);
 
 
 
-sub execute_sth($$;$) {
+
+sub execute_sth($$$) {
   my ($fx,$sth,$inc) = @_;
   my $nr_tot = 0;
   $inc = $opts{'update-increment'} unless defined $inc;
@@ -87,9 +93,12 @@ sub execute_sth($$;$) {
 	my $e = $b+$inc;
 	my $nr = $sth->execute($b,$e);
 	$nr_tot += $nr;
-	printf("\r%-30s [%9d,%9d)    rows:%9d  tot:%9d", "$fx(;$inc)", $b, $e, $nr, $nr_tot);
+	printf(STDERR "\r%-30s [%9d,%9d)    rows:%9d  tot:%9d", "$fx(;$inc)",
+		   $b, $e, $nr, $nr_tot);
   }
-  print("... done\n");
+  printf(STDERR "\r%-30s [%9d,%9d)         %9s  tot:%9d", "$fx(;$inc)", 
+		 $opts{'palias-id-min'}, $opts{'palias-id-max'}, '', $nr_tot);
+  print(STDERR "... done\n");
   return $nr_tot;
 }
 
@@ -99,7 +108,8 @@ sub create_paotax ($) {
   ## create a temp table with palias_id, current tax_id, inferred tax_id
   my $u = shift;
   eval { $u->do('drop table paotax') } if $opts{'drop-paotax'};
-  $u->do('create table paotax (palias_id integer not null, tax_id integer, infer_tax_id integer) without oids');
+  $u->do(qq/create table paotax (palias_id integer not null,
+			tax_id integer, infer_tax_id integer) without oids/);
   my $sql = qq/
 	INSERT INTO PAOTAX
 	SELECT AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr)
@@ -119,8 +129,10 @@ sub assign_tax_ids ($) {
   my $u = shift;
   my $sql = qq/
 	UPDATE paliasorigin
-    SET tax_id=(SELECT infer_tax_id FROM paotax WHERE paliasorigin.palias_id=paotax.palias_id)
-    WHERE palias_id IN (SELECT palias_id FROM paotax WHERE palias_id>=? and palias_id<? and
+    SET tax_id=(SELECT infer_tax_id FROM paotax 
+				WHERE paliasorigin.palias_id=paotax.palias_id)
+    WHERE palias_id IN (SELECT palias_id FROM paotax
+						WHERE palias_id>=? and palias_id<? and
                         tax_id IS NULL AND infer_tax_id IS NOT NULL);
 	/;
   my $sth = $u->prepare($sql);
@@ -133,8 +145,10 @@ sub reassign_tax_ids ($) {
   my $u = shift;
   my $sql = qq/
 	UPDATE paliasorigin
-    SET tax_id=(SELECT infer_tax_id FROM paotax WHERE paliasorigin.palias_id=paotax.palias_id)
-    WHERE palias_id IN (SELECT palias_id FROM paotax WHERE palias_id>=? and palias_id<? and
+    SET tax_id=(SELECT infer_tax_id FROM paotax
+				WHERE paliasorigin.palias_id=paotax.palias_id)
+    WHERE palias_id IN (SELECT palias_id FROM paotax
+						WHERE palias_id>=? and palias_id<? and
                         tax_id != infer_tax_id);
 	/;
   my $sth = $u->prepare($sql);
@@ -149,8 +163,9 @@ sub nullify_tax_ids ($) {
   my $sql = qq/
 	UPDATE paliasorigin
     SET tax_id=NULL
-    WHERE palias_id IN (SELECT palias_id FROM paotax WHERE palias_id>=? and palias_id<? and
-                        tax_id IS NOT NULL AND infer_tax_id IS NULL);
+    WHERE palias_id IN (SELECT palias_id FROM paotax
+						WHERE palias_id>=? and palias_id<? and
+                        	tax_id IS NOT NULL AND infer_tax_id IS NULL);
 	/;
   my $sth = $u->prepare($sql);
   execute_sth((caller(0))[3], $sth, $opts{'update-increment'});
