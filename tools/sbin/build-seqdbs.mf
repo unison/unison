@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+# 
+
+
+SEQDB:=/apps/compbio/share/seqdb/aa/new
+PATH:=${RHOME}/csb-db/unison/bin:${PATH}
+PERL5LIB=~rkh/csb-db/unison/perl5
+TIME:=/usr/bin/time -p
+PGDATABASE=csb
+PGHOST=csb
+
+DBS:=all-human best-hmr best-human ggi
+#DBS:=best-human
+
+_D:=$(shell mkdir -p ${SEQDB})
+
+default all: $(addsuffix .fa,$(addprefix ${SEQDB}/unison-,${DBS}))
+
+
+# Ideally, the following rules would be depend on a file whose
+# timestamp corresponded to the release date of Unison.  Perhaps
+# some day...
+
+${SEQDB}/unison-all-human.fa : %.fa : 
+	${TIME} get-seq -b -S1 >$@.tmp
+	/bin/mv -f $@.tmp $@
+
+${SEQDB}/unison-best-hmr.fa : %.fa :
+	${TIME} get-seq -b -S36 >$@.tmp
+	/bin/mv -f $@.tmp $@
+
+${SEQDB}/unison-best-human.fa : %.fa :
+	${TIME} get-seq -b -S42 >$@.tmp
+	/bin/mv -f $@.tmp $@
+
+${SEQDB}/unison-ggi.fa : %.fa :
+	${TIME} get-seq -b -O10047 >$@.tmp
+	/bin/mv -f $@.tmp $@
