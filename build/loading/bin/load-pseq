@@ -14,7 +14,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.8 2004/05/14 20:44:26 rkh Exp $
+# $Id: load-pseq,v 1.9 2004/06/02 23:05:38 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -24,10 +24,10 @@ use strict;
 use Bio::SeqIO;
 use Getopt::Long qw(:config gnu_getopt);
 use Unison;
-use Unison::utilities qw(clean_sequence);
+use Unison::Exceptions;
+use Unison::utilities qw(clean_sequence sequence_md5);
 use IO::Zlib;
 use IO::File;
-use Digest::MD5  qw(md5_hex);
 
 
 sub tally ($%);
@@ -175,7 +175,7 @@ sub process_seq ($$$$) {
   my $tax_id;
   my $descr = $bs->desc();
   $seq = clean_sequence($seq);
-  my $md5 = &md5_hex($seq);
+  my $md5 = sequence_md5($seq);
   $rv->{nseen}++;
 
   # description reformatting
@@ -245,10 +245,9 @@ sub process_seq ($$$$) {
 	try {
 	  $pseq_id = $u->pseq_si_pseq_id( $seq );
 	} catch Unison::Exception with {
-	  my $ex = shift;
 	  $rv->{nfailed}++;
 	  throw Unison::Exception::RuntimeError( "Failed to load sequence $ids[0] ($descr)",
-											 $ex );
+											 $_[0] );
 	};
     $md5{ $md5 } = $pseq_id;
 	$rv->{nadded}++;

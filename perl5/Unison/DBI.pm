@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.13 2004/05/06 22:56:10 rkh Exp $>
+S<$Id: DBI.pm,v 1.14 2004/05/14 20:35:15 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -62,6 +62,9 @@ our %opts =
    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
    host => ( (exists $ENV{PGHOST})  and ($ENV{PGHOST} =~ m/\w/) ) ? $ENV{PGHOST}
    		: $thishost =~ m/^csb/ ? 'csb'	    # local connection when possible
+											# I want this to be undef, but
+											# krb auth doesn't work on
+											# local
 		: $thishost =~ m/^comp\d/ ? 'svc'	# intra-cluster (192.168/16)
    		: 'csb',							# everywhere else
 
@@ -248,19 +251,6 @@ returns true if a connection to the database is open.
 ######################################################################
 ## AUTOLOAD
 sub AUTOLOAD {
-
-=pod
-
-=head2 ::AUTOLOAD( )
-
-=over
-
-autoloads any unresolved method calls to DBI.
-
-=back
-
-=cut
-
   my $self = $_[0];
   my $method = our $AUTOLOAD;
   $method =~ s/^.*:://;
@@ -271,6 +261,7 @@ autoloads any unresolved method calls to DBI.
   if (defined $self->dbh()
 	  and $self->dbh()->can($method)) {
 	warn("AUTOLOAD $AUTOLOAD ($self)\n") if $ENV{DEBUG};
+	## REMINDER: errors are caught by the HandleError setting above
 	my $sub = <<EOF;
     sub $AUTOLOAD {
 		my \$u = shift;
@@ -286,6 +277,19 @@ EOF
   # Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
   # die("$method...ooops");
   throw Unison::Exception::NotImplemented ("can't find method $method");
+
+=pod
+
+=head2 ::AUTOLOAD( )
+
+=over
+
+autoloads any unresolved method calls to DBI.
+
+=back
+
+=cut
+
 }
 
 

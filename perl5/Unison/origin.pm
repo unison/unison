@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::porigin -- Unison porigin table utilities
-S<$Id: porigin.pm,v 1.4 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: porigin.pm,v 1.5 2004/05/04 04:49:05 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -39,7 +39,9 @@ ensure that origin is in the porigin table, return porigin_id
 sub porigin_si_porigin_id {
   my ($self,$origin) = @_;
   $self->is_open()
-	|| croak("Unison connection not established");
+	|| throw Unison::Exception('Unison connection not established');
+  (defined $origin and $origin =~ m/\w/)
+	|| throw Unison::Exception("can't lookup a null origin");
   my ($rv) = $self->selectrow_array("select porigin_si_porigin_id ('$origin')");
   return $rv;
 }
@@ -49,7 +51,9 @@ sub porigin_si_porigin_id {
 sub porigin_origin_by_porigin_id {
   my ($self,$porigin_id) = @_;
   $self->is_open()
-	|| croak("Unison connection not established");
+	|| throw Unison::Exception('Unison connection not established');
+  (defined $porigin_id)
+	|| throw Unison::Exception("can't lookup a null porigin_id");
   my ($rv) = $self->selectrow_array("select origin from porigin where porigin_id=$porigin_id");
   return $rv;
 }
@@ -57,7 +61,9 @@ sub porigin_origin_by_porigin_id {
 sub porigin_porigin_id_by_origin {
   my ($self,$origin) = @_;
   $self->is_open()
-	|| croak("Unison connection not established");
+	|| throw Unison::Exception('Unison connection not established');
+  (defined $origin and $origin =~ m/\w/)
+	|| throw Unison::Exception("can't lookup a null origin");
   my ($rv) = $self->selectrow_array("select porigin_id from porigin where upper(origin)=upper('$origin')");
   return $rv;
 }

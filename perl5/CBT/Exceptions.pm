@@ -2,7 +2,7 @@
 # throwers andproviders from exception catchers.  See Exception.pm.
 
 # If you want to catch exceptions, do:
-#   use Exceptions;
+#   use CBT::Exceptions;
 
 # If you want to subclass CBT::Exception, do:
 #   use base 'CBT::Exception';

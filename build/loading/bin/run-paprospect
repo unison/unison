@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.12 2004/02/25 20:47:12 rkh Exp $
+# $Id: run-paprospect2,v 1.13 2004/04/02 00:34:05 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -67,7 +67,7 @@ my @pseq_ids = map {eval "$_"} @ARGV;
 my $N = $#pseq_ids+1;
 
 
-my $u = new Unison;
+my $u = new Unison( dbname=>'csb-dev' );
 
 my $po = $u->get_p2options_by_params_id($opts{params_id});
 
@@ -177,6 +177,9 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.13  2004/04/02 00:34:05  rkh
+# periodic sync
+#
 # Revision 1.12  2004/02/25 20:47:12  rkh
 # added exception handling
 #

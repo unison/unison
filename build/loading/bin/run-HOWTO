@@ -11,10 +11,38 @@ Unison::DBI opts: -d, -U, -h
 --pseq_ids-from-file
 --force -- run despite run_history
 --delete -- delete existing row first
+--sql  -- output sql/COPY statements instead of loading
+
 
 The basic rationale is that "things" are lowercase, SETS of things are
 uppercase. 
 
 Where possible, CGI args should have the same names and semantics as the
 command line args above.
+
+Where sensible, options should take arrays and ranges of items, comma
+delimited.
+E.g., -q 76,15,1..5 or -M13,14 or -M13 -M14
+
+
+
+overall flow:
+
+parse options
+select sequences
+select models per origin/modelset opts
+if verbose, tell # seqs, # models
+foreach sequence:
+	if already ran and not force: warn and skip
+	begin transaction
+	if delete:
+		delete rows we expect to update
+		AND delete run_history row(s)
+	run against models
+	load results
+	if duplicate feature error, ignore
+	elsif other error: rollback transaction, next sequence
+	update run history
+	commit
+
 

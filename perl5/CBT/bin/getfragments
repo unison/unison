@@ -3,7 +3,7 @@
 =head1 NAME
 
 getfragments -- fragment sequences from a fasta file
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id: getfragments,v 1.1 2003/05/27 22:37:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -85,8 +85,8 @@ exists $options{help}
 
 # setup
 $options{zero} = 1-$options{zero};
-my $si = new Bio::SeqIO( -format => 'Fasta' );
-my $so = new Bio::SeqIO( -format => 'Fasta' );
+my $si = new Bio::SeqIO( -format => 'Fasta', -fh => *STDIN );
+my $so = new Bio::SeqIO( -format => 'Fasta', -fh => *STDOUT );
 my $s0 = $si->next_seq();
 
 

@@ -1,0 +1,173 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use DBI;
+
+my $dsn = 'dbi:Oracle:ghubprd';
+my $dbh = DBI->connect($dsn, 'bioinfo', 'bioinfo')
+  || die("connect($dsn) failed: ", $DBI::errstr, "\n");
+
+my @adn = 
+  (
+   'Proteome',
+   'SST',
+   'SwissProt', 
+   'LocusLink'
+  );
+
+my @lm = 
+  (
+   'BLASTn-blocks',
+   'Secondary Linking-verified',
+   'Affy Annotation',
+   'Genome_Guided_Mapping'
+  );
+
+
+my $sql =
+"SELECT DB_NAME,RECORD_NAME,ANNOT_DB_NAME,ANNOT_RECORD_NAME,LINK_METHOD
+FROM affyannot
+WHERE
+  DB_NAME LIKE 'HGU133%'
+  AND (" . join(' OR ', map { "ANNOT_DB_NAME = '$_'" } @adn) . ")
+  AND (" . join(' OR ', map { "LINK_METHOD = '$_'" } @lm) . ")
+";
+
+
+my $sth;
+$sth = $dbh->prepare($sql)
+  || die("DBI prepare: ", $dbh->errstr());
+$sth->execute()
+  || die("DBI execute: ", $dbh->errstr());
+
+
+print<<EOT;
+drop table affyannot;
+create table affyannot (
+  DB_NAME text NOT NULL,
+  RECORD_NAME text NOT NULL,
+  ANNOT_DB_NAME text NOT NULL,
+  ANNOT_RECORD_NAME text NOT NULL,
+  LINK_METHOD text NOT NULL
+);
+create index affyannot_search1 on affyannot(DB_NAME,RECORD_NAME);
+create index affyannot_search2 on affyannot(ANNOT_DB_NAME,ANNOT_RECORD_NAME);
+comment on table affyannot is 'selected high-reliability affy assignments from GeneHub & Yan Zhang';
+grant select on affyannot to PUBLIC;
+EOT
+
+
+print("COPY affyannot(DB_NAME,RECORD_NAME,ANNOT_DB_NAME,ANNOT_RECORD_NAME,LINK_METHOD) FROM stdin;\n");
+while( my @row = $sth->fetchrow_array() ) {
+  print( join("\t", map {sql_escape($_)} @row), "\n" );
+}
+print("\\.\n");
+
+
+exit(0);
+
+
+
+#################################################################333
+## INTERNALS
+
+sub sql_escape() {
+  my $v = shift;
+
+  if (not defined $v) {
+	return '\N';
+  }
+
+  $v =~ s/\t/\\t/g;
+  $v =~ s/\n/\\n/g;
+  return $v;
+}
+
+
+
+__END__
+* 2004/06/03 (Thu) 14:49 Reece Hart <reece@in-machina.com, rkh@gene.com>
+bioinfo@ghubprd> select ANNOT_DB_NAME,count(ANNOT_DB_NAME) from affyannot
+              -> where DB_NAME like 'HGU133%' group by annot_db_name order by 2 desc;
+ 
+ANNOT_DB_NAME COUNT(ANNOT_DB_NAME)
+------------- --------------------
+Proteome                    363686
+HGU133A                     209214
+HGU133B                     138469
+SST                         133752
+MGU74A                       40228
+Pfam                         36839
+MGU74B                       31398
+SwissProt                    25207
+Mu11KA                       20367
+MGU74C                       18678
+HGU95A                       18671
+Mu11KB                       18091
+HGU133P                      17077
+HuGenen1                     15060
+HGU95B                       13911
+LocusLink                    10943
+HuFL68                       10424
+Hu35KA                        9930
+HGU95E                        9479
+HGU95C                        8780
+Hu35KB                        7196
+Hu35KC                        7108
+Hu35KD                        6450
+HGU95D                        4978
+NULL                             0
+
+
+
+bioinfo@ghubprd> SELECT ANNOT_DB_NAME,LINK_METHOD,COUNT(*) FROM affyannot
+              -> WHERE DB_NAME LIKE 'HGU133%'
+              -> AND (ANNOT_DB_NAME = 'Proteome'
+              ->          OR ANNOT_DB_NAME = 'SST'
+              ->          OR ANNOT_DB_NAME = 'SwissProt'
+              ->          OR ANNOT_DB_NAME = 'LocusLink')
+              -> GROUP BY ANNOT_DB_NAME,LINK_METHOD ORDER BY 3 DESC;
+
+ANNOT_DB_NAME LINK_METHOD                       COUNT(*)
+------------- --------------------------------- --------
+Proteome      BLASTn-blocks                       229048
+Proteome      Secondary Linking-verified           79020
+SST           BLASTn-blocks                        77009
+Proteome      Genome_Guided_Mapping                45486
+SST           Genome_Guided_Mapping                25511
+SST           Secondary Linking-verified           18470
+SwissProt     Affy Annotation                      15810
+SwissProt     BLASTx-blocks                         8550
+Proteome      Secondary Linking                     8101
+LocusLink     Affy Annotation                       7870
+SST           UNQ Based Linking-verified            6857
+SST           Secondary Linking                     5219
+Proteome      LL-MGD Derived Linking                1834
+LocusLink     GenBank_Bridged_Linking               1760
+SwissProt     Secondary Linking                      721
+SST           LL-MGD Derived Linking                 622
+LocusLink     Secondary Linking                      561
+LocusLink     GenBank Bridged Linking                532
+LocusLink     Secondary Linking-verified             220
+Proteome      LL-MGD Derived Linking-verified        197
+SwissProt     Genome_Guided_Mapping                   92
+SST           LL-MGD Derived Linking-verified         64
+SwissProt     Secondary Linking-verifiedbyannot       18
+SwissProt     LL-MGD Derived Linking                  16
+ 
+24 rows selected (3 minutes, 2.87 seconds)
+ 
+
+
+SELECT ANNOT_DB_NAME,LINK_METHOD,COUNT(*) FROM affyannot
+WHERE DB_NAME LIKE 'HGU133%'
+AND (ANNOT_DB_NAME = 'Proteome'
+         OR ANNOT_DB_NAME = 'SST'
+         OR ANNOT_DB_NAME = 'SwissProt'
+         OR ANNOT_DB_NAME = 'LocusLink')
+AND (LINK_METHOD = 'BLASTn-blocks'
+         OR LINK_METHOD = 'Secondary Linking-verified'
+         OR LINK_METHOD = 'Affy Annotation'
+         OR LINK_METHOD = 'Genome_Guided_Mapping')
+GROUP BY ANNOT_DB_NAME,LINK_METHOD ORDER BY 1,2;

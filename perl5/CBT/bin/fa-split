@@ -3,7 +3,7 @@
 =head1 NAME
 
 fa-split -- split a fasta file into individual sequences
-S<$Id: fa-split,v 1.1 2003/05/14 00:20:11 rkh Exp $>
+S<$Id: fa-split,v 1.2 2003/05/27 22:37:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -69,7 +69,7 @@ GetOptions( \%opts,
   || pod2usage(-verbose=>1, -exitval=>2);
 
 
-my $in  = Bio::SeqIO->new('-format' => 'Fasta');
+my $in  = Bio::SeqIO->new('-format' => 'Fasta', -fh => *STDIN );
 while( my $seq = $in->next_seq() )
   {
   my $id = $seq->display_id();

@@ -11,22 +11,37 @@ IMPORTANT:
   well.  Ex: given a good thread to pseq_id 333, how does one determine that
   333 is really a sigcleave'd fragment of 222 (case 1 above).
 
+* failed loading in paprospect
+If loads fail, run_history is updated nonetheless. This is bad.  On the
+other hand, we want to tolerate (at least) attempts to insert redundant
+features.
 
 
 TO-DO AT NEXT BACKUP/RESTORE:
-* standardize on timestampe WITHOUT timezone
-  no issue, just for consistency
-* w/o oids
-  fix 4 tables made by cavs
-* pseq.len: smallint -> int 
-* s/p2/prospect2/
-* porigin_id() needs to be created ahead of dv_*
 
 
 
 BACKBURNER:
 
+* svn migration
+
+* update_uni_psets
+set pset_ids 1,2,3 iin pseqset
+delete from pseqset where pset_id=3;
+insert into pseqset select distinct 3,pseq_id from palias where tax_id=tax_id('Rat') ;
+etc.
+
+* postgresql superuser permissions
+are currently required. Unison should be cleanly separated so that any
+user (or pseudo-user like 'unison') is sufficient. This entails explictly
+stating assumptions for that user's perms (like plperl use and create
+schema).
+
+* separate csb-db/ and unison/.
+move unison doc and code from csb-db (or perhaps make it a subdir of unison/?)
+
 * collect UNQ,DNA -> pseq_id mapping (via PRO, presumably)
+SST sub-schema in unison?
 
 * drop ins,upd,del from all tables upon staging? how?
 
@@ -122,3 +137,12 @@ DONE
 
 * load-fasta
   option to generate tax_id with alias from tagline
+
+* dump/restore issues:
+** standardize on timestampe WITHOUT timezone
+  no issue, just for consistency
+** w/o oids
+  fix 4 tables made by cavs
+** pseq.len: smallint -> int 
+** s/p2/prospect2/
+** porigin_id() needs to be created ahead of dv_*

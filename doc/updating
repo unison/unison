@@ -1,15 +1,17 @@
 Unison Update Tasks				-*-outline-*-
 
 
+
 * Data:
 
 ** load sequences (SPDI, nr, incyte, ensemble, swiss-prot)
 
-** load new scop
-
 ** load go, build gong
 
 ** load Prospect2 models
+
+** load new scop
+scop2pmodel 
 
 ** load HMMs (in-house, Pfam)
 - In addition to loading Pfam, one must also make a new params set for
@@ -58,6 +60,11 @@ Currently, there is no single script which runs new sequences.
 * Other:
 
 ** generate blast database files
+see sbin/dump-seqdb
 
 ** generate schema docs
+
+** best_alias
+truncate & update from dv_best_alias
+
 
