@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.8 2004/04/16 00:37:19 cavs Exp $>
+S<$Id: pseq.pm,v 1.9 2004/04/16 21:11:53 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -21,7 +21,10 @@ B<> is a
 
 =cut
 
+
 package Unison;
+use strict;
+use warnings;
 use CBT::debug;
 use vars qw( %alias %md5 );
 use Digest::MD5  qw(md5_hex);
@@ -32,10 +35,9 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 sub pseq_si_pseq_id {
   my ($self, $seq) = @_;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   my $dbh = $self->{'dbh'};
   my $sth = $dbh->prepare_cached("select pseq_si_pseq_id(?)");
-  print(STDERR $seq, "\n");
   my ($rv) = $dbh->selectrow_array($sth,undef,$seq);
   return $rv;
 
@@ -53,10 +55,10 @@ returns the pseq_id for a given sequence, creating it if necessary
 }
 
 
-sub get_sequence_by_pseq_id($) {
+sub get_sequence_by_pseq_id ($) {
   my ($self,$pseq_id) = @_;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   my $sth = $self->prepare_cached("select seq from pseq where pseq_id=?");
   $sth->execute($pseq_id);
   my ($rv) = $sth->fetchrow_array();
@@ -81,16 +83,16 @@ fetches a single protein sequence from the pseq table.
 sub best_alias {
   my $self = shift;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   ($#_ >= 0)
-  || croak("usage: best_alias(pseq_id [,anyalias])\n");
+	|| croak("usage: best_alias(pseq_id [,anyalias])\n");
   my $sth;
   if ($#_ == 0 ) {
-  $sth = $self->prepare_cached("select best_alias(?)");
-  $sth->execute($_[0]);
+	$sth = $self->prepare_cached("select best_alias(?)");
+	$sth->execute($_[0]);
   } else {
-  $sth = $self->prepare_cached("select best_alias(?,?)");
-  $sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
+	$sth = $self->prepare_cached("select best_alias(?,?)");
+	$sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
   }
   my $ba = $sth->fetchrow_array;
   $sth->finish();
@@ -116,16 +118,16 @@ porigin.ann_pref ranking.  See also best_annotation.
 sub best_annotation {
   my $self = shift;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   ($#_ >= 0)
-  || croak("usage: best_annotation(pseq_id [,anyalias])\n");
+	|| croak("usage: best_annotation(pseq_id [,anyalias])\n");
   my $sth;
   if ($#_ == 0 ) {
-  $sth = $self->prepare_cached("select best_annotation(?)");
-  $sth->execute($_[0]);
+	$sth = $self->prepare_cached("select best_annotation(?)");
+	$sth->execute($_[0]);
   } else {
-  $sth = $self->prepare_cached("select best_annotation(?,?)");
-  $sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
+	$sth = $self->prepare_cached("select best_annotation(?,?)");
+	$sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
   }
   my $ba = $sth->fetchrow_array;
   $sth->finish();
@@ -150,9 +152,9 @@ Compare with the C<best_alias> method and see that for a definition of
 sub pseq_get_aliases {
   my $self = shift;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   ($#_==0)
-  || croak("exactly one porigin_id needed\n");
+	|| croak("exactly one porigin_id needed\n");
   my $pseq_id = shift;
   my $sql = "select origin||':'||alias from palias as a join porigin as o on a.porigin_id=o.porigin_id  where pseq_id=$pseq_id  order by o.ann_pref";
   return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
@@ -175,9 +177,9 @@ by porigin.ann_pref.
 sub pseq_id_by_md5 {
   my $self = shift;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   ($#_==0)
-  || croak("exactly one md5 needed\n");
+	|| croak("exactly one md5 needed\n");
   my $md5 = lc(shift);
   my $sql = "select pseq_id from pseq where md5='$md5'";
   return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
@@ -199,9 +201,9 @@ return a list of pseq_id for a given md5 checksum
 sub pseq_id_by_sequence {
   my $self = shift;
   $self->is_open()
-  || croak("Unison connection not established");
+	|| croak("Unison connection not established");
   ($#_==0)
-  || croak("exactly one sequence needed\n");
+	|| croak("exactly one sequence needed\n");
   my $seq = uc(shift);
   my $sth = "select _pseq_seq_lookup(?)";
   return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sth,undef,$seq) } );
@@ -225,19 +227,19 @@ return the pseq_id for a given sequence
 #-------------------------------------------------------------------------------
 # process_stream()
 #-------------------------------------------------------------------------------
- 
+
 =head2 process_stream()
 
  NAME: process_stream
  PURPOSE: parse Bio::SeqIO stream and load sequences into Unison
  ARGUMENTS: Bio::SeqIO object, option hashref:
-   'origin' => name of porigin (REQUIRED)
-   'start-after' => skip seqs until this accession
-   'sql-only' => boolean for sql output only (no loading in Unison)
-   'incl-subex' => boolean for whether to include subex gene predictions
-   'verbose' => boolean for whether to output more information
+'origin' => name of porigin (REQUIRED)
+  'start-after' => skip seqs until this accession
+  'sql-only' => boolean for sql output only (no loading in Unison)
+  'incl-subex' => boolean for whether to include subex gene predictions
+  'verbose' => boolean for whether to output more information
  RETURNS: hash with process info keys: nseen, nskipped, nadded
- 
+
 =cut
 
 sub process_stream {
@@ -250,8 +252,8 @@ sub process_stream {
   # tax_ids in their schema.
   my %tax_id = map {$_->[0],1} @{$u->selectall_arrayref( 'select distinct tax_id from tax.spspec' )};
 
-  while( my $bs = $in->next_seq() ) {
-    $u->process_seq($bs,$opts,\%rv,\%tax_id);
+  while ( my $bs = $in->next_seq() ) {
+	$u->process_seq($bs,$opts,\%rv,\%tax_id);
   }
   return(\%rv);
 }
@@ -265,10 +267,12 @@ sub process_stream {
 
  NAME: process_seq
  PURPOSE: parse Bio::Seq object and load seq and alia into Unison
- ARGUMENTS: Bio::Seq object, option hashref, 
-  process info hashref (keys: nseen, nskipped, nadded), hashref of allowable tax_ids
+ ARGUMENTS: Bio::Seq object, option hashref, process info hashref (keys:
+  nseen, nskipped, nadded), hashref of allowable tax_ids
+ NOTES: sequences loaded into the "refseq" origin are loaded with sequence
+		version numbers; all others origins ignore sequence version, if any.
  RETURNS: nada
- 
+
 =cut
 
 sub process_seq  {
@@ -276,7 +280,7 @@ sub process_seq  {
   my $id = $bs->display_id();
   my $seq = $bs->seq();
 
-  if (not defined $seq)  {
+  if (not defined $seq) {
     warn("$id: sequence not defined\n"); 
     return;
   }
@@ -293,16 +297,22 @@ sub process_seq  {
   $descr =~ s/\s{2,}/ /g;
   $descr =~ s/^\s+//;
   $descr =~ s/\s+$//;
+
   if ($opts->{origin} =~ m/spdi/i) {
-  $descr =~ s/\[(?:min|full)\]\s+//;
-  $descr =~ s/\# converted.+//;
+	$descr =~ s/\[(?:min|full)\]\s+//;
+	$descr =~ s/\# converted.+//;
+  } elsif ($opts->{origin} =~ m/refseq/i) {
+	my $v = $bs->seq_version();
+	if (defined $v) {
+	  $id .= ".$v";
+	}
   }
 
   # skip sequences in various conditions
   my $skip;
-  if ($id !~ m/\w/)  {
+  if ($id !~ m/\w/) {
     $skip = "doesn't look like a valid sequence id"; 
-  } elsif (defined $opts->{'start-after'})  {
+  } elsif (defined $opts->{'start-after'}) {
     $skip = "haven't reached $opts->{'start-after'} yet";
     undef $opts->{'start-after'} if ($id eq $opts->{'start-after'});
   } elsif (%alias and exists $alias{$id}) {
@@ -336,21 +346,21 @@ sub process_seq  {
 
   if ($opts->{'sql-only'}) {
     printf("insert into pseq (seq,len) values ('$seq',%d);\n",
-      length($seq)); return 1;
+		   length($seq)); return 1;
   }
 
   # select/insert sequences, then link aliases
   my $pseq_id;
   my $frommd5='';
-  if (%md5 and exists $md5{ $md5 })  {
+  if (%md5 and exists $md5{ $md5 }) {
     $pseq_id = $md5{ $md5 };
     $frommd5='*';
   } else {
-    $pseq_id = $u->pseq_si_pseq_id( $seq );
+	$pseq_id = $u->pseq_si_pseq_id( $seq );
     $md5{ $md5 } = $pseq_id;
   }
 
-  if (not defined $pseq_id)  {
+  if (not defined $pseq_id) {
     warn("! failed to add $id"); 
     return 0;
   }
@@ -359,18 +369,18 @@ sub process_seq  {
   # tax_ids (see description of process_stream method for more info).  if so, get the 
   # tax_id to insert with the # alias
   if (defined $bs->species && defined $bs->species->ncbi_taxid() && 
-    defined $tax_id_allowed->{$bs->species->ncbi_taxid()} ) {
+	  defined $tax_id_allowed->{$bs->species->ncbi_taxid()} ) {
     $tax_id = $bs->species->ncbi_taxid();
   } else {
     $tax_id = 'NULL';
   }
 
   foreach my $upd_id (@ids)  {
-    $u->add_palias($pseq_id,$opts->{porigin_id},$upd_id,$descr,$tax_id);
+	$u->add_palias($pseq_id,$opts->{porigin_id},$upd_id,$descr,$tax_id);
   }
 
   printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
-    length($seq), $descr) if $opts->{verbose};
+		 length($seq), $descr) if $opts->{verbose};
   $rv->{nadded}++;
 
   return;
