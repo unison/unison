@@ -14,7 +14,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.4 2004/04/21 18:18:47 rkh Exp $
+# $Id: load-pseq,v 1.5 2004/04/21 20:06:59 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -93,7 +93,7 @@ print( "update porigin set last_updated='",
 
 sub tally ($%) {
   my ($src,%stats) = @_;
-  sprintf("%-20s %7d seen, %7d added, %7d skipped, %7d failed, %7d aliases",
-		  (length($src)>19 ? '...'.substr($src,-16) : $src).':',
+  sprintf('%-30s %7d seen, %7d added, %7d skipped, %7d failed, %7d aliases',
+		  (length($src)>29 ? '...'.substr($src,-26) : $src).':',
 		  @stats{qw(nseen nadded nskipped nfailed naliases)});
 }
