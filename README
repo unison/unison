@@ -1,5 +1,5 @@
-This directory contains source code and data for unison, a database of
-protein annotation information.  These are the goals:
+This directory contains source code for Unison, a database of protein
+prediction results for mining.  These are the goals:
 
 immediately:
   - a non-redundant protein database with references to
@@ -30,5 +30,21 @@ outside the cluster; doing so with Oracle is impossible in the current
 setup and onerous in any case.
 
 
+Layout:
+unison/	
+	bin/		end-user executables/scripts
+	fixes/		one-time database "fixes"
+	ISSUES		known issues & todo list
+	loading/	scripts and scratch area for loading
+	logo/		Unison logo (gimp files)
+	perl5/		perl5 API and web objects
+	README		this file
+	sbin/		administrative / data-loading scripts
+	sql/		NON-AUTHORITATIVE sql (read: actual database may differ)
+	src/		non-sql source code
+	t/			test scripts
+	www/		web pages
+
+
 -Reece Hart <rkh@gene.com>
-2002/11/21
+$Id$
