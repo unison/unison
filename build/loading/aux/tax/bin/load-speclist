@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+my $go = 0;
+while( my $line = <> )
+  {
+  if (!$go)
+	{
+	$go++ if $line =~ m/^__/;
+	next;
+	}
+
+  if ( $line =~ m/^(\w+) \s+ ([ABEV]) \s+ (\d+)[:;] \s N=(.*)/x )
+	{
+	printf("insert into tax.spspec (id,k,gs,name) values (%s,%s,%s,%s);\n",
+		   sql_quote($3,$2,$1,$4));
+	}
+  elsif ( $line =~ m/[CS]=/ )
+	{}
+  elsif ( $line =~ m/^\s*$/ )
+	{ last; }
+  else
+	{ die("missed $.:$line") }
+  }
+
+
+sub sql_quote
+  { map { defined $_ ? q1($_) : 'NULL' } @_ }
+sub q1
+  { my $t = shift; $t =~ s/\'/\'\'/g; "'$t'"; }
