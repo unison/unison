@@ -22,6 +22,10 @@ sub alias_link {
 	return( alias_enslink($alias) )
   } elsif ($origin eq 'Proteome') {
 	return( alias_proteome_link($alias) )
+  } elsif ($origin eq 'Mint') { 
+        return ( alias_mint_link ($alias) );
+  } elsif ($origin eq 'Pubmed') {
+      return ( alias_pubmed_link ($alias) );
   } elsif ($alias =~ m/^[XN]P/) {
 	return( alias_reflink($alias) )
   } else {
@@ -59,6 +63,14 @@ sub alias_reflink {
 sub alias_enslink {
   "<a tooltip=\"link to Ensembl:$_[0]\" href=\"http://www.ensembl.org/Homo_sapiens/textview?species=All&idx=Protein&q=$_[0]\">$_[0]</a>";
   }
+
+sub alias_mint_link {
+    "<a tooltip=\"link to Mint:$_[0]\" href=\"http://160.80.34.4/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
+}
+
+sub alias_pubmed_link {
+    "<a tooltip=\"link to PubMed:$_[0]\" href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=$_[0]\">$_[0]</a>";
+}
 
 
 sub pseq_summary_link {

@@ -346,6 +346,7 @@ sub navbar {
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	   ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	   ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
+	    ['Mint', 		'Molecular Interactions database', 	'pseq_mint.pl', $pseq_id ],
 	   ['Notes',		'user notes on this sequnece',		'pseq_notes.pl', 	$pseq_id ],
 	   ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	  ],
