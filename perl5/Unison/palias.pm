@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.14 2004/07/19 22:20:16 rkh Exp $>
+S<$Id: palias.pm,v 1.15 2004/08/02 18:01:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -11,9 +11,10 @@ my $u = new Unison;
 
 =head1 DESCRIPTION
 
-B<> is a
-
-=head1 ROUTINES AND METHODS
+In Unison, each distinct sequence may derive from one or more databases
+(origins) and be associated with zero or more names (aliases) from those
+databases. This module provides an interface to the alias and origin data
+for Unison sequences.
 
 =cut
 
@@ -24,13 +25,24 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-use Unison::SQL;
 use Unison::Exceptions;
 
 
 =pod
 
-=head2 B<$u-E<gt>>add_palias_id( C<pseq_id>,C<porigin_id>,C<alias>,C<descr> )>
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## add_palias_id( )
+
+=pod
+
+=item B<< $u->add_palias_id( C<pseq_id>,C<porigin_id>,C<alias>,C<descr> ) >>
 
 adds an alias and description record in the paliasorigin and pseqalias
 tables for the existing porigin_id and pseq_id.
@@ -75,7 +87,12 @@ sub add_palias {
 
 
 
-=head2 B<$u-E<gt>>get_pseq_id_from_alias(C<text>)
+######################################################################
+## get_pseq_id_from_alias( )
+
+=pod
+
+=item B<< $u->get_pseq_id_from_alias(C<text>) >>
 
 returns an array of pseq_ids for the given alias by first trying for an
 exact match; if that fails, a case-folded search is performed; if that
@@ -83,8 +100,6 @@ fails, a fuzzy search (with ilike) is tried.
 
 If the alias starts with /, ~, ~*, or ^, then only the regular express
 search is tried.
-
-=back
 
 =cut
 
@@ -147,11 +162,14 @@ sub get_pseq_id_from_alias {
 
 
 
-=head2 B<$u-E<gt>>get_pseq_id_from_alias_exact(C<text>)
+######################################################################
+## get_pseq_id_from_alias_exact( )
+
+=pod
+
+=item B<< $u->get_pseq_id_from_alias_exact(C<text>) >>
 
 returns an array of pseq_ids for exact, case-sensitive matches to the given alias
-
-=back
 
 =cut
 
@@ -167,11 +185,14 @@ sub get_pseq_id_from_alias_exact {
 }
 
 
-=head2 B<$u-E<gt>>get_pseq_id_from_alias_casefolded(C<text>)
+######################################################################
+## get_pseq_id_from_alias_casefolded( )
+
+=pod
+
+=item B<< $u->get_pseq_id_from_alias_casefolded(C<text>) >>
 
 returns an array of pseq_ids for exact, case-INsensitive matches to the given alias
-
-=back
 
 =cut
 
@@ -187,7 +208,12 @@ sub get_pseq_id_from_alias_casefolded {
 }
 
 
-=head2 B<$u-E<gt>>get_pseq_id_from_alias_regexp(C<regexp>)
+######################################################################
+## get_pseq_id_from_alias_regexp( )
+
+=pod
+
+=item B<< $u->get_pseq_id_from_alias_regexp(C<regexp>) >>
 
 returns an array of pseq_ids by searching for the given alias as a regular
 expression.
@@ -195,8 +221,6 @@ expression.
 Regular expression matching may be case sensitive or insensitive, and are
 explicitly specified by preceeding the regexp with ~ or ~* respectively.
 ~ is the default and is optional.
-
-=back
 
 =cut
 
@@ -220,12 +244,15 @@ sub get_pseq_id_from_alias_regexp {
 }
 
 
-=head2 B<$u-E<gt>>get_pseq_id_from_alias_fuzzy(C<text>)
+######################################################################
+## get_pseq_id_from_alias_fuzzy( )
+
+=pod
+
+=item B<< $u->get_pseq_id_from_alias_fuzzy(C<text>) >>
 
 returns an array of pseq_ids by searching for the given alias expression
 with ilike.
-
-=back
 
 =cut
 
@@ -247,19 +274,24 @@ sub get_pseq_id_from_alias_fuzzy {
 
 =pod
 
+=back
+
 =head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
 
 =head1 SEE ALSO
 
+=over 4
+
+=item * perldoc Unison
+
+=back
+
 =head1 AUTHOR
 
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+see C<perldoc Unison> for contact information
 
 =cut
-
 
 1;

@@ -1,3 +1,23 @@
+=head1 NAME
+
+Unison::userprefs -- BLAT-related functions for Unison
+
+S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
+
+=head1 SYNOPSIS
+
+ use Unison;
+ use Unison::userprefs;
+ my $u = new Unison(...);
+ my $prefs = $u->get_userprefs();
+
+=head1 DESCRIPTION
+
+B<Unison::blat> provides BLAT-related methods to the B<Unison::>
+namespace.
+
+=cut
+
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -6,7 +26,26 @@ use strict;
 use warnings;
 
 
-# return user prefs as hashref
+=pod
+
+=head1 ROUTINES AND METHODS
+
+=over
+
+=cut
+
+
+######################################################################
+## get_userprefs
+
+=pod
+
+=item B<< $u->get_userprefs() >>
+
+return user prefs as hashref
+
+=cut
+
 sub get_userprefs {
   my $self = shift;
   my $userprefs;
@@ -33,5 +72,27 @@ sub get_userprefs {
   return $userprefs;
 }
 
+
+=pod
+
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
+=head1 AUTHOR
+
+see C<perldoc Unison> for contact information
+
+=cut
 
 1;

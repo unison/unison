@@ -2,7 +2,7 @@
 
 Unison::Exceptions -- Unison Exceptions
 
-S<$Id: utilities.pm,v 1.5 2004/05/07 21:36:21 rkh Exp $>
+S<$Id: Exceptions.pm,v 1.7 2004/05/14 20:36:23 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -47,6 +47,8 @@ B<END THE TRY..CATCH... COMMAND WITH A SEMICOLON.>
 This module provides no methods or routines other than those inherited
 from CBT::Exceptions.
 
+=over
+
 =cut
 
 use CBT::debug;
@@ -76,15 +78,24 @@ foreach my $subtype (@EXCEPTIONS) {
 
 =pod
 
+=back
+
+=head1 BUGS
+
+Please report bugs to Reece Hart E<lt>hart.reece@gene.comE<gt>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * perldoc Unison
+
+=back
+
 =head1 AUTHOR
 
- Reece Hart, Ph.D.                     rkh@gene.com, http://www.gene.com/
- Genentech, Inc.                       650/225-6133 (voice), -5389 (fax)
- Bioinformatics Department             
- 1 DNA Way, MS-93                      http://www.in-machina.com/~reece/
- South San Francisco, CA  94080-4990   reece@in-machina.com, GPG: 0x25EC91A0
+see C<perldoc Unison> for contact information
 
 =cut
 
 1;
-
