@@ -6,7 +6,7 @@
 # USAGE: genome_features.pl?genasm_id=<genasm_id>&[(chr=<chr>&gstart=<gstart>&gstop=<gstop>)||(pseq_id=<pseq_id>)]
 # NOTE: web wrapper around the genome-features command-line scripto
 #
-# $Id: genome_features.pl,v 1.4 2004/02/20 22:02:38 cavs Exp $
+# $Id: genome_features.pl,v 1.5 2004/02/21 00:55:05 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -50,9 +50,10 @@ close(FP);
 
 $png_fn =~ m#^(.*)(/tmp/genome-features/)(.*)$#;
 my $fn = "$2$3";
-print $p->render("Genome Alignment for Unison:$v->{pseq_id}",
-    $p->group( "<center><img src=\"$fn\" usemap=\"#GENOME_MAP\"></center>", $imap ),
-  );
+print $p->render("Genome Map",
+				 "<center><img src=\"$fn\" usemap=\"#GENOME_MAP\"></center>",
+				 $imap
+				);
 
 
 #-------------------------------------------------------------------------------

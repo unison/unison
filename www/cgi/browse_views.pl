@@ -16,6 +16,19 @@ my %cv = %{ $u->selectall_hashref("select cv_id,name,descr,sql from canned_views
 my @cv = sort {$a<=>$b} keys %cv;
 my %cvlabels = map {$_ => sprintf("%s (view %d)",$cv{$_}->{name}, $_)} @cv;
 
+my %coldescr = (
+				'pseq_id' => 'Unison unique sequence identifier',
+				'#TM' => 'number of transmembrane domains',
+				'pat' => 'is this (exact) sequence patented?',
+				'pat98' => 'is this sequence within 98% of a patented
+                            sequence? (not including the sequence itself)',
+				'eval' => 'HMM expectation value',
+				'best_annotation' => 'Best annotations are
+					   a guess about the most informative and reliable
+					   annotation for this sequence from all source
+					   databases.'
+			   );
+
 
 print $p->render('Browse Unison Views',
 
@@ -46,10 +59,12 @@ sub do_search {
   my $sql = $cv{$v->{cv_id}}->{sql};
   my $sth = $u->prepare( $sql );
   my $ar = $u->selectall_arrayref($sth);
-  my @f = @{ $sth->{NAME} };
+  my @f = map {$p->tooltip($_,$coldescr{$_})} @{ $sth->{NAME} };
 
   foreach my $row (@$ar) {
 	$row->[0] = "<a href=\"pseq_summary.pl?pseq_id=$row->[0]\">$row->[0]</a>";
+	$row->[2] = $row->[2] ? 'yes' : '';
+	$row->[3] = $row->[3] ? 'yes' : '';
   }
 
   return( "<hr>\n",
