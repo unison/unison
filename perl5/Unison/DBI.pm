@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
+S<$Id: DBI.pm,v 1.2 2003/04/30 21:11:22 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -25,11 +25,10 @@ standard DBI handle can be used.
 package Unison;
 use strict;
 use warnings;
+use Carp;
 use DBI;
-use CBT::Exceptions;
-use CBT::StandardExceptions;
 use Data::Dumper;
-
+use Unison::Exceptions;
 
 use Getopt::Long;
 my $p = new Getopt::Long::Parser;
@@ -88,10 +87,10 @@ sub connect
 	$self->{dbh} = $dbh;
 	return($self);
 	}
-  throw CBT::Exception::ConnectionFailed( "couldn't connect to unison",
-										  "dsn=$dsn\n" .
-										  'username='.$self->{username}."\n" .
-										  'password='.(defined $ENV{'PGPASSWORD'}?'<pass>':'<undef>') );
+  throw Unison::Exception::ConnectionFailed( "couldn't connect to unison",
+											 "dsn=$dsn\n" .
+											 'username='.$self->{username}."\n" .
+											 'password='.(defined $ENV{'PGPASSWORD'}?'<pass>':'<undef>') );
   return undef;
 =pod
 
@@ -120,15 +119,21 @@ sub AUTOLOAD
   {
   my $self = $_[0];
   my $method = our $AUTOLOAD;
-  warn("AUTOLOAD $self->$method\n") if $ENV{DEBUG};
   $method =~ s/^.*:://;
   return if $method eq 'DESTROY';
-  $self->dbh()->can($method)
-	or throw CBT::Exception::NotImplemented ("can't find method $method");
-  warn("AUTOLOAD thinks $self->dbh() can $method\n") if $ENV{DEBUG};
-  eval "sub $AUTOLOAD { throw Exception::NotConnected unless defined \$_[0]->dbh();
-                        (shift)->dbh()->$method(\@_); } ";
-  goto &$AUTOLOAD;
+  if (defined $self->dbh()
+	  and $self->dbh()->can($method))
+	{
+	warn("AUTOLOAD $AUTOLOAD ($self)\n") if $ENV{DEBUG};
+	my $sub = "sub $AUTOLOAD "
+	  . "{ \$_[0]->is_open() or throw Unison::Exception::NotConnected;"
+      .   "(shift)->dbh()->$method(\@_); }";
+	eval $sub;
+	goto &$AUTOLOAD;
+	}
+  Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
+  die("$method...ooops");
+  throw Unison::Exception::NotImplemented ("can't find method $method");
   }
 
 
