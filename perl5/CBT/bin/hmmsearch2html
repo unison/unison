@@ -5,7 +5,6 @@
 
 
 
-
 $^W++;
 use 5.6.0;
 use strict;
@@ -52,7 +51,7 @@ while( my $line = <$fh> )
 	#--------   -----------                                  -----    ------- ---
 	#PRO2354    UNQ1255 DNA88446 [min] Human LEPR            296.4    2.1e-85   2
 	if ( not $line =~ m/^Sequence|^-----/ 
-		 and $line =~ m/^(\w+)\s+(.{43})/ )
+		 and $line =~ m/^([-\w]+)\s+(.{43})/ )
 	  {
 	  $de{$1} = $2;
 	  $de{$1} =~ s/\s+$//;
@@ -69,7 +68,7 @@ while( my $line = <$fh> )
 	#PRO582       1/1     138   349 ..     1   228 []   225.0  6.3e-64
 	
 	if (not $line =~ m/^Sequence|^----/ 
-		and $line =~ s/^(\w+)\s+(\d+)\/(\d+)/<a href="al.html#$1_$2_$3" target="al">$&<\/a>/ )
+		and $line =~ s/^([-\w]+)\s+\d+\/\d+\s+(\d+)\s+(\d+)/<a href="al.html#$1\/$2-$3" target="al">$&<\/a>/ )
 	  {
 	  my $q = $1;
 	  my $bofn = "bo/$q-dblast.bo";
@@ -88,7 +87,7 @@ while( my $line = <$fh> )
 	#                   *->pqnlsCftnnlegnltCsWepgtdtg...ptnytlhyrrsllekeee
 	#                      p n+sC+++n++ +ltC+W+pg ++ +  +tny+l+y+ +++++  +
 	#      PRO582   138    PVNISCWSKNMK-DLTCRWTPGAHGEtflHTNYSLKYKLRWYGQDNT 183  
-	if ( $line =~ s/^(\w+): domain (\d+) of (\d+).*/<a name="$1_$2_$3">$&<\/a>/ )
+	if ( $line =~ s/^([-\w]+): domain \d+ of \d+, from (\d+) to (\d+).*/<a name="$1\/$2-$3">$&<\/a>/ )
 	  {
 	  my $q = $1;
 	  my $bofn = "$dir/bo/$q-dblast.bo";
