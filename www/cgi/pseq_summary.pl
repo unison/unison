@@ -30,7 +30,7 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 
 				 $p->group("Sequence",
 						   '<pre>', 
-						   '&gt;', $u->best_alias($v->{pseq_id}), "\n",
+						   '&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}), "\n",
 						   $seq,
 						   '</pre>' ),
 
@@ -43,5 +43,5 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->group("Features",
 						   "<img src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\">"),
 
-				 $p->sql($sql)
+#				 $p->sql($sql)
 				);
