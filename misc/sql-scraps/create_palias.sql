@@ -4,7 +4,7 @@
 -- PURPOSE: sql statements and PL/pgSQL commands for creating a 
 --          palias versioning system
 --
--- $Id$
+-- $Id: create_palias.sql,v 1.1 2003/04/09 21:45:23 cavs Exp $
 --
 -- -----------------------------------------------------------------------------
 
@@ -99,7 +99,7 @@ BEGIN
 	select into v_palias_id get_paliasorigin_palias_id( v_porigin_id, v_alias );
 	--IF not found THEN
 	IF v_palias_id is null THEN
-		select into v_palias_id nextval(''palias_palias_id_seq'');
+		select into v_palias_id nextval(''paliasorigin_palias_id_seq'');
 		RAISE DEBUG ''executing insert into alias (palias_id, porigin_id, alias, descr) values (%, %, %, %)'',v_palias_id, v_porigin_id, v_alias, v_descr;
 		insert into paliasorigin (palias_id, porigin_id, alias, descr) values (v_palias_id, v_porigin_id, v_alias, v_descr);
 	ELSE 
