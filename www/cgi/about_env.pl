@@ -13,6 +13,11 @@ my $v = $p->Vars();
 
 print $p->render("Unison Environment",
 
+				 '<hr>Unison host information:',
+				 '<br>platform: <code>', `uname -a`, '</code>',
+				 '<br>uptime: <code>', `uptime`, '</code>',
+				 '<br>running jobs:<br><pre>', `ps --sort=-pcpu r -wopid,ppid,stime,etime,cputime,pcpu,pmem,cmd -ucompbio 2>&1`, '</pre>',
+
 				 '<hr>Unison connection information:',
 				 (map { "<br><code>$_: "
 						. (defined $p->{unison}->{$_} ? $p->{unison}->{$_} : '(undef)')
