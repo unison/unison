@@ -3,7 +3,7 @@
 =head1 NAME
 
 seqfragment -- fragment sequences from a fasta file
-S<$Id: seqfragment,v 1.2 2003/05/12 20:06:29 rkh Exp $>
+S<$Id: seqfragment,v 1.3 2004/05/31 04:38:52 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -76,7 +76,7 @@ my %opts =
    );
 
 
-print(STDERR '# $Id: seqfragment,v 1.2 2003/05/12 20:06:29 rkh Exp $ ', "\n");
+print(STDERR '# $Id: seqfragment,v 1.3 2004/05/31 04:38:52 rkh Exp $ ', "\n");
 
 GetOptions(
 		   \%opts,
@@ -99,7 +99,7 @@ GetOptions(
 		  )
   || die("$0: bad usage; try --help\n");
 
-exists $opts{help}
+$opts{help}
   && pod2usage( { -verbose => 2 } );
 
 # sanity checks
@@ -107,15 +107,13 @@ exists $opts{help}
   || die("$0: length not defined\n");
 ($opts{length} > 0)
   || die("$0: length must be > 0\n");
-(defined $opts{overlap}
- and $opts{overlap} >= 0)
+($opts{overlap} >= 0)
   || die("$0: overlap must be >= 0\n");
 ($opts{overlap} < $opts{length})
   || die("$0: overlap must be less than sequence length\n");
 if (not defined $opts{offset})
   { $opts{offset} = $opts{length} - $opts{overlap}; }
-(defined $opts{offset}
- and $opts{offset} > 0)
+($opts{offset} > 0)
   || die("$0: offset must be > 0\n");
 if (defined $opts{quartile}) {
   ($opts{quartile} =~ m/^[1234]$/)
@@ -171,8 +169,8 @@ while( my $s0 = $si->next_seq() ) {
 
   # $i is 0-based index of sequence fragment
   for( my $i=$opts{'start-fragment'}-1;
-	   (defined $opts{'end-fragment'} ? $i<=$opts{'end-fragment'}-1 : 1)
-	     and $e<$l0-1;
+	   ( (not defined $opts{'end-fragment'} or $i<=$opts{'end-fragment'}-1)
+		 and $e<$l0-1 );
 	   $i++ ) {
 	my $b = $i * $offset;
 	$e = $b + $len - 1;
