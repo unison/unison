@@ -1,0 +1,101 @@
+#!/bin/sh
+#
+# xlink-dump -- dump rudimentary Unison data as sqlplus/sqlldr script
+#
+# This script connects to a Unison database and dumps pseq and alias
+# information. This is intended to be loaded into other databases in order
+# to facilitate linking from those databases to Unison.
+#
+
+LOGIN=unison/56133@biodev1
+DESCR_SIZE=200
+TRUNCATED='... [truncated by xlink]'
+
+
+tmproot="/tmp/xlink-$$"
+sqltmp="$tmproot.sql"
+ctltmp="$tmproot.ctl"
+logtmp="$tmproot.log"
+badtmp="$tmproot.bad"
+summary="$tmproot-summary"
+
+truncated_len=`/bin/echo -n "$TRUNCATED" | wc -c`
+descr_max=`echo $DESCR_SIZE-$truncated_len | bc`
+
+
+
+# drop and create the Oracle tables
+cat <<EOSQL >$sqltmp
+drop table pseq cascade constraints;
+drop table aliases cascade constraints;
+create table pseq (
+	pseq_id integer primary key,
+	md5 char(32) not null,
+	len integer not null
+);
+create unique index pseq_md5_idx on pseq(md5);
+create index pseq_len_idx on pseq(len);
+
+create table aliases (
+	pseq_id integer not null references pseq(pseq_id),
+    ann_pref integer,
+	origin char(30) not null,
+	alias char(50) not null,
+	descr char($DESCR_SIZE),
+	gs char(20)
+);
+create index aliases_pseq_id_idx on aliases(pseq_id,ann_pref);
+create index aliases_origin_idx on aliases(upper(origin));
+create index aliases_alias_idx on aliases(upper(alias));
+create index aliases_gs_idx on aliases(gs);
+
+quit
+EOSQL
+
+echo "# dropping & creating pseq & aliases tables:" 1>&2
+sqlplus "$LOGIN" "@$sqltmp" 1>/dev/null 2>/dev/null
+
+
+
+echo "# loading pseq:" 1>&2
+(cat <<EOLDR1
+load data
+infile *
+into table pseq
+fields terminated by '	'
+(pseq_id, len, md5)
+BEGINDATA
+EOLDR1
+psql -tAF'	' -c 'select pseq_id,len,md5 from pseq where pseq_id<100'
+) >"$ctltmp"
+
+/bin/rm -f "$logtmp" "$badtmp"
+sqlldr "$LOGIN" control="$ctltmp" log="$logtmp" bad="$badtmp" >/dev/null
+/bin/touch "$logtmp" "$badtmp"		# in case bad was empty
+/bin/wc -l "$logtmp" "$badtmp" 1>&2
+grep -A4 '^Table.*:' "$logtmp" >>"$summary"
+
+
+echo "# loading aliases:" 1>&2
+(cat <<EOLDR1
+load data
+infile *
+into table aliases
+fields terminated by '	'
+(pseq_id,ann_pref,origin,alias,descr,gs)
+BEGINDATA
+EOLDR1
+psql -tAF'	' -c "SELECT pseq_id,ann_pref,origin,alias,CASE WHEN LENGTH(descr)>$DESCR_SIZE THEN SUBSTR(descr,1,$descr_max)||'$TRUNCATED' ELSE descr END as \"descr\",CASE WHEN gs IS NULL THEN 'NULL' ELSE gs END AS \"gs\" from v_aliases where pseq_id<100"
+) >"$ctltmp"
+
+/bin/rm -f "$logtmp" "$badtmp"
+sqlldr "$LOGIN" control="$ctltmp" log="$logtmp" bad="$badtmp" >/dev/null
+/bin/touch "$logtmp" "$badtmp"		# in case bad was empty
+/bin/wc -l "$logtmp" "$badtmp" 1>&2
+grep -A4 '^Table.*:' "$logtmp" >>"$summary"
+
+
+
+echo ===============================================================
+cat "$summary"
+
