@@ -56,7 +56,7 @@ sub features_graphic {
   add_paprospect2( $u, $panel, $q );
 
   $panel->add_track( ) for 1..2;         # spacing
-  $panel->add_track( -key => '$Id: features.pm,v 1.1 2004/02/25 20:48:00 rkh Exp $',
+  $panel->add_track( -key => '$Id: features.pm,v 1.2 2004/02/25 21:04:35 cavs Exp $',
            -key_font => 'gdSmallFont',
            -bump => +1,
            );
@@ -228,7 +228,7 @@ sub add_pahmm {
   my $sql = 
   'select A.start,A.stop,M.acc as "model",A.mstart,A.mstop,M.len,A.score,A.eval,M.descr
    from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
-   where pseq_id='.$q.' and score>1 and eval<=5 order by eval';
+   where params_id=13 and pseq_id='.$q.' and score>1 and eval<=5 order by eval';
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql );
   my $nfeat = $#$featref+1;

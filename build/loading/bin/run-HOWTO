@@ -1,0 +1,14 @@
+Let's migrate options to the following standard:
+
+options:
+Unison::DBI opts: -d, -U, -h
+-Q pset_id
+-m pmodel_id
+-M modelset_id
+-o porigin_id (capital "oh", not zero)
+-p params_id
+
+
+The basic rationale is that "things" are lowercase, sets of things are
+uppercase
+

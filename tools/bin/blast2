@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id: blast2,v 1.4 2003/10/16 20:12:45 rkh Exp $
+# $Id: blast2,v 1.5 2004/01/08 02:17:38 rkh Exp $
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
@@ -48,6 +48,7 @@ my $s2 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id2 ),
 
 my $factory = Bio::Tools::Run::StandAloneBlast->new(program => 'blastp',
 													outfile => $bo);
+$factory->F('F');							# no filtering/masking
 $factory->bl2seq($s1,$s2);
 
 

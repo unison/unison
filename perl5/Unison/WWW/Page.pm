@@ -236,6 +236,7 @@ sub group {
   if (ref $name eq 'ARRAY') {
 	($name,$ctl) = @$name;
   }
+  $name =~ s/\s+/\&nbsp;/g;
   return("<table class=\"group\">\n",
 		 "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
 		 "<tr><td colspan=\"2\">\n",@_,"\n</td></tr>\n",
@@ -434,11 +435,11 @@ sub tooltip {
   my $self = shift;
   my ($text,$tooltip) = @_;
   $tooltip =~ s/\s+/ /g;
-  return( '<span class="tipped" tooltip="',
-		  CGI::escapeHTML($tooltip),
-		  '">',
-		  CGI::escapeHTML($text),
-		  '</span>' );
+  return( '<span class="tipped" tooltip="'
+		  . CGI::escapeHTML($tooltip)
+		  . '">'
+		  . CGI::escapeHTML($text)
+		  . '</span>' );
 }
 
 sub warn {

@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.11 2004/02/24 21:49:08 rkh Exp $
+# $Id: run-paprospect2,v 1.12 2004/02/25 20:47:12 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -24,6 +24,7 @@ use Error qw(:try);
 
 my %opts = (
 			'debug' => 0,
+			'dry-run' => 0,
 			'params_id' => undef,
 			'pmodelset_id' => undef,
 			'porigin_id' => undef,
@@ -41,6 +42,7 @@ GetOptions(\%opts,
 		   'templates|t=s@',
 		   'update',
 		   'verbose!',
+		   'dry-run|n'
 		  )
   or die("$0: bad usage\n");
 
@@ -60,6 +62,10 @@ if ($opts{debug}) {
   select STDOUT; $|++;
   print Dumper(\%opts);
 }
+
+my @pseq_ids = map {eval "$_"} @ARGV;
+my $N = $#pseq_ids+1;
+
 
 my $u = new Unison;
 
@@ -90,12 +96,15 @@ if (defined $opts{'templates'}) {
   $po->{tfile} = '/apps/compbio/share/prospect2/tfiles/all';
 }
 
-my $pc = new Bio::Prospect::LocalClient( options=>$po );
+my $temproot = (defined $ENV{'PBS_JOBID'}) ? "/scr/$ENV{'PBS_JOBID'}" : '/tmp/';
+my $pc = new Bio::Prospect::LocalClient(options => $po,
+										temproot => $temproot
+									   );
 
 
 
 
-PSEQ_ID: while( my $pseq_id = shift ) {
+PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
   my $leader = "\rUnison:$pseq_id";
   print(STDERR $leader);
 
@@ -108,8 +117,11 @@ PSEQ_ID: while( my $pseq_id = shift ) {
 	  ## this conservatively skips running this entire sequence if ANY of
 	  ## the m/o compbinations are present. This may leave some m/o
 	  ## combinations un-run.
-	  print(STDERR "$leader: run with these options on $ran_on; skipping\n");
-	  next PSEQ_ID;
+	  if (not $opts{update}) {
+		print(STDERR "$leader: run with these options on $ran_on; skipping\n");
+		next PSEQ_ID;
+	  }
+	  print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
 	}
   }}
 
@@ -137,6 +149,11 @@ PSEQ_ID: while( my $pseq_id = shift ) {
     next PSEQ_ID;
   };
 
+  if ($opts{'dry-run'}) {
+	print(STDERR "done\n");
+	next;
+  }
+
   for( my $i=0; $i<=$#summaries; $i++) {
 	my $ts = $summaries[$i];
 	printf(STDERR "$leader: loading %8s (%4d/%4d %3d%%)...", 
@@ -160,6 +177,9 @@ PSEQ_ID: while( my $pseq_id = shift ) {
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.12  2004/02/25 20:47:12  rkh
+# added exception handling
+#
 # Revision 1.11  2004/02/24 21:49:08  rkh
 # * added ran_on check IMPORTANT NOTE for clarification
 #
