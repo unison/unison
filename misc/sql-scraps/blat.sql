@@ -2,7 +2,7 @@
 -- Name: blat.sql
 -- Purpose: sql code for generating tables for storing blat results
 --
--- $Id: blat.sql,v 1.2 2004/01/27 21:51:52 cavs Exp $
+-- $Id: blat.sql,v 1.3 2004/01/27 22:38:34 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
@@ -162,7 +162,7 @@ RETURNS text[] AS '
     RETURN result_arr;
   END
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION split IS 'split text into an array - similar to Perl split';
+COMMENT ON FUNCTION split(text, text) IS 'split text into an array - similar to Perl split';
 
 
 -- -----------------------------------------------------------------------------
@@ -180,7 +180,7 @@ BEGIN
   RETURN hsp_ids;
 END;
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION hsp_str_to_hsp_ids IS 'deserialize a hsp_str into an array of p2gblathsp_ids';
+COMMENT ON FUNCTION hsp_str_to_hsp_ids(text) IS 'deserialize a hsp_str into an array of p2gblathsp_ids';
 -- -----------------------------------------------------------------------------
 
 
@@ -210,7 +210,7 @@ BEGIN
   return hsp_str;
 END;
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION hsp_ids_to_hsp_str IS 'serialize an array of p2gblathsp_ids';
+COMMENT ON FUNCTION hsp_ids_to_hsp_str(int[]) IS 'serialize an array of p2gblathsp_ids';
 -- -----------------------------------------------------------------------------
 
 
@@ -251,7 +251,8 @@ BEGIN
   return v_p2gblathsp_id;
 END;
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION hsp_ids_to_hsp_str IS 'insert protein-to-genome BLAT HSPs';
+COMMENT ON FUNCTION ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer)
+	IS 'insert protein-to-genome BLAT HSPs';
 -- -----------------------------------------------------------------------------
 
 
@@ -295,5 +296,6 @@ BEGIN
   return v_p2gblataln_id;
 END;
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION assign_p2gblataln IS 'insert protein-to-genome BLAT alignments';
+COMMENT ON FUNCTION assign_p2gblataln(text, integer, integer, integer, integer, integer)
+	IS 'insert protein-to-genome BLAT alignments';
 -- -----------------------------------------------------------------------------
