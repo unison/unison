@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.13 2004/04/21 23:30:19 rkh Exp $>
+S<$Id: pseq.pm,v 1.14 2004/05/04 04:48:22 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -369,7 +369,13 @@ sub process_seq  {
   }
 
   foreach my $upd_id (@ids)  {
-	$u->add_palias($pseq_id,$opts->{porigin_id},$upd_id,$descr,$tax_id);
+	try {
+	  $u->add_palias($pseq_id,$opts->{porigin_id},$upd_id,$descr,$tax_id);
+	} catch Unison::Exception with {
+	  $rv->{nfailed}++;
+	  throw Unison::Exception::RuntimeError( "Failed to load one or more aliases for $pseq_id",
+											 $_[0] );
+	};
 	$rv->{naliases}++;
   }
 
