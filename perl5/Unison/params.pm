@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2params -- Unison p2params table utilities
-S<$Id: params.pm,v 1.9 2004/07/19 22:20:16 rkh Exp $>
+S<$Id: params.pm,v 1.9.2.1 2004/11/30 19:55:23 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -43,7 +43,7 @@ sub params_id_by_name($$) {
   return $id;
 }
 sub get_params_id_by_name($$) {
-  goto params_id_by_name;
+  goto &params_id_by_name;
 }
 
 sub get_p2options_by_params_id($) {
