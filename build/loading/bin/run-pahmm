@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.10 2005/03/29 04:10:45 rkh Exp $
+# $Id: run-pahmm,v 1.11 2005/03/29 20:09:25 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -133,7 +133,12 @@ my $toterrs = 0;
 
 while( @pseq_ids ) {
   my (@ids) = splice(@pseq_ids,0,$opts{'seqs-per-run'});
-  next unless fetch_sequences($u,$seqfn,@ids);
+
+  my $nseq = fetch_sequences($u,$seqfn,@ids);
+  next if ($nseq == 0);
+
+  print(STDERR "fetched $nseq sequences; running...\n");
+
   my ($seqs,$hits,$hsps,$errs) = run_and_load($u,$seqfn);
   $totseqs += $seqs;
   $tothits += $hits;
@@ -220,7 +225,7 @@ sub run_and_load ($$) {
 	  }
 	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
 	  $u->commit();
-	  printf(STDERR "Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed\n");
+	  printf(STDERR "Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed $z\n");
 	  $tothits += $nhits;
 	  $tothsps += $nhsps;
 	} catch Unison::Exception with {
