@@ -1,0 +1,69 @@
+#!/usr/bin/env perl
+# pfam-from-fasta -- fetch Unison hmm results for sequences in a fasta file
+# eg$ fetch-hmm-results <my.fasta
+
+use strict;
+use warnings;
+use Unison;
+use Bio::SeqIO;
+
+
+# Unison stores multiple versions of Pfam results (different Pfam releases,
+# different command line options, etc.). $params must be listed in the
+# unison.params table.
+my $params = 'Pfam_fs 14.0';
+
+my $eval_max = 1e-2;
+
+
+# connect with defaults. See Unison::DBI. Typically, the connection is made
+# to the csb production host ('csb'), csb production database (also 'csb'),
+# as the calling user id, authenticated by kerberos.
+my $u = new Unison( );
+
+
+# get the numeric params_id corresponding to the desired $params
+my $params_id = $u->params_id_by_name($params);
+(defined $params_id)
+  || die("$params: No such parameter set name\n");
+
+
+# prepare the Pfam lookup
+my $pfam_sth = $u->prepare(<<EOSQL);
+	SELECT start, stop, ends, score, eval, acc, name, descr
+	FROM v_pahmm A
+	WHERE A.pseq_id=? AND A.params_id=? AND A.eval<=?
+	ORDER BY eval, start
+EOSQL
+
+
+my $in = new Bio::SeqIO( -fh => \*STDIN,
+						 -format => 'fasta' );
+
+my $sno = 0;
+while( my $bs = $in->next_seq() ) {
+  $sno++;
+  my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
+
+  if (not defined $pseq_id) {
+	warn( "! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
+	next;
+  }
+
+  my @results = @{ $u->selectall_arrayref($pfam_sth,undef,
+										  $pseq_id, $params_id, $eval_max) };
+
+  printf("* Unison:%d (%s); %d hmm alignment(s)\n",
+		 $pseq_id, $u->best_alias($pseq_id) || '<no alias>', $#results+1);
+
+  # !!! no results => either 1) never run or 2) no results given criteria
+  # one can and and should distinguish these by looking in the run_history
+  # table. I don't do that here.
+  next unless @results;
+
+  printf("  [%4.4s,%4.4s] %4s %5s  %8s  %-10.10s  %-15.15s  %s\n",
+		 qw(strt stop ends score eval acc name descr));
+  foreach my $a (@results) {
+	printf("  [%4d,%4d] %4s %5d  %8g  %-10.10s  %-15.15s  %s\n", @$a);
+  }
+}
