@@ -69,8 +69,11 @@ sub new {
 	delete $v->{seq};
   }
 
-
   $self->{userprefs} = $self->{unison}->get_userprefs();
+  $self->{readonly} = 1;
+  $self->{readonly} = 0 if ($self->{unison}->{dbname} eq 'csb-dev' 
+							and $self->{unison}->{username} =~ m/^(rkh|cavs)$/
+							and exists $v->{update} );
 
   # if we've made it this far, we'll eventually get a page out
   $self->start_html;
@@ -78,7 +81,7 @@ sub new {
   return $self;
   }
 
-
+ 
 
 
 sub page_connect ($) {
@@ -213,13 +216,17 @@ sub render {
 
   if (ref $p and exists $p->{unison} and $p->{unison}->is_open()) {
 	$cnav = join('<p>',
-				 map {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
-				 (map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
-				  qw(username host dbname)),
-				 ['release',
-				  $p->{unison}->selectrow_array
-				  ('select value::date from meta where key=\'release timestamp\'')]);
-	
+				 map( {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
+					  # key-value pairs:
+					  (map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
+					   qw(username host dbname)),
+
+					  ['release',
+					   $p->{unison}->selectrow_array
+					   ('select value::date from meta where key=\'release timestamp\'')]
+					)
+				);
+	$cnav .= '<p><center><span style="background-color: red"><b><i>&nbsp;&nbsp;writable&nbsp;&nbsp;</i></b></span></center>' if (not $p->{readonly});
 	$elapsed = 'page generated in ' . (time - $p->{starttime}) . ' seconds';
   }
 
@@ -276,7 +283,7 @@ sub group {
   if (ref $name eq 'ARRAY') {
 	($name,$ctl) = @$name;
   }
-  $name =~ s/\s+/\&nbsp;/g;
+  $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;	# don't nbsp-ize HTML
   return("<table class=\"group\">\n",
 		 "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
 		 "<tr><td colspan=\"2\">\n",@_,"\n</td></tr>\n",
@@ -311,10 +318,11 @@ sub navbar {
 	   ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
 	   ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
 	   ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	   ['Prospect2', 	'Prospect2 threadings', 		'pseq_paprospect2.pl',	"$pseq_id;params_id=1"],
+	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id;params_id=1"],
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	   ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	   ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
+	   ['Notes',		'user notes on this sequnece',		'pseq_notes.pl', 	$pseq_id ],
 	   ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	  ],
 
