@@ -1,0 +1,163 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Unison;
+use Bio::Graphics;
+use Bio::SeqFeature::Generic;
+use Getopt::Long qw(:config gnu_getopt);
+use Data::Dumper;
+
+my %opts;
+GetOptions( \%opts,
+			'pseq_id|q=i' )
+  || die("$0: usage issues, chief\n");
+
+exists $opts{pseq_id}
+  || die("$0: Doh! You definitely need to gimme a unison pseq_id (w/--pseq_id)\n");
+
+
+my $u = new Unison;
+
+my $len = $u->selectrow_array( "select len from pseq where pseq_id=$opts{pseq_id}" );
+(defined $len)
+  || die("Looks like Unison:$opts{pseq_id} doesn't exist\n");
+
+my $plen = int($len / 100 + 1) * 100;		# round up to nearest thousand
+
+my $panel = Bio::Graphics::Panel->new( -length => $plen,
+									   -width => 600,
+									   -pad_left => 10,
+									   -pad_right => 10,
+									   -key_style => 'between'
+									 );
+
+$panel->add_track( Bio::SeqFeature::Generic->new
+				   (-start => 1, -end => $len,
+					-seq_id => sprintf("Unison:%d; %d AA; %s",
+									   $opts{pseq_id}, $len, 
+									   $u->best_alias($opts{pseq_id})||'?')),
+				   -glyph => 'arrow',
+				   -tick => 2,
+				   -fgcolor => 'black',
+				   -double => 0,
+				   -label => 1, -description=>1
+				 );
+
+add_pftmdetect( $u, $panel, $opts{pseq_id} );
+add_pahmm( $u, $panel, $opts{pseq_id} );
+add_paprospect2( $u, $panel, $opts{pseq_id} );
+
+print $panel->png();
+exit(0);
+
+
+
+#####################################################################################
+
+sub add_pftmdetect {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 0,
+								 -max_score => 1,
+								 -bgcolor => 'blue',
+								 -key => 'tmdetect',
+								 -bump => +1,
+								 -label => 1,
+								 -fgcolor => 'black',
+								 -fontcolor => 'black',
+								 -font2color => 'red',
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $featref = $u->selectall_arrayref
+	("select start,stop,pftype.name,confidence 
+	 from pftmdetect natural join pftype where pseq_id=$q");
+  foreach my $r (@$featref) {
+	$track->add_feature
+	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+									   -end => $r->[1],
+									   -seq_id => eval {my($x)=$r->[2]=~m%/(\S+)%;$x;},
+									   -score => $r->[3]
+									 ) );
+	$nadded++;
+  }
+  return $nadded;
+}
+
+
+
+sub add_paprospect2 {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'box',
+								 -bgcolor => 'green',
+								 -key => 'prospect',
+								 -bump => +1,
+								 -label => 1,
+								 -fgcolor => 'black',
+								 -font2color => 'red',
+								 -description => 1,
+								 -height => 4,
+								 -bgcolor => 'green'
+							   );
+  my $featref = $u->selectall_arrayref(
+	'select tmp.*,best_annotation(tmp.pseq_id)
+    from (SELECT t.start,t.stop, t.raw, t.svm, b.name, b.pseq_id, sfdes.descr
+	      FROM paprospect2 t
+		  JOIN pmprospect2 b ON t.pmodel_id=b.pmodel_id
+          LEFT JOIN cla ON b.sunid = cla.sunid
+          LEFT JOIN des sfdes ON sfdes.sunid = cla.sf
+          WHERE t.pseq_id='.$q.' and t.svm>7 ORDER BY t.svm DESC limit 5) tmp');
+  foreach my $r (@$featref) {
+	next unless defined $r->[0];
+	$track->add_feature
+	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+									   -end => $r->[1],
+									   -seq_id => sprintf("%s (%s)",
+														  $r->[4], $r->[6]||'<?>')
+									 ) );
+	$nadded++;
+  }
+  return $nadded;
+}
+
+
+sub add_pahmm {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 1e-20,
+								 -max_score => 1,
+								 -bgcolor => 'blue',
+								 -key => 'HMM',
+								 -bump => +1,
+								 -label => 1,
+								 -fgcolor => 'black',
+								 -fontcolor => 'black',
+								 -font2color => 'red',
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $featref = $u->selectall_arrayref(
+	'select A.start,A.stop,M.name as "model",A.mstart,A.mstop,M.len,A.score,A.eval,M.descr
+	 from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
+	 where pseq_id='.$q.' and eval<=2 order by eval');
+  foreach my $r (@$featref) {
+	next unless defined $r->[0];
+	printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
+	$track->add_feature
+	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+									   -end => $r->[1],
+									   -score => $r->[6],
+									   -seq_id => sprintf("%s; %s%s; S=%s; E=%s; %s)",
+														  $r->[2],
+														  $r->[0]==1?'[':'.',
+														  $r->[1]==$r->[5]?']':'.',
+														  $r->[6], $r->[7],$r->[8])
+									 ) );
+	$nadded++;
+  }
+  return $nadded;
+}
