@@ -1,0 +1,33 @@
+$Id$
+
+Files in this directory assist with loading Gene Ontology data into a
+PostgreSQL database from GO-distributed mysql dumps.  It requires:
+
+1) A PostgreSQL database
+2) the my2pg.pl script (in the PostgreSQL source contrib/ directory)
+3) make
+
+To use it:
+- edit the variables at the top of the Makefile
+- get a termdb-tables.tar.gz mysql dump from 
+  http://www.godatabase.org/dev/database/archive/latest/
+- untar it (with `tar -xzf')
+- symlink go_200xxx-termdb-tables tables (with ln -s go_blah tables)
+- make godb.sql
+- if you like that sql, do make godb.log.  Try it like this:
+  $ PGPASSWORD=bushorchimp make godb.log
+
+
+	NOTE: If you run this on a remote database, the path to the
+	local .txt file (in tables/) MUST be the same path on the
+	server side.  The load script merely sends the server a
+	filename to load.  The Makefile assumes $PWD/tables/blah.txt.
+
+
+Loading takes me ~10 minutes on a dual 2.4GHz Xeon.  I last used this on
+the 200306 release.
+
+
+Good luck. 
+
+Reece <rkh@gene.com>
