@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Unison;
 use Bio::Graphics;
-use Bio::SeqFeature::Generic;
+use Bio::Graphics::Feature;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 
@@ -43,9 +43,9 @@ my $panel = Bio::Graphics::Panel->new( -length => $plen,
 									   -key_style => 'between'
 									 );
 
-$panel->add_track( Bio::SeqFeature::Generic->new
+$panel->add_track( Bio::Graphics::Feature->new
 				   (-start => 1, -end => $len,
-					-seq_id => sprintf("Unison:%d; %d AA; %s",
+					-name => sprintf("Unison:%d; %d AA; %s",
 									   $opts{pseq_id}, $len, 
 									   $u->best_alias($opts{pseq_id})||'?')),
 				   -glyph => 'arrow',
@@ -63,7 +63,7 @@ add_papssm( $u, $panel, $opts{pseq_id} );
 add_paprospect2( $u, $panel, $opts{pseq_id} );
 
 $panel->add_track( ) for 1..2; 				# spacing
-$panel->add_track( -key => '$Id: graphic_features.pl,v 1.7 2003/10/07 22:04:16 rkh Exp $',
+$panel->add_track( -key => '$Id: graphic_features.pl,v 1.8 2003/10/28 22:27:26 rkh Exp $',
 				   -key_font => 'gdSmallFont',
 				   -bump => +1,
 				 );
@@ -114,9 +114,9 @@ sub add_pftmdetect {
 	 from pftmdetect natural join pftype where pseq_id=$q");
   foreach my $r (@$featref) {
 	$track->add_feature
-	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									   -end => $r->[1],
-									   -seq_id => eval {my($x)=$r->[2]=~m%/(\S+)%;$x;},
+									   -name => eval {my($x)=$r->[2]=~m%/(\S+)%;$x;},
 									   -score => $r->[3]
 									 ) );
 	$nadded++;
@@ -159,10 +159,10 @@ sub add_paprospect2 {
   foreach my $r (@$featref) {
 	next unless defined $r->[0];
 	$track->add_feature
-	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									   -end => $r->[1],
 									   -score => $r->[3],
-									   -seq_id => sprintf("%s; raw=%s; svm=%s; (%s)",
+									   -name => sprintf("%s; raw=%s; svm=%s; (%s)",
 														  @$r[4,2,3], $r->[6]||'<?>')
 									 ) );
 	$nadded++;
@@ -200,10 +200,10 @@ sub add_pahmm {
 	next unless defined $r->[0];
 	#printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
 	$track->add_feature
-	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									   -end => $r->[1],
 									   -score => $r->[6],
-									   -seq_id => sprintf("%s; %s%s; S=%s; E=%s; %s)",
+									   -name => sprintf("%s; %s%s; S=%s; E=%s; %s)",
 														  $r->[2],
 														  $r->[0]==1?'[':'.',
 														  $r->[1]==$r->[5]?']':'.',
@@ -244,10 +244,10 @@ sub add_papssm {
 	next unless defined $r->[0];
 	#printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
 	$track->add_feature
-	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									   -end => $r->[1],
 									   -score => $r->[3],
-									   -seq_id => sprintf("%s; S=%s; E=%s)",
+									   -name => sprintf("%s; S=%s; E=%s)",
 														  $r->[2], $r->[3], $r->[4])
 									 ) );
 	$nadded++;
@@ -275,10 +275,10 @@ sub add_pfantigenic {
 	("select start,stop,score,subseq from v_pfantigenic where pseq_id=$q limit 10");
   foreach my $r (@$featref) {
 	$track->add_feature
-	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									   -end => $r->[1],
 									   -score => $r->[2],
-									   -seq_id => $r->[3]
+									   -name => $r->[3]
 									 ) );
 	$nadded++;
   }
@@ -305,10 +305,10 @@ sub add_pfsigcleave {
 	("select start,stop,score from pfsigcleave where pseq_id=$q");
   foreach my $r (@$featref) {
 	$track->add_feature
-	  ( Bio::SeqFeature::Generic->new( -start => $r->[0],
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									   -end => $r->[1],
 									   -score => $r->[2],
-									   -seq_id => $r->[2]
+									   -name => $r->[2]
 									 ) );
 	$nadded++;
   }
