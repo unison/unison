@@ -1,10 +1,21 @@
 package Unison::WWW::Page;
+use base Exporter;
 use CGI qw( :standard *table -debug -nosticky );
-our @ISA = qw(CGI);
+push(@ISA, 'CGI');
 
-use CGI::Carp qw(fatalsToBrowser);
+BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
 use Unison::Exceptions;
 use Unison;
+
+our $infer_pseq_id = 0;
+
+sub import {
+  my $self = shift;
+  for (@_) {
+	$infer_pseq_id=1 if ($_ eq 'infer_pseq_id');
+  }
+}
+
 
 sub new {
   my $class = shift;
@@ -28,18 +39,16 @@ sub new {
 								  password => undef,
 								  host => $host,
 								  dbname => $v->{dbname} || 'csb' );
-  }
-  catch Unison::Exception with {
+  }	catch Unison::Exception with {
 	my $msg = escapeHTML($_[0]);
 	__PACKAGE__->die('Unison Connection Failed', 
 					 '<pre>'.$msg.'</pre>',
-					'<p>',
+					 '<p>',
 					 '<hr>Kerberos and user information:',
 					 (map { "<br><code>$_: $ENV{$_}</code>\n" }
 					  qw(REMOTE_USER KRB5CCNAME)),
 					);
   };
-
 
 
   # Most pages should refer to sequences by pseq_id. If pseq_id isn't
@@ -65,7 +74,8 @@ sub new {
 	}
   }
 
-  if (not exists $v->{pseq_id}) {
+  if (not exists $v->{pseq_id}
+	  and $infer_pseq_id) {
 	my @ids;
 
 	if (exists $v->{seq}) {
@@ -90,20 +100,22 @@ sub new {
 		$self->die('alias not found',
 				   'The alias you provided wasn\'t found in Unison (case insensitive).');
 	  } elsif ($#ids > 0) {
-		# multiple aliases
+		# this should be moved to a general search CGI
+		print CGI::redirect("search_by_alias.pl?alias=$v->{alias}");
+		exit(0);
 		$self->die('alias collision',
 				   'The alias you provided corresponds to more than one sequence.');
 	  }
 	}
 
 	$v->{pseq_id} = $ids[0];
-  }
 
-  # hereafter, we don't want these polluting our variables
-  delete $v->{'q'};
-  delete $v->{alias};
-  delete $v->{md5};
-  delete $v->{seq};
+	# hereafter, we don't want these polluting our variables
+	delete $v->{'q'};
+	delete $v->{alias};
+	delete $v->{md5};
+	delete $v->{seq};
+  }
 
   $self->start_html;
   return $self;
@@ -131,12 +143,9 @@ sub start_html {
 								 );
   }
 
-sub render
-  {
+sub render {
   my $p = shift;
   my $title = shift;
-
-  my $timestamp = 
 
   return ($p->header(),
 
@@ -147,8 +156,8 @@ sub render
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-			 '<a title="Unison home page" href=".."><img height="25px" class="logo" src="../av/unison.png"></a>',
-		     '</td>',"\n",
+		  '<a title="Unison home page" href=".."><img class="logo" src="../av/unison.png"></a>',
+		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $p->navbar(), '</td>', "\n",
 		  '</tr>', "\n",
 		  "<!-- ========== end banner bar ========== -->\n",
@@ -156,18 +165,18 @@ sub render
 		  '<tr>', "\n",
 		  "\n<!-- ========== begin subnav content ========== -->\n",
 		  '  <td class="cnav">',
-		     (join('<p>',
-				   map {"<b>$_->[0]:</b><br>$_->[1]"}
-				   (map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
-						 qw(username host dbname)),
-				   ['release',
-					$p->{unison}->selectrow_array
-					('select value::date from meta where key=\'release timestamp\'')])),
-             '</td>', "\n",
+		  (join('<p>',
+				map {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
+				(map {[$_,(defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
+				 qw(username host dbname)),
+				['release',
+				 $p->{unison}->selectrow_array
+				 ('select value::date from meta where key=\'release timestamp\'')])),
+		  '</td>', "\n",
 		  "\n<!-- ========== end subnav content ========== -->\n",
 
 		  "\n<!-- ========== begin page content ========== -->\n",
-		  '  <td class="body">',
+		  '  <td class="body">', "\n",
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
 		  '  </td>', "\n",
@@ -185,14 +194,22 @@ sub render
 
 		  "\n", $p->end_html(),"\n"
 		 );
-  }
+}
 
 
 sub group {
   my $self = shift;
   my $name = shift;
+  my $ctl = '';
+  # for backward compatibility, $name may be a scalar
+  # to introduce a new feature, I unforunately needed to permit
+  # $name to be an array ref, in which case it is expected to contain
+  # the group name (as before) and HTML to be right justified on the same tr
+  if (ref $name eq 'ARRAY') {
+	($name,$ctl) = @$name;
+  }
   return("<table class=\"group\">\n" .
-		 "<tr><th class=\"grouptag\">$name</th><th></th></tr>\n" .
+		 "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n" .
 		 "<tr><td colspan=\"2\">\n".join('',@_)."\n</td></tr>\n" .
 		 "</table>\n");
 }
@@ -210,30 +227,31 @@ sub navbar {
   my $v = $p->Vars();
   my @navs =
 	( [ # analyze MENU
-	   ['Analyze', 'display precomputed analyses for a given sequence'],
-	   ['Summary', 'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
-	   ['Aliases', 'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Patents', 'Patents on this sequence', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Features', 'Sequences features', 'pseq_features.pl', "pseq_id=$v->{pseq_id}"],
-	   ['BLAST', 'BLAST-related sequences', 'pseq_blast.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Prospect2', 'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id};run_id=1"],
-	   ['HMM', 'Hidden Markov Model alignments', 'pseq_pahmm.pl', "pseq_id=$v->{pseq_id}"],
-	   ['PSSM', 'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
-	   ['Loci', 'Genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Analyze', 		'display precomputed analyses for a given sequence'],
+	   ['Summary', 		'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
+	   ['Aliases', 		'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Patents', 		'patents on this sequence', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Features',		'sequences features', 'pseq_features.pl', "pseq_id=$v->{pseq_id}"],
+	   ['BLAST', 		'BLAST-related sequences', 'pseq_blast.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Prospect2', 	'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id};run_id=1"],
+	   ['HMM', 			'Hidden Markov Model alignments', 'pseq_pahmm.pl', "pseq_id=$v->{pseq_id}"],
+	   ['PSSM',			'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
+	   ['Loci',			'genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
 	  ],
 
 	  [ # search menu
-	   ['Search', 'search for sequences which match criteria' ],
-	   ['By Sequence', 'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
-	   ['By Alias', 'search for sequences by alias/name/accession', 'search_by_alias.pl'],
-	   ['By Properties', 'mine for sequences based on properties', 'search_by_properties.pl'],
+	   ['Search', 		'search for sequences which match criteria' ],
+	   ['By Sequence',	'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
+	   ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
+	   ['By Properties','mine for sequences based on properties', 'search_by_properties.pl'],
 	  ],
 
-	  #[ # browse menu
-	  # ['Browse', 'browse sets of sequences'],
+	  [ # browse menu
+	   ['Browse', 'browse curated sets of sequences (unimplemented)'],
 	  # ['Sets', undef, 'browse_sets.pl'],
+	  # ['SCOP', undef, 'browse_scop.pl'],
 	  # ['Origins', undef, 'browse_origins.pl']
-	  #],
+	  ],
 
 	  #[ # run menu
 	  # ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
@@ -243,6 +261,7 @@ sub navbar {
 
 	  #[ # special menu
 	  # ['Special', 'special projects'],
+	  # ['Preferences', 'user preferences']
 	  # ['UNQ', 'UNQ browsing']
 	  #],
 
@@ -255,12 +274,12 @@ sub navbar {
 	  [ [ '' ]  ],
 
 	  [
-	   ['Info', 'about Unison'],
-	   ['About', 'about unison', 'about_unison.pl'],
-	   ['Contents', 'show unison meta information', 'about_contents.pl'],
-	   ['Credits', 'thanks, ma!', 'about_credits.pl'],
-	   ['Home', 'go to Unison\'s low budget home page', '..'],
-	   ['Env', 'Environment info', 'about_env.pl'],
+	   ['Info', 		'about Unison'],
+	   ['About', 		'about unison', 	'about_unison.pl'],
+	   ['Contents', 	'show unison meta information', 'about_contents.pl'],
+	   ['Credits', 		'thanks, ma!',		'about_credits.pl'],
+	   ['Home', 		'go to Unison\'s low budget home page', '..'],
+	   ['Env', 			'Environment info', 'about_env.pl'],
 	  ],
 	);
 
@@ -312,7 +331,7 @@ sub make_navbar {
 	  next;
 	}
 	my $cl = 'unselected';
-	my $tooltip = defined $tooltip ? ' tooltip="'.$tooltip.'"' : '';
+	$tooltip = defined $tooltip ? ' tooltip="'.$tooltip.'"' : '';
 	$url .= "?$params" if defined $params;
 	if (defined $sel and $sel == $i) {
 	  $cl = 'selected';
