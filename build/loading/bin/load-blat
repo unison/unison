@@ -5,7 +5,7 @@
 # PURPOSE: parse BLAT psl output for protein-to-genome alignments. load
 #          output into set of unison tables.
 # 
-# $Id: load-blat,v 1.5 2004/04/02 19:35:02 cavs Exp $
+# $Id: load-blat,v 1.6 2004/06/04 16:24:23 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -33,6 +33,9 @@ GetOptions(\%opts,
 
 usage() if ($#ARGV != 0 || ! defined $opts{genasm_id} );
 
+
+$score_cutoff         = 50 if ! defined $score_cutoff;
+$pct_ident_cutoff     = 80 if ! defined $pct_ident_cutoff;
 
 my $uni = new Unison();
 my $aln_sth = $uni->prepare( 'select assign_p2gblataln( ?, ?, ?, ?, ?, ? )' );
