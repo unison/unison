@@ -1,24 +1,48 @@
 #!/usr/bin/env perl
 # generate sql create user statements from passwd file
 
-my %logins = map { $_=>1 } @ARGV;
-undef @ARGV;
+use strict;
+use warnings;
+use Getopt::Long qw(:config gnu_getopt);
 
-while(<>)
-  {
+my %opts =
+  (
+   group => undef,
+  );
+
+GetOptions(\%opts,
+		   'group|g=i')
+  || die("usage\n");
+
+my %logins;
+
+if (@ARGV) {
+  if ($opts{group}) {
+	die("can't specify group and logins\n");
+  }
+  %logins = map { $_=>1 } @ARGV;
+  undef @ARGV;
+}
+
+
+my %omit = map {$_=>1} 
+  qw(Bioinfo gx2000-1 compbio postgres pgsql maint Molbio);
+
+while(<>) {
   my @F = split(/:/);
-  if (exists $logins{$F[0]})
-	{
+  next if ($F[3]<=10 or exists $omit{$F[0]}); # 10's a guess
+  if ( (defined $opts{group} and $F[3] == $opts{group})
+	   or (exists $logins{$F[0]}) ) {
 	printf("create user $F[0] with sysid $F[2] nocreatedb nocreateuser;\n");
 	delete $logins{$F[0]};
-	}
   }
+}
+
 
 
 my @remaining = sort keys %logins;
-if (@remaining)
-  {
+if (@remaining) {
   die(sprintf("%d login(s) weren't found: {%s}\n",
 			  $#remaining+1, join(',',@remaining)));
-  }
+}
 exit(0);
