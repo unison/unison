@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison -- interface to the Unison database
-S<$Id: Unison.pm,v 1.9 2004/04/27 04:35:49 rkh Exp $>
+S<$Id: Unison.pm,v 1.1 2004/04/30 22:36:50 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -11,21 +11,7 @@ use Unison;
 
 B<> is a
 
-=head1 ROUTINES & METHODS
-
 =cut
-
-
-=pod
-
-=over
-
-=item
-
-=back
-
-=cut
-
 
 package Unison;
 use CBT::debug;
@@ -49,8 +35,6 @@ use Unison::papseq;
 use Unison::params;
 use Unison::run_history;
 use Unison::userprefs;
-
-
 
 
 =pod
