@@ -17,7 +17,8 @@ for(my $i=0; $i<=$#ids; $i++) {
   my $pseq_id = $ids[$i];
 
   if ( ($i==$#ids) or (0 == $i % $printmod) ) {
-	printf(STDERR "\r%8d/%8d (%5.1f%%): pseq_id=%10s", $i+1, $#ids+1, 100*($i+1)/($#ids+1), $pseq_id);
+	printf(STDERR "\r%8d/%8d (%5.1f%%): pseq_id=%10s",
+		   $i+1, $#ids+1, 100*($i+1)/($#ids+1), $pseq_id);
   }
 
   my ($umd5) = $u->selectrow_array($sth,undef,$pseq_id);
