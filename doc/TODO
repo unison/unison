@@ -5,3 +5,13 @@ rename Analysis to Protein?
 
 * integrate help, etc.
 
+* Unison perl5 embedded in directory hierarchy? where?
++ makes web tree immune to Unison:: module changes outside of tree
+
+* HTML Table  and SQL Table modules, w/ col sorting, etc.
+
+* rethink site and page design
+- pseq_ pages always have pseq_id entry field?
+- what should pseq_summary do if pseq_id is missing?
+- top level entry point
+
