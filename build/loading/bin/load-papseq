@@ -1,8 +1,9 @@
-#!  /usr/bin/env perl
+#!/usr/bin/env perl
 
 use warnings;
 use strict;
 use Unison;
+use Unison::Exceptions;
 use Bio::Tools::BPlite;
 use IO::Scalar;
 use vars qw( $loaded );
@@ -14,7 +15,6 @@ my $remainder_cutoff = 1;
 my $swap_upper_triangle=1;
 my $accept_overlap_seqs=1;
 
-$ENV{DEBUG}=1;
 die( "USAGE: load_blast.pl < blast.output\n" ) if $#ARGV != -1;
 my $u = new Unison();
 $u->{dbh}->do('set search_path=unison,public');
@@ -143,9 +143,14 @@ sub _insert_hsp {
 	# get the pmodel_id for this sequence
 	my $pmodel_id = $u->_get_pmodel_id_from_pseq_id($t_pseq_id);
 	if ( ! defined $pmodel_id ) {
-		throw Unison::RuntimeError( "Can't find pmodel_id for pseq_id=$t_pseq_id" );
+		throw Unison::Exception::RuntimeError( "Can't find pmodel_id for pseq_id=$t_pseq_id" );
 	}
 
-	$u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap );
-	$loaded++;
+	try {
+	  $u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap );
+	  $loaded++;
+	} catch Unison::Exception with {
+	  die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
+	};
+
 }
