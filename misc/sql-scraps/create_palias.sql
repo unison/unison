@@ -4,7 +4,7 @@
 -- PURPOSE: sql statements and PL/pgSQL commands for creating a 
 --          palias versioning system
 --
--- $Id: create_palias.sql,v 1.3 2003/05/07 22:49:34 cavs Exp $
+-- $Id: create_palias.sql,v 1.4 2003/09/29 18:36:57 cavs Exp $
 --
 -- -----------------------------------------------------------------------------
 
@@ -165,8 +165,7 @@ COMMENT ON FUNCTION get_paliasorigin_palias_id(integer, text) IS 'retrieve the p
 -- -----------------------------------------------------------------------------
 --
 -- assign_alias():
---   purpose: backwardly compatible version of assign_alias. calls new assign_alias
---            that includes tax_id support
+--   purpose: backwardly compatible - calls new assign_alias with NULL tax_id
 --   arguments: porigin_id, alias, descr, pseq_id, ref_pseq_id
 --   returns: palias_id
 --
@@ -188,7 +187,8 @@ BEGIN
 	return v_palias_id;
 END;
 ' LANGUAGE 'plpgsql';
-COMMENT ON FUNCTION assign_alias(integer, text, text, integer, integer) IS 'backwardly compatible version of assign_alias';
+COMMENT ON FUNCTION assign_alias(integer, text, text, integer, integer) IS 'backwardly compatible - calls new assign_alias with NULL tax_id';
+
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
