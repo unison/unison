@@ -42,7 +42,7 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
 
 				 '<p>',
-				 $p->group(sprintf("Sequence (%d AA)", length($seq)),
+				 $p->group(sprintf("Sequence (%d&nbsp;AA)", length($seq)),
 						   '<pre>', 
 						   '&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id},1), "\n",
 						   $wrapped_seq,

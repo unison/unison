@@ -27,7 +27,7 @@ print $p->render("Browse Unison Sets",
 				 $p->submit(-value=>'vroom!'),
 				 $p->end_form(), "\n",
 
-				 do_search($p)
+				 "<hr>\n", do_search($p)
 				);
 
 
@@ -38,8 +38,16 @@ sub do_search {
   my $v = $p->Vars();
   return '' unless (defined $v->{pset_id} and $v->{pset_id} ne '');
 
-  my $sql = "select pseq_id,best_annotation(pseq_id) from pseqset where pset_id=$v->{pset_id}";
+  my $N = $u->selectrow_array("select count(*) from pseqset where pset_id=$v->{pset_id}");
 
+  if ($N>=1000) {
+	return( $p->group($psets{$v->{pset_id}},
+					  "There are $N sequences in this set. Trust us, you
+					  don't want to view that many in a web page."),
+		);
+  }
+
+  my $sql = "select pseq_id,best_annotation(pseq_id) from pseqset where pset_id=$v->{pset_id}";
   my $ar = $u->selectall_arrayref($sql);
 
   foreach my $row (@$ar) {
@@ -47,8 +55,7 @@ sub do_search {
   }
 
   my @f = qw( pseq_id description );
-  return( "<hr>\n",
-		  $p->group($psets{$v->{pset_id}},
+  return( $p->group("$psets{$v->{pset_id}}: $N sequences",
 					Unison::WWW::Table::render(\@f,$ar)),
 		  $p->sql($sql)
 		);

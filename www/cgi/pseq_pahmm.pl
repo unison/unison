@@ -12,7 +12,7 @@ my $v = $p->Vars();
 
 my $sql = 'select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
 		   from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
-		   where pseq_id='.$v->{pseq_id}.' order by eval';
+		   where pseq_id='.$v->{pseq_id}.' and params_id=13 order by eval';
 my $ar = edit_rows( $u->selectall_arrayref($sql) );
 my @f = ('name', 'start-stop', 'mstart-mstop', '[]', 'score', 'eval');
 
