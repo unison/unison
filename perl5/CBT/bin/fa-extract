@@ -1,7 +1,13 @@
 #!/usr/bin/env perl
-# extract sequences from a fasta file
+# fa-extract -- extract sequences from a fasta file
 # usage: fa-extract <fastafile [ids ...]
-# * 2003/05/13 (Tue) 15:56 Reece Hart <reece@in-machina.com, rkh@gene.com>
+# $Id$
+# Reece Hart <reece@in-machina.com, rkh@gene.com>
+
+# MISFEATURES:
+# I currently do attempt to escape regexps, so some will cause runtime
+# errors.
+
 
 use warnings;
 use strict;
