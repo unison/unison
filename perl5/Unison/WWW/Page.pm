@@ -1,5 +1,5 @@
 package Unison::WWW::Page;
-use CGI qw( :standard *table -newstyle_urls );
+use CGI qw( :standard *table -newstyle_urls -debug );
 our @ISA = qw(CGI);
 
 use Unison::Exceptions;
