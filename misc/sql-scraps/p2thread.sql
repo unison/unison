@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id: prospect2.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
+\echo $Id: p2thread.sql,v 1.1 2002/12/10 19:48:11 rkh Exp $
 -- p2thread -- one sequence-structure threading result
 
 create table p2thread (
@@ -13,6 +13,7 @@ create table p2thread (
 	gap				float			not null default null,
 	ssfit			float			not null default null,
 	zscore			float					 default null,
+	svm				float					 default null,
 	rgyr			float					 default null,
 
 	nident			integer			not null default null,
@@ -43,9 +44,10 @@ create index p2thread_pairwise on p2thread (pairwise);
 create index p2thread_gap on p2thread (gap);
 create index p2thread_ssfit on p2thread (ssfit);
 create index p2thread_zscore on p2thread (zscore);
+create index p2thread_svm on p2thread (svm);
 create index p2thread_rgyr on p2thread (rgyr);
 
-create function p2thread_i_trigger () returns opaque as 
+create function p2thread_i_trigger () returns trigger as 
 	'BEGIN NEW.pftype_id=pftype_id_lookup(prospect2); return new; END;' language 'plpgsql';
 create trigger p2thread_i_trigger 
 	BEFORE insert on p2thread for each row

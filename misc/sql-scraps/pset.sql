@@ -1,9 +1,9 @@
 \echo =======================================================================
-\echo $Id: pset.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
+\echo $Id: pset.sql,v 1.3 2002/12/10 19:48:12 rkh Exp $
 -- non-exclusive (i.e., overlapping) sets of pseqs
 
 create table pset (
-	pset_id		serial,
+	pset_id		serial unique,
 	name		text			not null default null
 	);
 

@@ -1,10 +1,10 @@
 \echo =======================================================================
-\echo $Id: prospect2.sql,v 1.2 2002/11/27 00:05:54 rkh Exp $
+\echo $Id: p2template.sql,v 1.1 2002/12/10 19:48:11 rkh Exp $
 -- p2template -- templates (presumably fssp or scop records)
 -- TODO: before trigger to require pseq_id is from pdbc
 
 create table p2template (
-	p2template_id	serial,
+	p2template_id	serial unique,
 	pseq_id			integer			not null default null,
 	name			text			not null default null,
 	len				integer			not null default null,
