@@ -4,78 +4,84 @@ use strict;
 use warnings;
 use Data::Dumper;
 
+# users to exclude
+my @user_ex = qw(compbio loader unison);
+my %user_ex = map {$_=>1} @user_ex;
+
+# bins for connection by user, host, etc.
+my %cb_user;
+my %cb_host;
+my %cb_user_db;
+my %cb_user_host;
+my %cb_date;
+my %cb_date_user;
+
+my $date_re = qr/200\d-\d\d-\d\d/;
+my $time_re = qr/\d\d:\d\d:\d\d/;
+
 
 my @pending;
-my %users;
-my %hosts;
-my %user_database;
-my %user_host;
-my %dates;
-my %date_user;
-
-
-my $ts_date_re = qr/200\d-\d\d-\d\d/;
-my $ts_time_re = qr/\d\d:\d\d:\d\d/;
-
 while(<>) {
   #2004-07-14 09:00:43 [26233] LOG:  connection received: host=tallac.gene.com port=34485
   #2004-07-14 09:00:43 [26233] LOG:  connection authorized: user=rkh database=csb-dev
 
-  if (m/^($ts_date_re) ($ts_time_re) \[(\d+)\] LOG:  connection received: host=(\S+)/) {
-	$pending[$3] = { ts=>"$1 $2", host=>$4 };
-  } elsif (m/^($ts_date_re) ($ts_time_re) \[(\d+)\] LOG:  connection authorized: user=(\S+) database=(\S+)/) {
+  if (m/^($date_re) ($time_re) \[(\d+)\] LOG:  connection received: host=(\S+)/) {
+	$pending[$3] = { date=>$1, time=>$2, host=>$4 };
+  } elsif (m/^($date_re) ($time_re) \[(\d+)\] LOG:  connection authorized: user=(\S+) database=(\S+)/) {
 	if (not defined $pending[$3]) {
-	  die("$.: connection not received!\n");
+	  die("$.: connection never received!\n  $_");
 	}
 
 	my %conn = (%{$pending[$3]}, user=>$4, database=>$5);
 	undef $pending[$3];
 
-	my ($h,$u,$d) = @conn{qw(host user database)};
-	$h =~ s/^comp\d+/comp*/					# group connections into
-	  or $h =~ s/^(vpn-pc)-\d+/$1-*/		# comp, vpn-pc, or dhcpNN- bins
-	  or $h =~ s/^(dhcp\d+)-\d+/$1-*/;
+	my ($host,$user,$db,$date) = @conn{qw(host user database date)};
 
-	push(@{$users{$u}}, \%conn);
-	push(@{$hosts{$h}}, \%conn);
-	push(@{$user_host{$u}{$h}},\%conn);
-	push(@{$user_database{$u}{$d}},\%conn);
+	next if exists $user_ex{$user};
 
-	my ($date) = $conn{ts} =~ m/^($ts_date_re)/;
+	$host =~ s/^comp\d+/comp*/				# group connections into
+	  or $host =~ s/^(vpn-pc)-\d+/$1-*/	    # comp, vpn-pc, or dhcpNN- bins
+	  or $host =~ s/^(dhcp\d+)-\d+/$1-*/;
 	$date =~ s/-\d\d$//; 					# trim to month
-	push(@{$dates{$date}}, \%conn);
-	push(@{$date_user{$date}{$u}}, \%conn);
+
+	push(@{$cb_user{$user}}, \%conn);
+	push(@{$cb_host{$host}}, \%conn);
+	push(@{$cb_user_host{$user}{$host}},\%conn);
+	push(@{$cb_user_db{$user}{$db}},\%conn);
+	push(@{$cb_date{$date}}, \%conn);
+	push(@{$cb_date_user{$date}{$user}}, \%conn);
   }
 }
 
 
 
-print('$Id$ ', "\n\n");
+print('$Id: log-summarize,v 1.2 2004/11/11 04:16:28 rkh Exp $ ', "\n\n");
 
-printf("connections by %d user(s):\n", scalar keys %users);
-foreach my $u (sort keys %users) {
-  my $uc = $users{$u};
-  my $earliest = $uc->[0]->{ts};
-  my $latest = $uc->[$#$uc]->{ts};
+printf("connections by %d user(s):\n", scalar keys %cb_user);
+foreach my $user (sort keys %cb_user) {
+  my $conn = $cb_user{$user};
+  my $earliest = $conn->[0]->{date};
+  my $latest = $conn->[$#$conn]->{date};
 
   printf("  %-10s: %4d conn, %2d hosts, %2d dbs; %s..%s\n",
-		 $u,
-		 $#{$users{$u}}+1, 
-		 (scalar keys %{$user_host{$u}}),
-		 (scalar keys %{$user_database{$u}}),
+		 $user,
+		 $#{$cb_user{$user}}+1, 
+		 (scalar keys %{$cb_user_host{$user}}),
+		 (scalar keys %{$cb_user_db{$user}}),
 		 $earliest, $latest
 		);
 }
 
 
-printf("\nconnections by %d host(s):\n", scalar keys %hosts);
-foreach my $h (sort keys %hosts) {
-  printf("  %4d $h\n", $#{$hosts{$h}}+1);
+printf("\nconnections by %d host(s):\n", scalar keys %cb_host);
+foreach my $host (sort keys %cb_host) {
+  printf("  %-30.30s %4d\n", $host, $#{$cb_host{$host}}+1);
 }
 
 
-printf("\nuser connections by month:\n", scalar keys %dates);
-foreach my $date (sort keys %dates) {
-  my @users = keys %{$date_user{$date}};
-  printf("  %4d $date (%s)\n", $#users+1, join(',',sort @users));
+printf("\nconnections by month:\n", scalar keys %cb_date);
+foreach my $date (sort keys %cb_date) {
+  my @users = keys %{$cb_date_user{$date}};
+  printf("  $date %4d total (%d users = {%s})\n", 
+		 $#{$cb_date{$date}}, $#users+1, join(',',sort @users));
 }
