@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison -- interface to the Unison database
-S<$Id: Unison.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
+S<$Id: Unison.pm,v 1.2 2003/05/27 22:41:06 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -34,6 +34,7 @@ use Unison::pseq;
 use Unison::p2params;
 use Unison::porigin;
 use Unison::p2template;
+use Unison::p2thread;
 use Unison::palias;
 =pod
 use Unison::deprecated;
