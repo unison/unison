@@ -1,4 +1,6 @@
 #!/usr/bin/env perl
+# get-seq -- retrieve sequences from unison
+# $Id$
 
 use warnings;
 use strict;
@@ -61,3 +63,27 @@ sub get1
 	{ $rv .= substr($seq,0,60,'') . "\n"; }
   return $rv;
   }
+
+
+=pod
+
+=head1 NAME
+
+get-seq -- retrieve sequences from Unison
+
+S<$Id: pl,v 1.1 2000/08/14 02:33:02 reece Exp $>
+
+=head1 SYNOPSIS
+
+ get-seq [-a|-A|-D] [pseq_id ...]
+
+=head1 OPTIONS
+
+=item B<--alpha> level, B<--Arpha> level, B<-a> level
+
+=head1 DESCRIPTION
+
+B<get-seq> writes selected sequences from Unison in fasta format to
+STDOUT, optionally with aliases or annotations.
+
+=cut
