@@ -1,5 +1,5 @@
-#include <server/postgres.h>
-#include <server/fmgr.h>
+#include <postgres.h>
+#include <fmgr.h>
 #include <ctype.h>
 #include <string.h>
 
