@@ -1,9 +1,9 @@
--- $Id$
+-- $Id: sp-schema.sql,v 1.1 2003/04/16 21:20:45 rkh Exp $
 -- schema for swissprot species codes
 
 create table tax.spspec
 	(
-	id		integer primary key,
+	tax_id	integer primary key,
 	K		char(1),
 	gs		text,
 	name	text
@@ -13,24 +13,24 @@ create unique index spspec_gs_idx on tax.spspec(gs);
 create unique index spspec_name_idx on tax.spspec(name);
 
 
-create or replace function tax.spspec_id(text)
+create or replace function tax.gs2tax_id(text)
 returns integer
 language plpgsql as '
 DECLARE
 	v_gs alias for $1;
 	rv integer;
 BEGIN
-	select into rv id from tax.spspec where gs=v_gs;
+	select into rv tax_id from tax.spspec where gs=v_gs;
 	return rv;
 END;';
 
-create or replace function tax.spspec_name(integer)
+create or replace function tax.tax_id2name(integer)
 returns text
 language plpgsql as '
 DECLARE
 	v_id alias for $1;
 	rv text;
 BEGIN
-	select into rv name from tax.spspec where id=v_id;
+	select into rv name from tax.spspec where tax_id=v_id;
 	return rv;
 END;';
