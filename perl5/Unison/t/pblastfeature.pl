@@ -16,7 +16,7 @@ while(my $sbjct = $report->nextSbjct) {
 	$sbjct->name =~ m/^(.*?) /;
 	my $t_pseq_id = $u->get_pseq_id_from_alias( $1 );
 	if ( !defined $t_pseq_id ) {
-		warn("no pseq_id defined for target sequence: $1\n" );
+		warn("no pseq_id defined for target sequence: $1 - skipping\n" );
 		next;
 	}
 	while(my $hsp = $sbjct->nextHSP) {
