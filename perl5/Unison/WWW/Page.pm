@@ -1,14 +1,18 @@
 package Unison::WWW::Page;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use warnings;
 
 use base Exporter;
 use CGI qw( -debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
-BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
+#BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
 
 use Unison::Exceptions;
 use Unison;
-
+use Unison::WWW::utilities qw( text_wrap );
+use Error qw(:try);
 
 #WARNING: strict must be last, unsure why
 use strict;
@@ -17,8 +21,6 @@ use strict;
 
 sub page_connect ($);
 sub infer_pseq_id ($);
-
-
 
 our $infer_pseq_id = 0;
 
@@ -38,16 +40,19 @@ sub new {
   my $v = $self->Vars();
   $v->{debug} = 0 unless defined $v->{debug};
 
+
   try {
 	page_connect($self);
   }	catch Unison::Exception with {
-	my $msg = CGI::escapeHTML($_[0]);
+	my $ex_text = defined $_[0] ? CGI::escapeHTML($_[0]) : 'no exception information';
+	my $env = join('', map( { "<br><code>$_: ".(defined $ENV{$_}?$ENV{$_}:'<i>undef</i>')."</code>\n" }
+							qw(REMOTE_USER KRB5CCNAME) ));
+
 	__PACKAGE__->die('Unison Connection Failed', 
-					 '<pre>'.$msg.'</pre>',
+					 '<pre>'.$ex_text.'</pre>',
 					 '<p>',
 					 '<hr>Kerberos and user information:',
-					 (map { "<br><code>$_: $ENV{$_}</code>\n" }
-					  qw(REMOTE_USER KRB5CCNAME)),
+					 $env
 					);
   };
 
@@ -81,7 +86,7 @@ sub new {
   $self->start_html;
 
   return $self;
-  }
+}
 
 
 sub page_connect ($) {
@@ -98,12 +103,15 @@ sub page_connect ($) {
   }
 
   # establish session authentication, preferably via kerberos
-  #$v->{username} = 'PUBLIC' unless defined $v->{username};
+  # must connect to host 'csb' for Kerberos authentication
   if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
 	$v->{username} = $ENV{REMOTE_USER};
 	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$v->{username}";
-	  $v->{host} = 'csb';						# must be this for krb5 auth
+	$v->{host} = 'csb';
   }
+
+  #else: $v->{username} = 'PUBLIC' unless defined $v->{username};
+
 
   # NOTE: password=>undef works for PUBLIC and krb auth
   $self->{unison} = new Unison( username => $v->{username},
@@ -195,17 +203,18 @@ sub header {
 
 sub start_html {
   my $self = shift;
-  return $self->SUPER::start_html( @_,
-								   -head => [
-											 $self->Link({-rel => 'shortcut icon',
-														  -href => '../av/favicon.png'})
-										    ],
-								   -style => { -src => ['../styles/unison.css', '../styles/ToolTips.css'] },
-								   -onload => 'javascript:{ initToolTips(); }',
-								   -script => [ {-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
-												{-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'} ]
-								 );
-  }
+  return $self->SUPER::start_html
+	( @_,
+	  -head => [
+				$self->Link({-rel => 'shortcut icon',
+							 -href => '../av/favicon.png'})
+			   ],
+	  -style => { -src => ['../styles/unison.css', '../styles/ToolTips.css'] },
+	  -onload => 'javascript:{ initToolTips(); }',
+	  -script => [ {-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
+				   {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'} ]
+	);
+}
 
 sub render {
   my $p = shift;
@@ -229,7 +238,10 @@ sub render {
 					  ['WWW<br>release', $Unison::WWW::RELEASE]
 					)
 				);
-	$cnav .= '<p><center><span style="background-color: red"><b><i>&nbsp;&nbsp;writable&nbsp;&nbsp;</i></b></span></center>' if (not $p->{readonly});
+	if (not $p->{readonly}) {
+	  $cnav .= '<p><center><span style="background-color: red">'
+		. '<b><i>&nbsp;&nbsp;writable&nbsp;&nbsp;</i></b></span></center>';
+	}
 	$elapsed = 'page generated in ' . (time - $p->{starttime}) . ' seconds';
   }
 
@@ -263,8 +275,11 @@ sub render {
 
 		  "\n<!-- ========== begin footer ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" src="../av/poweredby_postgresql.gif"></a></td>', "\n",
-		  '  <td class="contact">Please contact <a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a> with suggestions or problems<br>', $elapsed, '</td>', "\n",
+		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
+		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
+		  '  <td class="contact">Please contact <a href="http://gwiz/local-bin/empshow.cgi?',
+		        'empkey=26599">Reece Hart</a> with suggestions or problems<br>',
+		  $elapsed, '</td>', "\n",
 		  '</tr>', "\n",
 		  "\n<!-- ========== end footer ========== -->\n",
 
@@ -473,7 +488,7 @@ sub sql {
   my $self = shift;
   return '' unless $self->{userprefs}->{'show_sql'};
   return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
-		  @_,
+		  (map {CGI::escapeHTML($_)} text_wrap(@_)),
 		  '</div>', "\n" );
 }
 

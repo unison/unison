@@ -1,5 +1,9 @@
 package Unison::WWW::NavBar;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+use strict;
+use warnings;
 
 sub render
   {
