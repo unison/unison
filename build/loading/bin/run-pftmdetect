@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-tmdetect,v 1.2 2004/02/24 23:28:23 cavs Exp $
+# $Id: run-tmdetect,v 1.3 2004/02/25 00:57:01 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -31,7 +31,7 @@ my %opts = (
       'pmodelset_id' => undef,
       'porigin_id' => undef,
       'update' => 0,          # try update before insert
-      'verbose' => 1,
+      'verbose' => 0,
        );
 GetOptions(\%opts,
        'debug+',
@@ -90,6 +90,7 @@ PSEQ_ID: while( my $pseq_id = shift ) {
   $run_me{ $pseq_id }++;
 }
 $seqio->close();
+
 
 # run tmdetect (only if we have seqs to tmdetect) and parse results
 if ( scalar(keys %run_me) > 0 ) {

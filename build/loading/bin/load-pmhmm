@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.4 2003/08/01 17:27:00 rkh Exp $
+# $Id: load-pmhmm,v 1.5 2004/02/27 08:33:48 rkh Exp $
 # load pfam HMM summary info (not the HMM itself) into unison
 # $ load-pmhmm <Pfam_fs
 
@@ -10,13 +10,16 @@ use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 
 
-my %opts;
+my %opts =
+  (
+   'origin' => undef,
+  );
 GetOptions( \%opts,
 			'origin|o=s' )
   || die("Sarge, you've got usage problems; see code\n");
 
 
-if (not exists $opts{origin}) {
+if (not defined $opts{origin}) {
   die("$0: missing required --origin option\n");
 }
 

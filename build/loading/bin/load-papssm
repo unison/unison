@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # load-pmprofile -- loads psiblast profiles into unison
-# $Id: load-papssm,v 1.1 2003/05/27 22:33:45 rkh Exp $
+# $Id: load-papssm,v 1.2 2003/09/16 23:24:07 rkh Exp $
 
 
 use strict;
@@ -9,16 +9,19 @@ use Digest::MD5;
 use Getopt::Long qw(:config gnu_getopt);
 use IO::File;
 use Unison;
+use Unison::Exceptions;
+use Error qw(:try);
 use Bio::Tools::BPpsilite;
+
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
 
-my %options;
-GetOptions( \%options,
-			@Unison::options,
-			'pmodel-name|P=s',
-			'pmodel-id|pmodel_id|p=i')
+my %opts;
+GetOptions( \%opts,
+			'pmodel-acc|P=s',
+			'params_id|p=s',
+			)
   || die("options");
 
 my $fh = new IO::File;
@@ -26,21 +29,20 @@ my $u = new Unison();
 
 
 my $pmodel_id;
-if (defined $pmodel_id)
-  { $pmodel_id = $options{'pmodel_id'}; }
-else
-  {
-  my $sql = "select pmodel_id from pmpssm where acc='".$options{'pmodel-name'}."'";
+if (defined $pmodel_id) {
+  $pmodel_id = $opts{'pmodel_id'};
+} else {
+  my $sql = "select pmodel_id from pmpssm where acc='".$opts{'pmodel-acc'}."'";
   $pmodel_id = $u->selectrow_array($sql);
-  }
+}
 
 (defined $pmodel_id)
   || die("$0: couldn't find the pmodel_id\n");
 print("# loading for pmodel_id=$pmodel_id\n");
 
 my $sth;
-$sth = $u->prepare("insert into papssm(pmodel_id,pseq_id,start,stop,eval,".
-				   "len,score,ident,sim,gaps,mstart,mstop) values ($pmodel_id,?,?,?,?,?,?,?,?,?,0,0)");
+$sth = $u->prepare("insert into papssm(params_id,pmodel_id,pseq_id,start,stop,eval,".
+				   "len,score,ident,sim,gaps,mstart,mstop) values ($opts{params_id},$pmodel_id,?,?,?,?,?,?,?,?,?,0,0)");
 #  || die($u->errstr());
 
 my $fn = shift;
@@ -49,8 +51,7 @@ $fh->open("<$fn")
 my $r = Bio::Tools::BPpsilite->new(-fh=>$fh);
 my $j = $r->number_of_iterations;
 my $R = $r->round($j);
-while( my $subj = $R->nextSbjct )
-  {
+while( my $subj = $R->nextSbjct ) {
   my ($pseq_id) = $subj->name =~ m/Unison:(\d+)/;
   if (not defined $pseq_id)
 	{ warn("couldn't parse Unison pseq_id from ", $subj->name, "\n"); next; }
@@ -60,11 +61,15 @@ while( my $subj = $R->nextSbjct )
 		   $hsp->hit->start, $hsp->hit->end,
 		   $hsp->score, $hsp->P, $hsp->match, $hsp->positive,
 		   $hsp->gaps, $hsp->hsplength);
-	$sth->execute($pseq_id,$hsp->hit->start,$hsp->hit->end,
-				  $hsp->P, $hsp->hsplength, $hsp->score, $hsp->match,
-				  $hsp->positive, $hsp->gaps);
-	}
+	try {
+	  $sth->execute($pseq_id,$hsp->hit->start,$hsp->hit->end,
+					$hsp->P, $hsp->hsplength, $hsp->score, $hsp->match,
+					$hsp->positive, $hsp->gaps);
+	} catch Unison::Exception::DBIError with {
+	  warn($_[0]);
+	};
   }
+}
 
 $sth->finish();
 $u->disconnect();
