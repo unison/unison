@@ -31,7 +31,8 @@ print $p->render("Unison Environment",
 				 (map { "<br><code>$_: $ENV{$_}</code>\n" }
 				  qw(REMOTE_USER KRB5CCNAME)),
 
-				 "<hr>perl include paths:\n",
+				 "<hr><u>Perl:</u>\n",
+				 "<br>path: $^X\n",
 				 join("\n&nbsp;&nbsp;", '<pre>@INC = (', @INC, ");</pre>\n\n"),
 
 				 "<hr>Unison modules found in:\n<pre>",
