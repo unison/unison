@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.13 2004/06/10 22:00:26 rkh Exp $>
+S<$Id: palias.pm,v 1.14 2004/07/19 22:20:16 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -115,7 +115,9 @@ sub get_pseq_id_from_alias {
 	};
 
 	(@ids) = map {@$_} @{ $u->selectall_arrayref($sql) };
-	return(@ids);
+	return(@ids) if @ids;					# some ids might have been removed from sst; in that
+											# case, @ids will be empty and we'll continue with an
+											# alias lookup below
   }
 
   if (not $alias =~ m%^[~/^]%) {
