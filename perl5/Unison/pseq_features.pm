@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.9 2005/01/26 00:29:03 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.10 2005/02/16 23:43:16 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -126,7 +126,7 @@ sub pseq_features_panel($%) {
   add_pfmim        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure} ) if($opts{features}{mim});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.9 2005/01/26 00:29:03 mukhyala Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.10 2005/02/16 23:43:16 mukhyala Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -209,7 +209,7 @@ sub add_pfssp_psipred {
   }
 
   for(my $i = 0; $i <= $num_tracks; $i++) {
-    my $key = ($num_tracks < 1 ? 'Secondary_Structure' : $track_length*$i+1);
+    my $key = ($num_tracks < 1 ? 'PSIPRED secondary structure prediction' : $track_length*$i+1);
     my $track = $panel->add_track(generic=> [@{$strands_helices[$i]}],				
 				  -glyph => \&glyph_type,
 				  -key => $key,
