@@ -1,11 +1,11 @@
 \echo =======================================================================
-\echo $Id: functions.sql,v 1.2 2002/11/27 00:05:50 rkh Exp $
+\echo $Id: functions.sql,v 1.3 2002/12/17 01:31:04 rkh Exp $
 
 CREATE OR REPLACE FUNCTION digest(text,text) RETURNS bytea AS
  'libpgcrypto.so','pg_digest' LANGUAGE 'C';
 
 CREATE FUNCTION clean_sequence(text) RETURNS text AS
-	 '/home/rkh/unison/lib/unison.so','pg_clean_sequence' LANGUAGE 'C';
+	 'unison.so','pg_clean_sequence' LANGUAGE 'C';
 
 
 CREATE OR REPLACE FUNCTION md5(text) RETURNS text IMMUTABLE AS

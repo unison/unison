@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id: api.sql,v 1.3 2002/12/10 19:48:11 rkh Exp $
+\echo $Id: api.sql,v 1.4 2002/12/17 01:31:04 rkh Exp $
 -- functions to facilitate unison access
 
 
@@ -23,8 +23,8 @@ BEGIN
 	S := clean_sequence($1);
 	select into rv pseq_id from pseq where seq=S;
 	if not found then
-		insert into pseq (seq) values (S);
-		select into rv pseq_id from pseq where seq=S;
+		select into rv nextval(''pseq_pseq_id_seq'');
+		insert into pseq (pseq_id,seq) values (rv,S);
 	end if;
 	return rv;
 END;'
