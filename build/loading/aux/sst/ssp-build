@@ -1,6 +1,15 @@
 #!/usr/bin/env perl
 # ssp-build -- build a fasta file of spdi sequences to load into Unison
 
+use strict;
+use warnings;
+use DBI;
+
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
+print(STDERR '$Id$ ', "\n");
+
 my @GB = 
   (
    'Virtual',
@@ -11,17 +20,12 @@ my @GB =
    'Genomic Celera',
   );
 
-
-use DBI;
-
 my $dsn = 'dbi:Oracle:bioprd1';
 my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
-
-open(GS, "| xargs -n25 /usr/local/seq/bin/getseq -F")
+open(GS, "| xargs -tn25 /usr/local/seq/bin/getseq -F")
   || die("couldn't open pipe to getseq\n");
-
 
 
 my $sql = 
