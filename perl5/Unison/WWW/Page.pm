@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.35 2005/02/17 05:10:18 rkh Exp $>
+S<$Id: Page.pm,v 1.36 2005/02/18 03:35:04 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -31,19 +31,31 @@ push(@ISA, 'CGI');
 use Unison;
 use Unison::Exceptions;
 use Unison::WWW::utilities qw( text_wrap );
+use File::Temp;
 use Error qw(:try);
 
 #XXX: WARNING: strict must be last, unsure why, and this bothers me
 #use strict;
 
 
-sub page_connect ($);
-sub infer_pseq_id ($);
+sub _page_connect ($);
+sub _infer_pseq_id ($);
+sub _make_temp_dir ();
+
 sub dev_instance();
 
 
 our $infer_pseq_id = 0;
 
+
+
+=pod
+
+=head1 PUBLIC METHODS
+
+=over
+
+=cut
 
 
 ######################################################################
@@ -64,7 +76,7 @@ sub new {
 
 
   try {
-	page_connect($self);
+	_page_connect($self);
   }	catch Unison::Exception with {
 	my $ex_text = ( defined $_[0] ? 
 					CGI::escapeHTML($_[0]) :
@@ -90,7 +102,7 @@ sub new {
 				 sprintf('You provided criteria for %d terms (%s)',
 						 $#st+1, join(',',@st) ));
 	}
-	$v->{pseq_id} = infer_pseq_id($self);
+	$v->{pseq_id} = _infer_pseq_id($self);
 	if (not defined $v->{pseq_id}) {
 	  $self->die("couldn't infer pseq_id from arguments");
 	}
@@ -105,22 +117,8 @@ sub new {
   $self->{userprefs} = $self->{unison}->get_userprefs();
   $self->{readonly} = 1;
   $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
-		      {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
+					  {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
 
-  # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
-  # as a CGI, or in /tmp/ if run on the command line 
-  if (defined $ENV{DOCUMENT_ROOT}) {
-	$self->{tmproot} = $ENV{DOCUMENT_ROOT};
-	my @lt = localtime();
-	$self->{tmpdir} = sprintf("$self->{tmproot}/tmp/%4d%02d%02d",
-							  $lt[5]+1900, $lt[4]+1, $lt[3]);
-	(-d $self->{tmpdir})
-	  || mkdir($self->{tmpdir})
-	  || warn("mkdir($self->{tmpdir}: $!\n");
-  } else {
-	$self->{tmproot} = '';
-	$self->{tmpdir} = "$self->{tmproot}/tmp";
-  }
   # if we've made it this far, we'll eventually get a page out
   $self->start_html;
 
@@ -135,18 +133,60 @@ sub new {
 
 =item B<< $p->Vars( C<> ) >>
 
-return a hash of page variables.
+return a hash of page variables.  This works exactly like the CGI::Vars()
+method, hence its name, except that the result is cached so that repeated
+calls are trivial.
 
 =cut
 
 sub Vars {
-  my $p = shift;
-  return unless ref $p;
-  if (not exists $p->{Vars}) {
-	$p->{Vars} = $p->SUPER::Vars();
+  my $self = shift;
+  return unless ref $self;
+  if (not exists $self->{Vars}) {
+	$self->{Vars} = $self->SUPER::Vars();
   }
-  return $p->{Vars};
+  return $self->{Vars};
 }
+
+
+
+######################################################################
+## tempfile()
+
+=pod
+
+=item B<< ($fh,$fn,$urn) = $p->tempfile( C<vars> ) >>
+
+Generates a tempfile with a filehandle, filename, and urn. This function,
+and only this function, should be used for all temporary files which need
+to be passed back to a browser. The created file will persist after the
+CGI exits and be cleaned up later.
+
+The file is created by File::Temp::tempfile, and the options are
+identical. HOWEVER, the DIR=> argument may not be overridden.
+
+undef is returned on failure.  It should throw an exception, but doesn't
+yet.
+
+=cut
+
+sub tempfile {
+  my $self = shift;
+  $self->_make_temp_dir(); 					# no return if failure
+  my %opts = (								# order is important:
+			  UNLINK=>0, 					# - items before @_ are defaults
+			  @_,							# - items after @_ override any calling
+			  DIR=>$self->{tmpdir}				#   arguments
+			 );
+
+  if ( my ($fh,$fn) = File::Temp::tempfile( %opts ) ) {
+	my ($urn) = $fn =~ m%^$self->{tmproot}(/.+)%;
+	return ($fh,$fn,$urn);
+  }
+
+  return undef;
+}
+
 
 
 ######################################################################
@@ -162,10 +202,10 @@ request. If not, the page C<dies> (which see) with an appropriate error.
 =cut
 
 sub ensure_required_params {
-  my $p = shift;
-  my @undefd = grep { not defined $p->param($_) or $p->param($_) eq '' } @_;
+  my $self = shift;
+  my @undefd = grep { not defined $self->param($_) or $self->param($_) eq '' } @_;
   return 0 unless @undefd;
-  $p->die('Missing parameters',
+  $self->die('Missing parameters',
 		  '<br>The follow parameters were missing:',
 		  '<br>&nbsp;&nbsp;&nbsp; <code>' . join(', ', @undefd) . '</code>' );
   # doesn't return
@@ -184,9 +224,9 @@ returns the HTML header
 =cut
 
 sub header {
-  my $p = shift;
-  return '' if ref $p and $p->{already_did_header}++;
-  return $p->SUPER::header();
+  my $self = shift;
+  return '' if ref $self and $self->{already_did_header}++;
+  return $self->SUPER::header();
 }
 
 ######################################################################
@@ -248,21 +288,21 @@ page-specific content provided by an array of C<body elems>.
 
 
 sub render {
-  my $p = shift;
+  my $self = shift;
   my $title = shift;
 
   my $cnav = '';
   my $elapsed = '';
 
-  if (ref $p and defined $p->{unison} and $p->{unison}->is_open()) {
+  if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
 	$cnav = join('<p>',
 				 map( {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
 					  # key-value pairs:
-					  (map {[$_ , (defined $p->{unison}->{$_} ? $p->{unison}->{$_} : 'unknown')]}
+					  (map {[$_ , (defined $self->{unison}->{$_} ? $self->{unison}->{$_} : 'unknown')]}
 					   qw(username host dbname)),
 
 					  ['db<br>release',
-					   $p->{unison}->selectrow_array
+					   $self->{unison}->selectrow_array
 					   ('select value::date from meta where key=\'release timestamp\'') || ''],
 
 					  ['API<br>release', $Unison::RELEASE],
@@ -270,16 +310,16 @@ sub render {
 					  ['WWW<br>release', $Unison::WWW::RELEASE]
 					)
 				);
-	if (not $p->{readonly}) {
+	if (not $self->{readonly}) {
 	  $cnav .= '<p><center><span style="background-color: red">'
 		. '<b><i>&nbsp;&nbsp;writable&nbsp;&nbsp;</i></b></span></center>';
 	}
-	$elapsed = 'page generated in ' . (time - $p->{starttime}) . ' seconds';
+	$elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
   }
 
-  return ($p->header(),
+  return ($self->header(),
 
-		  $p->start_html(-title=>"Unison: $title"), "\n\n\n",
+		  $self->start_html(-title=>"Unison: $title"), "\n\n\n",
 
 		  '<table class="page">', "\n",
 
@@ -288,7 +328,7 @@ sub render {
 		  '  <td class="logo" width="10%">',
 		  '<a title="Unison home page" href=".."><img class="logo" src="../av/unison.gif"></a>',
 		  '</td>',"\n",
-		  '  <td class="navbar" padding=0>', $p->navbar(), '</td>', "\n",
+		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
 		  "<!-- ========== end banner bar ========== -->\n",
 
@@ -299,7 +339,7 @@ sub render {
 
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '  <td class="body">', "\n",
-		  ( dev_instance() ? $p->warn('This is a development
+		  ( dev_instance() ? $self->warn('This is a development
 		  version of Unison. Pages may be unstable and features may change.
 		  Do not bookmark this page.') : ''),
 		  "  <b>$title</b><br>", "\n", 
@@ -315,14 +355,14 @@ sub render {
 		  '  <td class="footer">',
 		  "     Please contact <a href=\"http://gwiz/local-bin/empshow.cgi?empkey=26599\">Reece Hart</a> with suggestions or problems\n",
 		  "     <br>$elapsed\n",
-		  (defined $p->{footer} ? map {"     <br>$_\n"} @{$p->{footer}} : ''),
+		  (defined $self->{footer} ? map {"     <br>$_\n"} @{$self->{footer}} : ''),
 		  "  </td>\n",
 		  "</tr>\n",
 		  "\n<!-- ========== end footer ========== -->\n",
 
 		  '</table>', "\n",
 
-		  "\n", $p->end_html(),"\n"
+		  "\n", $self->end_html(),"\n"
 		 );
 }
 
@@ -368,8 +408,8 @@ variable list
 =cut
 
 sub make_url {
-  my $p = shift;
-  my $vars = $p->Vars();
+  my $self = shift;
+  my $vars = $self->Vars();
   my $addlvars = ref $_[0] ? shift : {};
   my %vars = (%$vars, %$addlvars);
 
@@ -381,13 +421,23 @@ sub make_url {
 	@keys = sort keys %vars;
   }
 
-  my $url = $p->url(-relative=>1);
+  my $url = $self->url(-relative=>1);
 
   my $qargs = join( ';', map {"$_=$vars{$_}"} grep {defined $vars{$_}} @keys);
   $url .= '?' . $qargs if $qargs ne '';
 
   return $url;
 }
+
+
+
+=pod
+
+=head1 PUBLIC METHODS FOR STANDARDIZED FORMATTING
+
+=over
+
+=cut
 
 
 ######################################################################
@@ -459,7 +509,8 @@ sub tooltip {
 
 =item B<< $p->warn( C<text>, ... ) >>
 
-format arguments as a warning block
+Formats arguments as a warning block. This is intended to be used inline
+with other Unison::Page "body" elements. 
 
 =cut
 
@@ -477,14 +528,15 @@ sub warn {
 
 =item B<< $p->die( C<text> ) >>
 
-Return a Unison error page with C<text>.
+Returns a Unison error page with C<text>.  This returns a new page and
+exits with status 0 (so that webservers will actually return the page).
 
 =cut
 
 sub die {
-  my $p = shift;
+  my $self = shift;
   my $t = shift;
-  print $p->render( "Error: $t",
+  print $self->render( "Error: $t",
 					'<p><div class="warning">',
 					'<b>Error:</b> ', $t, '<br>',
 					join(' ',@_), 
@@ -506,16 +558,16 @@ C<pseq_id>
 =cut
 
 sub best_annotation {
-  my $p = shift;
+  my $self = shift;
   my $pseq_id = shift;
 
-  return( $p->tooltip( 'current "best" annotation', 'Best annotations are
+  return( $self->tooltip( 'current "best" annotation', 'Best annotations are
 					   a guess about the most informative and reliable
 					   annotation for this sequence from all source
 					   databases. Click the Aliases tab to see all
 					   annotations' ),
 		  ': ',
-		  $p->{unison}->best_annotation($pseq_id,1) );
+		  $self->{unison}->best_annotation($pseq_id,1) );
 }
 
 
@@ -531,11 +583,9 @@ adds the specified lines to the footer
 =cut
 
 sub add_footer_lines {
-  my $p = shift;
-  push(@{$p->{footer}}, @_);
+  my $self = shift;
+  push(@{$self->{footer}}, @_);
 }
-
-
 
 
 ######################################################################
@@ -550,10 +600,32 @@ render C<message> in a special debugging block
 =cut
 
 sub debug {
-  my $p = shift;
-  print $p->render("debug: $_[0]",'<span class="debug">',
+  my $self = shift;
+  print $self->render("debug: $_[0]",'<span class="debug">',
 				   join('<br>',@_),'</span>');
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+=pod
+
+=head1 INTERNAL METHODS
+
+These methods typically begin with one underscore (e.g., _internal_method).
+
+=over
+
+=cut
 
 
 ######################################################################
@@ -573,12 +645,6 @@ sub page_variables {
   return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
 }
 
-
-
-
-
-
-
 ######################################################################
 ## import
 
@@ -591,9 +657,9 @@ sub import {
 
 
 ######################################################################
-## page_connect
+## _page_connect
 
-sub page_connect ($) {
+sub _page_connect ($) {
   my $self = shift;
   my $v = $self->Vars();
 
@@ -630,16 +696,17 @@ sub page_connect ($) {
 }
 
 
+
 ######################################################################
-## infer_pseq_id
+## _infer_pseq_id
 
 =pod
 
-=item B<< $p->infer_pseq_id() >>
+=item B<< $p->_infer_pseq_id() >>
 
 =cut
 
-sub infer_pseq_id ($) {
+sub _infer_pseq_id ($) {
   # Most pages should refer to sequences by pseq_id. If pseq_id isn't
   # defined, then we attempt to infer it from given 'seq', 'md5', or
   # 'alias' (in that order).  Furthermore, if none of those are defined
@@ -710,11 +777,11 @@ sub infer_pseq_id ($) {
 
 
 ######################################################################
-## navbar
+## _navbar
 
-sub navbar {
-  my $p = shift;
-  my $v = $p->Vars() || {};
+sub _navbar {
+  my $self = shift;
+  my $v = $self->Vars() || {};
   my $pseq_id = exists $v->{pseq_id} ? "pseq_id=$v->{pseq_id}" : '';
   my @navs =
 	## format: @navs = ( menu, menu, ... );
@@ -736,12 +803,12 @@ sub navbar {
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	   ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	   ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
-	    ['Mint', 		'Molecular Interactions database', 	'pseq_mint.pl', $pseq_id ],
-	   ['Notes',		'user notes on this sequnece',		'pseq_notes.pl', 	$pseq_id ],
+	   ['Mint', 		'Molecular Interactions database', 	'pseq_mint.pl', $pseq_id ],
+	   ['Notes',		'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
 	   ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	  ],
 
-	  [ # search menu
+	  [ # Search menu
 	   ['Search', 		'search for sequences which match criteria' ],
 	   ['By Sequence',	'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
 	   ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
@@ -756,11 +823,14 @@ sub navbar {
 	  # ['SCOP', undef, 'browse_scop.pl'],
 	  # ['Origins', undef, 'browse_origins.pl']
 	  ],
+
 	  [ # compare menu
            ['Assess', 'compare sequence sets and analysis methods (not-implemented)'],
            ['Scores', 'compare scoring systems', 'compare_scores.pl'],
            ['Methods', 'compare threading methods', 'compare_methods.pl'],
           ],
+
+
 	  # empty list forces right-justification of subsequent menu
 	  [ [ '' ]  ],
 
@@ -799,15 +869,15 @@ sub navbar {
 
 	);
 
-  my ($navi,$subnavi) = $p->find_nav_ids(@navs);
+  my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
   # if (not defined $navi) {
   # 	# oops... not in @navs
-  # 	push( @navs, [ $p->{Nav} ] );
+  # 	push( @navs, [ $self->{Nav} ] );
   # 	$navi = $#navs;
   # }
   # if (not defined $subnavi) {
   # 	# oops... not in @{$navs[$navi]}
-  # 	push( @{$navs[$navi]}, [ $p->{SubNav}, undef ] );
+  # 	push( @{$navs[$navi]}, [ $self->{SubNav}, undef ] );
   # 	$subnavi = $#{$navs[$navi]};
   # }
 
@@ -821,10 +891,10 @@ sub navbar {
 }
 
 
-sub find_nav_ids {
-  my $p = shift;
+sub _find_nav_ids {
+  my $self = shift;
   my @navs = @_;
-  my $script = $p->url(-relative => 1);
+  my $script = $self->url(-relative => 1);
   for(my $i=0; $i<=$#navs; $i++) {
 	my @snavs = @{$navs[$i]};
 	shift @snavs;
@@ -833,6 +903,8 @@ sub find_nav_ids {
 	}}
   return;
   }
+
+
 
 
 sub make_navbar {
@@ -866,6 +938,51 @@ sub make_navbar {
 		  . '</table>' );
 }
 
+sub _make_temp_dir () {
+  # set the temporary file directory and ensure that it exists
+  # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
+  # as a CGI, or in /tmp/ if run on the command line 
+
+  my $self = shift;
+
+  return if exists $self->{tmpdir};			# been here before
+
+  $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '';
+
+  my @lt = localtime();
+  $self->{tmpdir} = sprintf("$self->{tmproot}/tmp/%4d-%02d-%02d",
+						 $lt[5]+1900, $lt[4]+1, $lt[3]);
+  if ( not -d $self->{tmpdir} ) {
+	mkdir($self->{tmpdir})
+    || $self->die("mkdir($self->{tmpdir}: $!\n");
+  }
+  
+  return $self->{tmpdir};
+}
+
+
+
+
+=pod
+
+=head1 INTERNAL ROUTINES (NON-METHODS)
+
+These methods typically begin with two underscores (e.g., __internal_routine).
+
+=over
+
+=cut
+
+sub dev_instance () {
+  # return true if this is NOT on the production port (80)
+  # OR if the page is being served by a user development directory
+  return ( (exists $ENV{SERVER_PORT} and $ENV{SERVER_PORT}!=80)
+		   or (exists $ENV{REQUEST_URI} and $ENV{REQUEST_URI} =~ m%/~%) );
+}
+
+
+
+
 
 ## XXX: in use?
 sub where {
@@ -874,13 +991,6 @@ sub where {
   return $self;
 }
 
-
-sub dev_instance () {
-  # return true if this is NOT on the production port (80)
-  # OR if the page is being served by a user development directory
-  return ( (exists $ENV{SERVER_PORT} and $ENV{SERVER_PORT}!=80)
-		   or (exists $ENV{REQUEST_URI} and $ENV{REQUEST_URI} =~ m%/~%) );
-}
 
 
 1;
