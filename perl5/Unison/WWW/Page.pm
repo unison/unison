@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.38 2005/02/23 19:47:16 rkh Exp $>
+S<$Id: Page.pm,v 1.39 2005/02/23 19:56:36 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -41,9 +41,7 @@ use Error qw(:try);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
 sub _make_temp_dir ();
-
-sub dev_instance();
-
+sub _cleanup_temp();
 
 our $infer_pseq_id = 0;
 
@@ -172,15 +170,16 @@ yet.
 
 sub tempfile {
   my $self = shift;
+  $self->_cleanup_temp();
   $self->_make_temp_dir(); 					# no return if failure
   my %opts = (								# order is important:
 			  UNLINK=>0, 					# - items before @_ are defaults
-			  @_,							# - items after @_ override any calling
-			  DIR=>$self->{tmpdir}				#   arguments
+			  @_,							# - items after @_ override any
+			  DIR=>$self->{tmpdir}			#   calling arguments
 			 );
 
   if ( my ($fh,$fn) = File::Temp::tempfile( %opts ) ) {
-	my ($urn) = $fn =~ m%^$self->{tmproot}(/.+)%;
+	my ($urn) = $fn =~ m/^$self->{tmproot}(\/.+)/;
 	return ($fh,$fn,$urn);
   }
 
@@ -606,17 +605,39 @@ sub debug {
 				   join('<br>',@_),'</span>');
 }
 
+######################################################################
+## import
+
+sub import {
+  my $self = shift;
+  for (@_) {
+	$infer_pseq_id=1 if ($_ eq 'infer_pseq_id');
+  }
+}
+
+######################################################################
+## dev_instance
+
+=pod
+
+=item B<< ::dev_instance() >>
+
+Return true if this is NOT on the production port (80) OR if the page is
+being served by a user development directory
+
+=cut
+sub dev_instance {
+  my $self = shift;
+  return ( (exists $ENV{SERVER_PORT} and $ENV{SERVER_PORT}!=80)
+		   or (exists $ENV{REQUEST_URI} and $ENV{REQUEST_URI} =~ m%/~%) );
+}
 
 
 
 
 
 
-
-
-
-
-
+######################################################################
 
 =pod
 
@@ -627,34 +648,6 @@ These methods typically begin with one underscore (e.g., _internal_method).
 =over
 
 =cut
-
-
-######################################################################
-## page_variables()
-
-=pod
-
-=item B<< $p->page_variables( C<> ) >>
-
-FOR DEBUGGING: render a list pf page variables
-
-=cut
-
-sub page_variables {
-  my $self = shift;
-  my $v = $self->Vars();
-  return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
-}
-
-######################################################################
-## import
-
-sub import {
-  my $self = shift;
-  for (@_) {
-	$infer_pseq_id=1 if ($_ eq 'infer_pseq_id');
-  }
-}
 
 
 ######################################################################
@@ -974,6 +967,31 @@ sub _make_temp_dir () {
 }
 
 
+sub _cleanup_temp {
+  my $self = shift;
+  my @lt = localtime();
+  my $ts = sprintf("%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
+}
+
+
+
+######################################################################
+## page_variables()
+
+=pod
+
+=item B<< $p->page_variables( C<> ) >>
+
+FOR DEBUGGING: render a list pf page variables
+
+=cut
+
+sub page_variables {
+  my $self = shift;
+  my $v = $self->Vars();
+  return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
+}
+
 
 
 =pod
@@ -986,23 +1004,15 @@ These methods typically begin with two underscores (e.g., __internal_routine).
 
 =cut
 
-sub dev_instance () {
-  # return true if this is NOT on the production port (80)
-  # OR if the page is being served by a user development directory
-  return ( (exists $ENV{SERVER_PORT} and $ENV{SERVER_PORT}!=80)
-		   or (exists $ENV{REQUEST_URI} and $ENV{REQUEST_URI} =~ m%/~%) );
-}
 
 
-
-
-
-## XXX: in use?
-sub where {
-  my $self = shift;
-  ($self->{Nav},$self->{SubNav}) = @_;
-  return $self;
-}
+## ## XXX: in use?
+## commented out 2005-03-19 to see what breaks (rkh)
+## sub where {
+##   my $self = shift;
+##   ($self->{Nav},$self->{SubNav}) = @_;
+##   return $self;
+## }
 
 
 
