@@ -4,9 +4,11 @@ I=-I$(shell pg_config --includedir)
 
 D=$(shell pg_config --pkglibdir)
 
-unison.so: unison.c FORCE
+unison.so: unison.c
 	gcc -shared -Wall  ${I} -o $@ -O2 -fpic $<
 
+
+install: $D/unison.so
 $D/unison.so: unison.so
 	/bin/cp -bv $< $@
 
