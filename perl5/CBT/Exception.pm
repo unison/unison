@@ -1,7 +1,7 @@
 =head1 NAME
 
 CBT::Exception -- base class for exceptions
-S<$Id: Exception.pm,v 1.2 2003/05/12 22:24:00 rkh Exp $>
+S<$Id: Exception.pm,v 1.3 2004/01/06 19:59:34 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -60,13 +60,13 @@ When thrown, a B<CBT::Exception> looks like this:
 
 
 package CBT::Exception;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use strict;
 use warnings;
 
-our ($VERSION) = q$Revision: 1.2 $ =~ m/Revision: ([\d\.]+)/;
-
-use CBT::debug;
-CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+our ($VERSION) = q$Revision: 1.3 $ =~ m/Revision: ([\d\.]+)/;
 
 use base qw(Error);
 use Text::Wrap;
@@ -76,8 +76,34 @@ our $show_stacktrace = $CBT::debug || $ENV{EX_STACKTRACE} || 0;
 our $show_advice = exists $ENV{EX_ADVICE} ? $ENV{EX_ADVICE} : 1;
 
 
-sub new
-  {
+sub new {
+  my $class = shift;
+  my %ex;
+  if (ref $_[0]) {							# throw Ex ( {...} )
+	%ex = %{$_[0]};
+	$ex{error} = $ex{text} if not exists $ex{error} and exists $ex{text};
+  } else {									# throw Ex (  ...  )
+	$ex{error} = shift if @_;
+	$ex{detail} = shift if @_;
+	$ex{advice} = shift if @_;
+  }
+
+  if (not defined $ex{error}) {
+	if ($!)	{
+	  $ex{error} = $!;
+	} else {
+	  croak("Exception created without error string\n") if $ENV{DEBUG};
+	  $ex{error} = 'unknown error';
+	}
+  }
+  #$ex{detail} = $! if (not defined $ex{detail} and $!);
+
+  local $Error::Debug = exists $ex{stacktrace} ? $ex{stacktrace} : $show_stacktrace;
+  local $Error::Depth = $Error::Depth + 1;
+
+  my $self = $class->SUPER::new(%ex,@_);
+  return $self;
+
 =pod
 
 =over
@@ -93,55 +119,25 @@ creates a new exception with the spe
 =back
 
 =cut
-  my $self = shift;
-  my %ex;
-  if (ref $_[0])							# throw Ex ( {...} )
-	{
-	%ex = %{$_[0]};
-	$ex{error} = $ex{text} if not exists $ex{error} and exists $ex{text};
-	}
-  else										# throw Ex (  ...  )
-	{
-	$ex{error} = shift if @_;
-	$ex{detail} = shift if @_;
-	$ex{advice} = shift if @_;
-	}
 
-  if (not defined $ex{error})
-	{
-	if ($!)
-	  { $ex{error} = $! }
-	else
-	  {
-	  croak("Exception created without error string\n") if $ENV{DEBUG};
-	  $ex{error} = 'unknown error';
-	  }
-	}
-  #$ex{detail} = $! if (not defined $ex{detail} and $!);
-
-
-  my @args = ();
-  local $Error::Debug = exists $ex{stacktrace} ? $ex{stacktrace} 
-	: $show_stacktrace;
-  local $Error::Depth = $Error::Depth + 1;
-  $self->SUPER::new(%ex, @args);
   }
-
 
 
 ## INTERNAL FUNCTIONS
-sub stringify($)
-  {
+sub stringify($) {
   my $self = shift;
   my $r = "! " . (ref($self)||$self) . " occurred: " . $self->error() . "\n";
-  if ( $self->detail() )
-	{ $r .= "Detail:" . wrap("\t", "\t", $self->detail()) . "\n" }
-  if ( $show_advice and $self->advice() )
-	{ $r .= "Advice:" . wrap("\t", "\t", $self->advice()) . "\n" }
-  if ( $show_stacktrace )
-	{ $r .= "Trace:\t" . $self->stacktrace() . "\n"; }
-  return $r;
+  if ( $self->detail() ) {
+	$r .= "Detail:" . wrap("\t", "\t", $self->detail()) . "\n";
   }
+  if ( $show_advice and $self->advice() ) {
+	$r .= "Advice:" . wrap("\t", "\t", $self->advice()) . "\n";
+  }
+  if ( $show_stacktrace ) {
+	$r .= "Trace:\t" . $self->stacktrace() . "\n";
+  }
+  return $r;
+}
 sub error($)   { $_[0]->{error};  }
 sub detail($)  { $_[0]->{detail}; }
 sub advice($)  { $_[0]->{advice}; }

@@ -2,7 +2,7 @@
 
 Unison::utilities -- general Unison utilities
 
-S<$Id: utilities.pm,v 1.6 2004/05/14 20:41:03 rkh Exp $>
+S<$Id: utilities.pm,v 1.7 2004/06/02 23:05:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -27,7 +27,7 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use base Exporter;
 @EXPORT = ();
-@EXPORT_OK = qw( warn_deprecated range_to_enum clean_sequence );
+@EXPORT_OK = qw( warn_deprecated range_to_enum clean_sequence sequence_md5 );
 
 use strict;
 use warnings;
@@ -36,6 +36,9 @@ use Carp qw(cluck);
 use Digest::MD5 qw(md5_hex);
 
 
+
+
+## ==========================================================================
 
 =head2 warn_deprecated( )
 
@@ -74,6 +77,10 @@ sub warn_deprecated(;$) {
 
 
 
+
+
+## ==========================================================================
+
 =head2 range_to_enum( range_strings )
 
 =over
@@ -94,6 +101,8 @@ sub range_to_enum (@) {
 
 
 
+## ==========================================================================
+
 =head2 clean_sequence( C<sequence> )
 
 =over
@@ -103,11 +112,12 @@ characters and upcasing. This is done primarily for the purposes of
 computing MD5 checksums which can be used to compare sequences
 efficiently.
 
-I<IMPORTANT:> This is not the version of C<clean_sequence()> used by the
-Unison database backend; the database implementation of this function is
-written in C and is the authoritative version (see unison/src/unison.c).
-If you want the authoritative result, you may open a database
-connection and use SQL like C<SELECT clean_sequence(...)> yourself.
+I<IMPORTANT:> This is not the authoritative version of C<clean_sequence()>
+used by the Unison database backend.  The database implementation of this
+function is written in C and is the authoritative version (see
+unison/src/unison.c).  If you want the authoritative result, you may open
+a database connection and use SQL like C<SELECT clean_sequence(...)>
+yourself.
 
 =back
 
@@ -115,9 +125,30 @@ connection and use SQL like C<SELECT clean_sequence(...)> yourself.
 
 sub clean_sequence($) {
   my $seq = shift;
-  $seq =~ s/[^\w -\*\?]//g;
-  return $seq;
+  $seq =~ s/[^-\w\*\?]//g;
+  return uc($seq);
 }
 
+
+
+## ==========================================================================
+
+=head2 sequence_md5( C<sequence> )
+
+=over
+
+"cleans" the sequences and returns the md5 checksum.
+
+I<IMPORTANT:> sequence_md5 uses the perl implementation of clean_sequence
+and therefore is subject to the same caveats as clean_sequence (see above).
+
+=back
+
+=cut
+
+sub sequence_md5 ($) {
+  my $seq = shift;
+  return md5_hex(clean_sequence($seq));
+}
 
 1;

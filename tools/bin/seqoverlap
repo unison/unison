@@ -2,24 +2,28 @@
 # output sql script to compute intersections among sequence origins
 
 cat <<EOF
-drop table seqov;
+DROP TABLE seqov;
 
-create table seqov (
-	ori1 integer references porigin(porigin_id),
-	ori2 integer references porigin(porigin_id),
-	pseq_id integer references pseq(pseq_id)
-) without oids;
+CREATE TABLE seqov (
+	ori1 INTEGER REFERENCES porigin(porigin_id),
+	ori2 INTEGER REFERENCES porigin(porigin_id),
+	pseq_id INTEGER REFERENCES pseq(pseq_id)
+) WITHOUT OIDS;
 
-create or replace view seqov_aliases as select
-S.pseq_id,S.ori1,S.ori2,palias_oad_fmt(SA1.palias_id) as
-"alias1",palias_oad_fmt(SA2.palias_id) as "alias2" from seqov S join
-pseqalias SA1 on S.pseq_id=SA1.pseq_id join paliasorigin AO1 on
-SA1.palias_id=AO1.palias_id and S.ori1=AO1.porigin_id join pseqalias SA2
-on S.pseq_id=SA2.pseq_id join paliasorigin AO2 on
-SA2.palias_id=AO2.palias_id and S.ori2=AO2.porigin_id where
-SA1.iscurrent=TRUE and SA2.iscurrent=TRUE ;
+GRANT SELECT ON seqov TO PUBLIC;
+COMMENT ON seqov is 'sequences in common to two origins';
 
-grant select on seqov to PUBLIC;
+
+CREATE OR REPLACE VIEW seqov_aliases as
+ SELECT s.pseq_id, s.ori1, s.ori2, palias_oad_fmt(sa1.palias_id) AS alias1, palias_oad_fmt(sa2.palias_id) AS alias2
+   FROM seqov s
+   JOIN pseqalias sa1 ON s.pseq_id = sa1.pseq_id
+   JOIN paliasorigin ao1 ON sa1.palias_id = ao1.palias_id AND s.ori1 = ao1.porigin_id
+   JOIN pseqalias sa2 ON s.pseq_id = sa2.pseq_id
+   JOIN paliasorigin ao2 ON sa2.palias_id = ao2.palias_id AND s.ori2 = ao2.porigin_id
+  WHERE sa1.iscurrent = true AND sa2.iscurrent = true;
+
+
 grant select on seqov_aliases to PUBLIC;
 
 EOF

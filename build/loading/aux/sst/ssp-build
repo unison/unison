@@ -19,7 +19,7 @@ my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
 
-open(GS, "| xargs /usr/local/seq/bin/getseq -F")
+open(GS, "| xargs -n25 /usr/local/seq/bin/getseq -F")
   || die("couldn't open pipe to getseq\n");
 
 

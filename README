@@ -39,7 +39,7 @@ unison/
 	logo/		Unison logo (gimp files)
 	perl5/		perl5 API and web objects
 	README		this file
-	sbin/		administrative / data-loading scripts
+	sbin/		administrative / data-loading scripts for recurrent use
 	sql/		NON-AUTHORITATIVE sql (read: actual database may differ)
 	src/		non-sql source code
 	t/			test scripts
@@ -47,4 +47,4 @@ unison/
 
 
 -Reece Hart <rkh@gene.com>
-$Id$
+$Id: README,v 1.3 2004/01/09 19:46:59 rkh Exp $

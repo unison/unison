@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id: blast2,v 1.6 2004/04/02 00:27:43 rkh Exp $
+# $Id: blast2,v 1.7 2004/04/20 00:02:30 rkh Exp $
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
@@ -41,7 +41,7 @@ sub cleanup () { unlink($bo); };
 $SIG{$_} = sub { cleanup(); exit 1; } for qw(HUP INT QUIT);
 
 
-my $u = new Unison( username => 'PUBLIC' );
+my $u = new Unison( );
 my $s1 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id1 ),
 								-id  => "Unison:$id1",
 								-desc => $u->best_annotation($id1),
