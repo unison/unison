@@ -1,70 +1,155 @@
 #!/usr/bin/env perl
-# $Id: load-pahmm,v 1.2 2003/07/16 18:17:41 rkh Exp $
-# load-pahmm -- load hmm alignments
+# $Id: run-pahmm,v 1.13 2005/03/31 21:59:59 rkh Exp $
+# load-pahmm -- load hmmer results from a file
 
 use warnings;
 use strict;
-use Unison;
-use IO::File;;
-use File::Temp;
 use Bio::SearchIO;
-use Data::Dumper;
 use Getopt::Long qw(:config gnu_getopt);
+use IO::File;
+use Unison::Exceptions;
+use Unison::SQL;
+use Unison;
 
+sub cache_pmodel_ids($$);
+sub load_aln_file($$);
 
-my %opts = (force => 0);
+my %opts = 
+  (
+   force => 0,
+   params_id => undef,
+   porigin_id => undef,
+   verbose => 0,
+  );
 GetOptions(\%opts,
-		   'force|f+')
-  || die("$0: you got usage issues, short stack\n");
+		   'force|f+',
+		   'params_id|p=i',
+		   'porigin_id|o=i',
+		   'verbose|v+',
+		  ) || die("$0: you got usage issues, short stack\n");
+
+(defined $opts{params_id})
+  || die("$0: must defined params_id (-p)\n");
+
+(defined $opts{porigin_id}) 
+  || die("$0: must defined porigin_id for HMM models (-o)\n");
 
 
-my $u = new Unison;
 
-my $fn = shift || '-';
-my $in = new Bio::SearchIO(-format => 'hmmer', -file => $fn);
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
-my @fields = qw(pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
+my $origin = $u->porigin_origin_by_porigin_id($opts{porigin_id});
+(defined $origin)
+  || die("origin with porigin_id=$opts{porigin_id} doesn't exist\n");
 
+my %pmodel_id_cache = cache_pmodel_ids($u,$opts{porigin_id});
+printf(STDERR "# %d pmodel_ids cached for accessions and names of porigin_id=%d (%s)\n",
+	   scalar keys %pmodel_id_cache, $opts{porigin_id}, $origin);
+
+
+my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
 my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
 										   join(',',@fields), join(',',map {'?'} @fields)));
 
-while( my $result = $in->next_result ) {
-  my $q = $result->query_name();
-  my ($pseq_id) = $q =~ m/Unison:(\d+)/;
-  die("hmmer query wasn't for a unison sequence (e.g., Unison:76)\n") unless defined $pseq_id;
 
-  if ($result->hmm_name() !~ m/Pfam_fs$/ and not $opts{force}) {
-	die("unison currently contains only Pfam local alignments (Pfam_fs)\n");
-  }
+my $totseqs = 0;
+my $tothits = 0;
+my $tothsps = 0;
+my $toterrs = 0;
+my $totfiles = 0;
 
-  while( my $hit = $result->next_hit ) {
-	my $name = $hit->name();
-	my $pmodel_id = get_pmodel_id($name);
-	if (not defined $pmodel_id) {
-	  warn("! couldn't look up a pmodel_id for $name; skipping this hit\n");
-	  next;
-	}
+while( my $alnfn = shift ) { 
+  my ($seqs,$hits,$hsps,$errs) = load_aln_file($u,$alnfn);
+  printf(STDERR "file stats: %d seqs, %d hits, %d hsps, %d errs in %s\n",
+		 $seqs,$hits,$hsps,$errs,$alnfn);
+  $totseqs += $seqs;
+  $tothits += $hits;
+  $tothsps += $hsps;
+  $toterrs += $errs;
+  $totfiles++;
+}
+printf(STDERR "# total stats: %d seqs, %d hits, %d hsps, %d errs in %d files\n",
+	   $totseqs,$tothits,$tothsps,$toterrs,$totfiles);
 
-	while( my $hsp = $hit->next_hsp ) {
-	  my @data = ($pseq_id, $hsp->start('query'), $hsp->end('query'),
-				  $pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
-				  $hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
-				  int($hsp->score()), $hsp->evalue());
-	  if ($pahmm_sth->execute(@data)) {
-		print("inserted ", join(' , ',@data), "\n");
-	  }
-	}
-  }
+exit(0);
+
+
+
+
+sub cache_pmodel_ids($$) {
+  # cache acc=>pmodel_id and name=>pmodel_id in same hash
+  my $u = shift;
+  my $o = shift;
+  my $h1 = $u->selectall_hashref('select acc,pmodel_id from pmhmm where porigin_id=?',
+								  1, undef, $o);
+  my $h2 = $u->selectall_hashref('select name,pmodel_id from pmhmm where porigin_id=?',
+								 1, undef, $o);
+  return( (map { $_=>$h1->{$_}{pmodel_id} } keys %$h1), 
+		  (map { $_=>$h2->{$_}{pmodel_id} } keys %$h2) );
 }
 
 
+sub load_aln_file ($$) {
+  my $u = shift;
+  my $alnfn = shift;
+  my $fileseqs = 0;
+  my $filehits = 0;
+  my $filehsps = 0;
+  my $fileerrs = 0;
 
-sub get_pmodel_id {
-  my $name = shift;
-  my $sth = $u->prepare_cached('select pmodel_id from pmhmm where name=? order by added desc');
-  $sth->execute($name);
-  my $ids = $sth->fetchall_arrayref();
-  return undef unless defined $ids;
-  warn("! found ",$#$ids+1," pmodel_ids for model name $name; returning most recent\n") if ($#$ids>0);
-  return $ids->[0]->[0];
+  my $alnfh = new Bio::SearchIO(-format => 'hmmer',
+								-file => $alnfn);
+  if (not defined $alnfh) {
+	warn("$alnfn: $!\n");
+	return;
+  }
+
+  while( my $result = $alnfh->next_result ) {	# "result" is a query sequence
+	$fileseqs++;
+	my ($pseq_id) = $result->query_name() =~ m/Unison:(\d+)/;
+	(defined $pseq_id)
+	  || die("couldn't parse pseq_id from hmmer results\n");
+	my $nhits = 0;
+	my $nhsps = 0;
+
+	try {
+	  $u->begin_work();
+	  while( my $hit = $result->next_hit ) {
+		$nhits++;
+		my $acc = $hit->name();
+
+		(exists $pmodel_id_cache{$acc})
+		  || die("\n! couldn't look up a pmodel_id for $acc in origin $opts{porigin_id}!\n");
+		my $pmodel_id = $pmodel_id_cache{$acc};
+
+		while( my $hsp = $hit->next_hsp ) {
+		  $nhsps++;
+		  my @data = ($opts{params_id}, 
+					  $pseq_id, $hsp->start('query'), $hsp->end('query'),
+					  $pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
+					  $hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
+					  int($hsp->score()), $hsp->evalue());
+		  $pahmm_sth->execute(@data);
+		}
+	  }
+	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
+	  $u->commit();
+	  printf(STDERR "# sequence stats: %d hits, %d hsps for Unison:$pseq_id\n",
+			 $nhits,$nhsps);
+	  $filehits += $nhits;
+	  $filehsps += $nhsps;
+	} catch Unison::Exception with {
+	  my $e = $_[0];
+	  if ("$e" =~ m/duplicate key/ or "$e" =~ m/(?:over|under)flow/) {
+		warn("\n$e\nUnison:$pseq_id load failed; rolling back.\n",);
+		$u->rollback();
+		$fileerrs++;
+	  } else {
+		throw $e;
+	  }
+	};
+  }
+
+  $alnfh->close();
+  return( $totseqs, $tothits, $tothsps, $toterrs );
 }
