@@ -113,9 +113,10 @@ my $ctl = '<table border=0><tr>' . join('',map {"<td>$_</td>"} @ctl) . '</tr></t
 
 
 print $p->render("threading summary for Unison:$v->{pseq_id} (run_id=$v->{run_id})",
-				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
-				 sprintf("<br>%d threads returned (%d threads total for this sequence and params)", $#$ar+1, $N),
+				 $p->best_annotation($v->{pseq_id}),
+
 				 $p->tip('clicking some column headings will dynamically sort by that column'),
+				 "<p>\n",
 				 $p->start_form(-action=>'p2alignment.pl'),
 				 $p->submit(-value=>'align checked'),
 				 $p->hidden('pseq_id',$v->{pseq_id}),

@@ -25,7 +25,7 @@ do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
 do { $_->[2] =~ s/(\S{30,}?)(?=\S+)/$1-- /g;} for @$ar;
 
 print $p->render("Aliases of Unison:$v->{pseq_id}",
-				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
+				 $p->best_annotation($v->{pseq_id}),
 				 $p->group("Aliases of Unison:$v->{pseq_id}",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)
