@@ -1,13 +1,12 @@
 CSB-DB LIFE CYCLE
 -----------------
-$Id: dev-cycle.txt,v 1.1 2004/01/08 02:18:09 rkh Exp $
+$Id: dev-cycle.txt,v 1.2 2004/01/09 19:24:48 rkh Exp $
 
-                    +<----<----<----<---- PD <----<----<---<+
-                    v                                       ^
- 	phase:     		development   -DS-> staging       -SP->	production
-    database:  		csb-dev             csb-stage           csb
+ 	phase:     	|	development     |   staging         |  	production
 ----------------|-------------------|-------------------|-------------------|
 Database:     	|					|					|					|
+  db name	  	|	csb-dev         |   csb-stage       |   csb				|
+              	|					|					|					|
   schema      	|	RW				|	RO				|	RO				|
               	|					|					|					|
   data        	|	RW				|	RW				|	RO				|
@@ -19,15 +18,29 @@ Database:     	|					|					|					|
 Software:		|					|					|					|
   cvs tag		|	dev-X.Y			|	stage-X.Y		|	rel-X.Y			|
   				|					|					|					|
-  API testing 	|	some			|	most			|					|
+  API		 	|	dev + test		|	test only		|					|
+    path*	  	|	user dirs		|	?				|	site_perl		|
               	|					|					|					|
-  command line	|	some			|	most			|					|
-  tool testing	|					|					|					|
+  CL tools		|	dev + test		|	test only		|					|
   				|					|					|					|
-  web interface	|	some			|	most			|					|
-  				|					|					|					|
+  web interface	|	dev + test		|	test only		|					|
+    path*	 	|	htdocs-dev		|	htdocs-stage	|	htdocs-prod		|
+    port     	|	8080			|	8040			|	8000			|
+              	|					|					|					|
+----------------|-------------------|-------------------|-------------------|
+Cycle:	     	|	development   -DS-> staging       -SP->	production      |
+				|	^										|				|
+                |   |                                       v				|
+                |   +<----<----<----<--- PD --<----<----<---+				|
 ----------------|-------------------|-------------------|-------------------|
 								
+* paths:
+The perl API is checked out in /apps/compbio/lib/perl5/site_perl/Unison .
+The web path is /usr/local/apache2/htdocs-* .
+The web pages use a web-only perl5 directory (see Unison/WWW.pm) if it
+exists.  Reece usually makes this a symlink to his Unison perl5 dev tree
+for web development, and uses the /apps/compbio/ perl default for
+production.
 
 
 in csb-dev:
