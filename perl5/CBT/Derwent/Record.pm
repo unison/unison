@@ -6,7 +6,7 @@
 
 tflush -- hydrostatic flow controller
 
-S<$Id: Record.pm,v 1.1 2003/04/30 21:11:21 rkh Exp $>
+S<$Id: Record.pm,v 1.1 2003/04/30 21:11:22 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -28,24 +28,25 @@ B<tflush> flushes toilet remotely in case you realize that you forgot this
 
 BEGIN
   {
-  $RCSHeader = '$Header: /usr/local/cvs/site_perl/CBT/EBI/Record.pm,v 1.1 2003/04/30 21:11:21 rkh Exp $ ';
+  $RCSHeader = '$Header: /usr/local/cvs/site_perl/CBT/SwissProt/Record.pm,v 1.1 2003/04/30 21:11:22 rkh Exp $ ';
   print("# $RCSHeader\n") if (defined $main::DEBUG and $main::DEBUG);
   }
 
-package CBT::EBI::Record;
-use base 'CBT::Hash';
+package CBT::Derwent::Record;
+use base 'CBT::EBI::Record';
 
-sub parse_block
+
+sub sequence
   {
-  my $self = shift;
-  my $blk = shift;
-  my $prevtag;
-  while( my ($tag,$data) = $blk =~ /^(\w*)\s+(.+\n?)/gm ) {
-	$tag = $prevtag if ($tag eq '');
-	$self->{$tag} .= $data;
-	$prevtag = $tag;
+  my($self) = @_;
+  my($SQ) = $self->{SQ};
+  if (not defined $SQ) {
+	warn("Record sequence undefined\n");
+	return(undef);
   }
-  return($self);
+  $SQ =~ s/^.+\n//;							# delete first line
+  $SQ =~ s/\s//g;							# compress spaces
+  return( $SQ );
   }
 
 1;

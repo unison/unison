@@ -6,7 +6,7 @@
 
 tflush -- hydrostatic flow controller
 
-S<$Id: Record.pm,v 1.1 2003/04/30 21:11:21 rkh Exp $>
+S<$Id: DB.pm,v 1.1 2003/04/30 21:11:22 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -14,7 +14,7 @@ C<tflush [time]>
 
 =head1 DESCRIPTION
 
-B<tflush> flushes toilet remotely in case you realize that you forgot this
+B<tflush> 
 
 =head1 INSTALLATION
 
@@ -28,24 +28,21 @@ B<tflush> flushes toilet remotely in case you realize that you forgot this
 
 BEGIN
   {
-  $RCSHeader = '$Header: /usr/local/cvs/site_perl/CBT/EBI/Record.pm,v 1.1 2003/04/30 21:11:21 rkh Exp $ ';
+  $RCSHeader = '$Header: /usr/local/cvs/site_perl/CBT/SwissProt/DB.pm,v 1.1 2003/04/30 21:11:22 rkh Exp $ ';
   print("# $RCSHeader\n") if (defined $main::DEBUG and $main::DEBUG);
   }
 
-package CBT::EBI::Record;
-use base 'CBT::Hash';
+package CBT::Derwent::DB;
+use CBT::EBI::DB;
+@ISA = qw( CBT::EBI::DB );
 
-sub parse_block
+sub read_parse_record
   {
-  my $self = shift;
-  my $blk = shift;
-  my $prevtag;
-  while( my ($tag,$data) = $blk =~ /^(\w*)\s+(.+\n?)/gm ) {
-	$tag = $prevtag if ($tag eq '');
-	$self->{$tag} .= $data;
-	$prevtag = $tag;
+  my($self, $r) = @_;
+  my($block);
+  $block = $self->read_record($r)
+	|| return(undef);
+  my($record) = new CBT::Derwent::Record;
+  $record->parse_block($block);
+  return($record);
   }
-  return($self);
-  }
-
-1;

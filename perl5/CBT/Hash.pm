@@ -2,7 +2,7 @@
 
 CBT::Hash -- Hash record superclass
 
-S<$Id: Hash.pm,v 0.8 2001/06/07 06:20:00 reece Exp $>
+S<$Id: Hash.pm,v 1.1 2003/04/30 21:11:21 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -19,7 +19,7 @@ hashes.
 package CBT::Hash;
 BEGIN{
 use CBT::debug;
-our $VERSION = CBT::debug::RCSVersion( '$Revision$ ' );
+our $VERSION = CBT::debug::RCSVersion( '$Revision: 1.1 $ ' );
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 }
 
@@ -28,22 +28,22 @@ use warnings;
 use base 'CBT::Root';
 use overload '""' => \&stringify;
 
-sub new
-  {
+sub new {
   my $type = shift;
-  my $self = @_ ? initialize(@_) : {};
+  my $self = _initialize(@_);
   return( bless($self, $type) );
-  }
+}
 
-sub initialize
-  {
-  my $self = shift;
+
+sub _initialize {
+  my %self;
+  return {} unless defined $_[0];
   if (ref $_[0])							# new blah ( {-text=>blah, -advice=>soakhead, ...} )
-	{ %$self = %{$_[0]}; }
+	{ %self = %{$_[0]}; }
   elsif ( $_[0] =~ m/^-/ )					# new blah ( -text=>blah, -advice=>soakhead, ... )
-	{ %$self = @_; }
-  return $self;
-  }
+	{ %self = @_; }
+  return \%self;
+}
 
 sub stringify
   {

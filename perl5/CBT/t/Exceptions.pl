@@ -42,7 +42,7 @@ if ($options{catch})
 	  {
 	  warn("finally'ing (s=$s)...\n");
 	  cleanup();
-	  }
+	  };
     }
   }
 else
