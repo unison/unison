@@ -1,3 +1,21 @@
+=head1 NAME
+
+Unison::template -- Unison:: module template
+
+S<$Id: template.pm,v 1.1 2004/05/14 20:33:19 rkh Exp $>
+
+=head1 SYNOPSIS
+
+ use Unison::template;
+ #do something, you fool!
+
+=head1 DESCRIPTION
+
+B<Unison::template> is template for building new perl modules.
+
+=cut
+
+
 package Unison::WWW;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);

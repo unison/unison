@@ -1,3 +1,22 @@
+=head1 NAME
+
+Unison::WWW::Page -- Unison web page framework
+
+S<$Id: template.pm,v 1.1 2004/05/14 20:33:19 rkh Exp $>
+
+=head1 SYNOPSIS
+
+ use Unison::WWW::Page;
+ my $p = new Unison::WWW::Page;
+
+=head1 DESCRIPTION
+
+B<Unison::WWW::Page> provides a class for consistent rendering of Unison
+web pages. It's simple and not powerful.
+
+=cut
+
+
 package Unison::WWW::Page;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -14,9 +33,8 @@ use Unison::Exceptions;
 use Unison::WWW::utilities qw( text_wrap );
 use Error qw(:try);
 
-#WARNING: strict must be last, unsure why
-use strict;
-
+#XXX: WARNING: strict must be last, unsure why, and this bothers me
+#use strict;
 
 
 sub page_connect ($);
@@ -25,13 +43,15 @@ sub infer_pseq_id ($);
 our $infer_pseq_id = 0;
 
 
-sub import {
-  my $self = shift;
-  for (@_) {
-	$infer_pseq_id=1 if ($_ eq 'infer_pseq_id');
-  }
-}
 
+######################################################################
+## new
+
+=pod
+
+=item B<< ::new( key=>value ) >>
+
+=cut
 
 sub new {
   my $class = shift;
@@ -44,8 +64,12 @@ sub new {
   try {
 	page_connect($self);
   }	catch Unison::Exception with {
-	my $ex_text = defined $_[0] ? CGI::escapeHTML($_[0]) : 'no exception information';
-	my $env = join('', map( { "<br><code>$_: ".(defined $ENV{$_}?$ENV{$_}:'<i>undef</i>')."</code>\n" }
+	my $ex_text = ( defined $_[0] ? 
+					CGI::escapeHTML($_[0]) :
+					'no exception information' );
+	my $env = join('', map( { "<br><code>$_: ".(defined $ENV{$_} ? 
+												$ENV{$_}
+												:'<i>undef</i>')."</code>\n" }
 							qw(REMOTE_USER KRB5CCNAME) ));
 
 	__PACKAGE__->die('Unison Connection Failed', 
@@ -92,121 +116,78 @@ sub new {
 }
 
 
-sub page_connect ($) {
-  my $self = shift;
-  my $v = $self->Vars();
+######################################################################
+## Vars()
 
-  # choose database based on port unless explicitly set
-  # SERVER_PORT is always set, EXCEPT when debugging from the command line
-  if (not exists $v->{dbname}) {
-	$v->{dbname} = 'csb';
-	if (defined $ENV{SERVER_PORT}) {
-	  $v->{dbname} =  ($ENV{SERVER_PORT} == 8080) ? 'csb-dev'
-					: ($ENV{SERVER_PORT} == 8040) ? 'csb-stage'
-					:      				            'csb';
-	}
+=pod
+
+=item B<< $p->Vars( C<> ) >>
+
+return a hash of page variables.
+
+=cut
+
+sub Vars {
+  my $p = shift;
+  return unless ref $p;
+  if (not exists $p->{Vars}) {
+	$p->{Vars} = $p->SUPER::Vars();
   }
-
-  # establish session authentication, preferably via kerberos
-  # must connect to host 'csb' for Kerberos authentication
-  if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
-	$v->{username} = $ENV{REMOTE_USER};
-	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$v->{username}";
-	$v->{host} = 'csb';
-  } else {
-	$v->{username} = `id -nu`
-	#$v->{username} = 'PUBLIC' unless defined $v->{username};
-  }
-
-
-
-  # NOTE: password=>undef works for PUBLIC and krb auth
-  $self->{unison} = new Unison( username => $v->{username},
-								password => undef,
-								host => $v->{host},
-								dbname => $v->{dbname} );
-
-  return $self->{unison};
+  return $p->{Vars};
 }
 
 
+######################################################################
+## ensure_required_params()
 
-sub infer_pseq_id ($) {
-  # Most pages should refer to sequences by pseq_id. If pseq_id isn't
-  # defined, then we attempt to infer it from given 'seq', 'md5', or
-  # 'alias' (in that order).  Furthermore, if none of those are defined
-  # but 'q' is, then we heuristically attempt to guess whether q is a
-  # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
-  # right thing' lookups (e.g., from a browswer toolbar)
+=pod
 
-  my $self = shift;
-  my $v = $self->Vars();
+=item B<< $p->ensure_required_params( C<vars> ) >>
 
-  if ( exists $v->{'q'} ) {
-	my $q = $v->{'q'};
+Ensure that the named variables were provided in the HTML GET or POST
+request. If not, the page C<dies> (which see) with an appropriate error.
 
-	if ($q !~ m/\D/)				{ return $q; };
+=cut
 
-	if ($q =~ m/Unison:(\d+)/)		{ return $1; };
-
-	if (length($q)==32 and $q!~m/[^0-9a-f]/i) {
-	  $v->{md5} = $q;
-	} else {
-	  $v->{alias} = $q;
-	}
-  }
-
-
-  if (exists $v->{seq}) {
-	my (@ids) = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
-	if ($#ids == -1) {
-	  $self->die('sequence not found',
-				 'The sequence you provided wasn\'t found in Unison.');
-	}
-	# REMINDER: can't be more than 1
-	return $ids[0];
-  }
-
-
-
-  if (exists $v->{md5}) {
-	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
-	if ($#ids == -1) {
-	  $self->die('md5 checksum not found',
-				 'The md5 checksum you provided wasn\'t found in Unison.');
-	} elsif ($#ids > 0) {
-	  # md5 collision! (hasn't happened yet and I don't expect it), but just in case...
-	  $self->die('md5 collision!',
-				 'The md5 checksum you provided corresponds to more than one sequence.');
-	}
-	return $ids[0];
-  }
-
-  if (exists $v->{alias}) {
-	my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
-	if ($#ids == -1) {
-	  $self->die('alias not found',
-				 'The alias you provided wasn\'t found in Unison (case insensitive).');
-	} elsif ($#ids > 0) {
-	  # this should be moved to a general search CGI
-	  print CGI::redirect("search_by_alias.pl?alias=$v->{alias}");
-	  #exit(0);
-	  #$self->die('alias collision',
-	  #		   'The alias you provided corresponds to more than one sequence.');
-	}
-	return $ids[0];
-  }
-
-  return undef;
+sub ensure_required_params {
+  my $p = shift;
+  my @undefd = grep { not defined $p->param($_) or $p->param($_) eq '' } @_;
+  return 0 unless @undefd;
+  $p->die('Missing parameters',
+		  '<br>The follow parameters were missing:',
+		  '<br>&nbsp;&nbsp;&nbsp; <code>' . join(', ', @undefd) . '</code>' );
+  # doesn't return
 }
 
 
+######################################################################
+## header()
+
+=pod
+
+=item B<< $p->header() >>
+
+returns the HTML header
+
+=cut
 
 sub header {
   my $p = shift;
   return '' if ref $p and $p->{already_did_header}++;
   return $p->SUPER::header();
 }
+
+
+######################################################################
+## start_html()
+
+=pod
+
+=item B<< $p->start_html( @_ ) >>
+
+returns a Unison-specific preamble for a web page.
+
+=cut
 
 sub start_html {
   my $self = shift;
@@ -222,6 +203,20 @@ sub start_html {
 				   {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'} ]
 	);
 }
+
+
+######################################################################
+## render()
+
+=pod
+
+=item B<< $p->render( C<title>, C<body elems, ...> ) >>
+
+Generates a Unison web page with title given C<title> and with the
+page-specific content provided by an array of C<body elems>.
+
+=cut
+
 
 sub render {
   my $p = shift;
@@ -300,6 +295,15 @@ sub render {
 }
 
 
+######################################################################
+## group()
+
+=pod
+
+=item B<< $p->group( C<> ) >>
+
+=cut
+
 sub group {
   my $self = shift;
   my $name = shift;
@@ -318,14 +322,364 @@ sub group {
 		 "</table>\n");
 }
 
-sub Vars {
+
+######################################################################
+## make_url()
+
+=pod
+
+=item B<< $p->make_url( C<addl vars, ...> ) >>
+
+build a url from the CGI query object with values from a specified
+variable list
+
+=cut
+
+sub make_url {
   my $p = shift;
-  return unless ref $p;
-  if (not exists $p->{Vars}) {
-	$p->{Vars} = $p->SUPER::Vars();
+  my $vars = $p->Vars();
+  my $addlvars = ref $_[0] ? shift : {};
+  my %vars = (%$vars, %$addlvars);
+
+  my @keys;
+  if (@_) {									# specified query vars only
+	my %keys = map { $_=>1 } @_, keys %$addlvars;
+	@keys = sort keys %keys;
+  } else {									# or default is all vars
+	@keys = sort keys %vars;
   }
-  return $p->{Vars};
+
+  my $url = $p->url(-relative=>1);
+
+  my $qargs = join( ';', map {"$_=$vars{$_}"} grep {defined $vars{$_}} @keys);
+  $url .= '?' . $qargs if $qargs ne '';
+
+  return $url;
 }
+
+
+######################################################################
+## sql()
+
+=pod
+
+=item B<< $p->sql( C<text> ) >>
+
+format C<text> as a SQL block on the web page
+
+=cut
+
+sub sql {
+  my $self = shift;
+  return '' unless $self->{userprefs}->{'show_sql'};
+  return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
+		  (map {CGI::escapeHTML($_)} text_wrap(@_)),
+		  '</div>', "\n" );
+}
+
+
+######################################################################
+## tip()
+
+=pod
+
+=item B<< $p->tip( C<text> ) >>
+
+format C<text> as a "tip" block on the web page
+
+=cut
+
+sub tip {
+  my $self = shift;
+  return '' unless $self->{userprefs}->{'show_tips'};
+  return( "\n",'<p><div class="tip"><b>Tip:</b> ', @_, '</div>', "\n");
+}
+
+
+######################################################################
+## tooltip()
+
+=pod
+
+=item B<< $p->tooltip( C<text>, C<tip> ) >>
+
+Format C<tip> as a "tooltip" which will appear when the mouse is over
+C<text>.
+
+=cut
+
+sub tooltip {
+  my $self = shift;
+  my ($text,$tooltip) = @_;
+  $tooltip =~ s/\s+/ /g;
+  return( '<span class="tipped" tooltip="'
+		  . CGI::escapeHTML($tooltip)
+		  . '">'
+		  . CGI::escapeHTML($text)
+		  . '</span>' );
+}
+
+
+######################################################################
+## warn()
+
+=pod
+
+=item B<< $p->warn( C<text>, ... ) >>
+
+format arguments as a warning block
+
+=cut
+
+sub warn {
+  my $self = shift;
+  return( "\n",'<p><div class="warning"><b>Warning:</b> ', 
+		  @_, '</div>', "\n" );
+}
+
+
+######################################################################
+## die()
+
+=pod
+
+=item B<< $p->die( C<text> ) >>
+
+Return a Unison error page with C<text>.
+
+=cut
+
+sub die {
+  my $p = shift;
+  my $t = shift;
+  print $p->render( "Error: $t",
+					'<p><div class="warning">',
+					'<b>Error:</b> ', $t, '<br>',
+					join(' ',@_), 
+					'</div>', "\n" );
+  exit(0);
+}
+
+
+######################################################################
+## best_annotation()
+
+=pod
+
+=item B<< $p->best_annotation( C<pseq_id> ) >>
+
+render the best_annotation of the sequence identified by pseq_id
+C<pseq_id>
+
+=cut
+
+sub best_annotation {
+  my $p = shift;
+  my $pseq_id = shift;
+
+  return( $p->tooltip( 'current "best" annotation', 'Best annotations are
+					   a guess about the most informative and reliable
+					   annotation for this sequence from all source
+					   databases. Click the Aliases tab to see all
+					   annotations' ),
+		  ': ',
+		  $p->{unison}->best_annotation($pseq_id,1) );
+}
+
+
+######################################################################
+## add_footer_lines()
+
+=pod
+
+=item B<< $p->add_footer_lines( C<lines, ...> ) >>
+
+adds the specified lines to the footer
+
+=cut
+
+sub add_footer_lines {
+  my $p = shift;
+  push(@{$p->{footer}}, @_);
+}
+
+
+
+
+######################################################################
+## debug()
+
+=pod
+
+=item B<< $p->debug( C<message> ) >>
+
+render C<message> in a special debugging block
+
+=cut
+
+sub debug {
+  my $p = shift;
+  print $p->render("debug: $_[0]",'<span class="debug">',
+				   join('<br>',@_),'</span>');
+}
+
+
+######################################################################
+## page_variables()
+
+=pod
+
+=item B<< $p->page_variables( C<> ) >>
+
+FOR DEBUGGING: render a list pf page variables
+
+=cut
+
+sub page_variables {
+  my $self = shift;
+  my $v = $self->Vars();
+  return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
+}
+
+
+
+
+
+
+
+######################################################################
+## import
+
+sub import {
+  my $self = shift;
+  for (@_) {
+	$infer_pseq_id=1 if ($_ eq 'infer_pseq_id');
+  }
+}
+
+
+######################################################################
+## page_connect
+
+sub page_connect ($) {
+  my $self = shift;
+  my $v = $self->Vars();
+
+  # choose database based on port unless explicitly set
+  # SERVER_PORT is always set, EXCEPT when debugging from the command line
+  if (not exists $v->{dbname}) {
+	$v->{dbname} = 'csb';
+	if (defined $ENV{SERVER_PORT}) {
+	  $v->{dbname} =  ($ENV{SERVER_PORT} == 8080) ? 'csb-dev'
+					: ($ENV{SERVER_PORT} == 8040) ? 'csb-stage'
+					:      				            'csb';
+	}
+  }
+
+  # establish session authentication, preferably via kerberos
+  # must connect to host 'csb' for Kerberos authentication
+  if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
+	$v->{username} = $ENV{REMOTE_USER};
+	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$v->{username}";
+	$v->{host} = 'csb';
+  } else {
+	$v->{username} = `id -nu`
+	#$v->{username} = 'PUBLIC' unless defined $v->{username};
+  }
+
+
+
+  # NOTE: password=>undef works for PUBLIC and krb auth
+  $self->{unison} = new Unison( username => $v->{username},
+								password => undef,
+								host => $v->{host},
+								dbname => $v->{dbname} );
+
+  return $self->{unison};
+}
+
+
+######################################################################
+## infer_pseq_id
+
+=pod
+
+=item B<< $p->infer_pseq_id() >>
+
+=cut
+
+sub infer_pseq_id ($) {
+  # Most pages should refer to sequences by pseq_id. If pseq_id isn't
+  # defined, then we attempt to infer it from given 'seq', 'md5', or
+  # 'alias' (in that order).  Furthermore, if none of those are defined
+  # but 'q' is, then we heuristically attempt to guess whether q is a
+  # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
+  # right thing' lookups (e.g., from a browswer toolbar)
+
+  my $self = shift;
+  my $v = $self->Vars();
+
+  if ( exists $v->{'q'} ) {
+	my $q = $v->{'q'};
+
+	if ($q !~ m/\D/)				{ return $q; };
+
+	if ($q =~ m/Unison:(\d+)/)		{ return $1; };
+
+	if (length($q)==32 and $q!~m/[^0-9a-f]/i) {
+	  $v->{md5} = $q;
+	} else {
+	  $v->{alias} = $q;
+	}
+  }
+
+
+  if (exists $v->{seq}) {
+	my (@ids) = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
+	if ($#ids == -1) {
+	  $self->die('sequence not found',
+				 'The sequence you provided wasn\'t found in Unison.');
+	}
+	# REMINDER: can't be more than 1
+	return $ids[0];
+  }
+
+
+
+  if (exists $v->{md5}) {
+	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
+	if ($#ids == -1) {
+	  $self->die('md5 checksum not found',
+				 'The md5 checksum you provided wasn\'t found in Unison.');
+	} elsif ($#ids > 0) {
+	  # md5 collision! (hasn't happened yet and I don't expect it), but just in case...
+	  $self->die('md5 collision!',
+				 'The md5 checksum you provided corresponds to more than one sequence.');
+	}
+	return $ids[0];
+  }
+
+  if (exists $v->{alias}) {
+	my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
+	if ($#ids == -1) {
+	  $self->die('alias not found',
+				 'The alias you provided wasn\'t found in Unison (case insensitive).');
+	} elsif ($#ids > 0) {
+	  # this should be moved to a general search CGI
+	  print CGI::redirect("search_by_alias.pl?alias=$v->{alias}");
+	  #exit(0);
+	  #$self->die('alias collision',
+	  #		   'The alias you provided corresponds to more than one sequence.');
+	}
+	return $ids[0];
+  }
+
+  return undef;
+}
+
+
+######################################################################
+## navbar
 
 sub navbar {
   my $p = shift;
@@ -345,6 +699,7 @@ sub navbar {
 	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	   ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
 	   ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
+	   ['Secondary',	'Secondary Structure Prediction', 		'pseq_secstr.pl', 	$pseq_id ],
 	   ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
 	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id;params_id=1"],
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
@@ -370,6 +725,11 @@ sub navbar {
 	  # ['SCOP', undef, 'browse_scop.pl'],
 	  # ['Origins', undef, 'browse_origins.pl']
 	  ],
+	  [ # compare menu
+           ['Compare', 'compare sequence sets and analysis methods (not-implemented)'],
+           ['Scores', 'compare scoring systems', 'compare_scores.pl'],
+           ['Methods', 'compare threading methods', 'compare_methods.pl'],
+          ],
 
 	  # empty list forces right-justification of subsequent menu
 	  [ [ '' ]  ],
@@ -445,19 +805,6 @@ sub find_nav_ids {
   }
 
 
-sub best_annotation {
-  my $p = shift;
-  my $pseq_id = shift;
-
-  return( $p->tooltip( 'current "best" annotation', 'Best annotations are
-					   a guess about the most informative and reliable
-					   annotation for this sequence from all source
-					   databases. Click the Aliases tab to see all
-					   annotations' ),
-		  ': ',
-		  $p->{unison}->best_annotation($pseq_id,1) );
-}
-
 sub make_navbar {
   # $sel is which is selected
   # @tu = array ref of [text,tooltip,url,params]
@@ -489,108 +836,13 @@ sub make_navbar {
 		  . '</table>' );
 }
 
+
+## XXX: in use?
 sub where {
   my $self = shift;
   ($self->{Nav},$self->{SubNav}) = @_;
   return $self;
 }
-
-sub sql {
-  my $self = shift;
-  return '' unless $self->{userprefs}->{'show_sql'};
-  return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
-		  (map {CGI::escapeHTML($_)} text_wrap(@_)),
-		  '</div>', "\n" );
-}
-
-sub tip {
-  my $self = shift;
-  return '' unless $self->{userprefs}->{'show_tips'};
-  return( "\n",'<p><div class="tip"><b>Tip:</b> ', @_, '</div>', "\n");
-}
-
-sub tooltip {
-  my $self = shift;
-  my ($text,$tooltip) = @_;
-  $tooltip =~ s/\s+/ /g;
-  return( '<span class="tipped" tooltip="'
-		  . CGI::escapeHTML($tooltip)
-		  . '">'
-		  . CGI::escapeHTML($text)
-		  . '</span>' );
-}
-
-sub warn {
-  my $self = shift;
-  return( "\n",'<p><div class="warning"><b>Warning:</b> ', 
-		  @_, '</div>', "\n" );
-}
-
-sub ensure_required_params {
-  my $p = shift;
-  my @ud = grep { not defined $p->param($_) or $p->param($_) eq '' } @_;
-  return 0 unless @ud;
-  $p->die('Missing parameters',
-		  '<br>The follow parameters were missing:',
-		  '<br>&nbsp;&nbsp;&nbsp; <code>' . join(', ', @ud) . '</code>' );
-  # doesn't return
-}
-
-sub die {
-  my $p = shift;
-  my $t = shift;
-  print $p->render( "Error: $t",
-					'<p><div class="warning">',
-					'<b>Error:</b> ', $t, '<br>',
-					join(' ',@_), 
-					'</div>', "\n" );
-  exit(0);
-}
-
-sub debug {
-  my $p = shift;
-  print $p->render("debug: $_[0]",'<span class="debug">',join('<br>',@_),'</span>');
-}
-
-sub add_footer_lines {
-  my $p = shift;
-  push(@{$p->{footer}}, @_);
-}
-
-sub page_variables {
-  my $self = shift;
-  my $v = $self->Vars();
-  return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
-}
-
-
-
-# build a url from the CGI query object with values from a specified variable list
-# use:
-# 
-sub make_url {
-  my $p = shift;
-  my $vars = $p->Vars();
-  my $addlvars = ref $_[0] ? shift : {};
-  my %vars = (%$vars, %$addlvars);
-
-  my @keys;
-  if (@_) {									# specified query vars only
-	my %keys = map { $_=>1 } @_, keys %$addlvars;
-	@keys = sort keys %keys;
-  } else {									# or default is all vars
-	@keys = sort keys %vars;
-  }
-
-  my $url = $p->url(-relative=>1);
-
-  my $qargs = join( ';', map {"$_=$vars{$_}"} grep {defined $vars{$_}} @keys);
-  $url .= '?' . $qargs if $qargs ne '';
-
-  return $url;
-}
-
-
 
 
 1;
