@@ -28,7 +28,7 @@ $v->{offset} = 1 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 
-my $N = $u->selectrow_array("select count(*) from v_p2thread_scop where pseq_id=$v->{pseq_id} and p2params_id=$v->{p2params_id}");
+my $N = $u->selectrow_array("select count(*) from p2thread where pseq_id=$v->{pseq_id} and p2params_id=$v->{p2params_id}");
 
 my $sql = "select * from v_p2thread_scop where pseq_id=$v->{pseq_id} and p2params_id=$v->{p2params_id} limit $v->{limit} offset $v->{offset}";
 my $ar = $u->selectall_arrayref($sql);
