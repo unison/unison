@@ -27,7 +27,7 @@ my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id params_id profiles));
 
-my $modelfile = '/apps/compbio/share/pfam-14.0/Pfam_fs.hmm';
+my $modelfile = '/gne/compbio/share/pfam-14.0/Pfam_fs.hmm';
 my ($hmmfh, $hmmfn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.hmm');
 my ($seqfh, $seqfn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.fasta');
 my ($htmlfh, $htmlfn) = File::Temp::tempfile(DIR => $p->{tmpdir}, SUFFIX=>'.html');
@@ -47,8 +47,8 @@ my @profiles = split(/[\0,]/,$v->{profiles});
 
 foreach (@profiles) {
   my $cmd = "hmmfetch $modelfile $_ >> $hmmfn";
-  system( $cmd );
-  $? && die("$cmd: $!\n");
+  system( $cmd )
+	&& die("$cmd: $!\n");
 }
 my $clo = $u->run_commandline_by_params_id($v->{params_id});
 my @cl = (split(' ',$clo), '--acc', $hmmfn, $seqfn);
