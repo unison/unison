@@ -158,6 +158,11 @@ sub _parseBlock($) {
 	} else {
 	  return("Bad block: similarity results without database sequence\n");
 	}
+	if ($blk =~ m/^Score=(\d+)/m) {
+	  $rv{sim_score} = $1
+	} else {
+	  return("Bad block: similarity results without alignment score\n");
+	}
   } elsif ($blk =~ m/^Significant similarity by DBSCAN-P - NONE/m) {
 	# ignore
   } else {
