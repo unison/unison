@@ -3,9 +3,10 @@
 P=/apps/compbio
 PLATFORM=$(shell ${P}/bin/platform)
 EP=${P}/${PLATFORM}
-PFAMDB:=$P/share/pfam-9.0/Pfam_fs
+PFAMDB:=$P/share/pfam/Pfam_fs
+NSPLIT:=100000
 
-Q:=xeons
+Q:=all
 QSUB:=qsub -q$Q -qall -lwalltime=120000:00,pcput=120000:00,nodes=1:ppn=2 -V
 
 PATH:=${HOME}/csb-db/unison/bin:${EP}/bin:${P}/bin:${PATH}
@@ -20,9 +21,9 @@ ALL:=$(shell cat $r.mt)
 all: ${ALL}
 
 # comp-side:
-tmp/%.hmmer:
-	get-seq -hsvc $* | hmmpfam --informat fasta ${PFAMDB} - >$@.tmp && /bin/mv -f $@.tmp $@
-load/%.log: tmp/%.hmmer
+#tmp/%.hmmer:
+#	get-seq -hsvc $* | hmmpfam --informat fasta ${PFAMDB} - >$@.tmp && /bin/mv -f $@.tmp $@
+load/%.log:
 	(time -p get-seq -hsvc $* \
 	| hmmpfam --informat fasta ${PFAMDB} - \
 	| load-pahmm -Uloader -hsvc) >$@.tmp 2>&1 && /bin/mv -f $@.tmp $@
@@ -39,9 +40,8 @@ $r.mt: $r.ids
 	@wc -l $@
 $r.d: $r.mt
 	rm -fr $@; mkdir -p $@
-	@nsplit=10; \
-	echo "splitting into bins of $$nsplit"; \
-	split -l$$nsplit $< $@/
+	@echo "splitting into bins of ${NSPLIT}"; \
+	split -l${NSPLIT} $< $@/
 	@echo `find $r.d -type f | wc -l` $r.d targets
 $r.d/%.qsub:
 	echo 'make r=$r -C${PWD} -k $r.d/$*.log' | ${QSUB} -N$r_$* -o${@D}/$*.out -e${@D}/$*.err 2>&1 | tee $@

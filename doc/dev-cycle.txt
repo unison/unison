@@ -1,0 +1,45 @@
+CSB-DB LIFE CYCLE
+-----------------
+$Id$
+
+                |----------------- database phases (db-names) -----------------|
+                development ---DS--->   staging         ---SP--->   production
+                (csb-dev)               (csb-stage)                 (csb)
+
+schema              X                                                   
+changes                                                                 
+                                                                        
+data                X                       X                           
+loading                                                                 
+                                                                        
+API testing         X                       X                           
+                                                                        
+command line        X                       X                           
+tool testing                                                            
+                                                                        
+read-only                                                               X
+access
+
+
+
+in csb-dev:
+- schema changes are made and tested
+- data may be loaded (but may be dropped at will if csb-dev needs to be reverted)
+
+DS: development-to-staging process
+- csb-dev is RENAMEd to csb-stage
+
+in csb-stage:
+- schema frozen
+- data may be loaded; lost only if csb-stage is rejected for serious schema issues
+- API, command line tools, and web interface is tested
+
+SP: staging-to-production process
+- csb-stage is renamed to csb
+- csb-dev is recreated from csb
+- all insert, delete, and update privileges are dropped from tables in
+unison schema (user schemas remain writable)
+
+in csb:
+- schema and data are frozen
+- access to unison schema tables are read-only

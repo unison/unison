@@ -1,3 +1,5 @@
+## This makefile is a disaster... it needs to be rewritten
+
 .PHONY: FORCE
 .SUFFIXES:
 
@@ -12,27 +14,29 @@ export PROSPECT_PATH:=/apps/compbio/i686-linux-2.4/opt/prospect
 PATH:=/home/rkh/csb-db/unison/bin:${PROSPECT_PATH}:${PATH}
 export PATH
 
-_D:=$(shell mkdir -p logs)
-
 export LD_LIBRARY_PATH=/home/rkh/opt/i686-linux-2.4/lib
 export PERL5LIB=/home/rkh/opt/lib/perl5/site_perl:/home/rkh/opt/lib/perl5
 
-export PGHOST=td-svc
+export PGHOST=svc
 export PGDATABASE=csb
-export PGUSER=loader
-export PGPASSWORD=marge
-
-RUN_ID=1
-#TFILE:=all
-TFILE:=c1qtnf
-RUNP2:=run-p2 --update -p${RUN_ID} --tfile /apps/compbio/share/prospect2/tfiles/${TFILE}
 
 mtr=p1
 include .${mtr}.var
 
+RUN_ID=1
+#TFILE:=all
+TFILE:=c1qtnf
+DIR:=${TFILE}-${RUN_ID}
+RUNP2:=run-p2 -Uloader --update -p${RUN_ID} --tfile /apps/compbio/share/prospect2/tfiles/${TFILE}
+
+
+
+
 default all: ${TARGETS}
 
 # comp-side:
+
+_D:=$(shell mkdir -p logs-${mtr})
 logs-${mtr}/%.log:
 	time -p ${RUNP2} $* 2>&1 | tee $@.tmp; /bin/mv -f $@.tmp $@
 #	(set -x; time -p ${RUNP2} $*) >$@.tmp 2>&1 && /bin/mv -f $@.tmp $@

@@ -1,0 +1,35 @@
+#!/bin/sh
+# output sql script to compute intersections among sequence origins
+
+cat <<EOF
+drop table seqov;
+
+create table seqov (
+	ori1 integer references porigin(porigin_id),
+	ori2 integer references porigin(porigin_id),
+	pseq_id integer references pseq(pseq_id)
+) without oids;
+
+create or replace view seqov_aliases as select
+S.pseq_id,S.ori1,S.ori2,palias_oad_fmt(SA1.palias_id) as
+"alias1",palias_oad_fmt(SA2.palias_id) as "alias2" from seqov S join
+pseqalias SA1 on S.pseq_id=SA1.pseq_id join paliasorigin AO1 on
+SA1.palias_id=AO1.palias_id and S.ori1=AO1.porigin_id join pseqalias SA2
+on S.pseq_id=SA2.pseq_id join paliasorigin AO2 on
+SA2.palias_id=AO2.palias_id and S.ori2=AO2.porigin_id where
+SA1.iscurrent=TRUE and SA2.iscurrent=TRUE ;
+
+grant select on seqov to PUBLIC;
+grant select on seqov_aliases to PUBLIC;
+
+EOF
+
+
+for o1 in "$@"; do
+	echo "insert into seqov select $o1,NULL,X.* from (select pseq_id from palias where porigin_id=$o1 except select pseq_id from palias where porigin_id!=$o1) X;"
+	for o2 in "$@"; do
+	if [ "$o2" -gt "$o1" ]; then
+		echo "insert into seqov select $o1,$o2,X.* from (select pseq_id from palias where porigin_id=$o1 intersect select pseq_id from palias where porigin_id=$o2) X;"
+	fi
+	done
+done

@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsigcleave [pseq_ids]
 #
-# $Id: run-pfsigcleave,v 1.4 2003/10/13 23:50:20 cavs Exp $
+# $Id: run-pfsigcleave,v 1.5 2003/10/20 23:11:19 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -35,7 +35,7 @@ $ENV{DEBUG}=1;
 my $score_cutoff = '3.5';
 my $end_cutoff = '50';
 
-my $run_id = 5;                # hardwired for now
+my $params_id = 5;                # hardwired for now
 my $temp_in_fn =  "/tmp/run-pfsigcleave-$$.fa";
 my $temp_out_fn = "/tmp/run-pfsigcleave-$$.out";
 
@@ -43,9 +43,9 @@ sub run1($$$);
 
 my $u = new Unison;
 
-my @cmd = ('sigcleave', split(' ',$u->run_commandline_by_run_id( $run_id )),"-outfile $temp_out_fn",$temp_in_fn,'2>/dev/null');
+my @cmd = ('sigcleave', split(' ',$u->run_commandline_by_params_id( $params_id )),"-outfile $temp_out_fn",$temp_in_fn,'2>/dev/null');
 my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
-my $sth = $u->prepare( 'insert into pfsigcleave(pseq_id,start,stop,score,run_id) values (?,?,?,?,?)' );
+my $sth = $u->prepare( 'insert into pfsigcleave(pseq_id,start,stop,score,params_id) values (?,?,?,?,?)' );
 
 #my @list = Unison::utils::range_to_enum(@ARGV);
 my @list = @ARGV;
@@ -82,8 +82,8 @@ RESULT: while(my $r = $parser->next_result) {
 
     printf(STDOUT "\rloading Unison:%-8s (score: %.2f, start: %d, end: %d)\n",
        $pseq_id,$score,$start,$end);
-    $sth->execute($pseq_id,$start,$end,$score,$run_id);
-    $u->last_run_update($pseq_id,$run_id);
+    $sth->execute($pseq_id,$start,$end,$score,$params_id);
+    $u->last_run_update($pseq_id,$params_id);
 
     next RESULT;
   }

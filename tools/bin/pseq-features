@@ -14,15 +14,18 @@ my $logo_margin = 10;
 
 my %opts = 
   (
+   pseq_id => undef,
    width => 750,
+   verbose => 0
   );
 GetOptions( \%opts,
 			'pseq_id|q=i',
-			'width|w=i'
+			'width|w=i',
+			'verbose|v+',
 		  )
   || die("$0: usage issues, chief\n");
 
-exists $opts{pseq_id}
+defined $opts{pseq_id}
   || die("$0: Doh! You definitely need to gimme a unison pseq_id (w/--pseq_id)\n");
 
 
@@ -63,7 +66,7 @@ add_papssm( $u, $panel, $opts{pseq_id} );
 add_paprospect2( $u, $panel, $opts{pseq_id} );
 
 $panel->add_track( ) for 1..2; 				# spacing
-$panel->add_track( -key => '$Id: graphic_features.pl,v 1.8 2003/10/28 22:27:26 rkh Exp $',
+$panel->add_track( -key => '$Id: graphic_features.pl,v 1.9 2003/10/29 22:18:37 cavs Exp $',
 				   -key_font => 'gdSmallFont',
 				   -bump => +1,
 				 );
@@ -109,9 +112,10 @@ sub add_pftmdetect {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $featref = $u->selectall_arrayref
-	("select start,stop,pftype.name,confidence 
-	 from pftmdetect natural join pftype where pseq_id=$q");
+  my $sql = "select start,stop,pftype.name,confidence 
+	         from pftmdetect natural join pftype where pseq_id=$q";
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref($sql);
   foreach my $r (@$featref) {
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
@@ -138,6 +142,7 @@ sub add_paprospect2 {
           LEFT JOIN cla ON b.sunid = cla.sunid
           LEFT JOIN des sfdes ON sfdes.sunid = cla.sf
           WHERE t.pseq_id='.$q.' and t.svm>'.$svm_thr.' ORDER BY t.svm DESC) tmp';
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref($sql);
   my $nfeat = $#$featref+1;
   splice(@$featref,$topN) if $#$featref>$topN;
@@ -175,10 +180,12 @@ sub add_pahmm {
   my ($u, $panel, $q) = @_;
   my ($eval_thr,$topN) = (5,4);
   my $nadded = 0;
-  my $featref = $u->selectall_arrayref(
+  my $sql = 
 	'select A.start,A.stop,M.acc as "model",A.mstart,A.mstop,M.len,A.score,A.eval,M.descr
 	 from pahmm A join pmhmm M on A.pmodel_id=M.pmodel_id
-	 where pseq_id='.$q.' and score>1 and eval<=5 order by eval');
+	 where pseq_id='.$q.' and score>1 and eval<=5 order by eval';
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref( $sql );
   my $nfeat = $#$featref+1;
   splice(@$featref,$topN) if $#$featref>$topN;
   my $track = $panel->add_track( -glyph => 'graded_segments',
@@ -219,10 +226,12 @@ sub add_papssm {
   my ($u, $panel, $q) = @_;
   my ($eval_thr,$topN) = (5,4);
   my $nadded = 0;
-  my $featref = $u->selectall_arrayref(
+  my $sql =
 	'select A.start,A.stop,M.acc as "model",A.score,A.eval
 	 from papssm A join pmpssm M on A.pmodel_id=M.pmodel_id
-	 where pseq_id='.$q.' and eval<='.$eval_thr.' order by eval');
+	 where pseq_id='.$q.' and eval<='.$eval_thr.' order by eval';
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref( $sql );
   my $nfeat = $#$featref+1;
   splice(@$featref,$topN) if $#$featref>$topN;
   my $track = $panel->add_track( -glyph => 'graded_segments',
@@ -271,8 +280,9 @@ sub add_pfantigenic {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $featref = $u->selectall_arrayref
-	("select start,stop,score,subseq from v_pfantigenic where pseq_id=$q limit 10");
+  my $sql = "select start,stop,score,subseq from v_pfantigenic where pseq_id=$q limit 10";
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
@@ -301,8 +311,9 @@ sub add_pfsigcleave {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $featref = $u->selectall_arrayref
-	("select start,stop,score from pfsigcleave where pseq_id=$q");
+  my $sql = "select start,stop,score from pfsigcleave where pseq_id=$q";
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],

@@ -17,7 +17,16 @@ IMPORTANT:
 
 
 
+NEXT BACKUP:
+
+* timestamp wihtout time zone => with tz (same space, for consistency) ?
+
+
+
+
 BACKBURNER:
+
+* standardize naming conventions better (e.g., last_run instead of lastrun?)
 
 * sequences may be "anonymous", meaning not referenced by any alias
   do we care?
@@ -30,6 +39,13 @@ BACKBURNER:
 * add current_user to pseq, palias tables
 
 * order in asset aggregate
+
+* Pfam and BLAST evalues
+Pfam and BLAST evalues depend on the number of models and on the database
+size respectively.  Both programs allow a database size to be entered on
+the command line; perhaps this should be part of the run params so that
+evals are reproducible.  Scores are always reproducible.
+
 
 
 

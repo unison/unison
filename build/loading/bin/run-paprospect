@@ -9,7 +9,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --p2params_id <p2params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-p2,v 1.7 2003/07/16 18:17:41 rkh Exp $
+# $Id: run-p2,v 1.8 2003/10/28 22:29:05 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -19,9 +19,9 @@ select STDERR; $|++;
 select STDOUT; $|++;
 
 use Unison;
-use Prospect2::Options;
-use Prospect2::LocalClient;
-use Prospect2::Exceptions;
+use Bio::Prospect::Options;
+use Bio::Prospect::LocalClient;
+use Bio::Prospect::Exceptions;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use Error qw(:try);
@@ -44,10 +44,10 @@ if ( not exists $opts{p2params_id} or $opts{p2params_id} eq '' ) {
 
 my $u = new Unison;
 
-my $po = $u->get_p2options_by_run_id($opts{p2params_id});
+my $po = $u->get_p2options_by_params_id($opts{p2params_id});
 $po->{tfile} = $opts{tfile}
   || '/apps/compbio/share/prospect2/tfiles/all';
-my $pc = new Prospect2::LocalClient( options=>$po );
+my $pc = new Bio::Prospect::LocalClient( options=>$po );
 
 
 PSEQ_ID: while( my $pseq_id = shift ) {
@@ -56,14 +56,14 @@ PSEQ_ID: while( my $pseq_id = shift ) {
   try {
 	printf("threading $pseq_id (%d AA)...", length($seq));
     (@summaries) = $pc->thread_summary( $seq );
-  } catch Prospect2::RuntimeError with {
+  } catch Bio::Prospect::RuntimeError with {
     my $e = shift;
-    print STDERR "Caught Prospect2::RuntimeError: " . $e->detail() . "\n";
+    print STDERR "Caught Bio::Prospect::RuntimeError: " . $e->detail() . "\n";
     print STDERR "Skipping this pseq_id ($pseq_id)\n";
     next PSEQ_ID;
-  } catch Prospect2::Exception with {
+  } catch Bio::Prospect::Exception with {
     my $e = shift;
-    print STDERR "Caught Prospect2::Exception: " . $e->detail() . "\n";
+    print STDERR "Caught Bio::Prospect::Exception: " . $e->detail() . "\n";
     print STDERR "Skipping this pseq_id ($pseq_id)\n";
     next PSEQ_ID;
   };
@@ -81,6 +81,9 @@ PSEQ_ID: while( my $pseq_id = shift ) {
 
 ############################################################################
 # $Log: run-p2,v $
+# Revision 1.8  2003/10/28 22:29:05  rkh
+# * new Unison doesn't require special handling for PGPASSWORD (see U::DBI)
+#
 # Revision 1.6  2003/06/19 00:14:36  rkh
 # * reworked options to use hashes
 # * set $po->{tfile} only when $opt{tfile} is set
