@@ -1,0 +1,195 @@
+#!/usr/bin/env perl
+# load-psprotcomp -- load protcomp results
+
+use strict;
+use Unison;
+use Data::Dumper;
+
+sub _parseBlock($);
+
+# possible locations (rows in weights table)
+my @loc_rows = ('Nuclear', 'Plasma membrane', 'Extracellular', 'Cytoplasmic',
+				'Mitochondrial', 'Endoplasm. retic.', 'Peroxisomal',
+				'Lysosomal', 'Golgi');
+# prediction methods (cols in weights table)
+my @loc_cols = ('LocDB', 'PotLocDB', 'Neural Nets', 'Pentamers', 'Integral');
+
+
+
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+
+
+# hash locations to psloc_ids
+my $hr = $u->selectall_hashref( 'select location,psloc_id from psprotcomp_location', 'location' );
+my %pslocids = map { $_ => $hr->{$_}->{psloc_id} } (keys %$hr);
+$pslocids{''} = 0;
+
+
+# get params_id for loading
+my $params_id = $u->get_params_id_by_name('protcomp default');
+if (not defined $params_id) {
+  die("couldn't find params_id for 'protcomp default'\n");
+}
+
+# prepare the insertion statement
+my @cols = qw(
+ pseq_id params_id
+ sim_psloc_id sim_score sim_db sim_target_ac
+ nn_psloc_id nn_score
+ int_psloc_id int_score int_membrane
+ int_nuc_score int_pm_score int_ext_score int_cyt_score int_mit_score
+ int_er_score int_per_score int_lys_score int_gol_score
+ features
+ result_block
+);
+my $ins_sth = $u->prepare(sprintf('insert into psprotcomp (%s) values (%s)',
+								  join(',',@cols),
+								  join(',',map {'?'} @cols)
+								 ));
+
+
+# begin reading and loading
+local $/ = "\n\n";
+my $n = 0;
+$u->begin_work();
+while( my $blk = <> ) {
+  next if $blk =~ m/ProtComp Version/;
+  my $pb = _parseBlock($blk);
+  next unless (defined $pb);
+  if (not ref $pb) {
+	warn("Couldn't parse block: $pb\n$blk\n\n");
+	next;
+  }
+
+  my ($pseq_id) = $pb->{ac} =~ m/Unison:(\d+)/;
+  if (not defined $pseq_id) {
+	warn("! WARNING: couldn't parse Unison pseq_id from $pb->{ac}; skipping block\n");
+	next;
+  }
+
+  if (++$n % 250 == 0) {
+	$u->commit();
+	$u->begin_work();
+	print("$n ($pb->{ac}): committed and reopened transaction\n");
+  }
+
+  my $sim_pslocid = 0;
+  if (defined $pb->{sim_loc}) {
+	exists $pslocids{$pb->{sim_loc}}
+	  || die("sim location '$pb->{sim_loc}' undefined in psprotcomp_locations\n");
+	$sim_pslocid = $pslocids{$pb->{sim_loc}};
+  }
+  my $nn_pslocid = 0;
+  if (defined $pb->{nn_loc}) {
+	exists $pslocids{$pb->{nn_loc}}
+	  || die("nn location '$pb->{nn_loc}' undefined in psprotcomp_locations\n");
+	$nn_pslocid = $pslocids{$pb->{nn_loc}};
+  }
+  my $int_pslocid = 0;
+  if (defined $pb->{int_loc}) {
+	exists $pslocids{$pb->{int_loc}}
+	  || die("int location '$pb->{int_loc}' undefined in psprotcomp_locations\n");
+	$int_pslocid = $pslocids{$pb->{int_loc}};
+  }
+
+  my @weights = map { $pb->{locweights}{$_}{Integral} } @loc_rows;
+
+  my (@d) = ($pseq_id, $params_id,
+			 $sim_pslocid,$pb->{sim_score},$pb->{sim_db},$pb->{sim_target},
+			 $nn_pslocid, $pb->{nn_score},
+			 $int_pslocid, $pb->{int_score},($pb->{int_membrane} eq 'yes' ? 'TRUE' : 'FALSE'),
+			 @weights,
+			 $pb->{features},
+			 $blk );
+  $ins_sth->execute(@d);
+}
+$u->commit();
+
+exit(0);
+
+
+
+
+
+sub _parseBlock($) {
+  my $blk = shift;
+  my @fields = qw(ac
+				  features
+				  sim_loc sim_score sim_db sim_target_ac
+				  nn_loc nn_score
+				  int_loc int_score int_membrane
+				  locweights);
+
+  my %rv = map { $_=>undef } @fields;
+  $rv{locweights} = { map { $_=>{map {$_=>undef} @loc_cols} } @loc_rows }; # ref to hash of hashes
+
+  # sequence id
+  if ($blk =~ m/^Seq name: ([^\,]+).+\n/m) {
+	$rv{ac} = $1 
+  } else {
+	return("Bad block: Couldn't parse Seq name\n");
+  }
+
+
+  # similarity
+  if ($blk =~ m/^Significant similarity in (.+?) -  Location:\s*(.+)/m) {
+	$rv{sim_loc} = $2;
+	$rv{sim_db} = ( ($1 eq 'Location DB') 
+					? 'LocDB' 
+					: ( ($1 eq 'Potential Location DB')
+						? 'PotLocDB'
+						: 'UNKNOWN!'
+					  )
+				  );
+	$rv{sim_loc} =~ s/\s+$//;				# some have trailing spaces
+	if ($blk =~ m/^Database sequence: AC=(\w+)/m) {
+	  $rv{sim_target_ac} = $1
+	} else {
+	  return("Bad block: similarity results without database sequence\n");
+	}
+  } elsif ($blk =~ m/^Significant similarity by DBSCAN-P - NONE/m) {
+	# ignore
+  } else {
+	return("Bad block: didn't find similarity results\n");
+  }
+
+
+  # neural net
+  if ($blk =~ m/^Predicted by Neural Nets - (.+) with score\s*(\S+)/m) {
+	$rv{nn_loc} = $1;
+	$rv{nn_score} = $2;
+	$rv{nn_loc} =~ s/\s+$//;				# some have trailing spaces
+  } else {
+	return("Bad block: didn't find neural net results\n");
+  }
+
+
+  # integral
+  if ($blk =~ m/^Integral Prediction of protein location:\s+(?:(Membrane bound) )?(.+)\s+with score\s*(\S+)/m) {
+	$rv{int_membrane} = $1 && 'yes';
+	$rv{int_loc} = $2;
+	$rv{int_score} = $3;
+	$rv{int_loc} =~ s/\s+$//;				# some have trailing spaces
+  } else {
+	return("Bad block: didn't find integral prediction results\n");
+  }
+
+
+  # weights
+  foreach my $loc (@loc_rows) {
+	if (my (@F) = $blk =~ m%^ $loc\s+(\S+) /\s+(\S+) /\s+(\S+) /\s+(\S+) /\s+(\S+)%m) {
+	  $rv{locweights}{$loc}{$loc_cols[$_]} = $F[$_] for 0..$#F;
+	} else {
+	  return("Bad block: missing $loc row for location weights\n");
+	}
+  }
+
+
+  # features
+  while ($blk =~ m/^\Q********\E (.+)/mg) {
+	$rv{features} = '' unless defined $rv{features};
+	$rv{features} .= $1 . "\n";
+  }
+
+  return \%rv;
+}
