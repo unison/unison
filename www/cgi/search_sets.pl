@@ -201,7 +201,7 @@ my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" }
   @{ $u->selectall_arrayref('select * from pmodelset') };
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.3 2003/11/03 17:53:03 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.4 2003/11/03 18:08:33 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. Select
@@ -212,6 +212,9 @@ print $p->render("Sequence Mining Summary",
 				 TP, FN, and UP columns will show sequences in those
 				 sets.',
 
+				 $p->tip($p->tooltip('Green text','This is sample descriptive text')
+						 . ' indicates elements with descriptive mouseover text.'),
+
 				 $p->start_form(-method=>'GET'),
 
 				 '<table border=1 width="100%">', "\n",
@@ -220,7 +223,7 @@ print $p->render("Sequence Mining Summary",
 				 '<th colspan=2>',
 				 $p->submit(-name=>'submit', -value=>'vroom'),
 				 ,'</th>',
-				 '<th align="center" colspan="3">Sequence Set: ',
+				 '<th align="center" colspan="3">Compare to sequences in set:<br>',
 				 $p->popup_menu(-name => 'pset_id',
 								-values => [sort keys %xs],
 								-labels => \%xs,
@@ -230,7 +233,7 @@ print $p->render("Sequence Mining Summary",
 				 '</tr>',"\n",
 
 				 '<tr>', 
-				 '<th colspan="2">Model set: ',
+				 '<th colspan="2">Select sequences matching models in set:<br>',
 				 $p->popup_menu(-name => 'pmodelset_id',
 								-values => [keys %ms],
 								-labels => \%ms,
@@ -275,7 +278,7 @@ print $p->render("Sequence Mining Summary",
 				 '<tr>',
 				 '<td>',
 				 $p->checkbox(-name => 'pssm',
-							  -label => 'PSSM ',
+							  -label => 'PSSM/PSI-BLAST profiles (SBP)',
 							  -checked => $v->{pssm}),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with eval <= ',
 				 $p->popup_menu(-name => 'pssm_eval',
@@ -316,13 +319,14 @@ print $p->render("Sequence Mining Summary",
 				 '<tr>',
 				 '<td colspan=3></td>',
 				 '<td colspan=2 bgcolor="lightgrey" align="center">',
-				 $p->tooltip('NOTE (mouseover me)', 'The union of
-							 individual FNs above IS NOT equal to the FN
-							 set computed from the union of hits.  Ditto
-							 for the UP.  The FN and UP below are computed
-							 from the union of hits.  This note is your
-							 clue that you should not tally vertically in this 
-							 column.'),
+				 $p->tooltip('NOTE (mouseover)', 
+							 'The union of the FN sets (this column) is
+							 not equal to the FN set of the union (next
+							 row).  Ditto for intersections of FN, and for
+							 union and intersection of UP.  This note is
+							 your clue that you should not tally
+							 vertically in these columns.'
+							),
 				 '</td>',
 				 '</tr>',"\n",
 
