@@ -31,7 +31,7 @@ else
 	mkdir -p "$XLINK_DIR"
 fi
 
-echo '# $Id: xlink,v 1.3 2004/05/04 23:47:02 rkh Exp $' 1>&2
+echo '# $Id: xlink,v 1.4 2004/05/05 03:13:06 rkh Exp $' 1>&2
 echo '# started' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
 echo "# XLINK_DIR=$XLINK_DIR; CREATE=$CREATE; LOAD=$LOAD" 1>&2
 echo "# PSEQ_LIMIT=$PSEQ_LIMIT" 1>&2
@@ -39,9 +39,11 @@ echo "# PSEQ_LIMIT=$PSEQ_LIMIT" 1>&2
 
 table_sql="$XLINK_DIR/tables.sql"
 pseq_ctl="$XLINK_DIR/pseq.ctl"
+pseq_dat="$XLINK_DIR/pseq.dat"
 pseq_log="$XLINK_DIR/pseq.log"
 pseq_bad="$XLINK_DIR/pseq.bad"
 aliases_ctl="$XLINK_DIR/aliases.ctl"
+aliases_dat="$XLINK_DIR/aliases.dat"
 aliases_log="$XLINK_DIR/aliases.log"
 aliases_bad="$XLINK_DIR/aliases.bad"
 
@@ -78,32 +80,31 @@ create index aliases_gs_idx on aliases(gs);
 quit
 EOSQL
 
-	echo '# fetching pseq...' 1>&2
-	(cat <<EOLDR1
+	echo -n '# fetching pseq... ' 1>&2
+	psql -tAF'	' -c "select pseq_id,len,md5 from pseq $PSEQ_LIMIT" >"$pseq_dat"
+	echo `wc -l <"$pseq_dat"` records 1>&2
+	cat <<EOLDR1 >"$pseq_ctl"
 load data
-infile *
+infile $pseq_dat
 append into table pseq
 fields terminated by '	'
 (pseq_id, len, md5)
 BEGINDATA
 EOLDR1
-	psql -tAF'	' -c "select pseq_id,len,md5 from pseq $PSEQ_LIMIT"
-	) >"$pseq_ctl"
+	
 
-
-	echo '# fetching aliases...' 1>&2
-	(cat <<EOLDR1
+	echo -n '# fetching aliases... ' 1>&2
+	psql -tAF'	' -c "SELECT pseq_id,ann_pref,origin,alias,CASE WHEN LENGTH(descr)>$DESCR_SIZE THEN SUBSTR(descr,1,$descr_max)||'$TRUNCATED' ELSE descr END as \"descr\",CASE WHEN gs IS NULL THEN 'NULL' ELSE gs END AS \"gs\" from v_aliases $PSEQ_LIMIT" >"$aliases_dat"
+	echo `wc -l <"$aliases_dat"` records 1>&2
+	cat <<EOLDR1 >"$aliases_ctl"
 load data
-infile *
+infile $aliases_dat
 append into table aliases
 fields terminated by '	'
 (pseq_id,ann_pref,origin,alias,descr,gs)
 BEGINDATA
 EOLDR1
-	psql -tAF'	' -c "SELECT pseq_id,ann_pref,origin,alias,CASE WHEN LENGTH(descr)>$DESCR_SIZE THEN SUBSTR(descr,1,$descr_max)||'$TRUNCATED' ELSE descr END as \"descr\",CASE WHEN gs IS NULL THEN 'NULL' ELSE gs END AS \"gs\" from v_aliases $PSEQ_LIMIT"
-	) >"$aliases_ctl"
 
-	/bin/ls -l "$table_sql" "$pseq_ctl" "$aliases_ctl"
 fi								# end CREATE=1
 
 
@@ -115,14 +116,14 @@ if [ "$LOAD" = 1 ]; then
 	echo "# loading pseq..." 1>&2
 	/bin/rm -f "$pseq_log" "$pseq_bad"
 	sqlldr "$LOGIN" control="$pseq_ctl" log="$pseq_log" bad="$pseq_bad" >/dev/null
-	/bin/touch "$pseq_ctl" "$pseq_log" "$pseq_bad"
-	/bin/wc -l "$pseq_ctl" "$pseq_log" "$pseq_bad" 1>&2
+	/bin/touch "$pseq_log" "$pseq_bad"
+	/bin/wc -l "$pseq_dat" "$pseq_bad" "$pseq_log" 1>&2
 
 	echo '# loading aliases...' 1>&2
 	/bin/rm -f "$aliases_log" "$aliases_bad"
 	sqlldr "$LOGIN" control="$aliases_ctl" log="$aliases_log" bad="$aliases_bad" >/dev/null
-	/bin/touch "$aliases_ctl" "$aliases_log" "$aliases_bad"
-	/bin/wc -l "$aliases_ctl" "$aliases_log" "$aliases_bad" 1>&2
+	/bin/touch "$aliases_log" "$aliases_bad"
+	/bin/wc -l "$aliases_dat" "$aliases_bad" "$aliases_log" 1>&2
 fi								# LOAD=1
 
 
