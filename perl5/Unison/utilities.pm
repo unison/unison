@@ -2,7 +2,7 @@
 
 Unison::utilities -- general Unison utilities
 
-S<$Id: utilities.pm,v 1.5 2004/05/07 21:36:21 rkh Exp $>
+S<$Id: utilities.pm,v 1.6 2004/05/14 20:41:03 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -21,7 +21,7 @@ methods) and may used outside of B<Unison::>.
 
 
 
-package Unison;
+package Unison::utilities;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
@@ -31,6 +31,7 @@ use base Exporter;
 
 use strict;
 use warnings;
+
 use Carp qw(cluck);
 use Digest::MD5 qw(md5_hex);
 
@@ -114,7 +115,8 @@ connection and use SQL like C<SELECT clean_sequence(...)> yourself.
 
 sub clean_sequence($) {
   my $seq = shift;
-
+  $seq =~ s/[^\w -\*\?]//g;
+  return $seq;
 }
 
 
