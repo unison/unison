@@ -1,0 +1,146 @@
+#!/usr/bin/env perl
+
+#-------------------------------------------------------------------------------
+# run-tmdetect -- run and insert tmdetect into Unison
+# arguments: 
+#   --params_id|-p <params_id>: params_id for loading (required)
+#   --tfile|-t <template file>: file containing a list of templates (optional)
+#   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
+# usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
+#
+# $Id: run-tmdetect,v 1.10 2004/02/24 19:20:57 rkh Exp $
+#-------------------------------------------------------------------------------
+
+use warnings;
+use strict;
+
+use File::Temp;
+use Unison;
+use Unison::SQL;
+use Bio::Seq;
+use Bio::SeqIO;
+use Bio::Prospect::Options;
+use Bio::Prospect::Exceptions;
+use Getopt::Long qw(:config gnu_getopt);
+use Data::Dumper;
+use Error qw(:try);
+
+my %opts = (
+      'debug' => 0,
+      'params_id' => undef,
+      'pmodelset_id' => undef,
+      'porigin_id' => undef,
+      'update' => 0,          # try update before insert
+      'verbose' => 1,
+       );
+GetOptions(\%opts,
+       'debug+',
+       'params_id|p=i',
+       'update',
+       'verbose!',
+      )
+  or die("$0: bad usage\n");
+
+
+(defined $opts{params_id})
+  || die( "$0: --params_id|-p parameter missing\n" );
+
+if ($opts{debug}) {
+  select STDERR; $|++;
+  select STDOUT; $|++;
+  print Dumper(\%opts);
+}
+
+my $u = new Unison;
+
+my $args = $u->run_commandline_by_params_id( $opts{params_id});
+
+# get temp files for sequences to be tmdetect'd and
+# the tmdetect output
+#my ($fa_fh,  $fa_fn)  = File::Temp::tempfile( UNLINK => 1, SUFFIX => '.fa' );
+#my ($out_fh, $out_fn) = File::Temp::tempfile( UNLINK => 1, SUFFIX => '.out' );
+my ($fa_fh,  $fa_fn)  = File::Temp::tempfile( SUFFIX => '.fa' );
+my ($out_fh, $out_fn) = File::Temp::tempfile( SUFFIX => '.out' );
+
+# get pftype_ids for tmdetect output types (i.e. signal, N-TM, M-TM)
+my $tmds_id = &get_pftype_id( $u, 'tmdetect/signal' );
+my $tmdm_id = &get_pftype_id( $u, 'tmdetect/M (in->out)' );
+my $tmdn_id = &get_pftype_id( $u, 'tmdetect/N (out->in)' );
+die( "Can't retrieve all of the pftype_ids for tmdetect" ) if 
+  ( ! ( defined $tmds_id && defined $tmdm_id && defined $tmdn_id ) ); 
+
+# output FASTA file with pseqs that need to be
+# tmdetect'd
+my $seqio = new Bio::SeqIO( -fh => $fa_fh, -format => 'Fasta' );
+my $cnt=0;
+PSEQ_ID: while( my $pseq_id = shift ) {
+  my $leader = "\rUnison:$pseq_id";
+  print(STDERR $leader);
+
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  if (defined $ran_on and not $opts{update}) {
+    print(STDERR "$leader: run with these options on $ran_on; skipping\n");
+    next PSEQ_ID;
+  }
+
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  if (length($seq)>2000) {
+  print("$leader: skipping because it's >2000 AA\n");
+    next PSEQ_ID;
+  }
+  $leader .= " (" . length($seq) . " AA)";
+
+  print("$leader: outputted for tmdetect\n");
+  $seqio->write_seq(new Bio::Seq(-id=>"Unison:$pseq_id",-seq=>$seq));
+
+	$cnt++;
+}
+$seqio->close();
+
+exit if $cnt == 0;
+
+# run tmdetect and parse results
+my $cmd = "tmdetect $args $fa_fn > $out_fn";
+system($cmd);
+print STDERR "exec'n: $cmd\n" if $opts{verbose};
+
+#Unison:291 1 (S) 7 0 17 0.999933
+my $sql = 'insert into pftmdetect (pseq_id,pftype_id,start,stop,confidence,params_id) '.
+	'values (?,?,?,?,?,?)';
+(my $sqlf = $sql) =~ s/\?/%s/g;
+my $sth = $u->prepare( $sql );
+open(FP,$out_fn) or die("can't open $out_fn for parsing tmdetect results");
+while(<FP>) {
+  my @tmd = split;
+
+  my $pft;
+  if ( $tmd[2] eq '(S)' ) { 
+    $pft = $tmds_id;
+  } elsif ( $tmd[2] eq '(M)' ) {
+    $pft = $tmdn_id;
+  } elsif ( $tmd[2] eq '(N)' ) {
+    $pft = $tmdm_id;
+  } else {
+      die("Don't understand $tmd[2] feature type");
+  }
+  my $b = $tmd[3]-10 < 1 ? 1 : $tmd[3]-10;
+  $tmd[0] =~ m/^Unison:(\d+)$/;
+  my $pseq_id = $1;
+	printf("$sqlf\n",$pseq_id, $pft, $b, $tmd[3]+10, $tmd[6],$opts{params_id});
+  $sth->execute( $pseq_id, $pft, $b, $tmd[3]+10, $tmd[6],$opts{params_id});
+  $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+}
+
+
+#-------------------------------------------------------------------------------
+# NAME: get_pftype_id
+# PURPOSE: retrieve a pftype_id for a given name
+#-------------------------------------------------------------------------------
+
+sub get_pftype_id {
+  my ($u,$name) = @_;
+	my $sql = "select pftype_id from pftype where name='$name'";
+	print STDERR "get_pftype_id(), sql=[$sql]\n" if $opts{verbose};
+  my $ary_ref = $u->selectall_arrayref( $sql );
+  return( $ary_ref->[0][0] );
+}
