@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.2 2003/07/10 15:39:51 rkh Exp $
+# $Id: load-pmhmm,v 1.3 2003/07/10 20:53:39 rkh Exp $
 # load pfam HMM summary info (not the HMM itself) into unison
 # $ load-pmhmm <Pfam_fs
 
@@ -35,29 +35,34 @@ while(my $blk = <>) {
 	= map {$blk =~ m/^$_\s+(.+)/m}  qw(NAME ACC DESC LENG NSEQ CKSUM);
 
   # cases:
-  # 1) model acc in old and new
-  #   a) cksum =?
+  # given a new Pfam acc and cksum (from file being read):
+  # 1) model acc in db?  Yes:
+  #   a) cksums equal? Yes:
   #     update origin
-  #   b) cksum !=?
-  #     insert new
-  # 2) model acc in new, not in old
+  #   b) else:
+  #     insert as new
+  # 2) model acc not in db?
   #   insert
-  # 3) model acc in old, not in new
+  # 3) model acc in db, not in 
   #   nothing (we wouldn't know about it solely from input file)
 
   my (@extant) = extant_models_by_acc($u,$acc);
+
+  # it's almost inconceivable that there would be more than one model
+  # with a matching checksum and same name, but we'll play it safe...
   my (@update_ids) = map {$_->[0]} grep {$_->[1]==$cksum} @extant;
 
   if (@update_ids) {
-	printf(STDERR "updating %d ids (%s) for for acc=$acc\n",
+	printf(STDERR "updating %d ids (%s) for $acc ($name)\n",
 		   $#update_ids+1,join(',',@update_ids) );
 	$sth_update_origin->execute($porigin_id,$_) for @update_ids;
   } else {
-	printf(STDERR "inserting $name / $acc\n");
+	printf(STDERR "inserting $acc ($name)\n");
 	$sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum);
   }
 }
 
+printf("done; last updated=%s\n", $u->porigin_last_updated($porigin_id,1));
 
 
 sub extant_models_by_acc {
