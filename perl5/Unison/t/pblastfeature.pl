@@ -13,13 +13,13 @@ my $file = $ARGV[1];
 
 my $report = new Bio::Tools::BPlite(-file=>$file);
 while(my $sbjct = $report->nextSbjct) {
-	$sbjct->name =~ m/^(.*?) /;
-	my $t_pseq_id = $u->get_pseq_id_from_alias( $1 );
-	if ( !defined $t_pseq_id ) {
-		warn("no pseq_id defined for target sequence: $1 - skipping\n" );
-		next;
-	}
-	while(my $hsp = $sbjct->nextHSP) {
-		$u->insert_hsp( $q_pseq_id, $t_pseq_id, $hsp );
-	}
+  $sbjct->name =~ m/^(.*?) /;
+  my $t_pseq_id = $u->get_pseq_id_from_alias( $1 );
+  if ( !defined $t_pseq_id ) {
+    warn("no pseq_id defined for target sequence: $1 - skipping\n" );
+    next;
+  }
+  while(my $hsp = $sbjct->nextHSP) {
+    $u->insert_hsp( $q_pseq_id, $t_pseq_id, $hsp );
+  }
 }
