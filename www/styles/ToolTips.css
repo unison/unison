@@ -6,13 +6,14 @@
 
 .tooltip
   { position: 		absolute;
-    padding:		1px;
+    padding:		5px;
     font-family: 	Arial, Helvetica, sans-serif;
     font-size:		11px;
     border:		solid 1px #000000;
-    background:		#FFFFD0;
+    background:		orange;
+/*    background:		#FFFFD0; */
     display:		none;
-	width:		    200px;
+/*	width:		    200px; */
   }
 
 .wonb
