@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.8 2004/04/16 21:13:29 cavs Exp $>
+S<$Id: palias.pm,v 1.9 2004/04/21 18:38:18 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -41,7 +41,7 @@ sub add_palias {
     $descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
     $descr = "'$descr'";
   } else {
-    $descr = 'NULL'; 
+    $descr = 'NULL';
   }
 
   $tax_id = ( defined $tax_id ) ? $tax_id : 'NULL';
@@ -126,9 +126,7 @@ sub get_pseq_id_from_alias {
   my @ids;
 
   if (not $alias =~ m%^[~/^]%) {
-	# doesn't smell like a regexp...
-	(@ids) = $u->get_pseq_id_from_alias_exact( $alias,$ori );
-	return(@ids) if @ids;
+	# doesn't smell like a regexp
 
 	(@ids) = $u->get_pseq_id_from_alias_casefolded( $alias,$ori );
 	return(@ids) if @ids;
