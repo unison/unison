@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::papseq -- Unison papseq table utilities
-S<$Id: papseq.pm,v 1.6 2003/11/05 17:54:13 cavs Exp $>
+S<$Id: papseq.pm,v 1.7 2004/02/24 19:23:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -23,6 +23,9 @@ BLAST reports into the papseq table in the Unison database.
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+use strict;
+use warnings;
 
 
 use Bio::Tools::BPlite;

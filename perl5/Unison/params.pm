@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2params -- Unison p2params table utilities
-S<$Id: params.pm,v 1.6 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: params.pm,v 1.7 2004/02/25 00:41:26 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -21,6 +21,8 @@ package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+use strict;
+use warnings;
 use Unison::Exceptions;
 use Bio::Prospect::Options;
 

@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.10 2004/04/21 20:08:47 rkh Exp $>
+S<$Id: palias.pm,v 1.11 2004/04/21 21:15:36 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -21,6 +21,8 @@ package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+use strict;
+use warnings;
 
 =pod
 

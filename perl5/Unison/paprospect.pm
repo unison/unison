@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::paprospect2 -- Unison paprospect2 table utilities
-S<$Id: paprospect2.pm,v 1.6 2004/02/25 20:47:49 rkh Exp $>
+S<$Id: paprospect2.pm,v 1.7 2004/03/31 18:02:38 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -24,6 +24,10 @@ B<> is a
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+use strict;
+use warnings;
+
 
 my %uf = (
    'raw' => 'raw_score',
