@@ -32,8 +32,10 @@ while( my $line = <> ) {
 
 sub flush {
   return unless exists $act{id};
-  printf("insert into tax.spspec (id,k,gs,name) values (%s,%s,%s,%s);\n",
-		 sql_quote($act{id},$act{k}, $act{gs}, name_fmt($act{name},$act{cs}) ));
+  printf("update tax.spspec set name=%s where spspec_id=%s;\n",
+		 sql_quote(name_fmt($act{name},$act{cs})), $act{id} );
+#  printf("insert into tax.spspec (id,k,gs,name) values (%s,%s,%s,%s);\n",
+#		 sql_quote($act{id},$act{k}, $act{gs}, name_fmt($act{name},$act{cs}) ));
   undef %act;
 }
 
