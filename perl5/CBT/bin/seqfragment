@@ -3,7 +3,7 @@
 =head1 NAME
 
 seqfragment -- fragment sequences from a fasta file
-S<$Id: seqfragment,v 1.4 2004/05/31 05:34:49 rkh Exp $>
+S<$Id: seqfragment,v 1.5 2004/05/31 15:33:16 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -50,6 +50,16 @@ use one of the following id tag formats for fasta sequence identifiers:
 =cut
 
 
+#### IMPLEMENTATION NOTES
+## This script is way more complicated that one might expect because it
+## permits the specification of which fragments to extract from each
+## sequence and extracts only those fragments (as opposed to looping
+## through all and printing only certain ones). This begets a lot of
+## arithmetic in order to map fragment # to start/end coordinates in a
+## sequence, and that's frought with special cases (some of which aren't
+## yet handled very well).
+
+
 use strict;
 use warnings;
 use Getopt::Long qw(:config gnu_getopt);
@@ -76,7 +86,7 @@ my %opts =
    );
 
 
-print(STDERR '# $Id: seqfragment,v 1.4 2004/05/31 05:34:49 rkh Exp $ ', "\n");
+print(STDERR '# $Id: seqfragment,v 1.5 2004/05/31 15:33:16 rkh Exp $ ', "\n");
 
 GetOptions(
 		   \%opts,
@@ -143,18 +153,20 @@ while( my $bs = $seqi->next_seq() ) {
   my $totfrags = $l0 / ($opts{'length'}-$opts{'overlap'}) + 1;
   my $e = 0;
 
+  my $start_fragment = $opts{'start-fragment'};
+  my $end_fragment = $opts{'end-fragment'};
+
   if (defined $opts{'quartile'}) {
 	my $nper = $totfrags / 4;
-	$opts{'start-fragment'} = ($opts{'quartile'}-1) * $nper + 1;
-	$opts{'end-fragment'}   =  $opts{'quartile'}    * $nper;
-	$opts{'start-fragment'} = int( $opts{'start-fragment'} + 0.5 );
-	$opts{'end-fragment'} = int( $opts{'end-fragment'} + 0.5 );
+	$start_fragment = ($opts{'quartile'}-1) * $nper + 1;
+	$end_fragment   =  $opts{'quartile'}    * $nper;
+	$start_fragment = int( $start_fragment + 0.5 );
+	$end_fragment = int( $end_fragment + 0.5 );
   }
 
-  $opts{'end-fragment'} = $totfrags unless defined $opts{'end-fragment'};
+  $end_fragment = $totfrags unless defined $end_fragment;
 
-  # this estimate isn't quite right... I'll work out the closed-form later
-  my $nfrags = $opts{'end-fragment'} - $opts{'start-fragment'} + 1;
+  my $nfrags = $end_fragment - $start_fragment + 1;
 
   if ($opts{debug}) {
 	printf(STDERR "totfrags=%d, %d..%d (nfrags=%d)\n",
@@ -167,8 +179,8 @@ while( my $bs = $seqi->next_seq() ) {
 
   # $i is 0-based index of sequence fragment
   # start- and end-fragment are 1-based!
-  for( my $i=$opts{'start-fragment'}-1;
-	   $i<=$opts{'end-fragment'}-1 and $e<$l0-1;
+  for( my $i=$start_fragment-1;
+	   $i<=$end_fragment-1 and $e<$l0-1;
 	   $i++ ) {
 	my $b = $i * $offset;
 	$e = $b + $len - 1;
@@ -190,7 +202,7 @@ while( my $bs = $seqi->next_seq() ) {
 	$seqo->write_seq($bsfrag);
 
 	if ($opts{verbose}) {
-	  my $ndone = $i-($opts{'start-fragment'}-1)+1;
+	  my $ndone = $i-($start_fragment-1)+1;
 	  printf(STDERR "# %7d/%7d %5.1f%%: fragment:%7d/%7d; id:%s\n",
 			 $ndone, $nfrags, $ndone/$nfrags*100,
 			 $i+1, $totfrags,
