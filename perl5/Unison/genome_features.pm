@@ -2,12 +2,12 @@ package Unison::genome_features;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
-use base 'Exporter';
-@EXPORT = ();
-@EXPORT_OK = qw( genome_features_panel );
-
 use strict;
 use warnings;
+
+use base 'Exporter';
+our @EXPORT = ();
+our @EXPORT_OK = qw( genome_features_panel );
 
 use Bio::Graphics;
 use Bio::Graphics::Feature;
@@ -90,7 +90,7 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.1 2004/05/04 04:38:58 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.2 2004/06/25 00:20:44 rkh Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );

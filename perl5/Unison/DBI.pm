@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.15 2004/06/04 00:04:31 rkh Exp $>
+S<$Id: DBI.pm,v 1.16 2004/07/19 22:20:16 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -258,6 +258,8 @@ sub AUTOLOAD {
   my $method = our $AUTOLOAD;
   $method =~ s/^.*:://;
   return if $method eq 'DESTROY';
+
+  confess("AUTOLOAD called on undefined object!\n\t") if (not defined $self);
 
   # define all DBI methods on the fly as though they were
   # Unison:: methods
