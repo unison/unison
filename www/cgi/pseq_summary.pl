@@ -2,7 +2,6 @@
 
 use strict;
 use warnings;
-use lib '/home/rkh/csb-db/unison/perl5';
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
@@ -28,7 +27,7 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 				 '<p>', aliases_group($p),
 				 '<p>', homologs_group($p),
 				 '<p>', features_group($p),
-        );
+				);
 
 exit(0);
 
