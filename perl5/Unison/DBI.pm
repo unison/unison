@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.14 2004/05/14 20:35:15 rkh Exp $>
+S<$Id: DBI.pm,v 1.15 2004/06/04 00:04:31 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -82,9 +82,12 @@ our %opts =
 
 
 our @options;
-push( @options, 'dbname|d=s' => \$opts{dbname},
-				'host|h=s' => \$opts{host},
-				'username|U=s' => \$opts{username} );
+push( 
+	 @options, 
+	 'dbname|d=s' => \$opts{dbname},
+	 'host|h=s' => \$opts{host},
+	 'username|U=s' => \$opts{username}
+	);
 $parser->getoptions( @options );
 
 

@@ -16,14 +16,13 @@ sub upd_run_histories($$$$$) {
   my ($u,$pseq_id,$params_id,$O,$M) = @_;
   my (@O) = defined $O ? ref $O ? @$O : ($O) : (undef);
   my (@M) = defined $M ? ref $M ? @$M : ($M) : (undef);
-  my $n = 0;
-
+  my $z;
   foreach my $o (@O) {
-  foreach my $m (@M) {
-	$u->upd_run_history($pseq_id,$params_id,$o,$m);
-	$n++;
-  }}
-  return $n;
+	foreach my $m (@M) {
+	  $z = $u->upd_run_history($pseq_id,$params_id,$o,$m);
+	}
+  }
+  return $z;
 }
 
 

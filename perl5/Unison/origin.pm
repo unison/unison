@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::porigin -- Unison porigin table utilities
-S<$Id: porigin.pm,v 1.5 2004/05/04 04:49:05 rkh Exp $>
+S<$Id: porigin.pm,v 1.6 2004/06/04 00:04:31 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -67,6 +67,11 @@ sub porigin_porigin_id_by_origin {
   my ($rv) = $self->selectrow_array("select porigin_id from porigin where upper(origin)=upper('$origin')");
   return $rv;
 }
+
+sub get_porigin_id_by_origin {
+  porigin_porigin_id_by_origin(@_);
+}
+
 
 
 
