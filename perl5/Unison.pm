@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison -- interface to the Unison database
-S<$Id: Unison.pm,v 1.8 2004/02/24 19:25:17 rkh Exp $>
+S<$Id: Unison.pm,v 1.1 2004/04/30 22:36:50 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -28,14 +28,18 @@ d28 1
 
 
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+use strict;
+use warnings;
+
+our ($RELEASE) = q$Name: foo $ =~ m/Name:\s+(\S*)\s+/;
 if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
-our $RELEASE = '$Name$';
 use Unison::common;
 use Unison::utilities;
-
 use Unison::DBI;
 use Unison::Exceptions;
-
 use Unison::pseq;
 use Unison::porigin;
 use Unison::paprospect2;
