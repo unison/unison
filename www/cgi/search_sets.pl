@@ -53,11 +53,13 @@ my $nSP = $#SP+1;
 
 my %P;										# counts # of times pseq_id was hit for U_ & I_
 my $set;									# pseq_id array ref; if set below, show seq list
-my ($hmm_P,$hmm_TP,$hmm_FN,$hmm_UP) = ('','','',''); 	  # <method>_<set>
-my ($pssm_P,$pssm_TP,$pssm_FN,$pssm_UP) = ('','','','');  # stores the cell contents
-my ($p2_P,$p2_TP,$p2_FN,$p2_UP) = ('','','','');          # for each method and
-my ($I_P,$I_TP,$I_FN,$I_UP) = ('','','','');              # classification set
-my ($U_P,$U_TP,$U_FN,$U_UP) = ('','','','');              # U=Union, I=intersection
+my %data = (
+			hmm =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			pssm =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			p2 =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			I =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			U =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+		   );
 
 
 if (exists $v->{submit}) {
@@ -65,54 +67,60 @@ if (exists $v->{submit}) {
 
   if ($v->{hmm}) {
 	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval) );
-	@P = _get_hmm_hits();
-	$P{$_}++ for @P;
+	my ($M,$sql,$P) = _get_hmm_hits();
+	$data{hmm}{sql} = $sql;
+	$data{hmm}{M} = $#$M+1;
+	$P{$_}++ for @$P;
 	if ($v->{submit} !~ m/^[IU]/) {
-	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
-	  $hmm_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#P+1);
+	  ($FNr,$UPr,$TPr) = acomm(\@SP,$P);
+	  $data{hmm}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
 	  if ($nSP>0) {
-		$hmm_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{hmm}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$hmm_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{hmm}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
-	  $hmm_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+	  $data{hmm}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
 						 $url, $#$UPr+1);
 	}
   }
 
   if ($v->{pssm}) {
 	my $url = $p->make_url( qw(pset_id pmodelset_id pssm pssm_eval) );
-	@P = _get_pssm_hits();
-	$P{$_}++ for @P;
+	my ($M,$sql,$P) = _get_pssm_hits();
+	$data{pssm}{sql} = $sql;
+	$data{pssm}{M} = $#$M+1;
+	$P{$_}++ for @$P;
 	if ($v->{submit} !~ m/^[IU]/) {
-	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
-	  $pssm_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#P+1);
+	  ($FNr,$UPr,$TPr) = acomm(\@SP,$P);
+	  $data{pssm}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
 	  if ($nSP>0) {
-		$pssm_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{pssm}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$pssm_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{pssm}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
-	  $pssm_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+	  $data{pssm}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
 						 $url, $#$UPr+1);
 	}
   }
 
   if ($v->{p2}) {
 	my $url = $p->make_url( qw(pset_id pmodelset_id p2 p2_run_id p2_svm) );
-	@P = _get_p2_hits();
-	$P{$_}++ for @P;
+	my ($M,$sql,$P) = _get_p2_hits();
+	$data{p2}{sql} = $sql;
+	$data{p2}{M} = $#$M+1;
+	$P{$_}++ for @$P;
 	if ($v->{submit} !~ m/^[IU]/) {
-	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
-	  $p2_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#P+1);
+	  ($FNr,$UPr,$TPr) = acomm(\@SP,$P);
+	  $data{p2}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
 	  if ($nSP>0) {
-		$p2_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{p2}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$p2_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{p2}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
-	  $p2_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+	  $data{p2}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
 						 $url, $#$UPr+1);
 	}
   }
@@ -122,14 +130,14 @@ if (exists $v->{submit}) {
   my @U_P = sort keys %P;
   if ($v->{submit} !~ m/^I_/) {
 	($FNr,$UPr,$TPr) = acomm(\@SP,\@U_P);
-	$U_P  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#U_P+1);
+	$data{U}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#U_P+1);
 	if ($nSP>0) {
-		$U_TP = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
+		$data{U}{TP} = sprintf('<a href="%s;submit=U_TP">%d (%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$U_FN = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
+		$data{U}{FN} = sprintf('<a href="%s;submit=U_FN">%d (%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
-	$U_UP  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+	$data{U}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
 						 $url, $#$UPr+1);
   }
 
@@ -148,14 +156,14 @@ if (exists $v->{submit}) {
 	my @I_P = grep { $P{$_} == $n } @U_P;
 	if ($v->{submit} ne 'I_P') {
 	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@I_P);
-	  $I_P  = sprintf('<a href="%s;submit=I_P">%d</a>',$url, $#I_P+1);
+	  $data{I}{P}  = sprintf('<a href="%s;submit=I_P">%d</a>',$url, $#I_P+1);
 	  if ($nSP>0) {
-		$I_TP = sprintf('<a href="%s;submit=I_TP">%d (%5.1f%%)</a>',
+		$data{I}{TP} = sprintf('<a href="%s;submit=I_TP">%d (%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$I_FN = sprintf('<a href="%s;submit=I_FN">%d (%5.1f%%)</a>',
+		$data{I}{FN} = sprintf('<a href="%s;submit=I_FN">%d (%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
-	  $I_UP  = sprintf('<a href="%s;submit=I_UP">%d</a>',
+	  $data{I}{UP}  = sprintf('<a href="%s;submit=I_UP">%d</a>',
 						 $url, $#$UPr+1);
 	}
 
@@ -193,7 +201,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.8 2003/11/04 01:12:35 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.9 2003/11/04 01:13:34 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -212,7 +220,7 @@ print $p->render("Sequence Mining Summary",
 				 '<table border=1 width="100%">', "\n",
 
 				 '<tr>', 
-				 '<th colspan=2>',
+				 '<th colspan="3">',
 				 $p->submit(-name=>'submit', -value=>'vroom'),
 				 ,'</th>',
 				 '<th align="center" colspan="3">Compare to sequences in set:<br>',
@@ -225,7 +233,7 @@ print $p->render("Sequence Mining Summary",
 				 '</tr>',"\n",
 
 				 '<tr>', 
-				 '<th align="left" colspan="2">Select sequences matching any model in<br>',
+				 '<th align="left" colspan="3">Select sequences matching any model in<br>',
 				 $p->popup_menu(-name => 'pmodelset_id',
 								-values => [map {$_->[0]} @ms],
 								-labels => \%ms,
@@ -238,17 +246,18 @@ print $p->render("Sequence Mining Summary",
 				 '</tr>',"\n",
 
 				 '<tr>',
-				 '<th align="left">using these methods:</th>',
-				 '<th width="15%">',
+				 '<th width="40%" align="left">using these methods:</th>',
+				 '<th width="12%">#models in set</th>',
+				 '<th width="12%">',
 				 $p->tooltip('hits','All hits to any of the selected models/methods. |hits|=TP+UP'),
 				 '</th>',
-				 '<th width="15%">',
+				 '<th width="12%">',
 				 $p->tooltip('TP','True Positives -- sequences from the selected set which are correctly matched by the models'),
 				 '</th>',
-				 '<th width="15%">',
+				 '<th width="12%">',
 				 $p->tooltip('FN','False Negatives -- sequences from the selected set which are incorrectly missed by the models'),
 				 '</th>',
-				 '<th width="15%">',
+				 '<th width="12%">',
 				 $p->tooltip('UP','Unknown Positives -- sequences hit by the models which are not known to belong to the sequence set'),
 				 '</th>',
 				 '</tr>',"\n",
@@ -263,10 +272,11 @@ print $p->render("Sequence Mining Summary",
 								-values => [qw(1e-60 1e-50 1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
 								-default => "$v->{hmm_eval}"),
 				 '</td>',
-				 '<td align="right">', $hmm_P ,'</td>',
-				 '<td align="right">', $hmm_TP,'</td>',
-				 '<td align="right">', $hmm_FN,'</td>',
-				 '<td align="right">', $hmm_UP,'</td>',
+				 '<td align="right">', $data{hmm}{M} ,'</td>',
+				 '<td align="right">', $data{hmm}{P} ,'</td>',
+				 '<td align="right">', $data{hmm}{TP},'</td>',
+				 '<td align="right">', $data{hmm}{FN},'</td>',
+				 '<td align="right">', $data{hmm}{UP},'</td>',
 				 '</tr>',"\n",
 
 				 '<tr>',
@@ -279,10 +289,11 @@ print $p->render("Sequence Mining Summary",
 								-values => [qw(1e-60 1e-50 1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
 								-default => "$v->{pssm_eval}"),
 				 '</td>',
-				 '<td align="right">', $pssm_P ,'</td>',
-				 '<td align="right">', $pssm_TP,'</td>',
-				 '<td align="right">', $pssm_FN,'</td>',
-				 '<td align="right">', $pssm_UP,'</td>',
+				 '<td align="right">', $data{pssm}{M} ,'</td>',
+				 '<td align="right">', $data{pssm}{P} ,'</td>',
+				 '<td align="right">', $data{pssm}{TP},'</td>',
+				 '<td align="right">', $data{pssm}{FN},'</td>',
+				 '<td align="right">', $data{pssm}{UP},'</td>',
 				 '</tr>',"\n",
 
 				 '<tr>',
@@ -304,16 +315,17 @@ print $p->render("Sequence Mining Summary",
 #								-values => [qw(-2000 -1500 -1000 -500 -250 0 100 250)],
 #								-default => "$v->{p2_raw}"),
 				 '</td>',
-				 '<td align="right">', $p2_P ,'</td>',
-				 '<td align="right">', $p2_TP,'</td>',
-				 '<td align="right">', $p2_FN,'</td>',
-				 '<td align="right">', $p2_UP,'</td>',
+				 '<td align="right">', $data{p2}{M} ,'</td>',
+				 '<td align="right">', $data{p2}{P} ,'</td>',
+				 '<td align="right">', $data{p2}{TP},'</td>',
+				 '<td align="right">', $data{p2}{FN},'</td>',
+				 '<td align="right">', $data{p2}{UP},'</td>',
 				 '</tr>',"\n",
 
 				 '<tr>',
-				 '<td colspan=3></td>',
+				 '<td colspan=4></td>',
 				 '<td colspan=2 bgcolor="lightgrey" align="center">',
-				 $p->tooltip('NOTE (mouseover)', 
+				 $p->tooltip('NOTE', 
 							 'The union of the FN sets (this column) is
 							 not equal to the FN set of the union (next
 							 row).  Ditto for intersections of FN, and for
@@ -325,97 +337,92 @@ print $p->render("Sequence Mining Summary",
 				 '</tr>',"\n",
 
 				 '<tr>',
-				 '<td>',
+				 '<td colspan=2>',
 				 $p->tooltip('Union','Sequences which occur in ANY of the selected methods'),
 				 ' (hit by ANY of the above)',
 				 '</td>',
-				 '<td align="right">', $U_P ,'</td>',
-				 '<td align="right">', $U_TP,'</td>',
-				 '<td align="right">', $U_FN,'</td>',
-				 '<td align="right">', $U_UP,'</td>',
+				 '<td align="right">', $data{U}{P} ,'</td>',
+				 '<td align="right">', $data{U}{TP},'</td>',
+				 '<td align="right">', $data{U}{FN},'</td>',
+				 '<td align="right">', $data{U}{UP},'</td>',
 				 '</tr>',"\n",
 
 				 '<tr>',
-				 '<td>',
+				 '<td colspan=2>',
 				 $p->tooltip('Intersection','Sequences which occur in ALL of the selected methods'),
 				 ' (hit by ALL of the above)',
 				 '</td>',
-				 '<td align="right">', $I_P ,'</td>',
-				 '<td align="right">', $I_TP,'</td>',
-				 '<td align="right">', $I_FN,'</td>',
-				 '<td align="right">', $I_UP,'</td>',
+				 '<td align="right">', $data{I}{P} ,'</td>',
+				 '<td align="right">', $data{I}{TP},'</td>',
+				 '<td align="right">', $data{I}{FN},'</td>',
+				 '<td align="right">', $data{I}{UP},'</td>',
 				 '</tr>',"\n",
 
 				 "</table>\n",
 
 				 $p->end_form(), "\n",
 
+
 #				 '<pre>',Dumper($v),'</pre>',
 
+				 ("$data{hmm}{sql}"  eq '' ? '' : $p->sql($data{hmm}{sql})),
+				 ("$data{pssm}{sql}" eq '' ? '' : $p->sql($data{pssm}{sql})),
+				 ("$data{p2}{sql}"   eq '' ? '' : $p->sql($data{p2}{sql})),
 				);
 
 
 #
 
 
-sub _hmm_sql {
-  my @models = sort { $a<=>$b }
-	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmhmm where pmodelset_id=$v->{pmodelset_id}" ) });
-  return undef unless @models;
-  my $sql = Unison::SQL->new()
-	->table('pahmm A')
-	->columns('distinct A.pseq_id')
-	->where("A.eval<=$v->{hmm_eval}")
-	->where('A.pmodel_id in (' . join(',',@models) . ')');
-  return "$sql";
-}
 sub _get_hmm_hits {
-  my $sql = _hmm_sql();
-  if (not defined $sql) {
-	warn("$0: no hmm models for pmodelset_id=$v->{pmodelset_id}\n");
-	return ();
+  my @models;
+  my $sql;
+  my @hits;
+  @models = sort { $a<=>$b }
+	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmhmm where pmodelset_id=$v->{pmodelset_id}" ) });
+  if (@models) {
+	$sql = Unison::SQL->new()
+	  ->table('pahmm A')
+	  ->columns('distinct A.pseq_id')
+	  ->where("A.eval<=$v->{hmm_eval}")
+	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
+  @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
   }
-  return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
+  return (\@models,$sql,\@hits);
 }
 
-sub _pssm_sql {
-  my @models = sort { $a<=>$b }
-	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmpssm where pmodelset_id=$v->{pmodelset_id}" ) });
-  return undef unless @models;
-  my $sql = Unison::SQL->new()
-	->table('papssm A')
-	->columns('distinct A.pseq_id')
-	->where("A.eval<=$v->{pssm_eval}")
-	->where('A.pmodel_id in (' . join(',',@models) . ')');
-  return "$sql";
-}
 sub _get_pssm_hits {
-  my $sql = _pssm_sql();
-  if (not defined $sql) {
-	warn("$0: no pssm models for pmodelset_id=$v->{pmodelset_id}\n");
-	return ();
+  my @models;
+  my $sql;
+  my @hits;
+  @models = sort { $a<=>$b }
+	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmpssm where pmodelset_id=$v->{pmodelset_id}" ) });
+  if (@models) {
+	$sql = Unison::SQL->new()
+	  ->table('papssm A')
+	  ->columns('distinct A.pseq_id')
+	  ->where("A.eval<=$v->{pssm_eval}")
+	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
+  @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
   }
-  return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
+  return (\@models,$sql,\@hits);
 }
 
-sub _p2_sql {
-  my @models = sort { $a<=>$b }
-	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{pmodelset_id}" ) });
-  return undef unless @models;
-  my $sql = Unison::SQL->new()
-	->table('paprospect2 A')
-	->columns('distinct A.pseq_id')
-	->where("A.svm>=$v->{p2_svm}")
-	->where('A.pmodel_id in (' . join(',',@models) . ')');
-  return "$sql";
-}
 sub _get_p2_hits {
-  my $sql = _p2_sql();
-  if (not defined $sql) {
-	warn("$0: no prospect2 models for pmodelset_id=$v->{pmodelset_id}\n");
-	return ();
+  my @models;
+  my $sql;
+  my @hits;
+  @models = sort { $a<=>$b }
+	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{pmodelset_id}" ) });
+  if (@models) {
+	$sql = Unison::SQL->new()
+	  ->table('paprospect2 A')
+	  ->columns('distinct A.pseq_id')
+	  ->where("A.svm>=$v->{p2_svm}")
+	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
+  @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
   }
-  return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
+  return (\@models,$sql,\@hits);
 }
 
 
