@@ -19,6 +19,8 @@ my %opts =
    gstart => undef,
    gstop => undef,
    chr => undef,
+   imap => undef,
+   png => undef,
    pseq_id => undef,
    width => 750,
    show_exons => 0,
@@ -29,9 +31,11 @@ GetOptions( \%opts,
       'chr|c=s',
       'gstart|b=i',
       'gstop|e=i',
+      'imap|i=s',
       'pseq_id|p=i',
       'show_exons|s+',
       'width|w=i',
+      'png|f=s',
       'verbose|v+',
       )
   || die("$0: usage issues, chief\n");
@@ -84,7 +88,7 @@ if ( defined $opts{pseq_id}) {
 
 $panel->add_track( ) for 1..2;         # spacing
 $panel->add_track( 
-  -key => '$Id: graphic-features,v 1.10 2004/01/08 02:17:38 rkh Exp $',
+  -key => '$Id: genome-features,v 1.1 2004/02/19 00:15:17 cavs Exp $',
   -key_font => 'gdSmallFont',
   -bump => +1,
 );
@@ -106,7 +110,27 @@ my $gd = $panel->gd();
 #}
 
 
-print $gd->png();
+open(FP,">$opts{png}") or die("can't open $opts{png} for writing png");
+print FP $gd->png();
+close(FP);
+
+if ( defined $opts{imap} ) {
+  open(FP,">$opts{imap}") or die("can't open $opts{imap} for writing IMAGEMAP");
+  print FP q(<MAP NAME="GENOME_MAP">), "\n";
+  foreach my $box ( $panel->boxes() ) {
+    my ($feature, $x1, $y1, $x2, $y2) = @$box;
+    my $fstart = $feature->start; # should be unique
+    my $fname = $feature->name; # should be unique
+    next if ! defined $fname || $fname !~ m/^Unison:(\d+)/;
+    my $pseq_id = $1;
+    my $text = $u->best_annotation($pseq_id);
+
+    print FP qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TITLE="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">), "\n";
+  }
+  print FP "</MAP>\n";
+  close(FP);
+}
+  
 exit(0);
 
 
@@ -134,7 +158,7 @@ sub add_blatloci {
     -height => 4,
   );
   my $rev_strand_track = $panel->add_track( 
-		-glyph => 'graded_segments',
+    -glyph => 'graded_segments',
     -min_score => 0,
     -max_score => 1,
     -sort_order => 'high_score',
@@ -156,45 +180,45 @@ sub add_blatloci {
 
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $sth = $u->prepare($sql);
-	$sth->execute();
-	my $p2gblataln_id = -1;
-	my ($plus_strand,$feat);
-	while( my $r = $sth->fetchrow_hashref ) {
-		# new BLAT alignment - create a new feature
-		if ( $r->{p2gblataln_id} != $p2gblataln_id ) {
-			# if we have a feat defined, then add it to the appropriate strand track
-			if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
-				if ( $plus_strand ) {
-					$plus_strand_track->add_feature($feat);
-				} else {
-					$rev_strand_track->add_feature($feat);
-				}
-			}
-			$p2gblataln_id = $r->{p2gblataln_id};
-			$plus_strand = $r->{plus_strand};
-			print STDERR "Get a new feature\n" if $opts{verbose};
-			$feat = new Bio::Graphics::Feature->new(-name=>'Unison:'.$r->{pseq_id});
-			print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
-			$feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
-		}
+  $sth->execute();
+  my $p2gblataln_id = -1;
+  my ($plus_strand,$feat);
+  while( my $r = $sth->fetchrow_hashref ) {
+    # new BLAT alignment - create a new feature
+    if ( $r->{p2gblataln_id} != $p2gblataln_id ) {
+      # if we have a feat defined, then add it to the appropriate strand track
+      if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
+        if ( $plus_strand ) {
+          $plus_strand_track->add_feature($feat);
+        } else {
+          $rev_strand_track->add_feature($feat);
+        }
+      }
+      $p2gblataln_id = $r->{p2gblataln_id};
+      $plus_strand = $r->{plus_strand};
+      print STDERR "Get a new feature\n" if $opts{verbose};
+      $feat = new Bio::Graphics::Feature->new(-name=>'Unison:'.$r->{pseq_id});
+      print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
+      $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
+    }
 
-		# same alignment - add sub features
-		else {
-			print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
-			$feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
-		}
-		
+    # same alignment - add sub features
+    else {
+      print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
+      $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
+    }
+    
   }
 
-	# add remaining feature
-	if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
-		if ( $plus_strand ) {
-			$plus_strand_track->add_feature($feat);
-		} else {
-			$rev_strand_track->add_feature($feat);
-		}
-		$nadded++;
-	}
+  # add remaining feature
+  if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
+    if ( $plus_strand ) {
+      $plus_strand_track->add_feature($feat);
+    } else {
+      $rev_strand_track->add_feature($feat);
+    }
+    $nadded++;
+  }
 
   return $nadded;
 }
