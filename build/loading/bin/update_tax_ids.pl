@@ -24,7 +24,9 @@ my %opts =
    'create-paotax' => 0,
    'assign' => 0,
    'reassign' => 0,
-   'nullify' => 0
+   'nullify' => 0,
+
+   'origin' => undef,
   );
 
 
@@ -42,7 +44,9 @@ GetOptions(\%opts,
 
 		   'all|A' => sub { $opts{assign}++;
 							$opts{reassign}++;
-							$opts{nullify}++; }
+							$opts{nullify}++; },
+
+		   'origin|o=i',
 		   )
   || die("$0: aye, you've got usage issues, mate\n");
 
@@ -56,7 +60,7 @@ select(STDERR); $|++;
 select(STDOUT); $|++;
 
 
-print(STDERR '$Id: assign_tax_ids.pl,v 1.3 2004/04/07 21:15:52 rkh Exp $ ', "\n");
+print(STDERR '$Id: update_tax_ids.pl,v 1.4 2004/04/07 21:48:23 rkh Exp $ ', "\n");
 
 
 my $u = new Unison;
@@ -117,6 +121,9 @@ sub create_paotax ($) {
     JOIN porigin O ON AO.porigin_id=O.porigin_id
     WHERE palias_id>=? and palias_id<?
 	/;
+  if (defined $opts{origin}) {
+	$sql .= "AND porigin_id=$opts{origin}";
+  }
   my $sth = $u->prepare( $sql );
   execute_sth((caller(0))[3], $sth, $opts{'increment'});
   $u->do('create index paotax_palias_id on paotax(palias_id)');
