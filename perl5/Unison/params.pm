@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::p2params -- Unison p2params table utilities
-S<$Id: p2params.pm,v 1.3 2003/07/31 23:56:48 rkh Exp $>
+S<$Id: p2params.pm,v 1.4 2003/11/04 01:09:13 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -27,13 +27,13 @@ sub get_p2options_by_run_id($)
   {
   my ($self,$run_id) = @_;
   $self->is_open()
-	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached("select * from rprospec2 where run_id=?");
+  || croak("Unison connection not established");
+  my $sth = $self->prepare_cached("select * from run where run_id=?");
   $sth->execute($run_id);
   my $h = $sth->fetchrow_hashref();
   ## FIX: only seqfile threading is supported below:
   my $po = new Prospect::Options( $h->{global} ? (global=>1) : (global_local=>1),
-								  seq=>1, );
+                   seq=>1, );
   return $po;
 =pod
 
