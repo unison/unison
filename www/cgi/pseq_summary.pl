@@ -26,7 +26,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.21 2004/06/25 00:20:14 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.22 2004/07/22 22:30:49 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
@@ -56,7 +56,7 @@ sub sequence_group ($) {
 			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id},1), "\n",
 			$wrapped_seq,
 			'</pre>',
-			"You may also <a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download</a> this sequence in FASTA format",
+			"<br>You may also <a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download</a> this sequence in FASTA format",
 			)
 }
 
@@ -182,19 +182,33 @@ sub features_group ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
-  my $dr = defined $ENV{'DOCUMENT_ROOT'} ? $ENV{'DOCUMENT_ROOT'} : '';
-
-  my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => "$dr/tmp/pseq-features",
+  my $imagemap = '';
+  my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir},
 											   SUFFIX => '.png' );
-  my ($urn) = $png_fn =~ m%^$dr(.+)%;
-  $png_fh->print( $u->features_graphic($v->{pseq_id}) );
-  $png_fh->close( );
+  my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
+  my %opts = (%Unison::pseq_features::opts, %$v);
+
+  my $panel = Unison::pseq_features::pseq_features_panel($u,%opts);
+  
+  # write the png to the temp file
+  $png_fh->print( $panel->gd()->png() );
+  $png_fh->close();
+  
+  # assemble the imagemap as a string
+  foreach my $box ( $panel->boxes() ) {
+	my ($feature, $x1, $y1, $x2, $y2) = @$box;
+	my $attr = $feature->{attributes};
+	next unless defined $attr;
+	$imagemap .= sprintf('<AREA SHAPE="RECT" COORDS="%d,%d,%d,%d" TOOLTIP="%s" HREF="%s">'."\n",
+						 $x1,$y1,$x2,$y2, $attr->{tooltip}||'', $attr->{href}||'');
+  }
 
   $p->group($p->tooltip('Features','precomputed results for this
 						   sequence. NOTE: Not all sequences have all
 						   results precomputed -- see the History tab to
 						   determine which analysis have been performed'),
-			"<center><img src=\"$urn\"></center>")
+						   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
+						   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n");
 }
 
 sub mint_group ($) {

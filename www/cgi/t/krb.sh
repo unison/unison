@@ -1,7 +1,7 @@
 #!/bin/sh 
 # tests krb saved credentials by (remote) logging into geneland using the
 # credentials to run a few innocuous commands
-# $Id: krb.sh,v 1.1 2003/05/27 21:25:46 rkh Exp $
+# $Id: krb.sh,v 1.2 2003/05/27 22:28:31 rkh Exp $
 
 
 exec 2>&1
@@ -29,35 +29,47 @@ echo
 
 
 cat <<EOF
-# \$Id: krb.sh,v 1.1 2003/05/27 21:25:46 rkh Exp $
+# \$Id: krb.sh,v 1.2 2003/05/27 22:28:31 rkh Exp $
 
 This script tests kerberos authentication by using your saved krb
 credentials (server-side) to log in to a remote machine.  Here we go...
 =======================================================================
 EOF
 
+date
+
+echo "REMOTE_USER=$REMOTE_USER"
+USER=`expr "$REMOTE_USER" : '\(.*\)@GENE.COM'`
+
 
 if [ -z "$AUTH_TYPE" ]; then
 	echo "AUTH_TYPE isn't defined... this is pointless"
 	exit 1
 fi
-
-date
 echo "AUTH_TYPE=$AUTH_TYPE"
-echo "REMOTE_USER=$REMOTE_USER"
 
-SC="/tmp/krb5cc_$REMOTE_USER"
+if [ -z "$KRB5CCNAME" ]; then
+	echo "KRB5CCNAME isn't defined... bailing"
+	exit 1
+fi
+echo "KRB5CCNAME=$KRB5CCNAME";
+
+SC=`expr "$KRB5CCNAME" : 'FILE:\(.*\)'`
+if [ -z "$SC" ]; then
+	echo "Couldn't parse $KRB5CCNAME for a filename... bailing"
+	exit 1
+fi
+
 if [ \! -f "$SC" ]; then
 	echo "$SC doesn't exist!"
-	echo "My guess is that credentials are being saved"
+	echo "My guess is that credentials are not being saved"
 	exit 2
 fi
 
-export KRB5CCNAME="FILE:$SC"
-echo "KRB5CCNAME=$KRB5CCNAME";
-ls -l $SC
+/bin/ls -l $SC
 
-cmd="/usr/kerberos/bin/rsh geneland -x -l $REMOTE_USER sh -c '(set -x; hostname; id; date; pwd; ls) 2>&1'"
+
+cmd="/usr/lib/heimdal/bin/rsh gwiz -l $USER sh -c '(set -x; hostname; id; date; pwd; ls) 2>&1'"
 echo
 echo "now, what you've all been waiting for..."
 echo "remote execution of << $cmd >>"
