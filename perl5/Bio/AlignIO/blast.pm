@@ -1,4 +1,4 @@
-# $Id: blast.pm,v 1.13 2002/10/22 07:38:25 lapp Exp $
+# $Id: blast.pm,v 1.1 2003/06/23 21:39:12 cavs Exp $
 #
 # BioPerl module for Bio::AlignIO::blast
 
@@ -22,7 +22,7 @@ Do not use this module directly.  Use it via the L<Bio::AlignIO> class, as in:
 =head1 DESCRIPTION
 
 This object can create L<Bio::SimpleAlign> sequence alignment objects 
-from blast BLAST reports.
+from BLAST reports.
 
 It utilizes Bio::Tools::BPlite to parse the BLAST reports.
 
@@ -92,7 +92,8 @@ sub next_aln {
       $self->{'subj'} || $self->{'blastobj'}->nextSbjct(); 
     my $hsp =  $self->{'subj'}->nextHSP();
     # if we run out of hsps for this subject alignment, get
-    # the next subject alignment.  otherwise, we're done.
+    # the next subject alignment.  if no more subjects
+		# then we're done.
     if ( ! defined $hsp ) {
        $self->{'subj'} = $self->{'blastobj'}->nextSbjct();
        return (0) if ! defined $self->{'subj'};
@@ -103,7 +104,6 @@ sub next_aln {
     $end = $hsp->query->end;
     $seqname = $self->{'blastobj'}->query();
 
-#    unless ($seqchar && $start && $end  && $seqname) {return 0} ;  
     unless ($seqchar && $start && $end ) {return 0} ;  
 
     $seq = new Bio::LocatableSeq('-seq'=>$seqchar,
@@ -130,7 +130,6 @@ sub next_aln {
     $aln->add_seq($seq);
 
     return $aln;
-
 }
   
 
