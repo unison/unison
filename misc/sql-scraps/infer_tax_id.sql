@@ -8,20 +8,28 @@
 create or replace function _refseq_species(text) returns text
 immutable strict language sql as 
 'select compbio.plregex($1,''/^.+\\\\[(.+)\\\\]/$1/''::TEXT)';
+grant execute on function _refseq_species(text) to PUBLIC;
 
 create or replace function _nr_species(text) returns text
 immutable strict language sql as 
 'select compbio.plregex($1,''/^.+\\\\[(.+)\\\\].*/$1/''::TEXT)';
+grant execute on function _nr_species(text) to PUBLIC;
 
 create or replace function _dblast_species(text) returns text
 immutable strict language sql as 
 'select compbio.plregex($1,''/^.* - (.+?)\\\\.?\\$/$1/''::TEXT)';
+grant execute on function _dblast_species(text) to PUBLIC;
+
+create or replace function _geneseq_species(text) returns text
+immutable strict language sql as 
+'select compbio.plregex($1,''/^.*\\\\[OS: ([^\\\\]+]+)\\\\]/$1/''::TEXT)';
+grant execute on function _geneseq_species(text) to PUBLIC;
 
 
 
 create or replace function infer_tax_id(text,text,text) returns integer 
 immutable strict
-language sql as '
+language sql as '-- $Id$
 SELECT CASE
     --------------------------------------------------------------
     -- FIRST, deal with single-species origins
@@ -47,14 +55,12 @@ SELECT CASE
 
 
     --------------------------------------------------------------
-    -- SECOND, infer from the alias
+    -- infer from the alias or description for specific origins
     WHEN ($1 = ''Swiss-Prot'')
     THEN
         gs2tax_id( substr($2,strpos($2,''_'')+1) )
 
 
-    --------------------------------------------------------------
-    -- THIRD, infer from descr line matching for specific species
     WHEN ($1 = ''SPDI'')
     THEN
         (SELECT CASE
@@ -108,6 +114,10 @@ SELECT CASE
             WHEN ($3 ~ '' - rat$'')   		     	THEN gs2tax_id(''RAT'')
 			ELSE (SELECT tax_id FROM tax.spspec WHERE UPPER(latin) = UPPER(_dblast_species($3)))
         END)
+
+    WHEN ($1 = ''Geneseq'')
+    THEN
+		(SELECT tax_id FROM tax.spspec WHERE UPPER(latin) = UPPER(_geneseq_species($3)))
 
 END;';
 
