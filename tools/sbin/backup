@@ -1,10 +1,10 @@
 #!/bin/bash
 PATH=/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
 case `hostname` in
-    sprog*|td-sprog*)
+    svc*|td-svc*)
     	PGHOST=;;
     *) 
-    	PGHOST=td-sprog;;
+    	PGHOST=td-svc;;
 esac
 
 export PGHOST
@@ -15,4 +15,6 @@ DIR=/home/rkh/unison/backups/$PGDATABASE
 mkdir -p "$DIR"
 DATE=`date +%Y-%m-%d-%H:%M`;
 R="$DIR/$DATE.pgdump"
-(time -p pg_dump -Uadmin "$PGDATABASE" | gzip -c) >"$R".gz 2>"$R".err
+
+(time -p pg_dump -X set-session-authorization" -Uadmin "$PGDATABASE" \
+ | gzip -c) >"$R".gz 2>"$R".err

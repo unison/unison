@@ -9,10 +9,9 @@ use Getopt::Long;
 use XML::Simple;
 use Data::Dumper;
 use Digest::MD5  qw(md5_hex);
-use Genentech::Unison;
-use Genentech::Unison::Prospect2;
+use Unison;
 
-my $udb = new Genentech::Unison;
+my $udb = new Unison;
 
 my $origin = 'Prospect2';
 my $porigin_id = $udb->porigin_si_porigin_id($origin);
@@ -27,13 +26,17 @@ printf(STDERR "# %d md5s read from pseq\n", scalar keys %md5);
 
 my $xs = new XML::Simple;
 
-
-
-while(my $fn = <>)
-  {
-  chomp $fn;
-  process1($fn);
+if (@ARGV)
+  { process1(shift) while (@ARGV); }
+else
+  { 
+  while(my $fn = <>)
+	{ chomp $fn; process1($fn); }  
   }
+
+exit(0);
+
+
 
 
 sub process1
