@@ -6,15 +6,29 @@ use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::SQL;
-
+use Data::Dumper;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
+
+my %defaults = 
+  ( 
+   pset_id => 5,
+   pmodelset_id => 2,
+   hmm => 0,
+   hmm_eval => '1e-5',
+   pssm => 0,
+   pssm_eval => '1e-5',
+   p2 => 0,
+   p2_run_id => 1,
+   p2_svm => 11,
+   p2_raw => -500,
+  );
+
 my $v = $p->Vars();
+my %v = (%defaults, %$v);
+$v = \%v;
 
-
-$v->{pset_id} = 5 unless exists $v->{pset_id};
-$v->{pmodelset_id} = 2 unless exists $v->{pmodelset_id};
 
 my (@SP) = map { $_->[0] } @{ $u->selectall_arrayref("select pseq_id from pseqset where pset_id=$v->{pset_id}") };
 my $nSP = $#SP+1;
@@ -29,14 +43,15 @@ my ($pssm_P,$pssm_TP,$pssm_FN,$pssm_UP) = ('','','','');
 my (@p2_P,@p2_TP,@p2_FN,@p2_UP);
 my ($p2_P,$p2_TP,$p2_FN,$p2_UP) = ('','','','');
 
-my %P;
+my %P;										# counts # of times pseq_id was hit
 my ($I_P,$I_TP,$I_FN,$I_UP) = ('','','','');
 my ($U_P,$U_TP,$U_FN,$U_UP) = ('','','','');
+
 
 if ($v->{submit}) {
   my (@P,$FNr,$UPr,$TPr);
 
-  if (exists $v->{hmm}) {
+  if ($v->{hmm}) {
 	@P = _get_hmm_hits();
 	$P{$_}++ for @P;
 	($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
@@ -48,7 +63,7 @@ if ($v->{submit}) {
 	$hmm_UP = $#$UPr+1;
   }
 
-  if (exists $v->{pssm}) {
+  if ($v->{pssm}) {
 	@P = _get_pssm_hits();
 	$P{$_}++ for @P;
 	($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
@@ -60,7 +75,7 @@ if ($v->{submit}) {
 	$pssm_UP = $#$UPr+1;
   }
 
-  if (exists $v->{p2}) {
+  if ($v->{p2}) {
 	@P = _get_p2_hits();
 	$P{$_}++ for @P;
 	($FNr,$UPr,$TPr) = acomm(\@SP,\@P);
@@ -72,19 +87,17 @@ if ($v->{submit}) {
 	$p2_UP = $#$UPr+1;
   }
 
-  my $n = (exists $v->{hmm}?1:0) 
-	+ (exists $v->{pssm}?1:0) 
-	+ (exists $v->{p2}?1:0);
+  my $n = ($v->{hmm}?1:0) + ($v->{pssm}?1:0) + ($v->{p2}?1:0);
   my @U_P = sort keys %P;
   ($FNr,$UPr,$TPr) = acomm(\@SP,\@U_P);
-  $U_P = $#P+1;
+  $U_P = $#U_P+1;
   $U_TP = $#$TPr+1;
   $U_FN = $#$FNr+1;
   $U_UP = $#$UPr+1;
-  
-  my @I_P = grep { $P{$_} = $n } @U_P;
+
+  my @I_P = grep { $P{$_} == $n } @U_P;
   ($FNr,$UPr,$TPr) = acomm(\@SP,\@I_P);
-  $I_P = $#P+1;
+  $I_P = $#I_P+1;
   $I_TP = $#$TPr+1;
   $I_FN = $#$FNr+1;
   $I_UP = $#$UPr+1;
@@ -98,7 +111,7 @@ my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" }
   @{ $u->selectall_arrayref('select * from pmodelset') };
 
 print $p->render("Sequence Mining",
-				 '$Id$',
+				 '$Id: search_sets.pl,v 1.1 2003/10/31 19:02:53 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. Select
@@ -124,7 +137,7 @@ print $p->render("Sequence Mining",
 				 $p->popup_menu(-name => 'pset_id',
 								-values => [sort keys %xs],
 								-labels => \%xs,
-								-default => $v->{pset_id}),
+								-default => "$v->{pset_id}"),
 
 				 '</th>',
 				 '</tr>',"\n",
@@ -134,7 +147,7 @@ print $p->render("Sequence Mining",
 				 $p->popup_menu(-name => 'modelset_id',
 								-values => [keys %ms],
 								-labels => \%ms,
-								-default => $v->{modelset_id}),
+								-default => "$v->{modelset_id}"),
 				 '</th>',
 				 '<th align="center" colspan="2">SP (',$nSP,' sequences)</th>',
 				 '<th></th>',
@@ -160,11 +173,11 @@ print $p->render("Sequence Mining",
 				 '<td>',
 				 $p->checkbox(-name => 'hmm',
 							  -label => 'HMM/Pfam ',
-							  -checked => 1),
+							  -checked => $v->{hmm}),
 				 '<br>with eval <= ',
 				 $p->popup_menu(-name => 'hmm_eval',
 								-values => [qw(1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
-								-default => '1e-5'),
+								-default => "$v->{hmm_eval}"),
 				 '</td>',
 				 '<td align="right">', $hmm_P ,'</td>',
 				 '<td align="right">', $hmm_TP,'</td>',
@@ -176,11 +189,11 @@ print $p->render("Sequence Mining",
 				 '<td>',
 				 $p->checkbox(-name => 'pssm',
 							  -label => 'PSSM ',
-							  -checked => 1),
+							  -checked => $v->{pssm}),
 				 '<br>with eval <= ',
 				 $p->popup_menu(-name => 'pssm_eval',
 								-values => [qw(1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
-								-default => '1e-5'),
+								-default => "$v->{pssm_eval}"),
 				 '</td>',
 				 '<td align="right">', $pssm_P ,'</td>',
 				 '<td align="right">', $pssm_TP,'</td>',
@@ -192,20 +205,20 @@ print $p->render("Sequence Mining",
 				 '<td>',
 				 $p->checkbox(-name => 'p2',
 							  -label => 'Prospect2 ',
-							  -checked => 1),
+							  -checked => $v->{p2}),
 
 				 '<br>Parameter set: ',
 				 $p->popup_menu(-name => 'p2_run_id',
 								-values => [qw(1)],
-								-default => '1'),
+								-default => "$v->{p2_run_id}"),
 				 '<br>with svm >= ',
 				 $p->popup_menu(-name => 'p2_svm',
 								-values => [qw(13 12 11 10 9 8 7 6 5)],
-								-default => '9'),
+								-default => "$v->{p2_svm}"),
 				 '<br>with raw <= ',
 				 $p->popup_menu(-name => 'p2_raw',
 								-values => [qw(-2000 -1500 -1000 -500 -250 0 100 250)],
-								-default => '-500'),
+								-default => "$v->{p2_raw}"),
 				 '</td>',
 				 '<td align="right">', $p2_P ,'</td>',
 				 '<td align="right">', $p2_TP,'</td>',
@@ -213,16 +226,14 @@ print $p->render("Sequence Mining",
 				 '<td align="right">', $p2_UP,'</td>',
 				 '</tr>',"\n",
 
-				 '<tr><td colspan=5>&nbsp;</td></tr>',"\n",
-
 				 '<tr>',
-				 '<td>',
-				 $p->tooltip('Intersection','Sequences which occur in ALL of the selected methods'),
+				 '<td colspan=3></td>',
+				 '<td colspan=2 bgcolor="lightgrey" align="center">',
+				 $p->tooltip('NOTE',
+							 'Reminder: The union of individual FN entries
+							 IS NOT equal to as the FN rate computed from
+							 the union of hits.  Ditto for the UP.'),
 				 '</td>',
-				 '<td align="right">', $I_P ,'</td>',
-				 '<td align="right">', $I_TP,'</td>',
-				 '<td align="right">', $I_FN,'</td>',
-				 '<td align="right">', $I_UP,'</td>',
 				 '</tr>',"\n",
 
 				 '<tr>',
@@ -235,9 +246,21 @@ print $p->render("Sequence Mining",
 				 '<td align="right">', $U_UP,'</td>',
 				 '</tr>',"\n",
 
+				 '<tr>',
+				 '<td>',
+				 $p->tooltip('Intersection','Sequences which occur in ALL of the selected methods'),
+				 '</td>',
+				 '<td align="right">', $I_P ,'</td>',
+				 '<td align="right">', $I_TP,'</td>',
+				 '<td align="right">', $I_FN,'</td>',
+				 '<td align="right">', $I_UP,'</td>',
+				 '</tr>',"\n",
+
 				 "</table>\n",
 
 				 $p->end_form(), "\n",
+
+#				 '<pre>',Dumper($v),'</pre>',
 
 				);
 
@@ -257,6 +280,7 @@ sub _hmm_sql {
 }
 sub _get_hmm_hits {
   my $sql = _hmm_sql();
+  print(STDERR "hmm: $sql\n");
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
@@ -267,12 +291,12 @@ sub _pssm_sql {
 	->table('papssm A')
 	->columns('distinct A.pseq_id')
 	->where("A.eval<=$v->{pssm_eval}")
-	->where("A.run_id=1")
 	->where('A.pmodel_id in (' . join(',',@models) . ')');
   return "$sql";
 }
 sub _get_pssm_hits {
   my $sql = _pssm_sql();
+  print(STDERR "pssm: $sql\n");
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
@@ -288,6 +312,7 @@ sub _p2_sql {
 }
 sub _get_p2_hits {
   my $sql = _p2_sql();
+  print(STDERR "p2: $sql\n");
   return map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
 }
 
