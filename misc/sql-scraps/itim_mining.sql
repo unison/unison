@@ -2,7 +2,7 @@
 -- NAME: itim_mining.sql
 -- PURPOSE: sql code for mining Unison for ITIMS
 -- 
--- $Id: itim_mining.sql,v 1.3 2004/05/12 23:11:40 cavs Exp $
+-- $Id: itim_mining.sql,v 1.4 2004/06/02 23:56:37 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW cavs.canonical_itim AS
@@ -30,24 +30,12 @@ CREATE OR REPLACE VIEW cavs.pfam_tm_itim AS
     t.pftype_id IN (5,6) AND t.start > h.stop AND
     r.pmodel_id=11368857 AND r.start > t.stop;
 
-CREATE OR REPLACE VIEW cavs.prospect_ig_fn3_IN_top10 AS
- SELECT x.pseq_id, ( SELECT count(*)
-  FROM ( SELECT DISTINCT pmsm_prospect2.pmodel_id
-    FROM pmsm_prospect2
-      WHERE (pmsm_prospect2.pmodelset_id = 13 OR pmsm_prospect2.pmodelset_id = 14) AND 
-          (pmsm_prospect2.pmodel_id IN ( SELECT paprospect2.pmodel_id
-        FROM paprospect2
-        WHERE paprospect2.params_id = 1 AND paprospect2.pseq_id = x.pseq_id
-        ORDER BY paprospect2.raw LIMIT 10))
-      ORDER BY pmsm_prospect2.pmodel_id) cnt) AS cnt
-  FROM pseq x;
-
 DROP VIEW prospect_ig_fn3_in_top_10;
 CREATE OR REPLACE VIEW prospect_ig_fn3_in_top_10 AS
 	SELECT Q.pseq_id,(SELECT count(DISTINCT pmodel_id) FROM 
-	((select pmodel_id from paprospect2 A where A.pseq_id=Q.pseq_id and A.params_id=1 
-	order by raw limit 10)   intersect   
-	(select pmodel_id from pmsm_prospect2 where pmodelset_id in (13,14))) X) as cnt from pseq Q;
+	((SELECT pmodel_id FROM paprospect2 A WHERE A.pseq_id=Q.pseq_id AND A.params_id=1 
+	ORDER BY raw LIMIT 10)   INTERSECT   
+	(SELECT pmodel_id FROM pmsm_prospect2 WHERE pmodelset_id IN (13,14))) X) AS cnt FROM pseq Q;
 
 CREATE OR REPLACE VIEW cavs.prospect_tm_itim AS
   SELECT DISTINCT r.pseq_id, 
@@ -60,8 +48,6 @@ CREATE OR REPLACE VIEW cavs.prospect_tm_itim AS
     WHERE h.cnt >= 3 AND 
 			t.pftype_id IN (5,6) AND
       r.pmodel_id = 11368857 AND r."start" > t.stop;
-
- 
 
 -- build a set of pclusters based on known SPDI ITIM seqs
 DELETE FROM cavs.pclusterset WHERE pclustersetname_id=1;
