@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.13 2004/06/25 00:20:27 rkh Exp $
+# $Id: load-pseq,v 1.14 2004/12/24 00:09:46 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -64,7 +64,9 @@ GetOptions( \%opts,
 		 join(',',sort {$a cmp $b} keys %af),")\n$usage\n");
 
 
-my $u = new Unison;
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+
+#$u->do("update pg_settings set setting='debug' where name='client_min_messages'");
 
 $opts{porigin_id} = $u->porigin_si_porigin_id($opts{origin});
 (defined $opts{porigin_id})
@@ -76,7 +78,10 @@ my %totals = map { $_=>0 } qw(nseen nadded nskipped nfailed naliases);
 foreach my $fn ( @ARGV ) {
   my $fh;
   if ($fn =~ m/\.gz$/) {
-	die("Reading from gzipped files is currently broken. Sorry.\n");
+	# die("Reading from gzipped files is currently broken. Sorry.\n");
+	# dang, I can't remember why this is broken!
+	# okay, I uncommented this and I think it works.
+	# Perhaps it appeared broken because IO::Zlib didn't honor $/ ?
 	$fh = new IO::Zlib;
 	$fh->open($fn,'rb')
 	  || die("$fn: $!\n");
@@ -201,6 +206,7 @@ sub process_seq ($$$$) {
   $descr =~ s/\s{2,}/ /g;
   $descr =~ s/^\s+//;
   $descr =~ s/\s+$//;
+  $descr =~ s/\.$//;
 
   # see if there's species info and make sure that the tax_id is in the set of allowable
   # tax_ids (see description of process_stream method for more info).  if so, get the 
@@ -212,10 +218,11 @@ sub process_seq ($$$$) {
 
   # origin-specific loading
   @aliases = ( $id );
-  if ($opts{origin} =~ m/refseq/i) {
+  if (uc($opts{origin}) eq 'REFSEQ') {
 	my $v = $bs->seq_version();
 	if (defined $v) {
 	  $id .= ".$v";
+	  @aliases = ( $id );
 	}
   } elsif ($opts{origin} =~ m/^Uniprot|Swiss-Prot/i) {
 	# load S-P accession as well
