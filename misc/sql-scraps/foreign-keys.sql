@@ -1,8 +1,8 @@
-create or replace view foreign_keys as 
+create or replace view v_foreign_keys as 
 select
   FN.nspname as "Fnamespace",FR.relname as "Frelation",FA.attname as "Fcolumn",
   PN.nspname as "Pnamespace",PR.relname as "Prelation",PA.attname as "Pcolumn",
-  CN.nspname as "Cnamespace",C.conname as "Cname"
+  CN.nspname as "Cnamespace",C.conname as "Cname",c.confupdtype || c.confdeltype as "ud"
 from pg_constraint C
 join pg_namespace CN on CN.oid=C.connamespace
 join pg_class FR on FR.oid=C.conrelid
@@ -13,15 +13,15 @@ join pg_namespace PN on PN.oid=PR.relnamespace
 join pg_attribute PA on PA.attrelid=C.confrelid and PA.attnum = ANY (C.confkey)
 where C.contype='f';
 
-create or replace view foreign_keys_pp as
+create or replace view v_foreign_keys_pp as
 select
   "Fnamespace"||'.'||"Frelation"||'('||"Fcolumn"||')' as "foreign key",
-  "Cnamespace"||'.'||"Cname" as "constraint",
+  "Cnamespace"||'.'||"Cname" || ' ('||"ud"||')' as "constraint",
   "Pnamespace"||'.'||"Prelation"||'('||"Pcolumn"||')' as "primary key"
-from foreign_keys;
+from v_foreign_keys;
 
 
-grant select on foreign_keys,foreign_keys_pp to PUBLIC;
+grant select on v_foreign_keys,v_foreign_keys_pp to PUBLIC;
 
-comment on view foreign_keys is 'foreign key relationships in the database';
-comment on view foreign_keys_pp is 'pretty print of foreign_keys view';
+comment on view v_foreign_keys is 'foreign key relationships in the database';
+comment on view v_foreign_keys_pp is 'pretty print of foreign_keys view';
