@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::papseq -- Unison papseq table utilities
-S<$Id: papseq.pm,v 1.3 2003/05/16 00:21:01 rkh Exp $>
+S<$Id: papseq.pm,v 1.1 2003/06/12 22:29:26 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -39,7 +39,6 @@ sub load_blast_report {
   my($u,$file) = @_;
 
   my $report = new Bio::Tools::BPlite(-file=>$file);
-  print "query: " . $report->query() . "\n";
   my $q_pseq_id = $u->_get_pseq_id_from_name($report->query());
   if ( !defined $q_pseq_id ) {
     throw Unison::RuntimeError("Nno pseq_id defined for this query sequence: " . 
@@ -131,8 +130,7 @@ sub _get_pseq_id_from_name {
     $pseq_id=$1;
   } else {
     $name =~ m/^(.*?)\s/;
-    my $alias = $1;
-    $pseq_id = $u->get_pseq_id_from_alias( $alias );
+    $pseq_id = $u->get_pseq_id_from_alias( $1 );
   }
 
   # store pseq_id (if available) in cache for the specified name
