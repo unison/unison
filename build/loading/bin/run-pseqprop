@@ -1,0 +1,97 @@
+#!/usr/bin/env perl
+
+#-------------------------------------------------------------------------------
+# NAME run-pfpseqprop
+# PURPOSE: run sigpredict and load results into unison
+# USAGE: run-pfpseqprop [pseq_ids]
+#
+# $Id: run-pfpseqprop,v 1.4 2003/10/13 23:50:20 cavs Exp $
+#-------------------------------------------------------------------------------
+
+use Unison;
+use Bio::SeqIO;
+use Bio::PrimarySeq;
+use IPC::Open2;
+use IO::Handle;
+use IO::Pipe;
+use Env qw(@PATH);
+use Getopt::Long;
+use Genentech::Sigpredict;
+use warnings;
+use strict;
+
+my %opts = 
+  (
+   debug => 0
+  );
+GetOptions( \%opts,
+      'debug|d+' )
+  || die("$0: usage\n");
+
+
+$ENV{DEBUG}=1;
+
+my $length_cutoff = 50;
+
+my $run_id = 5;                # hardwired for now
+my $temp_in_fn =  "/tmp/run-pseqprop-$$.fa";
+my $temp_out_fn = "/tmp/run-pseqprop-$$.out";
+
+sub run1($$$);
+
+my $u = new Unison;
+
+my @cmd = ('sigpredict', "-c0 -o $temp_out_fn",$temp_in_fn,'2>/dev/null');
+my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
+my $sth2 = $u->prepare( 'insert into pseqprop(pseq_id,sigpredict) values (?,?)' );
+my $sth4 = $u->prepare( 'insert into pseqprop(pseq_id,sigpredict,sigsensor,sighmm) values (?,?,?,?)' );
+
+#my @list = Unison::utils::range_to_enum(@ARGV);
+my @list = @ARGV;
+for(my $i=0; $i<=$#list; $i++) {
+  my $pseq_id = $list[$i];
+
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  printf(STDOUT "retrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...\n",
+     $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
+  if (not defined $seq) {
+    warn("$0: Unison:$pseq_id doesn't exist\n");
+    return;
+  } elsif ( length ($seq) < $length_cutoff ) {
+		print STDERR "\tsmall sequence (" . length($seq) . " < $length_cutoff) - set sigpredict=0\n";
+		$sth2->execute($pseq_id,0);
+	#	$short++;
+	} elsif ( $seq !~ m/^M/i ) {
+		print STDERR "\tno initiating met - set sigpredict=0\n";
+		$sth2->execute($pseq_id,0);
+	#	$no_init_met++;
+	} else {
+		# fix ambigous amino acid with unknown amino acid (X)
+		if ( $seq =~ s/B|Z/X/ig ) {
+	#		$bad_seq++;
+		}
+		$seqio->write_seq( new Bio::PrimarySeq(-seq => $seq, -id  => "Unison:$pseq_id") );
+	}
+}
+$seqio->close();
+
+# run sigcleave
+system(join(' ',@cmd));
+
+my $gs = new Genentech::Sigpredict( 'file' => $temp_out_fn );
+$gs->verbose(0);
+while (my %r = $gs->next_sigpredict() ){
+	$r{'id'} =~ m/^Unison:(\d+)$/;
+	my $pseq_id = $1;
+	print "pseq_id: $pseq_id, prob: $r{'prob'}, sensor: $r{'sensor_score'}, hmm: $r{'hmm_score'}\n";
+
+	if ( $r{'prob'} eq 'NA') {
+		$sth2->execute($pseq_id,0);
+	} else {
+		$sth4->execute($pseq_id,$r{'prob'},$r{'sensor_score'},$r{'hmm_score'});
+	}
+}
+
+print(STDOUT "\n");
+
+exit(0);
