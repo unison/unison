@@ -17,8 +17,9 @@ my $v = $p->Vars();
 
 my $sql = qq/select target,best_annotation(target),qstart||'-'||qstop,tstart||'-'||tstop,
 			len,ident,sim,gaps,eval,
-			pct_ident,pct_hsp_coverage,pct_coverage
-			from blast_results($v->{pseq_id})
+			pct_ident::int,pct_hsp_coverage::int,pct_coverage::int
+			from v_papseq where
+			query=$v->{pseq_id}
 			order by pct_ident desc,len desc,eval/;
 
 my $ar = $u->selectall_arrayref($sql) ;
