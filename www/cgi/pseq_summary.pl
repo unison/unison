@@ -12,7 +12,6 @@ use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 use Unison::pseq_features;
-use File::Temp qw(tempfile);
 
 
 sub sequence_group ($);
@@ -26,7 +25,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.22 2004/07/22 22:30:49 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.23 2005/02/16 23:07:05 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
@@ -183,9 +182,7 @@ sub features_group ($) {
   my $u = $p->{unison};
   my $v = $p->Vars();
   my $imagemap = '';
-  my ($png_fh, $png_fn) = File::Temp::tempfile(DIR => $p->{tmpdir},
-											   SUFFIX => '.png' );
-  my ($png_urn) = $png_fn =~ m%^$p->{tmproot}(/.+)%;
+  my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png');
   my %opts = (%Unison::pseq_features::opts, %$v);
 
   my $panel = Unison::pseq_features::pseq_features_panel($u,%opts);
