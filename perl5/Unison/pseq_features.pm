@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.9 2005/01/26 00:29:03 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -29,7 +29,7 @@ our @EXPORT_OK = qw( pseq_features_panel %opts );
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::utilities qw( warn_deprecated );
-
+use Unison::pseq_structure;
 
 my %opts = 
   (
@@ -41,6 +41,7 @@ my %opts =
    # this is the default track length needed for imagemap links
    def_track_length => 60
   );
+
 
 sub pseq_features_panel($%);
 
@@ -72,7 +73,8 @@ sub pseq_features_panel($%);
 sub pseq_features_panel($%) {
   my $u = shift;
   my %opts = (%opts, @_);
-  my ($sec_str_only,$tick) = (0,1);
+
+  my ($tick) = (1);
 
   my $len = $u->selectrow_array( "select len from pseq where pseq_id=$opts{pseq_id}" );
   if (not defined $len) {
@@ -80,8 +82,12 @@ sub pseq_features_panel($%) {
 	return undef;
   }
 
+  if(!defined($opts{features})) {
+    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic regexp pssm hmm prospect2 mim);
+  }
   if(defined($opts{track_length})) {
-    $sec_str_only=1;
+    $opts{features}{$_} = 0 foreach (keys %{$opts{features}});
+    $opts{features}{ssp_psipred} = 1;
     $tick = 2;
   }
   else {
@@ -108,20 +114,19 @@ sub pseq_features_panel($%) {
 					 -label => 1, -description=>1
 				   );
 
-  add_pfssp_psipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length});
-  if(!$sec_str_only) {
-    add_pftmdetect( $u, $panel, $opts{pseq_id} );
-    add_pfsignalp( $u, $panel, $opts{pseq_id} );
-    add_pfsigcleave( $u, $panel, $opts{pseq_id} );
-    add_pfantigenic( $u, $panel, $opts{pseq_id} );
-    add_pfregexp( $u, $panel, $opts{pseq_id} );
-    add_papssm( $u, $panel, $opts{pseq_id} );
-    add_pahmm( $u, $panel, $opts{pseq_id} );
-    add_paprospect2( $u, $panel, $opts{pseq_id} );
-  }
+  add_pfssp_psipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{ssp_psipred});
+  add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
+  add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
+  add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
+  add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
+  add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
+  add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
+  add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure} ) if($opts{features}{hmm});
+  add_paprospect2  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect2});
+  add_pfmim        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure} ) if($opts{features}{mim});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.9 2005/01/26 00:29:03 mukhyala Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -479,15 +484,16 @@ Add pahmm features to a panel and return the number of features added.
 =cut
 
 sub add_pahmm {
-  my ($u, $panel, $q, $params_id) = @_;
+  my ($u, $panel, $q, $view, $pseq_structure) = @_;
+
   my ($eval_thr,$topN) = (5,4);
   my $nadded = 0;
   ## XXX: don't hardwire the following
-  $params_id = 15 unless defined $params_id;
+  my $params_id = 15;
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
 FROM v_pahmm
-WHERE pseq_id=? AND params_id=$params_id AND eval<=1
+WHERE pseq_id=? AND params_id=$params_id AND eval<=1 ORDER BY start
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql, undef, $q );
@@ -506,9 +512,13 @@ EOSQL
 								 -description => 1,
 								 -height => 4,
 							   );
+
+ 
   foreach my $r (@$featref) {
+   
 	next unless defined $r->[0];
 	#printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
+	my $href = ($view ? $pseq_structure->region_script($r->[0],$r->[1],$r->[6]):"http://pfam.wustl.edu/cgi-bin/getdesc?name=$r->[6]");	
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
@@ -516,8 +526,10 @@ EOSQL
 									 -name => sprintf("%s; %s; S=%s; E=%s)",
 													  @$r[6,2,3,4]),
 									 -attributes => { tooltip => sprintf("%s: %s", @$r[5,7]),
-													  href => "http://pfam.wustl.edu/cgi-bin/getdesc?name=$r->[6]" }
+											  href => $href
+											}
 								   ) );
+	 
 	$nadded++;
   }
   return $nadded;
@@ -697,6 +709,43 @@ sub add_pfregexp {
 	$nadded++;
   }
   return $nadded;
+}
+
+sub add_pfmim {
+
+    my ($u, $panel, $q, $view, $pseq_structure) = @_;
+
+    my $nadded = 0;
+
+    my $track = $panel->add_track( -glyph => 'graded_segments',
+                                                                 -bgcolor => 'lred',
+                                                                 -key => 'MIM',
+                                                                 -bump => +1,
+                                                                 -label => 1,
+                                                                 -description => 1,
+                                                                 -height => 4
+			       );
+
+    my $sql = "select f.acc_pos,f.original_aa,f.variant_aa,f.pdb_id,f.pdb_pos,f.pdb_chain,m.title from mukhyala.pseq_mim p join mukhyala.fasp_omim f on f.swissprot_id=p.alias join mukhyala.mim m on m.mim_number = p.mim_number where p.pseq_id=$q";
+    print(STDERR $sql, ";\n\n") if $opts{verbose};
+    my $featref = $u->selectall_arrayref( $sql );
+
+    foreach my $r (@$featref) {
+
+      my $href = ($view ? $pseq_structure->pos_script($r->[0],$r->[1]) : "pseq_structure.pl?pseq_id=$q");
+
+      $track->add_feature
+          ( Bio::Graphics::Feature->new( -start => $r->[0],
+					 -end => $r->[0],
+					 -name => $r->[1]."->".$r->[2],
+					 -attributes => { tooltip => $r->[6],
+							  href => $href
+							}
+					 ) );
+        $nadded++;
+    }
+    return $nadded;
+
 }
 
 sub glyph_type {
