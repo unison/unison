@@ -1,12 +1,12 @@
 #!/bin/sh -e
 #
-# xlink-dump -- dump rudimentary Unison data as sqlplus/sqlldr script
+# propseq-export -- dump pro-pseq_id data as sqlplus/sqlldr script
 #
 # This script connects to a Unison database and dumps pseq and alias
 # information. This is intended to be loaded into other databases in order
 # to facilitate linking from those databases to Unison.
 #
-# usage: ORAPASS=/pass xlink
+# usage: ORAPASS=/pass propseq-export
 #
 
 LOGIN=unison$ORAPASS@biodev1
@@ -31,7 +31,7 @@ else
 	mkdir -p "$XLINK_DIR"
 fi
 
-echo '# $Id: xlink,v 1.9 2004/05/14 15:05:18 rkh Exp $' 1>&2
+echo '# $Id: propseq-export,v 1.10 2004/06/25 00:20:56 rkh Exp $' 1>&2
 echo '# started' `date "+%Y-%m-%d %H:%M:%S"` 1>&2
 echo "# XLINK_DIR=$XLINK_DIR; CREATE=$CREATE; LOAD=$LOAD" 1>&2
 echo "# PSEQ_LIMIT=$PSEQ_LIMIT" 1>&2

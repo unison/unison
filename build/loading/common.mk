@@ -7,7 +7,7 @@ UHOME:=${HOME}/csb-db/unison
 
 PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc
 PATH:=${PATH}:${COMPBIO_EPREFIX}/bin:${COMPBIO_PREFIX}/bin
-PATH:=${PATH}:/usr/local/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
+PATH:=${PATH}:/usr/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
 export PATH
 
 export PGUSER:=loader
@@ -20,11 +20,11 @@ RENAME=${HOME}/opt/bin/rerename
 
 ### QSUB arguments and command
 # -V is necessary since we'll pass passwords in the env.
-Q:=
+ARCH:=
 QPPN:=2
-QNODES:=nodes=1:ppn=${QPPN}
+QNODES:=nodes=1:ppn=${QPPN}${ARCH}
 QTIME:=120000:00
-QOE:=-ogoose.gene.com:${PWD}/$@.out -egoose.gene.com:${PWD}/$@.err
+#QOE:=-ogoose.gene.com:${PWD}/$@.out -egoose.gene.com:${PWD}/$@.err
 QSUB:=qsub -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
 
 
@@ -135,7 +135,7 @@ qsub/%:
 	@N=`expr '$*' : '\(.*\)\.[a-z]*'`; \
 	set -x; \
 	echo "make -C${PWD} $*" \
-	| ${QSUB} -N$$N >$@.tmp
+		| ${QSUB} -N$$N >$@.tmp
 	/bin/mv -f $@.tmp $@
 
 #qdel:
