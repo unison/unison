@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.7 2003/10/09 16:59:30 rkh Exp $>
+S<$Id: DBI.pm,v 1.8 2003/10/09 17:52:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -46,8 +46,8 @@ our %opts =
    # on interceptor (local), comp* (svc), else exocluster (td-svc)
    # IF PGHOST IS SET AND YOU WANT A UNIX SOCKET CONNECTION,
    # you'll need to unset PGHOST first.
-   host => ( exists $ENV{PGHOST}
-			 ? ( $ENV{PGHOST} ne '' ? $ENV{PGHOST} : undef )
+   host => ( (exists $ENV{PGHOST}) and ($ENV{PGHOST} ne '')
+			 ? $ENV{PGHOST}
 			 : ( $hostname eq 'interceptor'
 				 ? undef
 				 : ( $hostname =~ m/^comp\d/ ? 'svc' : 'td-svc' ))),
@@ -55,9 +55,9 @@ our %opts =
    username => $ENV{PGUSER} || 'PUBLIC',
    password => $ENV{PGPASSWORD} || undef,
    attr => {
-			PrintError => 1,
-#			RaiseError => 1,
-			AutoCommit => 1
+			PrintError => 0,
+			RaiseError => 0,
+			AutoCommit => 1,
 		   },
   );
 
@@ -70,8 +70,8 @@ $p->getoptions( @options );
 
 
 
-sub new
-  {
+
+sub new {
   my $type = shift;
   my %self = (%opts, @_);
   my $self = bless(\%self,$type);
@@ -89,7 +89,8 @@ immediately and an exception thrown if unsuccessful.
 =back
 
 =cut
-  }
+}
+
 
 sub connect {
   my $self = shift;
@@ -100,16 +101,21 @@ sub connect {
 						 $self->{password},
 						 $self->{attr});
   if (not defined $dbh)	{
-	throw Unison::Exception::ConnectionFailed( "couldn't connect to unison",
-											   "dsn=$dsn\n" .
-											   'username='.$self->{username}."\n" .
-											   'password='.(defined $self->{password} ?
+	throw Unison::Exception::ConnectionFailed( "couldn't connect to Unison: ",
+											   'DBI ERROR: '.DBI->errstr()."\n"
+											   . "dsn=$dsn\n"
+											   . 'username='.$self->{username}."\n"
+											   . 'password='.(defined $self->{password} ?
 															'<hidden>' : '<undef>'),
 											   'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
 											 );
   }
 
+  $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
+  $dbh->do('SET statement_timeout = 180000'); # 180s
+
   $self->{dbh} = $dbh;
+
   return($self);
 
 =pod
@@ -126,35 +132,46 @@ Establishes a connection to the Unison database.
 }
 
 
-sub DESTROY
-  { $_[0]->dbh()->disconnect() if $_[0]->dbh(); }
+sub DESTROY {
+  $_[0]->dbh()->disconnect() if $_[0]->dbh();
+}
 
-sub dbh
-  { $_[0]->{dbh} }
+sub dbh {
+  $_[0]->{dbh};
+}
 
-sub is_open
-  { defined $_[0]->{'dbh'} };
+sub is_open {
+  defined $_[0]->{'dbh'}
+};
 
-sub AUTOLOAD
-  {
+
+sub AUTOLOAD {
   my $self = $_[0];
   my $method = our $AUTOLOAD;
   $method =~ s/^.*:://;
   return if $method eq 'DESTROY';
+
+  # define all DBI methods on the fly as though they were
+  # Unison:: methods
   if (defined $self->dbh()
-	  and $self->dbh()->can($method))
-	{
+	  and $self->dbh()->can($method)) {
 	warn("AUTOLOAD $AUTOLOAD ($self)\n") if $ENV{DEBUG};
-	my $sub = "sub $AUTOLOAD "
-	  . "{ \$_[0]->is_open() or throw Unison::Exception::NotConnected;"
-      .   "(shift)->dbh()->$method(\@_); }";
+	my $sub = <<EOF;
+    sub $AUTOLOAD {
+		my \$u = shift;
+		\$u->is_open() or throw Unison::Exception::NotConnected;
+		my \$dbh = \$u->dbh();
+        \$dbh->$method(\@_);
+	}
+EOF
 	eval $sub;
 	goto &$AUTOLOAD;
-	}
-  Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
-  die("$method...ooops");
-  throw Unison::Exception::NotImplemented ("can't find method $method");
   }
+
+  # Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
+  # die("$method...ooops");
+  throw Unison::Exception::NotImplemented ("can't find method $method");
+}
 
 
 =pod

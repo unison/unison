@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::paprospect2 -- Unison paprospect2 table utilities
-S<$Id: paprospect2.pm,v 1.3 2003/08/20 19:43:09 rkh Exp $>
+S<$Id: paprospect2.pm,v 1.4 2003/11/05 17:53:38 cavs Exp $>
 
 =head1 SYNOPSIS
 
@@ -22,6 +22,8 @@ B<> is a
 =cut
 
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 my %uf = (
    'raw' => 'raw_score',
@@ -46,22 +48,22 @@ my %uf = (
 =head2 insert_thread()
 
  Name:      insert_thread()
- Purpose:   insert 1 Prospect::Thread object into the database
- Arguments: Unison connection, pseq_id, run_id, 
-            Prospect::ThreadSummary or Prospect::Thread
+ Purpose:   insert 1 Bio::Prospect::Thread object into the database
+ Arguments: Unison connection, pseq_id, params_id, 
+            Bio::Prospect::ThreadSummary or Bio::Prospect::Thread
  Returns:   nada
 
 =cut
 
 sub insert_thread {
-  my ($u,$pseq_id,$run_id,$t) = @_;
+  my ($u,$pseq_id,$params_id,$t) = @_;
 
   # check parameters
   if      ( !defined $pseq_id or $pseq_id !~ m/^\d+$/ ) {
     throw Unison::BadUsage( "insertThread() pseq_id provided is missing or invalid" );
-  } elsif ( !defined $run_id or $run_id !~ m/^\d+$/ ) {
-    throw Unison::BadUsage( "insertThread() run_id provided is missing or invalid" );
-  } elsif  ( !defined $t or (ref $t !~ m/Prospect::Thread/ )) {
+  } elsif ( !defined $params_id or $params_id !~ m/^\d+$/ ) {
+    throw Unison::BadUsage( "insertThread() params_id provided is missing or invalid" );
+  } elsif  ( !defined $t or (ref $t !~ m/Bio::Prospect::Thread/ )) {
     throw Unison::BadUsage( "insertThread() thread provided is missing or invalid" );
   }
 
@@ -72,8 +74,8 @@ sub insert_thread {
   }
 
   # build key/values for sql insert
-  my @keys = ('pseq_id','run_id','pmodel_id',keys %uf );
-  my @values = ( $pseq_id,$run_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
+  my @keys = ('pseq_id','params_id','pmodel_id',keys %uf );
+  my @values = ( $pseq_id,$params_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
 
   throw Unison::BadUsage( "keys (" . $#keys+1 . ") != values (" . $#values+1 . ")\n" ) if $#keys != $#values;
 
@@ -95,21 +97,21 @@ sub insert_thread {
 =head2 delete_thread()
 
  Name:      delete_thread()
- Purpose:   delete 1 Prospect::Thread object into the database
- Arguments: Unison connection, pseq_id, run_id, 
-            Prospect::ThreadSummary or Prospect::Thread
+ Purpose:   delete 1 Bio::Prospect::Thread object into the database
+ Arguments: Unison connection, pseq_id, params_id, 
+            Bio::Prospect::ThreadSummary or Bio::Prospect::Thread
  Returns:   nada
 
 =cut
 
 sub delete_thread {
-  my ($u,$pseq_id,$run_id,$t) = @_;
+  my ($u,$pseq_id,$params_id,$t) = @_;
   # check parameters
   if      ( !defined $pseq_id or $pseq_id !~ m/^\d+$/ ) {
     throw Unison::BadUsage( "delete_thread() pseq_id provided is missing or invalid" );
-  } elsif ( !defined $run_id or $run_id !~ m/^\d+$/ ) {
-    throw Unison::BadUsage( "delete_thread() run_id provided is missing or invalid" );
-  } elsif  ( !defined $t or (ref $t !~ m/Prospect::Thread/ )) {
+  } elsif ( !defined $params_id or $params_id !~ m/^\d+$/ ) {
+    throw Unison::BadUsage( "delete_thread() params_id provided is missing or invalid" );
+  } elsif  ( !defined $t or (ref $t !~ m/Bio::Prospect::Thread/ )) {
     throw Unison::BadUsage( "delete_thread() thread provided is missing or invalid" );
   }
 
@@ -120,15 +122,15 @@ sub delete_thread {
   }
 
   # build key/values for sql insert
-  my @keys = ('pseq_id','run_id','pmodel_id',keys %uf );
-  my @values = ( $pseq_id,$run_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
+  my @keys = ('pseq_id','params_id','pmodel_id',keys %uf );
+  my @values = ( $pseq_id,$params_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
 
-  my $sql = 'delete from paprospect2 where pseq_id=? and run_id=? and pmodel_id=?';
-  my $show_sql = "delete from paprospect2 where pseq_id=$pseq_id and run_id=$run_id and pmodel_id=$pmodel_id";
+  my $sql = 'delete from paprospect2 where pseq_id=? and params_id=? and pmodel_id=?';
+  my $show_sql = "delete from paprospect2 where pseq_id=$pseq_id and params_id=$params_id and pmodel_id=$pmodel_id";
   print "deleteThread(): $show_sql\n" if $ENV{'DEBUG'};
 
   my $sth = $u->prepare_cached($sql);
-  $sth->execute( $pseq_id,$run_id, $pmodel_id );
+  $sth->execute( $pseq_id, $params_id, $pmodel_id );
   $sth->finish();
 }
 

@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.5 2003/10/18 00:11:03 rkh Exp $>
+S<$Id: palias.pm,v 1.6 2003/10/28 22:34:36 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -18,6 +18,8 @@ B<> is a
 =cut
 
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 
 =pod
@@ -55,7 +57,7 @@ sub add_palias {
 
   $self->do( "insert into palias (pseq_id,porigin_id,alias,descr) "
        . "values ($pseq_id,$porigin_id,'$alias',$descr)",
-         { PrintError=>0 } );
+         { PrintError=>1 } );
   return;
 }
 
@@ -119,7 +121,7 @@ sub get_pseq_id_from_alias {
 	|| throw Unison::RuntimeError("alias not defined");
   my @ids;
 
-  if ($alias !~ m%^[~/^]%) {				# doesn't smell like a regexp
+  if (not $alias =~ m%^[~/^]%) {			# doesn't smell like a regexp
 	(@ids) = $u->get_pseq_id_from_alias_exact( $alias );
 	return(@ids) if @ids;
 

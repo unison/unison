@@ -9,16 +9,17 @@ NPRE:=
 NSPLIT:=5000
 NJOBS:=52
 Q:=xeons
-QSUB:=qsub -q$Q -qall -lwalltime=120000:00,pcput=120000:00,nodes=1:ppn=2 -V
+QSUB:=qsub -q${Q} -lwalltime=120000:00,pcput=120000:00,nodes=1:ppn=2 -V
 export PROSPECT_PATH:=/apps/compbio/i686-linux-2.4/opt/prospect
-PATH:=/home/rkh/csb-db/unison/bin:${PROSPECT_PATH}:${PATH}
+PATH:=/home/rkh/csb-db/unison/sbin:${PROSPECT_PATH}:${PATH}
 export PATH
 
 export LD_LIBRARY_PATH=/home/rkh/opt/i686-linux-2.4/lib
 export PERL5LIB=/home/rkh/opt/lib/perl5/site_perl:/home/rkh/opt/lib/perl5
 
 export PGHOST=svc
-export PGDATABASE=csb
+export PGDATABASE=csb-dev
+export PGPASSWORD=marge
 
 mtr=p1
 include .${mtr}.var
@@ -27,7 +28,7 @@ RUN_ID=1
 #TFILE:=all
 TFILE:=c1qtnf
 DIR:=${TFILE}-${RUN_ID}
-RUNP2:=run-p2 -Uloader --update -p${RUN_ID} --tfile /apps/compbio/share/prospect2/tfiles/${TFILE}
+RUNP2:=run-paprospect2 -dcsb-dev -Uloader -p${RUN_ID} -m10
 
 
 

@@ -20,9 +20,11 @@ sub get_userprefs {
 	$userprefs = $self->selectrow_hashref($sth,undef,'PUBLIC');
   }
 
-  # ack! at least return a hashref
+  # ack! at least return a reasonable guess
   if (not defined $userprefs) {
-	$userprefs = {};
+	$userprefs = { show_sql => 1,
+				   show_tips => 1
+				 };
   }
 
   return $userprefs;

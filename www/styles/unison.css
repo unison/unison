@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.11 2003/10/18 00:14:11 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.12 2003/11/04 14:40:40 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -161,6 +161,8 @@ IMG.logo {
 SPAN.tipped {
  color: green;
  font-weight: bold;
+ text-decoration: underline;
+ /* border: black thin dashed; */
 }
 SPAN.tipped:hover {
  cursor:pointer;cursor:hand;
@@ -181,6 +183,7 @@ div.sql {
  border: black thin solid;
  padding: 2px;
  margin: 20px;
+ color: black;
  background-color: #55ff55;
  font-family: monospace;
 }

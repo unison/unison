@@ -2,7 +2,7 @@ drop table pfregexp;
 drop table pmregexp;
 
 create table pmregexp (
-	regexp text
+    regexp text
 ) inherits (pmodel) without oids; 
 
 create unique index pmregexp_pmodel_id on pmregexp (pmodel_id );
@@ -11,11 +11,10 @@ create or replace function pmregexp_u_trigger ()
 returns trigger
 language plpgsql as '
 BEGIN
-	if OLD.regexp != NEW.regexp then
-		RAISE EXCEPTION ''pmodel_id % (%): regular expressions are immutable'',
-			OLD.pmodel_id, OLD.acc;
-		RAISE EXCEPTION ''  delete pmregexp and add a new one instead.'';
-	end if;
+	RAISE EXCEPTION ''pmodel_id % (%): regular expressions are immutable'',
+           OLD.pmodel_id, OLD.acc;
+	-- no return
+    RETURN NEW;
 END;';
 
 create trigger pmregexp_u_trigger before update on pmregexp 
@@ -26,9 +25,9 @@ for each row execute procedure pmregexp_u_trigger();
 --old.regexp != new.regexp do instead select warn(old.acc||': regexps are immutable');
 
 create table pfregexp (
-	pmodel_id integer not null 
-		references pmregexp(pmodel_id)
-		on delete cascade on update cascade
+    pmodel_id integer not null 
+        references pmregexp(pmodel_id)
+        on delete cascade on update cascade
 ) inherits (pfeature) without oids;
 
 
@@ -39,12 +38,12 @@ comment on table pfregexp is 'regular expression features based on pmregexp moti
 
 
 insert into pmregexp (porigin_id,acc,regexp,descr) values (porigin_id_lookup('rkh'),
-	'ITIM','[ILV].(Y)..[ILV]',
-	'Immunotyrosine Inhibition Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=20');
+    'ITIM','[ILV].(Y)..[ILV]',
+    'Immunotyrosine Inhibition Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=20');
 insert into pmregexp (porigin_id,acc,regexp,descr) values (porigin_id_lookup('rkh'),
-	'ITAM','[DE]..(Y)..[LI].{6,12}(Y)..[LI]',
-	'Immunotyrosine Activation Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=17');
+    'ITAM','[DE]..(Y)..[LI].{6,12}(Y)..[LI]',
+    'Immunotyrosine Activation Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=17');
 insert into pmregexp (porigin_id,acc,regexp,descr) values (porigin_id_lookup('rkh'),
-	'ITSM',' ..T.(Y)..[IV]',
-	'Immunotyrosine Switch Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=142');
+    'ITSM','..T.(Y)..[IV]',
+    'Immunotyrosine Switch Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=142');
 

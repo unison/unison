@@ -5,6 +5,7 @@
 use strict;
 use warnings;
 use Unison;
+use Unison::WWW::Page;
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Getopt::Long qw(:config gnu_getopt);
@@ -66,7 +67,7 @@ add_papssm( $u, $panel, $opts{pseq_id} );
 add_paprospect2( $u, $panel, $opts{pseq_id} );
 
 $panel->add_track( ) for 1..2; 				# spacing
-$panel->add_track( -key => '$Id: graphic_features.pl,v 1.9 2003/10/29 22:18:37 cavs Exp $',
+$panel->add_track( -key => '$Id: graphic-features,v 1.10 2004/01/08 02:17:38 rkh Exp $',
 				   -key_font => 'gdSmallFont',
 				   -bump => +1,
 				 );

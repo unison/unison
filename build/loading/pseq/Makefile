@@ -3,17 +3,19 @@
 .PHONY: FORCE
 
 SHELL:=bash #$(shell which bash)
-PATH:=../../bin:${PATH}
-#BDB:=/usr/local/seq/share/blast/aa
-BDB:=/apps/compbio/share/seqdb
-PDBDIR:=/usr/local/seq/share/mirrors/ftp.rcsb.org/pub/pdb/data/structures/divided/pdb
+PATH:=../../sbin:${PATH}
 
 
 SOURCES:=
 ifeq (${PLATFORM},alpha-osf1-5.1)
+SDB:=/usr/local/seq/share/seqdb/aa
+BDB:=${SDB}
 SOURCES+=spdi pdb sprot
 SOURCES+=incyte pred ensembl nr patent proteome dblast hum
 else
+PDBDIR:=/apps/compbio/share/mirrors/ftp.rcsb.org/pub/pdb/data/structures/divided/pdb
+SDB:=/apps/compbio/share/seqdb/aa
+BDB:=${SDB}
 SOURCES+=p2templates
 endif
 
@@ -30,8 +32,11 @@ FACAT:=cat
 PHEAD:=
 endif
 
+LOAD_FASTA:=load-fasta -Uunison -dcsb-dev
 
-all: $(addsuffix .log,$(addprefix log/, ${SOURCES}))
+
+
+all: $(addsuffix .log,${SOURCES})
 
 test:
 	make -f bin/load.mf all TEST=1
@@ -43,29 +48,32 @@ test:
 vpath % ${BDB}
 
 
-log/curagen.log : log/%.log : ${BDB}/Curagen_Protein
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+curagen.log : %.log : ${BDB}/Curagen_Protein
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
-log/dblast.log : log/%.log : ${BDB}/dblast ${BDB}/dblast.new
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+dblast.log : %.log : ${BDB}/dblast ${BDB}/dblast.new
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
-log/hum.log : log/%.log : ${BDB}/hum.pro
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+hum.log : %.log : ${BDB}/hum.pro
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
-log/ipi.log : log/%.log : ${BDB}/ipi.HUMAN.fasta ${BDB}/ipi.MOUSE.fasta
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+ipi.log : %.log : ${BDB}/ipi.HUMAN.fasta ${BDB}/ipi.MOUSE.fasta
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
-log/mus.log : log/%.log : ${BDB}/mus.pro
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+mus.log : %.log : ${BDB}/mus.pro
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
-log/ncbi.log : log/%.log : ${BDB}/ncbi.pro.human ${BDB}/ncbi.pro.mouse
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+ncbi.log : %.log : ${BDB}/ncbi.pro.human ${BDB}/ncbi.pro.mouse
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
-log/sprot.log : log/%.log : ${BDB}/sprot.fas
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+sprot.log : %.log : ${BDB}/sprot.fas
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
-log/%.log : ${BDB}/%
-	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+spdi.log : %.log : ${BDB}/sst.fa
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
+	/bin/mv -f $@.0 $@
+%.log : ${BDB}/%
+	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 	/bin/mv -f $@.0 $@
 
 
@@ -74,43 +82,43 @@ log/%.log : ${BDB}/%
 #	load-p2template <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-curagen.log: Curagen_Protein
-#	load-fasta -Uadmin --nomd5 --noalias -oPDB <$< >$@.0 2>&1
+#	${LOAD_FASTA} -oPDB <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-pdb.log: pdb
-#	load-fasta -Uadmin --nomd5 --noalias -oPDB <$< >$@.0 2>&1
+#	${LOAD_FASTA} -oPDB <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-spdi.log: load-%.log: spdi.fa
-#	load-fasta -Uadmin --nomd5 --noalias -o$* <$< >$@.0 2>&1
+#	${LOAD_FASTA} -o$* <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-sst.log: /usr/seqdb3/sst/sstpro
-#	load-fasta -Uadmin --nomd5 --noalias -oSPDI <$< >$@.0 2>&1
+#	${LOAD_FASTA} -oSPDI <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-ensembl.log : load-%.log : ${BDB}/ens.known ${BDB}/ens.novel
-#	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+#	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-ipi.log : load-%.log : ${BDB}/ipi.HUMAN ${BDB}/ipi.MOUSE
-#	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -o$* >$@.0 2>&1
+#	${FACAT} $^ | ${LOAD_FASTA} -o$* >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-sprot.log : load-%.log : ${BDB}/sprot
-#	load-fasta -Uadmin --nomd5 --noalias -oswiss-prot <$< >$@.0 2>&1
+#	${LOAD_FASTA} -oswiss-prot <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-incyte.log: /usr/incyte/data/blast/databases/FdnFLProteinOct02 /usr/incyte/data/blast/databases/FdnNRAltFLProteinOct02
-#	${FACAT} $^ | load-fasta -Uadmin --nomd5 --noalias -oIncyte >$@.0 2>&1
+#	${FACAT} $^ | ${LOAD_FASTA} -oIncyte >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-rps.log: /usr/seqdb/blast/rps-proteins.fasta
-#	load-fasta -Uadmin --nomd5 --noalias -o$< <$< >$@.0 2>&1
+#	${LOAD_FASTA} -o$< <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-fantom.log: /usr/seqdb/blast/fantom.pro
-#	load-fasta -Uadmin --nomd5 --noalias -oFANTOM <$< >$@.0 2>&1
+#	${LOAD_FASTA} -oFANTOM <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-proteome.log: /usr/local/seq/share/blast/aa/proteome
-#	load-fasta -Uadmin --nomd5 --noalias -oProteome <$< >$@.0 2>&1
+#	${LOAD_FASTA} -oProteome <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-hum.log: /usr/local/seq/share/blast/aa/hum
-#	load-fasta -Uadmin --nomd5 --noalias -ohum <$< >$@.0 2>&1
+#	${LOAD_FASTA} -ohum <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 #load-dblast.log: /usr/local/seq/share/blast/aa/dblast
-#	load-fasta -Uadmin --nomd5 --noalias -odblast <$< >$@.0 2>&1
+#	${LOAD_FASTA} -odblast <$< >$@.0 2>&1
 #	/bin/mv -f $@.0 $@
 
 

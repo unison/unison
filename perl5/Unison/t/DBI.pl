@@ -3,13 +3,31 @@
 use strict;
 use warnings;
 use Unison;
-
-use lib '..';
+use CBT::Exceptions;
 
 my $u = new Unison();
 
-print("$_: ", defined $u->{$_} ? $u->{$_} : 'undef', "\n") 
-  for (qw(dbname host username password));
+print("$u: (", 
+	  join(',',map {defined $u->{$_} ? $u->{$_} : 'undef'}
+		   (qw(dbname host username password))),
+	  ")\n");
+
+
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
+try {
+  foreach my $sql ('select count(*) from porigin',
+				   'select * from v_run_history where pseq_id=5',
+				   'select from bogus') {
+	my (@r) = map { defined $_ ? $_ : 'undef'} $u->selectrow_array($sql);
+	print("$sql returns <",join(',',@r),">\n");
+  }
+} catch Unison::Exception with {
+  die($_[0]);
+}
+
+
 
 
 __END__
