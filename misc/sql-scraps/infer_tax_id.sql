@@ -58,11 +58,8 @@ SELECT CASE
     THEN
         (SELECT CASE
             WHEN ($3 ~ ''^\\\\[Human\\\\]'')        THEN gs2tax_id(''HUMAN'')
-            WHEN ($3 ~ ''Homo sapiens'')            THEN gs2tax_id(''HUMAN'')
             WHEN ($3 ~ ''^\\\\[Mouse\\\\]'')        THEN gs2tax_id(''MOUSE'')
-            WHEN ($3 ~ ''Mus Musculus'')            THEN gs2tax_id(''MOUSE'')
             WHEN ($3 ~ ''^\\\\[Rat\\\\]'')          THEN gs2tax_id(''RAT'')
-            WHEN ($3 ~ ''Rattus norvegicus'')       THEN gs2tax_id(''RAT'')
         END)
 
     WHEN ($1 = ''pred'')
