@@ -10,6 +10,10 @@ export LD_LIBRARY_PATH=$ROOT/lib
 PATH=/home/rkh/opt/$PLATFORM/pkgs/postgresql/bin:/bin
 
 
+echo "OBSOLETE: use pg_ctl instead"
+exit 2
+
+
 get_pid()  { head -1 $LOCKFILE 2>/dev/null; }
 
 case $1 in
