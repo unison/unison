@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.12 2003/11/04 14:40:40 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.13 2004/02/24 19:23:54 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -186,6 +186,7 @@ div.sql {
  color: black;
  background-color: #55ff55;
  font-family: monospace;
+ font-size: xx-small;
 }
 div.tip {
  border: black thin solid;
