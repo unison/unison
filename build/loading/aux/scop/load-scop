@@ -9,7 +9,7 @@
 # -c, -d, -h may be specified in combination
 # -C outputs copy from statements instead (UNTESTED)
 #
-# $Id$
+# $Id: load-scop,v 1.1 2004/03/18 17:26:22 cavs Exp $
 #------------------------------------------------------------------------------- 
 
 
@@ -25,13 +25,14 @@ GetOptions( \%opts,
       'cla|c=s',
       'des|d=s',
       'hie|h=s',
+      'verbose|v+',
       'acavsy|C+' )
   || die("usage\n");
 
 my $u = new Unison();
 
 #&load_cla($u,$opts{cla}) if exists $opts{cla};
-&load_des($u,$opts{des}) if exists $opts{des};
+#&load_des($u,$opts{des}) if exists $opts{des};
 &load_hie($u,$opts{hie}) if exists $opts{hie};
 exit(0);
 
@@ -41,9 +42,9 @@ exit(0);
 # PURPOSE: drop fks to scop tables
 #-------------------------------------------------------------------------------
 sub drop_fk {
-	my $dbh = shift;
-	$dbh->do('ALTER TABLE pmprospect2 DROP CONSTRAINT cavs.p2template_sunid_exists');
-	return;
+  my $dbh = shift;
+  $dbh->do('ALTER TABLE pmprospect2 DROP CONSTRAINT cavs.p2template_sunid_exists');
+  return;
 }
 
 
@@ -52,10 +53,10 @@ sub drop_fk {
 # PURPOSE: add fks to scop tables
 #-------------------------------------------------------------------------------
 sub add_fk {
-	my $dbh = shift;
-	$dbh->do('ALTER TABLE ONLY pmprospect2 '.
-	    'ADD CONSTRAINT p2template_sunid_exists FOREIGN KEY (sunid) REFERENCES scop.cla(sunid)' );
-	return;
+  my $dbh = shift;
+  $dbh->do('ALTER TABLE ONLY pmprospect2 '.
+      'ADD CONSTRAINT p2template_sunid_exists FOREIGN KEY (sunid) REFERENCES scop.cla(sunid)' );
+  return;
 }
 
 
@@ -67,8 +68,10 @@ sub load_cla {
   my ($dbh,$fn) = @_;
   my $fh = new IO::File;
 
-	$dbh->do('truncate cavs.cla');
-  my $sql = 'insert into cavs.cla (sid,pdb,def,sccs,sunid,cl,cf,sf,fa,dm,sp) ' .
+  my $sql = 'truncate cavs.cla';
+  printf STDERR "$sql\n" if $opts{verbose};
+  $dbh->do( $sql );
+  $sql = 'insert into cavs.cla (sid,pdb,def,sccs,sunid,cl,cf,sf,fa,dm,sp) ' .
     'values (?,?,?,?,?,?,?,?,?,?,?)';
   (my $sqlf = $sql) =~ s/\?/%s/g;
   $sqlf .= "\n";
@@ -84,7 +87,7 @@ sub load_cla {
     my ($dm) = $H=~m/dm=(\d+)/;
     my ($sp) = $H=~m/sp=(\d+)/;
 
-    printf ($sqlf,$sid,$pdb,$def,$sccs,$px,$cl,$cf,$sf,$fa,$dm,$sp);
+    printf STDERR ($sqlf,$sid,$pdb,$def,$sccs,$px,$cl,$cf,$sf,$fa,$dm,$sp) if $opts{verbose};
     $sth->execute($sid,$pdb,$def,$sccs,$px,$cl,$cf,$sf,$fa,$dm,$sp);
   }
   $fh->close();
@@ -100,8 +103,10 @@ sub load_des {
   my ($dbh,$fn) = @_;
   my $fh = new IO::File;
 
-	$dbh->do('truncate cavs.des');
-  my $sql = 'insert into cavs.des (sunid,level,sccs,sname,descr) values (?,?,?,?,?)';
+  my $sql = 'truncate cavs.des';
+  printf STDERR "$sql\n" if $opts{verbose};
+  $dbh->do( $sql );
+  $sql = 'insert into cavs.des (sunid,level,sccs,sname,descr) values (?,?,?,?,?)';
   (my $sqlf = $sql) =~ s/\?/%s/g;
   $sqlf .= "\n";
   my $sth = $dbh->prepare( $sql );
@@ -112,7 +117,7 @@ sub load_des {
     my ($sunid,$lvl,$sccs,$sname,$descr) = split(' ',$l,5);
     $sname = ($sname eq '-' ) ? 'NULL' : $sname;
 
-    printf ($sqlf,$sunid,$lvl,$sccs,$sname,$descr);
+    printf STDERR ($sqlf,$sunid,$lvl,$sccs,$sname,$descr) if $opts{verbose};
     $sth->execute($sunid,$lvl,$sccs,$sname,$descr);
   }
   $fh->close();
@@ -127,10 +132,12 @@ sub load_des {
 #-------------------------------------------------------------------------------
 sub load_hie {
   my ($dbh,$fn) = @_;
-
   my $fh = new IO::File;
-	$dbh->do('truncate cavs.hie');
-  my $sql = 'insert into cavs.hie (sunid,psunid,children) values (?,?,?)';
+
+  my $sql = 'truncate cavs.hie';
+  printf STDERR "$sql\n" if $opts{verbose};
+  $dbh->do( $sql );
+  $sql = 'insert into cavs.hie (sunid,psunid,children) values (?,?,?)';
   (my $sqlf = $sql) =~ s/\?/%s/g;
   $sqlf .= "\n";
   my $sth = $dbh->prepare( $sql );
@@ -139,10 +146,10 @@ sub load_hie {
     next if $l =~ m/^\#/;
     chomp $l;
     my ($sunid,$psunid,$children) = split(' ',$l,3);
-    $psunid = $psunid eq '-' ? '\N' : $psunid;
-    $children = $children eq '-' ? '\N' : "{$children}";
+    $psunid = $psunid eq '-' ? 'NULL' : $psunid;
+    $children = $children eq '-' ? '{}' : "{$children}";
 
-    printf ($sqlf,$sunid,$psunid,$children);
+    printf STDERR ($sqlf,$sunid,$psunid,$children) if $opts{verbose};
     $sth->execute($sunid,$psunid,$children);
   }
   $fh->close();
