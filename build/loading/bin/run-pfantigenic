@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # run-pfantigenic -- run EMBOSS antigenic and load into unison
-# $Id: run-pfantigenic,v 1.1 2003/10/06 19:23:01 rkh Exp $
+# $Id: run-pfantigenic,v 1.2 2003/10/06 21:48:57 rkh Exp $
 
 
 use Unison;
@@ -9,13 +9,26 @@ use Bio::SeqIO;
 use Bio::PrimarySeq;
 use IPC::Open2;
 use IO::Handle;
+use IO::Pipe;
 use Env qw(@PATH);
+use Getopt::Long;
+
+my %opts = 
+  (
+   debug => 0
+  );
+GetOptions( \%opts,
+			'debug|d+' )
+  || die("$0: usage\n");
+
 
 unshift(@PATH, '/apps/compbio/i686-linux-2.4/opt/EMBOSS/bin');
 
 my $run_id = 4;								# hardwired for now
+my $temp_fn = "/tmp/run-pfantigenic-$$.fa";
 
-sub run1($$);
+
+sub run1($$$);
 
 my $u = new Unison;
 
@@ -27,33 +40,78 @@ my $sth = $u->prepare( 'insert into pfantigenic(pseq_id,start,stop,score,max_pos
 my @list = Unison::utils::range_to_enum(@ARGV);
 for(my $i=0; $i<=$#list; $i++) {
   my $pseq_id = $list[$i];
-  printf(STDERR "\rloading %8s (%4d/%4d %3d%%)...",
-		 $pseq_id, ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
-  run1( $u, $pseq_id );
-  print(STDERR "done");
-}
-print(STDERR "\n");
-
-exit(0);
-
-
-sub run1($$) {
-  my $u = shift;
-  my $pseq_id = shift;
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   if (not defined $seq) {
 	warn("$0: Unison:$pseq_id doesn't exist\n");
 	return;
   }
-  if (length($seq) >= 1000) {
-	warn("$0: Unison:$pseq_id is too long (", length($seq), ">=1000 AA)\n");
+
+  printf(STDERR "\rloading Unison:%-8s (%5d AA); %4d/%4d %3d%% complete...",
+		 $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
+  run1( $u, $pseq_id, $seq );
+}
+print(STDERR "\n");
+
+exit(0);
+
+
+
+
+sub run1($$$) {
+  my $u = shift;
+  my $pseq_id = shift;
+  my $seq = shift;
+  my $my_buf;
+  my $max_len = 1500;
+
+
+  # write temp sequence
+  my $seqio = new Bio::SeqIO( -format => 'fasta',
+							  -file => ">$temp_fn" );
+  $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq,
+										 -id  => "Unison:$pseq_id") );
+  $seqio->close();
+
+  # run antigenic
+  my $rer = IO::Pipe->new->reader(join( ' ', @cmd, '-outfile', 'stdout',
+										$temp_fn, '2>/dev/null') );
+
+  # read blocks
+  local $/ = "\n\n";
+  while( my $block = <$rer> ) {
+	my ($start,$end,$score,$max_pos) 
+	  = $block =~ m/Start: (\d+)\nEnd: (\d+)\nLength: \d+\nScore: (\S+)\nMax_score_pos: (\d+)\n/;
+	next unless defined $start;
+	next if $opts{debug};
+	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$run_id);
+	$u->last_run_update($pseq_id,$run_id);
+  }
+}
+
+
+
+## The following MOSTLY works.  It seems that some sequences cause
+## blocking and I can't figure out why.  It's sequence-specific and
+## correlates with length.  My guess is that the output of sequences with
+## a large number of antigenic sites (which correlates with length) is
+## buffered and the reader below blocks.  I don't think there's any way
+## for me to set the reader to non-buffered.
+sub run1_NO_TEMP_FILE($$$) {
+  my $u = shift;
+  my $pseq_id = shift;
+  my $seq = shift;
+  my $my_buf;
+  my $max_len = 1500;
+
+  if (length($seq) >= $max_len) {
+	warn("\n$0: Unison:$pseq_id is too long (", length($seq), ">=$max_len AA)\n");
 	return;
   }
 
   my ($rer,$wer,$pid);
-  eval { $pid = open2( $rer, $wer, @cmd ) };
-  #print(STDERR "## pid=$pid\n");
+  eval { $pid = open2( $rer, $wer, @cmd, '-filter' ) };
+  print(STDERR "## pid=$pid\n") if $opts{debug};
   if ($@) {
 	die("$0: @cmd failed\n") if ( $@ =~ m/^open2/ );
 	die;
@@ -63,17 +121,19 @@ sub run1($$) {
 							  -fh => $wer );
   $seqio->write_seq( new Bio::PrimarySeq(-seq => $seq,
 										 -id  => "Unison:$pseq_id") );
-  #print(STDERR '## sent ', substr($seq,0,20), "...\n");
+  print(STDERR '## sent ', substr($seq,0,20), "...\n") if $opts{debug};
   $wer->close();
 
   my $kid = waitpid($pid,0);
-  #print(STDERR "## reaped $pid ($kid)\n");
+  print(STDERR "## reaped $pid ($kid)\n") if $opts{debug};
+  $rer->flush();
 
   local $/ = "\n\n";
   while( my $block = <$rer> ) {
 	my ($start,$end,$score,$max_pos) 
 	  = $block =~ m/Start: (\d+)\nEnd: (\d+)\nLength: \d+\nScore: (\S+)\nMax_score_pos: (\d+)\n/;
 	next unless defined $start;
+	next if $opts{debug};
 	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$run_id);
 	$u->last_run_update($pseq_id,$run_id);
   }
