@@ -5,7 +5,7 @@
 # PURPOSE: parse BLAT psl output for protein-to-genome alignments. load
 #          output into set of unison tables.
 # 
-# $Id$
+# $Id: load-blat,v 1.1 2004/01/28 00:32:34 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -35,13 +35,20 @@ while( my $r = $bio->next_result() ){
   # insertion criteria: score >= score_cutoff and pct_ident > pct_ident_cutoff
   if ( $r->score >= $score_cutoff && $pct_ident[0] >= $pct_ident_cutoff ) {
 
-    $r->seq_id =~ m/Unison:(\d+)/;
-    my $pseq_id = $1;
+    my $pseq_id;
+    if ( defined $r->seq_id && $r->seq_id =~ m/Unison:(\d+)/ ) {
+      $pseq_id = $1;
+    } else {
+      die( "ERROR: can't parse pseq_id from seq_id=(",$r->seq_id,")\n" );
+    }
 
-    my @hsp_ids;
+    my (@hsp_ids,$chr);
     foreach my $f ( $r->get_SeqFeatures() ) {
-      $f->seq_id =~ m/chr(\w+)/;
-      my $chr = $1;
+      if ( defined $f->seq_id && $f->seq_id =~ m/chr(\w+)/ ) {
+        $chr = $1;
+      } else {
+        die( "ERROR: can't parse chromosome from seq_id=(",$f->seq_id,")\n" );
+      }
           
       # load each HSP
       $hsp_sth->execute( $genasm_id, $chr, ( $f->strand > 0 ) ? 'true' : 'false', $f->start, $f->end, $pseq_id, $f->hstart, $f->hend );
@@ -52,7 +59,7 @@ while( my $r = $bio->next_result() ){
     my $hsp_str = join (':', @hsp_ids );
 
     # load the alignment
-    print "Unison:$pseq_id mapped to chr$chr (ident: $ident[0], score: ",$r->score,", exons: ",($#hsp_ids+1),")\n";
+    printf "Unison:%-10d mapped to chr%2s (ident: %5d, score: %4.2f, exons: %3d)\n",$pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1);
     $aln_sth->execute( $hsp_str, $ident[0], $qgap_cnt[0], $qgap_bases[0], $tgap_cnt[0], $tgap_bases[0] );
   }
 }
