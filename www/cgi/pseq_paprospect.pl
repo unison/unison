@@ -27,7 +27,7 @@ my @cols =
    ['aln?',                                              ],
    ['acc',       'acc',       'acc',     'acc'           ],
    ['%IDE', 	 'pct_ident', 'pide',    'pct_ident desc'],
-   ['raw',       'raw',       'raw',     'raw'           ],
+   ['raw',       'raw',       'raw',     'raw desc'      ],
    ['svm',       'svm',       'svm',     'svm desc'      ],
    ['singleton', 'singleton', 'sing', 	 'singleton'     ],
    ['pairwise',  'pairwise',  'pair',  	 'pairwise'      ],
@@ -49,7 +49,7 @@ $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.18 2004/06/25 00:20:14 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.19 2004/07/22 22:30:49 rkh Exp $ ');
 
 
 my $u = $p->{unison};
@@ -126,7 +126,7 @@ foreach my $row ( @{$feats} ) {
 
 
 # determine index of column to highlight
-my %colnum = map {$cols[$_]->[1] => $_}
+my %colnum = map {$cols[$_]->[2] => $_}
 			  grep {defined $cols[$_]->[1]} 0..$#cols;
 my $hc = $colnum{$v->{sort}};
 
@@ -136,7 +136,7 @@ for(my $fi=0; $fi<=$#htmlcols; $fi++) {
   next if $fi == $hc;
   next unless defined $cols[$fi]->[1];
   $htmlcols[$fi] = sprintf("<a href=\"%s\">%s</a>",
-						   $p->make_url({sort=>$cols[$fi]->[1]},
+						   $p->make_url({sort=>$cols[$fi]->[2]},
 										qw(pseq_id params_id pmodelset_id)),
 						   $htmlcols[$fi]);
 }
