@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id$
+\echo $Id: views.sql,v 1.1 2002/11/27 00:06:42 rkh Exp $
 
 -- views
 
@@ -10,11 +10,10 @@
 */
 
 
-/* drop view pseqsummary;
+/* drop view pseqsummary; */
 create view pseqsummary as
-	select q.pseq_id,q.len,q.seq,o.origin,a.alias
-	from  pseq as q  
-	right join palias as a on q.pseq_id=a.pseq_id
+	select q.pseq_id,q.len,q.md5,o.origin,a.alias,q.seq
+	from pseq as q  
+	full join palias as a on q.pseq_id=a.pseq_id
 	left join porigin as o on a.porigin_id=o.porigin_id
 	order by q.pseq_id,o.origin,a.alias;
-*/

@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id$
+\echo $Id: api.sql,v 1.1 2002/11/27 00:06:42 rkh Exp $
 -- functions to facilitate unison access
 
 
@@ -18,7 +18,7 @@ DECLARE
 	O alias for $1;				-- origin
 	rv integer;
 BEGIN
-	select into rv porigin_id from porigin where origin = upper(O);
+	select into rv porigin_id from porigin where upper(origin) = upper(O);
 	if found then return rv; end if;
 	insert into porigin (origin) values (O);
 	select into rv porigin_id from porigin where origin = O;
