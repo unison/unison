@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # load-pmprofile -- loads psiblast profiles into unison
-# $Id: load-pfprofile,v 1.1 2003/04/30 21:09:34 rkh Exp $
+# $Id: load-papssm,v 1.1 2003/05/27 22:33:45 rkh Exp $
 
 
 use strict;
@@ -22,14 +22,15 @@ GetOptions( \%options,
   || die("options");
 
 my $fh = new IO::File;
-my $u = new Unison;
+my $u = new Unison();
+
 
 my $pmodel_id;
 if (defined $pmodel_id)
   { $pmodel_id = $options{'pmodel_id'}; }
 else
   {
-  my $sql = "select pmodel_id from pmpssm where name='".$options{'pmodel-name'}."'";
+  my $sql = "select pmodel_id from pmpssm where acc='".$options{'pmodel-name'}."'";
   $pmodel_id = $u->selectrow_array($sql);
   }
 
@@ -39,8 +40,8 @@ print("# loading for pmodel_id=$pmodel_id\n");
 
 my $sth;
 $sth = $u->prepare("insert into papssm(pmodel_id,pseq_id,start,stop,eval,".
-				   "len,score,ident,pos,gap) values ($pmodel_id,?,?,?,?,?,?,?,?,?)")
-  || die($u->errstr());
+				   "len,score,ident,sim,gaps,mstart,mstop) values ($pmodel_id,?,?,?,?,?,?,?,?,?,0,0)");
+#  || die($u->errstr());
 
 my $fn = shift;
 $fh->open("<$fn")
