@@ -1,0 +1,64 @@
+#!/usr/bin/env perl
+# $Id: load-pahmm,v 1.6 2003/04/12 00:37:22 rkh Exp $
+# load-pahmm -- load hmm alignments
+
+use warnings;
+use strict;
+use lib ('.', "$ENV{HOME}/unison/perl5");
+use Unison;
+use IO::File;;
+use File::Temp;
+use Bio::SearchIO;
+use Data::Dumper;
+#use Getopt::Long qw(:config gnu_getopt);
+
+
+my $u = new Unison;
+
+my $fn = shift || '-';
+my $in = new Bio::SearchIO(-format => 'hmmer', -file => $fn);
+
+my @fields = qw(pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
+
+my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
+										   join(',',@fields), join(',',map {'?'} @fields)));
+
+while( my $result = $in->next_result ) {
+  my $q = $result->query_name();
+  my ($pseq_id) = $q =~ m/Unison:(\d+)/;
+  die("hmmer query wasn't for a unison sequence (e.g., Unison:76)\n") unless defined $pseq_id;
+
+  if ($result->hmm_name() !~ m/Pfam_fs$/) {
+	die("unison currently contains only Pfam local alignments (Pfam_fs)\n");
+  }
+
+  while( my $hit = $result->next_hit ) {
+	my $name = $hit->name();
+	my $pmodel_id = get_pmodel_id($name);
+	if (not defined $pmodel_id) {
+	  warn("couldn't look up a pmodel_id for $name; skipping this hit\n");
+	  next;
+	}
+
+	while( my $hsp = $hit->next_hsp ) {
+	  my @data = ($pseq_id, $hsp->start('query'), $hsp->end('query'),
+				  $pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
+				  $hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
+				  int($hsp->score()), $hsp->evalue());
+	  $pahmm_sth->execute(@data);
+	  print(join(' , ',@data),"\n");
+	}
+  }
+}
+
+
+
+sub get_pmodel_id {
+  my $name = shift;
+  my $sth = $u->prepare_cached('select pmodel_id from pmhmm where name=?');
+  $sth->execute($name);
+  my $ids = $sth->fetchall_arrayref();
+  return $ids->[0][0] if ($#$ids == 0);
+  warn("found ",$#$ids+1," pmodel_ids for model name $name\n");
+  return undef;
+}
