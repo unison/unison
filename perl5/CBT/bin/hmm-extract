@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # hmm-extract -- extract named HMMs from a hammer HMM library
 # usage: hmm-extract <hmmfile [names ...]
-# $Id$
+# $Id: hmm-extract,v 1.1 2003/05/30 04:07:05 rkh Exp $
 
 use strict;
 use warnings;
@@ -14,7 +14,16 @@ while(<>) {
   if (not m/^NAME\s+(.+)/m)
 	{ die("Got a block that didn't look like a hmmer HMM (block $.): $_\n"); }
   next unless $wanted{$1};
-  delete $wanted{$1};
   chomp;
   print $_, "\n//\n";
+  delete $wanted{$1};
+  last unless %wanted;
 }
+
+my @not_found = keys %wanted;
+if (@not_found) {
+  die(sprintf("! WARNING: %d models not found (%s)\n", 
+			  $#not_found+1, join(',',@not_found)));
+}
+
+exit(0);
