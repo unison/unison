@@ -26,6 +26,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
+$p->add_footer_lines('$Id$ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
