@@ -3,7 +3,7 @@
 # framework-search -- identify and report on sequences which match a set
 # of antibody framework regions.
 #
-# $Id: framework-search,v 1.1 2004/10/14 00:34:40 rkh Exp $
+# $Id: framework-search,v 1.2 2004/10/14 07:47:54 rkh Exp $
 #
 
 
@@ -15,13 +15,14 @@ use Unison;
 # Sequences of all origins will be searched. @origins is the
 # list of origins whose name, description, and last_update will be
 # included in the report.
-my (@origins) = qw(GGI GenenGenes Geneseq IPI Incyte Kabat MGC/Human
-				MGC/Mouse PDB Proteome RefSeq Uniprot);
+my (@origins) = qw(Ensembl/Human GGI GenenGenes Geneseq IPI Incyte Kabat
+				MGC/Human MGC/Mouse PDB Proteome RefSeq Uniprot);
 
 
 ## PROTOTYPES
 sub html_header();
-sub html_footer();
+sub html_footer($);
+sub about_search();
 sub framework_summary(@);
 sub origins_table($@);
 sub results_table($@);
@@ -42,17 +43,25 @@ if (@ARGV) {
 	}
   }
 }
-print(STDERR '# ', $#fr+1, " framework regions:\n",
+print(STDERR '# read ', $#fr+1, " framework regions:\n",
 	  map { "#   $_\n" } @fr);
 
 
+my $start_time = time;
 my $u = new Unison(dbname=>'csb-dev');
 
 print html_header();
 print framework_summary(@fr);
+print about_search();
 print origins_table($u,@origins);
 print results_table($u,@fr);
-print html_footer();
+
+my $elapsed_time = time - $start_time;
+
+print html_footer($elapsed_time);
+
+printf(STDERR "# report generated in %d seconds\n",
+	   $elapsed_time);
 
 exit(0);
 
@@ -63,7 +72,7 @@ exit(0);
 
 sub html_header() {
   my $title = 'Antibody Framework Search';
-  my $Id = '$Id: framework-search,v 1.1 2004/10/14 00:34:40 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.2 2004/10/14 07:47:54 rkh Exp $ ';
   my $date = `date +"%Y-%m-%d %H:%M"`;
 
   my $html = <<EOHTML;
@@ -77,17 +86,9 @@ sub html_header() {
 
 <h1>$title</h1>
 
-This report identifies sequences which are matched by a set antibody
-framework regions.  Specifically, a sequence matches a set of framework
-regions if it contains all specified regions identically and in order,
-with intervening gaps of any length (including zero-length gaps).
-
-<p>The sequence search was performed in Unison, a compilation of sequences
-from many source databases.  Please contact Reece Hart for more information
-about how the search was performed.
-
-<p>Version $Id
+Version $Id
 <br>Report generated on $date
+
 EOHTML
 
   return $html;
@@ -110,6 +111,22 @@ EOHTML
   #$html .= "<blockquote>(regexp: <code>$fr_re</code>)</blockquote>\n";
 
   return $html;
+}
+
+
+sub about_search() {
+  return <<EOHTML;
+<h2>About the search</h2>
+
+This report identifies sequences which are matched by a set antibody
+framework regions.  Specifically, a sequence matches a set of framework
+regions if it contains all specified regions identically and in order,
+with intervening gaps of any length (including zero-length gaps).
+
+<p>The sequence search was performed in Unison, a compilation of sequences
+from many source databases.  Please contact Reece Hart for more information
+about how the search was performed.
+EOHTML
 }
 
 
@@ -165,13 +182,12 @@ SELECT
 FROM
   pseq S
   LEFT JOIN pseqalias SA on S.pseq_id = SA.pseq_id
-  LEFT JOIN paliasorigin AO on SA.palias_id = AO.palias_id
-  LEFT JOIN porigin O on O.porigin_id = AO.porigin_id
+  JOIN paliasorigin AO on SA.palias_id = AO.palias_id
+  JOIN porigin O on O.porigin_id = AO.porigin_id
 
 WHERE
   S.seq ~ ?
   AND SA.iscurrent = TRUE
-  AND O.porigin_id != porigin_id('Geneseq')
 
 ORDER BY
   S.pseq_id, O.ann_pref
@@ -198,7 +214,7 @@ appropriate annotation for that sequence from among all annotations for
 that sequence from all source databases.
 
 <p><table width="100%" border=1>
-  <tr><th>Unison pseq_id</th><th width="42%">best annotation</th></tr>
+  <tr><th>Unison pseq_id</th><th>best annotation</th></tr>
 EOHTML
 
   my $pseq_url_fmt = 'http://csb:8000/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
@@ -215,9 +231,13 @@ EOHTML
   return $html;
 }
 
-sub html_footer() {
+sub html_footer($) {
+  my $Id = '$Id: framework-search,v 1.2 2004/10/14 07:47:54 rkh Exp $ ';
   return <<EOHTML;
-<body>
+<hr>
+Report generated in $_[0] seconds.
+<br>$Id
+</body>
 </html>
 EOHTML
 }
