@@ -15,7 +15,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 $v->{params_id} = 15 unless defined $v->{params_id};
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.18 2004/06/25 00:20:14 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.7 2004/07/13 23:58:31 rkh Exp $ ');
 
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
@@ -62,8 +62,11 @@ print $p->render
 sub edit_rows {
   my $ar = shift;
   foreach my $r (@$ar) {
-	$r->[0] = sprintf('<a href="http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s">%s</a>',
-					   $r->[$#$r], $r->[0]);
+	#my ($acc) = $r->[$#$r] =~ m/^(PF\d+)/;
+	#$r->[0] = sprintf('<a href="http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s">%s</a>',
+	#				   $acc, $r->[0]);
+	$r->[0] = sprintf('<a href="http://pfam.wustl.edu/cgi-bin/getdesc?name=%s">%s</a>',
+					   $r->[0], $r->[0]);
 	$r->[5] = ($r->[3]==1?'[':'.') . ($r->[4]==$r->[5]?']':'.');
 	splice( @$r,3,2, sprintf("%d-%d",@$r[3..4]) );
 	splice( @$r,1,2, sprintf("%d-%d",@$r[1..2]) );
