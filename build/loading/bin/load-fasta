@@ -5,9 +5,12 @@
 $^W++;
 use strict;
 use Bio::SeqIO;
-use IO::File;
 use Getopt::Long;
 use DBI;
+
+use lib '/home/rkh/unison/perl5';
+use Unison;
+
 
 my $cmd;
 
@@ -19,33 +22,22 @@ defined $origin
   || die("$0: --origin (-o) is mandatory\n");
 
 
-my $dbh = DBI->connect("dbi:Pg:dbname=unison;host=td-goose");
+my $udb = new Unison;
 
-$cmd = "select si_porigin_id ('$origin')";
-my ($porigin_id) = $dbh->selectrow_array($cmd);
-defined $porigin_id
-  || die("$cmd failed\n");
-printf(STDERR "loading sequences into $origin (porigin_id=$porigin_id)\n");
+my $porigin_id = $udb->si_porigin_id($origin);
+printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 
 
 my $in  = Bio::SeqIO->new('-format' => 'Fasta');
-
 while( my $seq = $in->next_seq() )
   {
   my $id = $seq->display_id();
-
-  my $pseq_id = $dbh->selectrow_array("select si_pseq_id('" 
-									  . $seq->seq() . "')");
+  my $pseq_id = $udb->si_pseq_id($seq->seq());
 
   if (not defined $pseq_id)
 	{ warn("failed to add $id"); next; }
 
-  $dbh->do( "insert into palias (pseq_id,porigin_id,alias) "
-            . "values ($pseq_id,$porigin_id,'$id')",
-		  { RaiseError=>0 } );
+  $udb->add_palias($pseq_id,$porigin_id,$id,$desc)
 
   print(STDERR "added $id (pseq_id=$pseq_id)\n");
   }
-
-
-$dbh->disconnect();

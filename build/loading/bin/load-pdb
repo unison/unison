@@ -1,0 +1,93 @@
+#!/usr/bin/env perl
+
+$^W++;
+use strict;
+use lib '/home/rkh/unison/perl5';
+use Unison;
+
+
+my $udb = new Unison;
+my $origin = 'pdb';
+my $porigin_id = $udb->si_porigin_id($origin);
+printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+
+
+my %ONECODE =
+  ('ALA' => 'A', 'ASX' => 'B', 'CYS' => 'C', 'ASP' => 'D',
+   'GLU' => 'E', 'PHE' => 'F', 'GLY' => 'G', 'HIS' => 'H',
+   'ILE' => 'I', 'LYS' => 'K', 'LEU' => 'L', 'MET' => 'M',
+   'ASN' => 'N', 'PRO' => 'P', 'GLN' => 'Q', 'ARG' => 'R',
+   'SER' => 'S', 'THR' => 'T', 'VAL' => 'V', 'TRP' => 'W',
+   'XAA' => 'X', 'TYR' => 'Y', 'GLX' => 'Z', 'TER' => '*',
+   'SEL' => 'U'
+  );
+
+
+
+
+while (my $fn = shift)
+  {
+  my %sr = read1($fn);
+  my $id = $fn;
+  $id =~ s%.*/%%; $id =~ s/^pdb//; $id =~ s/\.(ent|pdb).*//;
+  printf(STDERR "$id: %d chains (%s)\n", scalar keys %sr, join(',',keys %sr));
+  for my $c (sort keys %sr)
+	{
+	my $dc = $c ne ' ' ? $c : '';
+	add1($udb,$porigin_id,"$id$dc",$sr{$c}); 
+	}
+  }
+
+
+
+sub read1
+  {
+  my $fn = shift;
+
+  my $pdb = `gzip -cdq $fn`;
+
+  my %sr;
+  while( $pdb =~ m/^SEQRES \s+ \d+ \s+ (.) \s+ (\d+) \s+ ((?:\s\w{3})+)/gmsx )
+	{
+	$sr{$1} = '' unless exists $sr{$1};
+	$sr{$1} .= "$3\n";
+	}
+
+  for my $c (sort keys %sr)
+	{
+	if ($sr{$c} =~ m/\w{3} \w{3}/)
+	  {
+	  $sr{$c} =~ s/\s+//g;
+	  $sr{$c} = xl($sr{$c});
+	  }
+	else
+	  { delete $sr{$c}; }
+	}
+
+  return %sr;
+  }
+
+sub xl
+  {
+  my $s = shift;
+  $s =~ s/(...)/exists $ONECODE{$1} ? $ONECODE{$1} : 'X'/ge;
+  return $s;
+  }
+
+sub add1
+  {
+  my ($udb,$ori,$id,$seq) = @_;
+
+  my $pseq_id = $udb->si_pseq_id($seq);
+  if (not defined $pseq_id)
+	{ warn("sequence add for $id failed"); return; }
+
+  eval { $udb->do( "insert into palias (pseq_id,porigin_id,alias) "
+				   . "values ($pseq_id,$ori,'$id')",
+					 { PrintError=>0 } ) };
+
+  eval { $udb->do( "insert into pstr (pseq_id,pdbc) "
+				   . "values ($pseq_id,'$id')",
+					 { PrintError=>0 } ) };
+
+  }
