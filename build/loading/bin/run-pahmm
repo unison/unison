@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.4 2004/06/10 18:03:45 cavs Exp $
+# $Id: run-pahmm,v 1.5 2004/06/25 00:20:27 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 use warnings;
@@ -24,10 +24,11 @@ my %opts =
    params_id => undef,
    pmodelset_id => undef,
    verbose => 0,
-   
+
    # not settable on the command line:
-   modelfile => '/apps/compbio/share/pfam-12.0/Pfam_fs',
-   params => 'Pfam_fs 12.0'
+   modelfile => '/apps/compbio/share/pfam-14.0/Pfam_fs',
+   origin => 'Pfam_fs 14.0',
+   params => 'Pfam 14.0'
   );
 GetOptions(\%opts,
 	'force|f+',
@@ -43,18 +44,23 @@ my $pfamfn;  # filename will be set below
 
 my $u = new Unison( dbname=>'csb-dev' );
 
-$opts{params_id} = $u->get_params_id_by_name($opts{params});
-(defined $opts{params_id})
-  || die("$0: couldn't find params_id for params `regexp'\n");
-
-
 if (not defined $opts{params_id}) {
-  die("! you must provide a --params_id=<params_id> argument\n");
+  $opts{params_id} = $u->get_params_id_by_name($opts{params});
+  if (not defined $opts{params_id}) {
+	die("$0: couldn't find params_id for params `$opts{params}'\n");
+  }
 }
 
-my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
-my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
-										   join(',',@fields), join(',',map {'?'} @fields)));
+if (not defined $opts{porigin_id}) {
+  $opts{porigin_id} = $u->get_porigin_id_by_origin($opts{origin});
+  if (not defined $opts{porigin_id}) {
+	die("$0: couldn't find porigin_id for params `$opts{origin}'\n");
+  }
+}
+
+
+
+
 
 if ( defined $opts{pmodelset_id} ) {
 	$pfamfn = "$temproot.pfam";
@@ -75,10 +81,14 @@ if ( defined $opts{pmodelset_id} ) {
 }
 
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
-my @cl = (split(' ',$clo), $pfamfn, $seqfn);
+my @cl = (split(' ',$clo), '--acc', $pfamfn, $seqfn);
 print "cl: ",join(' ',@cl),"\n" if $opts{verbose};
 
-my @pseq_ids = map {eval "$_"} (@ARGV,<>);
+my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
+my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
+										   join(',',@fields), join(',',map {'?'} @fields)));
+
+my @pseq_ids = map {eval "$_"} (@ARGV);
 my $N = $#pseq_ids+1;
 my $n = 0;
 PSEQ_ID:
@@ -123,12 +133,12 @@ while( my $pseq_id = shift(@pseq_ids) ) {
   my $nins = 0;
   while( my $result = $in->next_result ) {
 	while( my $hit = $result->next_hit ) {
-	  my $name = $hit->name();
-	  my $pmodel_id = get_pmodel_id($name);
-	  print(STDERR "$leader: loading $name");
+	  my $acc = $hit->name();
+	  my $pmodel_id = get_pmodel_id($acc);
+	  print(STDERR "$leader: loading $acc");
 
 	  if (not defined $pmodel_id) {
-		die("\n! couldn't look up a pmodel_id for $name!\n");
+		die("\n! couldn't look up a pmodel_id for $acc!\n");
 	  }
 
 	  while( my $hsp = $hit->next_hsp ) {
@@ -158,14 +168,14 @@ while( my $pseq_id = shift(@pseq_ids) ) {
 
 my %pmodel_id_cache;
 sub get_pmodel_id {
-  my $name = shift;
-  if (not exists $pmodel_id_cache{$name}) {
-	my $sth = $u->prepare_cached('select pmodel_id from pmhmm where name=? order by added desc');
-	$sth->execute($name);
+  my $acc = shift;
+  if (not exists $pmodel_id_cache{$acc}) {
+	my $sth = $u->prepare_cached('select pmodel_id from pmhmm where acc=? and porigin_id=? order by added desc');
+	$sth->execute($acc,$opts{porigin_id});
 	my $ids = $sth->fetchall_arrayref();
 	return undef unless defined $ids;
-	warn("\n! found ",$#$ids+1," pmodel_ids for model name $name; returning most recent\n") if ($#$ids>0);
-	$pmodel_id_cache{$name} = $ids->[0]->[0];
+	die("\n! found ",$#$ids+1," pmodel_ids for model acc $acc\n") if ($#$ids>0);
+	$pmodel_id_cache{$acc} = $ids->[0]->[0];
   }
-  return $pmodel_id_cache{$name};
+  return $pmodel_id_cache{$acc};
 }
