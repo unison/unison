@@ -1,15 +1,15 @@
 #!/usr/bin/env perl
 
 #------------------------------------------------------------------------------- 
-# NAME: cavs2sql
+# NAME: scop2sql
 # PURPOSE: generate SQL inserts from SCOP cla, des, and hie files
 # parses SCOP 1.61 (and probably >=1.55)
 # USAGE:
-# cavs2sql [-c clafn] [-d desfn] [-h hiefn] [-C] | psql -qaf-
+# scop2sql [-c clafn] [-d desfn] [-h hiefn] [-C] | psql -qaf-
 # -c, -d, -h may be specified in combination
 # -C outputs copy from statements instead (UNTESTED)
 #
-# $Id: load-scop,v 1.2 2004/03/18 17:36:12 cavs Exp $
+# $Id: load-scop,v 1.3 2004/03/24 22:09:08 cavs Exp $
 #------------------------------------------------------------------------------- 
 
 
@@ -20,13 +20,11 @@ use Getopt::Long qw(:config gnu_getopt);
 use Unison;
 
 my %opts;
-$opts{acavsy} = 0;
 GetOptions( \%opts,
       'cla|c=s',
       'des|d=s',
       'hie|h=s',
       'verbose|v+',
-      'acavsy|C+' )
   || die("usage\n");
 
 my $u = new Unison();
@@ -47,13 +45,13 @@ exit(0);
 sub load_pmprospect2_scop {
   my $dbh = shift;
 
-  my $sql = "TRUNCATE cavs.pmprospect2_scop";
+  my $sql = "TRUNCATE unison.pmprospect2_scop";
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
 
   # load scop domains
-  $sql = "INSERT INTO cavs.pmprospect2_scop " .
-    "SELECT p.pmodel_id,c.sunid FROM pmprospect2 p, cavs.cla c WHERE " .
+  $sql = "INSERT INTO unison.pmprospect2_scop " .
+    "SELECT p.pmodel_id,c.sunid FROM pmprospect2 p, scop.cla c WHERE " .
     "p.porigin_id=porigin_id_lookup('Prospect2/SCOP'::text) AND c.sid=p.acc";
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
@@ -61,18 +59,18 @@ sub load_pmprospect2_scop {
   # load any remaining scop domains by pdb. if acc has no chain identifier (i.e. 2 trailing underscores)
   # then match acc to pdb name.  otherwise, use characters 2-6 as pdb name and 6th character
   # as chain identifier (contained in def column of the cla table).
-  $sql = "INSERT INTO cavs.pmprospect2_scop " .
+  $sql = "INSERT INTO unison.pmprospect2_scop " .
     " SELECT p.pmodel_id,c.sunid " .
-    "FROM pmprospect2 p, cavs.cla c " .
+    "FROM pmprospect2 p, scop.cla c " .
     "WHERE p.porigin_id=porigin_id_lookup('Prospect2/SCOP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "char_length(trim(trailing '_' from  acc)) = 5 AND c.pdb=substr(p.acc,2,4)";
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
 
-  $sql = "INSERT INTO cavs.pmprospect2_scop " .
+  $sql = "INSERT INTO unison.pmprospect2_scop " .
   "SELECT p.pmodel_id,c.sunid " .
-  "FROM pmprospect2 p, cavs.cla c " .
+  "FROM pmprospect2 p, scop.cla c " .
   "WHERE p.porigin_id=porigin_id_lookup('Prospect2/SCOP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "c.pdb=substr(p.acc,2,4) AND " .
@@ -82,8 +80,8 @@ sub load_pmprospect2_scop {
 
 
   # load fssp domains by acc
-  $sql = "INSERT INTO cavs.pmprospect2_scop " .
-     "SELECT p.pmodel_id,c.sunid FROM pmprospect2 p, cavs.cla c WHERE " .
+  $sql = "INSERT INTO unison.pmprospect2_scop " .
+     "SELECT p.pmodel_id,c.sunid FROM pmprospect2 p, scop.cla c WHERE " .
      "p.porigin_id=porigin_id_lookup('Prospect2/FSSP'::text) AND c.sid=rpad('d'||p.acc,7,'_')";
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
@@ -92,18 +90,18 @@ sub load_pmprospect2_scop {
   # load any remaining fssp domains by pdb. if acc has no chain identifier (i.e. 4 characters)
   # then match acc to pdb name.  otherwise, use first 4 characters as pdb name and 5 character
   # as chain identifier (contained in def column of the cla table).
-  $sql = "INSERT INTO cavs.pmprospect2_scop " .
+  $sql = "INSERT INTO unison.pmprospect2_scop " .
     " SELECT p.pmodel_id,c.sunid " .
-    "FROM pmprospect2 p, cavs.cla c " .
+    "FROM pmprospect2 p, scop.cla c " .
     "WHERE p.porigin_id=porigin_id_lookup('Prospect2/FSSP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "char_length(p.acc) = 4 and c.pdb=p.acc";
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
 
-  $sql = "INSERT INTO cavs.pmprospect2_scop " .
+  $sql = "INSERT INTO unison.pmprospect2_scop " .
   "SELECT p.pmodel_id,c.sunid " .
-  "FROM pmprospect2 p, cavs.cla c " .
+  "FROM pmprospect2 p, scop.cla c " .
   "WHERE p.porigin_id=porigin_id_lookup('Prospect2/FSSP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "char_length(p.acc) = 5 AND c.pdb=substr(p.acc,1,4) AND " .
@@ -121,8 +119,8 @@ sub load_pmprospect2_scop {
 #-------------------------------------------------------------------------------
 sub add_fk {
   my $dbh = shift;
-  $dbh->do( 'ALTER TABLE ONLY cavs.pmprospect2_scop '.
-      'ADD CONSTRAINT sunid_exists FOREIGN KEY (sunid) REFERENCES cavs.cla(sunid)' );
+  $dbh->do( 'ALTER TABLE ONLY unison.pmprospect2_scop '.
+      'ADD CONSTRAINT sunid_exists FOREIGN KEY (sunid) REFERENCES scop.cla(sunid)' );
   return;
 }
 
@@ -133,7 +131,7 @@ sub add_fk {
 #-------------------------------------------------------------------------------
 sub drop_fk {
   my $dbh = shift;
-  $dbh->do( 'ALTER TABLE ONLY cavs.pmprospect2_scop '.
+  $dbh->do( 'ALTER TABLE ONLY unison.pmprospect2_scop '.
       'DROP CONSTRAINT sunid_exists' );
   return;
 }
@@ -141,16 +139,16 @@ sub drop_fk {
 
 #-------------------------------------------------------------------------------
 # NAME: load_cla
-# PURPOSE: load cla table from the dir.cavs.cla.txt file
+# PURPOSE: load cla table from the dir.scop.cla.txt file
 #-------------------------------------------------------------------------------
 sub load_cla {
   my ($dbh,$fn) = @_;
   my $fh = new IO::File;
 
-  my $sql = 'truncate cavs.cla';
+  my $sql = 'truncate scop.cla';
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
-  $sql = 'insert into cavs.cla (sid,pdb,def,sccs,sunid,cl,cf,sf,fa,dm,sp) ' .
+  $sql = 'insert into scop.cla (sid,pdb,def,sccs,sunid,cl,cf,sf,fa,dm,sp) ' .
     'values (?,?,?,?,?,?,?,?,?,?,?)';
   (my $sqlf = $sql) =~ s/\?/%s/g;
   $sqlf .= "\n";
@@ -176,16 +174,16 @@ sub load_cla {
 
 #-------------------------------------------------------------------------------
 # NAME: load_des
-# PURPOSE: load des table from dir.cavs.des.txt file
+# PURPOSE: load des table from dir.scop.des.txt file
 #-------------------------------------------------------------------------------
 sub load_des {
   my ($dbh,$fn) = @_;
   my $fh = new IO::File;
 
-  my $sql = 'truncate cavs.des';
+  my $sql = 'truncate scop.des';
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
-  $sql = 'insert into cavs.des (sunid,level,sccs,sname,descr) values (?,?,?,?,?)';
+  $sql = 'insert into scop.des (sunid,level,sccs,sname,descr) values (?,?,?,?,?)';
   (my $sqlf = $sql) =~ s/\?/%s/g;
   $sqlf .= "\n";
   my $sth = $dbh->prepare( $sql );
@@ -200,23 +198,22 @@ sub load_des {
     $sth->execute($sunid,$lvl,$sccs,$sname,$descr);
   }
   $fh->close();
-  print("\\.\n") if $opts{acavsy};
   return 1;
 }
 
 
 #-------------------------------------------------------------------------------
 # NAME: load_hie
-# PURPOSE: load hie table from dir.cavs.hie.txt file
+# PURPOSE: load hie table from dir.scop.hie.txt file
 #-------------------------------------------------------------------------------
 sub load_hie {
   my ($dbh,$fn) = @_;
   my $fh = new IO::File;
 
-  my $sql = 'truncate cavs.hie';
+  my $sql = 'truncate scop.hie';
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
-  $sql = 'insert into cavs.hie (sunid,psunid,children) values (?,?,?)';
+  $sql = 'insert into scop.hie (sunid,psunid,children) values (?,?,?)';
   (my $sqlf = $sql) =~ s/\?/%s/g;
   $sqlf .= "\n";
   my $sth = $dbh->prepare( $sql );
