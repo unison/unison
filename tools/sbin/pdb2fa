@@ -2,10 +2,10 @@
 
 use warnings;
 use strict;
-use lib ('./perl5','/home/rkh/unison/perl5');
 
 my %ONECODE =
-  ('ALA' => 'A', 'ASX' => 'B', 'CYS' => 'C', 'ASP' => 'D',
+  (
+   'ALA' => 'A', 'ASX' => 'B', 'CYS' => 'C', 'ASP' => 'D',
    'GLU' => 'E', 'PHE' => 'F', 'GLY' => 'G', 'HIS' => 'H',
    'ILE' => 'I', 'LYS' => 'K', 'LEU' => 'L', 'MET' => 'M',
    'ASN' => 'N', 'PRO' => 'P', 'GLN' => 'Q', 'ARG' => 'R',
@@ -15,37 +15,31 @@ my %ONECODE =
   );
 
 
-if (@ARGV)
-  { 
+if (@ARGV) {
   while(my $fn = shift) 
 	{ chomp($fn); process1($fn); }
-  }
-else
-  {
+} else {
   while(my $fn = <>)
 	{ chomp($fn); process1($fn); }
-  }
+}
 
 
 
-sub process1
-  {
+sub process1 {
   my $fn = shift;
   my ($sr,$len,$desc) = read1($fn);
   my $id = $fn;
   $id =~ s%.*/%%; $id =~ s/^pdb//; $id =~ s/\.(ent|pdb).*//;
   printf(STDERR "# $id: %d chains={%s}; %s\n",
 		 scalar keys %$sr, join(',',keys %$sr), $desc);
-  for my $c (sort keys %$sr)
-	{
+  for my $c (sort keys %$sr) {
 	my $dc = $c ne ' ' ? $c : '';
 	print(">$id$dc $desc\n", $sr->{$c}, "\n");
-	}
   }
+}
 
 
-sub read1
-  {
+sub read1 {
   my $fn = shift;
   my $pdb = `gzip -cdq $fn`;
   my (@desc) = map {s/\s+\d\w\w\w   \d//;$_} $pdb=~m/^TITLE\s+(?:\d\s)?(.+)/mg;
@@ -53,31 +47,26 @@ sub read1
   $desc =~ s/\s+/ /g; $desc =~ s/^\s//; $desc =~ s/\s$//;
   my %sr;
   my %len;
-  while( $pdb =~ m/^SEQRES \s+ \d+ \s+ (.) \s+ (\d+) \s+ ((?:\s\w{3})+)/gmsx )
-	{
+  while( $pdb =~ m/^SEQRES \s+ \d+ \s+ (.) \s+ (\d+) \s+ ((?:\s\w{3})+)/gmsx ) {
 	$len{$1} = $2;
 	$sr{$1} = '' unless exists $sr{$1};
 	$sr{$1} .= "$3\n";
-	}
-
-  for my $c (sort keys %sr)
-	{
-	if ($sr{$c} =~ m/\w{3} \w{3}/)
-	  {
-	  $sr{$c} =~ s/\s+//g;
-	  $sr{$c} = xl($sr{$c});
-	  }
-	else
-	  { delete $sr{$c}; }
-	}
-
-  return (\%sr,\%len,$desc);
   }
 
+  for my $c (sort keys %sr)	{
+	if ($sr{$c} =~ m/\w{3} \w{3}/) {
+	  $sr{$c} =~ s/\s+//g;
+	  $sr{$c} = xl($sr{$c});
+	} else {
+	  delete $sr{$c}; }
+  }
 
-sub xl
-  {
+  return (\%sr,\%len,$desc);
+}
+
+
+sub xl {
   my $s = shift;
   $s =~ s/(...)/exists $ONECODE{$1} ? $ONECODE{$1} : 'X'/ge;
   return $s;
-  }
+}
