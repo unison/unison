@@ -75,7 +75,7 @@ sub render
 
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td class="cnav"><span tooltip=\'hi there\'>[wasted space?]</span></td>', "\n",
+		  '  <td class="cnav"><span tooltip=\'hi there\'>[future<br>expansion]</span></td>', "\n",
 		  '  <td>', 
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
@@ -133,7 +133,7 @@ sub navbar {
   my $p = shift;
   my $v = $p->Vars();
   my @navs =
-	( [ ['Analysis', 'display precomputed analyses'],
+	( [ ['Analyze', 'display precomputed analyses for a given sequence'],
 		['Summary', 'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
 		['Aliases', 'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
 		['Patents', 'Patents on this sequences', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
@@ -144,26 +144,40 @@ sub navbar {
 		['PSSM', 'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
 		['Loci', 'Genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
 	  ],
-	  [ ['Mining', 'mine for sequences based on precomputed features' ],
-		['By Sequence', undef, 'seq_find.pl'],
-		['By Feature', undef, 'feature_find.pl'],
+
+	  [ ['Mine', 'mine for sequences which match criteria' ],
+		['By Sequence', undef, 'mine_sequence.pl'],
+		['By Alias', undef, 'mine_alias.pl'],
+		['By Feature', undef, 'mine_feature.pl'],
 	  ],
+
 	  [ ['Browse', 'browse sets of sequences'],
-		['Sets', undef, 'sets.pl'],
-		['Origins', undef, 'origins.pl']
+		['Sets', undef, 'browse_sets.pl'],
+		['Origins', undef, 'browse_origins.pl']
 	  ],
+
 	  [ ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
 		['BLAST', undef, 'run_blast.pl'],
 		['Pfam', undef, 'run_pfam.pl']
 	  ],
+
+	  [ ['Special', 'special projects'],
+		['UNQ', 'UNQ browsing']
+	  ],
+
 #	  [ ['Admin', 'Unison administration'],
 #		['Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
 #	  ],
+
+	  # force right-justified
 	  [ [ '' ]  ],
-	  [ ['About', 'about Unison'],
+
+	  [ ['Info', 'about Unison'],
+		['About', 'about unison', 'about_unison.pl'],
 		['Contents', 'show unison meta information', 'about_contents.pl'],
 		['Credits', 'thanks, ma!', 'about_credits.pl'],
-		['Home', 'go to Unison\'s low budget home page', '..']
+		['Home', 'go to Unison\'s low budget home page', '..'],
+		['Perl', 'perl info', 'about_perl.pl'],
 	  ],
 	);
 

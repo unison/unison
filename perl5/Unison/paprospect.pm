@@ -1,7 +1,7 @@
 =head1 NAME
 
-Unison::paprospect2 -- Unison p2thread table utilities
-S<$Id: p2thread.pm,v 1.2 2003/06/11 00:17:36 cavs Exp $>
+Unison::paprospect2 -- Unison paprospect2 table utilities
+S<$Id: paprospect2.pm,v 1.1 2003/06/30 15:33:50 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -77,9 +77,9 @@ sub insert_thread {
 
   throw Unison::BadUsage( "keys (" . $#keys+1 . ") != values (" . $#values+1 . ")\n" ) if $#keys != $#values;
 
-  my $sql = 'insert into p2thread (' .  join(',',@keys) .  ') values (' .
+  my $sql = 'insert into paprospect2 (' .  join(',',@keys) .  ') values (' .
     join(',',map { '?' } @keys) .  ')';
-  my $show_sql = "insert into p2thread (" .  join(',',@keys) .  ") values (" .
+  my $show_sql = "insert into paprospect2 (" .  join(',',@keys) .  ") values (" .
      join(',',map { defined $_ ? $_ : '' } @values) . ")";
   print "insertThread(): $show_sql\n" if $ENV{'DEBUG'};
   my $sth = $u->prepare_cached($sql);
@@ -99,6 +99,7 @@ sub insert_thread {
  Arguments: Unison connection, pseq_id, run_id, 
             Prospect2::ThreadSummary or Prospect2::Thread
  Returns:   nada
+
 =cut
 
 sub delete_thread {
@@ -122,8 +123,8 @@ sub delete_thread {
   my @keys = ('pseq_id','run_id','pmodel_id',keys %uf );
   my @values = ( $pseq_id,$run_id, $pmodel_id, map { $t->{$uf{$_}} } keys %uf );
 
-  my $sql = 'delete from p2thread where pseq_id=? and run_id=? and pmodel_id=?';
-  my $show_sql = "delete from p2thread where pseq_id=$pseq_id and run_id=$run_id and pmodel_id=$pmodel_id";
+  my $sql = 'delete from paprospect2 where pseq_id=? and run_id=? and pmodel_id=?';
+  my $show_sql = "delete from paprospect2 where pseq_id=$pseq_id and run_id=$run_id and pmodel_id=$pmodel_id";
   print "deleteThread(): $show_sql\n" if $ENV{'DEBUG'};
 
   my $sth = $u->prepare_cached($sql);
@@ -146,18 +147,16 @@ sub delete_thread {
 =cut
 
 my %pmodel_id;
-sub get_pmodel_id
-  {
+sub get_pmodel_id {
   my ($u,$modn) = @_;
-  if (not exists $pmodel_id{$modn})
-  {
-  my $sth = $u->prepare_cached('select pmodel_id from p2template where name=?');
-  $sth->execute($modn);
-  ($pmodel_id{$modn}) = $sth->fetchrow_array();
-  $sth->finish();
+  if (not exists $pmodel_id{$modn})	{
+	my $sth = $u->prepare_cached('select pmodel_id from pmprospect2 where name=?');
+	$sth->execute($modn);
+	($pmodel_id{$modn}) = $sth->fetchrow_array();
+	$sth->finish();
   }
   return $pmodel_id{$modn};
-  }
+}
 
 #-------------------------------------------------------------------------------
 
