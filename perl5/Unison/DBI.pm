@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.9 2004/02/24 19:23:02 rkh Exp $>
+S<$Id: DBI.pm,v 1.10 2004/04/27 04:35:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -23,11 +23,14 @@ standard DBI handle can be used.
 
 
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use strict;
 use warnings;
+
 use Carp;
 use DBI;
-use Data::Dumper;
 use Unison::Exceptions;
 
 
@@ -43,14 +46,13 @@ my $hostname = `hostname`;
 our %opts =
   (
    # use PGHOST if it's not '', otherwise set based on whether we're
-   # on interceptor (local), comp* (svc), else exocluster (td-svc)
-   # IF PGHOST IS SET AND YOU WANT A UNIX SOCKET CONNECTION,
-   # you'll need to unset PGHOST first.
+   # on csb (local), comp* (cvs), else exo-cluster (csb)
+   # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
    host => ( (exists $ENV{PGHOST}) and ($ENV{PGHOST} ne '')
 			 ? $ENV{PGHOST}
-			 : ( $hostname eq 'interceptor'
+			 : ( $hostname eq 'csb'
 				 ? undef
-				 : ( $hostname =~ m/^comp\d/ ? 'svc' : 'td-svc' ))),
+				 : ( $hostname =~ m/^comp\d/ ? 'svc' : 'csb' ))),
    dbname => $ENV{PGDATABASE} || 'csb',
    username => $ENV{PGUSER} || 'PUBLIC',
    password => $ENV{PGPASSWORD} || undef,
@@ -94,6 +96,17 @@ immediately and an exception thrown if unsuccessful.
 
 sub connect {
   my $self = shift;
+  if (not defined $self->{dbname}) {
+	throw Unison::Exception::ConnectionFailed
+	  ( "couldn't connect to Unison",
+		'dbname undefined' );
+  }
+  if (not defined $self->{username}) {
+	throw Unison::Exception::ConnectionFailed
+	  ( "couldn't connect to Unison",
+		'username undefined' );
+  }
+
   my $dsn = "dbi:Pg:dbname=$self->{dbname}";
   if (defined $self->{host} and $self->{host} ne '') {
 	$dsn .= ";host=$self->{host}" ;
@@ -105,11 +118,11 @@ sub connect {
   if (not defined $dbh)	{
 	throw Unison::Exception::ConnectionFailed
 	  ( "couldn't connect to Unison: ",
-		'DBI ERROR: '.DBI->errstr()."\n"
-		. "dsn=$dsn\n"
-		. 'username='.$self->{username}."\n"
-		. 'password='.(defined $self->{password} ?
-					   '<hidden>' : '<undef>'),
+		join("\n", 
+			 'DBI ERROR: '.DBI->errstr(),
+			 "dsn=$dsn",
+			 'username='.(defined $self->{username} ? $self->{username} : '<undef>'),
+			 'password='.(defined $self->{password} ? '<hidden>' : '<undef>')),
 		'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
 	  );
   }
