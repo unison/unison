@@ -37,22 +37,22 @@ defined $origin
 
 
 # whee... globals
-my $udb = new Unison;
-my $porigin_id = $udb->porigin_si_porigin_id($origin);
+my $u = new Unison;
+my $porigin_id = $u->porigin_si_porigin_id($origin);
 my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.15 2003/04/28 16:58:35 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.16 2003/04/30 21:09:34 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
-  %alias = map {$_=>1} $udb->get_alias_in_porigin_id($porigin_id);
+  %alias = map {$_=>1} $u->get_alias_in_porigin_id($porigin_id);
   printf(STDERR "# %d extant sequence aliases from $origin\n", scalar keys %alias);
   }
 if (not $nomd5)
   {
-  %md5 = $udb->pseq_md5map();
+  %md5 = $u->pseq_md5map();
   printf(STDERR "# %d sequence md5s from pseq\n", scalar keys %md5);
   }
 
@@ -89,7 +89,8 @@ printf(STDERR "# before: %d extant aliases, %d extant md5s\n"
 	   . "# %d sequences scanned; %d skipped; %d added or extant\n",
 	   scalar keys %alias, scalar keys %md5, 
 	   $nseen, $nskipped, $nadded);
-printf
+
+print( "last_updated = ", $u->porigin_last_updated( $porigin_id );
 
 exit(0);
 
@@ -104,7 +105,7 @@ sub process_stream
   while( my $seq = $in->next_seq() )
 	{
 	process_seq($seq);
-#	if (not $udb->ready())
+#	if (not $u->ready())
 #	  {	die("! connection closed prematurely\n"); }
 	}
   return;
@@ -197,7 +198,7 @@ sub process_seq
     }
   else
 	{
-	$pseq_id = $udb->pseq_si_pseq_id( $seq );
+	$pseq_id = $u->pseq_si_pseq_id( $seq );
 	$md5{ $md5 } = $pseq_id;
 	}
 
@@ -205,7 +206,7 @@ sub process_seq
 	{ warn("! failed to add $id"); return 0; }
 
   foreach my $upd_id (@ids)
-	{ $udb->add_palias($pseq_id,$porigin_id,$upd_id,$descr); }
+	{ $u->add_palias($pseq_id,$porigin_id,$upd_id,$descr); }
 
   printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
 		length($seq), $descr);
