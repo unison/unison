@@ -39,6 +39,6 @@ my $pa = new Prospect2::Align( -debug=>0,-threads => \@threads );
 
 print $p->render("p2threads of unison:$v->{pseq_id}",
 				 $p->group('Prospect2 Threadings',
-						   $pa->getAlignment(-format=>'html'))
+						   '<b>', $pa->get_alignment(-format=>'html'), '</b>')
 				);
 
