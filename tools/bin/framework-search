@@ -1,0 +1,179 @@
+#!/usr/bin/env perl
+#
+# framework-search -- identify and report on sequences which match a set
+# of antibody framework regions.
+#
+# $Id$
+
+
+use strict;
+use warnings;
+use Unison;
+use HTML::Template;
+use Data::Dumper;
+
+
+# Sequences of all origins will be searched. @origins is the
+# list of origins whose name, description, and last_update will be
+# included in the report.
+my (@origins) = qw(Uniprot GenenGenes IPI Kabat GGI Geneseq MGC/Human
+				MGC/Mouse Proteome RefSeq);
+
+my $title = 'Antibody Fragment Search';
+
+
+## PROTOTYPES
+sub html_header($);
+sub html_footer();
+sub fragment_summary(@);
+sub origins_table($@);
+sub results_table($@);
+
+
+my @fr = ();								# array of fragments
+
+
+# get fragments from command line if exists, else stdin
+if (@ARGV) {
+  @fr = @ARGV;
+} else {
+  while(my $line = <>) {
+	if ($line =~ m/^[A-Z]/i) {
+	  chomp($line);
+	push(@fr,$line);
+	}
+  }
+}
+print(STDERR join("\n  ", (1+$#fr)." framework fragments:", @fr), "\n");
+
+
+my $u = new Unison(dbname=>'csb-dev');
+
+print html_header($title);
+print fragment_summary(@fr);
+print origins_table($u,@origins);
+print results_table($u,@fr);
+print html_footer();
+
+exit(0);
+
+
+
+###########################################################################
+## INTERNAL FUNCTIONS
+
+sub html_header($) {
+  my $title = shift;
+  my $Id = '$Id: wlproxy.pl,v 1.5 2004/09/21 21:29:00 rkh Exp rkh $ ';
+  my $date = `date +"%Y-%m-%d %H:%M"`;
+
+  my $html = <<EOHTML;
+<html>
+
+<head>
+<title>$title</title>
+</head>
+
+<body>
+
+<h1>$title</h1>
+<br>$Id
+<br>Generated on $date
+<hr>
+EOHTML
+
+  return $html;
+}
+
+
+sub fragment_summary(@) {
+  my @fr = @_;
+  my $html = '<br>' . (1+$#fr) . " framework fragments:\n"
+	. "<ul>\n"
+    . join('',map { "  <li>$_\n" } @fr)
+    . "</ul>\n"
+    . '<br>regexp: ' . join('.+',@fr);
+  return $html;
+}
+
+
+sub origins_table($@) {
+  my $u = shift;
+  my @origins = @_;
+  my $html = '';
+  my $sql = "select origin,url,descr,to_char(last_updated, 'YYYY-MM-DD HH24:MI'::text) as last_updated"
+ 	. ' from porigin where origin in (' . join(',', map {"'$_'"} @origins) . ') '
+	. ' order by upper(origin)';
+  my $sth = $u->prepare($sql);
+
+  eval { $sth->execute() };
+  if ($@) {
+	die( $u->errstr() );
+  }
+
+  $html .= <<EOHTML;
+<h2>Database Sources</h2>
+Sequences originating from the following major databases were searched.
+Additional minor databases were searched but are not listed below.
+
+<table width="100%" border=1>
+  <tr><th>origin</th><th>description</th><th>last updated</th></tr>
+EOHTML
+
+  while ( my $data = $sth->fetchrow_hashref() ) {
+	$html .= sprintf('<tr><td align="left"><a href="%s">%s</a></td><td align="left">%s</td><td align="left">%s</td></tr>',
+					@$data{qw(url origin descr last_updated)}) ."\n" ;
+  }
+
+  $html .= <<EOHTML;
+</table>
+EOHTML
+
+  return $html;
+}
+
+
+sub results_table($@) {
+  my $u = shift;
+  my @fr = @_;
+  my $fr = join('.+',@fr);
+  my $pseq_url_fmt = 'http://csb:8000/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
+  my $html = '';
+#  my $sql = 'select pseq_id,best_annotation(pseq_id) as best_annotation from pseq where seq ~ ?';
+  my $sql = 'select pseq_id,best_annotation(pseq_id) as best_annotation from palias where alias ~ ?';
+  $sql .= ' order by pseq_id';
+  my $sth = $u->prepare($sql);
+
+  eval { $sth->execute($fr) };
+  if ($@) {
+	die( $u->errstr() );
+  }
+
+
+
+  $html .= <<EOHTML;
+<h2>Results</h2>
+
+<table width="100%" border=1>
+  <tr><th>Unison pseq_id</th><th>best_annotation</th></tr>
+EOHTML
+
+  while ( my $data = $sth->fetchrow_hashref() ) {
+	$html .= sprintf('<tr><td align="right"><a href="'.$pseq_url_fmt.'">%s</a></th><td align="left">%s</th></tr>',
+					@$data{qw(pseq_id pseq_id best_annotation)}) ."\n" ;
+  }
+
+  $html .= <<EOHTML;
+</table>
+EOHTML
+
+  return $html;
+}
+
+
+sub html_footer() {
+  return <<EOHTML;
+<body>
+</html>
+EOHTML
+}
