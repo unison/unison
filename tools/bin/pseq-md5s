@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
-# Computes md5s of sequences in unison. This was used
-# for verifying md5 checksums as computed by the database.
+# returns md5s for given pseq_ids
 
 use strict;
 use warnings;
@@ -10,9 +9,9 @@ use Digest::MD5 qw(md5_hex);
 
 my $printmod = 100;
 my $u = new Unison;
-my $sth = $u->prepare('select md5,seq from pseq where pseq_id=?');
+my $sth = $u->prepare('select md5 from pseq where pseq_id=?');
 
-my @ids = map {eval "$_"} @ARGV;
+my @ids = @ARGV ? map {eval "$_"} @ARGV : map {chomp;$_} <>;
 
 for(my $i=0; $i<=$#ids; $i++) {
   my $pseq_id = $ids[$i];
@@ -21,16 +20,13 @@ for(my $i=0; $i<=$#ids; $i++) {
 	printf(STDERR "\r%8d/%8d (%5.1f%%): pseq_id=%10s", $i+1, $#ids+1, 100*($i+1)/($#ids+1), $pseq_id);
   }
 
-  my ($umd5,$seq) = $u->selectrow_array($sth,undef,$pseq_id);
-  if (not defined $seq) {
+  my ($umd5) = $u->selectrow_array($sth,undef,$pseq_id);
+  if (not defined $umd5) {
 	warn("Unison:$pseq_id not found\n");
 	next;
   }
 
-  my $pmd5 = md5_hex($seq);
-  if ($umd5 ne $pmd5) {
-	warn("\n!! Unison md5 doesn't match perl md5 for pseq_id=$pseq_id\n");
-  }
+  print("$umd5 $pseq_id\n");
 }
 
-print(STDERR "..... done\n");
+print(STDERR ".. done\n");
