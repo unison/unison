@@ -1,6 +1,15 @@
+.PHONY: FORCE
+.SUFFIXES:
+
+
 COMPBIO:=/apps/compbio
 UHOME:=${HOME}/csb-db/unison
-export PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc:/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
+
+PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc
+PATH+=:${COMPBIO}/i686-linux-2.4/bin:${COMPBIO}/bin
+PATH+=:/usr/local/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
+export PATH
+
 export PGUSER:=loader
 export PGDATABASE:=csb-dev
 export PERL5LIB:=${UHOME}/perl5
@@ -36,6 +45,17 @@ NO_DEFAULT_TARGET:
 	@echo "no default target" 1>&2; exit 1
 
 
+# groups of pseq_ids
+pset%.ids:
+	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@.tmp
+	/bin/mv $@.tmp $@
+	@wc -l $@
+ggi.ids:
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@.tmp
+	/bin/mv $@.tmp $@
+	@wc -l $@
+
+
 # get sequences for a set of ids
 %.fa: %.ids
 	get-seq <$< >$@.tmp \
@@ -43,16 +63,28 @@ NO_DEFAULT_TARGET:
 
 
 # Any target can be a qsub target
-# e.g., $ make FOO.log.qsub 
+# e.g., $ make qsub/FOO.log
 # make -n ensures that the target is legit and that make
 # can figure out how to build it
-%.qsub:
+_D:=$(shell mkdir -p qsub)
+qsub/%:
 	@if ! make -C${PWD} -n $* >/dev/null 2>/dev/null; then \
 		echo "couldn't make -n $* -- impossible target" 1>&2; \
 		exit 1; \
 	fi
-	echo "make -C${PWD} $*" | ${QSUB}
+	echo "make -C${PWD} $*" | ${QSUB} -o$@.out -e$@.err >$@ 2>&1
+	@cat $@
 
+
+# gzip
+%.gz:: %
+	gzip $<
+%:: %.gz
+	gzip -d $<
+
+
+env:
+	@env
 
 
 # Generic cleaning rules
