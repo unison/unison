@@ -5,6 +5,7 @@
 use strict;
 use warnings;
 use Unison;
+use Unison::run_history;
 use Bio::SeqIO;
 
 
@@ -13,7 +14,7 @@ use Bio::SeqIO;
 # unison.params table.
 my $params = 'Pfam_fs 14.0';
 
-my $eval_max = 1e-2;
+my $eval_max = '1e-5';
 
 
 # connect with defaults. See Unison::DBI. Typically, the connection is made
@@ -37,10 +38,17 @@ my $pfam_sth = $u->prepare(<<EOSQL);
 EOSQL
 
 
+my $Id = '$Id$ ';
+print(STDERR <<EOT);
+# $Id
+# params = $params (params_id = $params_id)
+# eval threshold = $eval_max
+EOT
+
 my $in = new Bio::SeqIO( -fh => \*STDIN,
 						 -format => 'fasta' );
-
 my $sno = 0;
+
 while( my $bs = $in->next_seq() ) {
   $sno++;
   my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
@@ -56,10 +64,17 @@ while( my $bs = $in->next_seq() ) {
   printf("* Unison:%d (%s); %d hmm alignment(s)\n",
 		 $pseq_id, $u->best_alias($pseq_id) || '<no alias>', $#results+1);
 
-  # !!! no results => either 1) never run or 2) no results given criteria
-  # one can and and should distinguish these by looking in the run_history
-  # table. I don't do that here.
-  next unless @results;
+  if (not @results) {
+	# !!! no results => either 1) never run or 2) no results given criteria
+	# distinguish these cases by checking the run_history table.
+	my $z = $u->get_run_timestamp($pseq_id,$params_id,undef,undef);
+	if (defined $z) {
+	  print("  run on $z\n");
+	} else {
+	  print("  not run using parameters '$params'\n");
+	}
+	next;
+  }
 
   printf("  [%4.4s,%4.4s] %4s %5s  %8s  %-10.10s  %-15.15s  %s\n",
 		 qw(strt stop ends score eval acc name descr));
