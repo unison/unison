@@ -43,7 +43,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.16 2003/04/30 21:09:34 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.17 2003/07/09 20:32:04 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
@@ -90,7 +90,7 @@ printf(STDERR "# before: %d extant aliases, %d extant md5s\n"
 	   scalar keys %alias, scalar keys %md5, 
 	   $nseen, $nskipped, $nadded);
 
-print( "last_updated = ", $u->porigin_last_updated( $porigin_id );
+print( "last_updated = ", $u->porigin_last_updated( $porigin_id ) );
 
 exit(0);
 
