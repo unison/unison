@@ -1,0 +1,45 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Unison;
+use IO::File;
+
+my $u = new Unison;
+
+my $i_sth = $u->prepare(q/insert into unison.seq2go (pseq_id,go_id,
+						reference,evidence) values (?,?,?,?)/);
+
+my $q_sth = $u->prepare_cached(q/select pseq_id from palias where
+								 alias=? and porigin_id=12/);
+
+
+my $fn = shift || '-';
+my $in = new IO::File;
+$in->open("<$fn")
+  || die("$fn: $!\n");
+
+
+while( my $l = <$in> ) {
+  chomp $l;
+  my (@F) = split(/\t+/,$l);
+  my $pseq_id = pseq_id_by_alias($F[2]);
+  next unless defined $pseq_id;
+
+  my ($go_id) = $F[3] =~ m/GO:0*(\d+)/;
+  print("inserting $pseq_id $go_id $F[4] $F[5]\n");
+  $i_sth->execute( $pseq_id, $go_id, $F[4], $F[5] );
+}
+
+
+
+my %q_cache;
+sub pseq_id_by_alias {
+  my $a = shift;
+  if (not exists $q_cache{$a}) {
+	$q_sth->execute($a);
+	$q_cache{$a} = $q_sth->fetchrow_array;	# may be undef
+	$q_sth->finish;
+  }
+  return $q_cache{$a};
+  }

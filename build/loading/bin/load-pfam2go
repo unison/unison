@@ -1,0 +1,46 @@
+#!/usr/bin/env perl
+# load <goftp>/external2go/pfam2go into unison
+
+use strict;
+use warnings;
+use Unison;
+use IO::File;
+
+my $u = new Unison;
+
+my $m_sth = $u->prepare(q/select pmodel_id from pmhmm where acc=?/);
+my $i_sth = $u->prepare(q/insert into unison.pmodel2go (pmodel_id,go_id,
+						reference) values (?,?,?)/);
+
+my $fn = shift || '-';
+my $in = new IO::File;
+$in->open("<$fn")
+  || die("$fn: $!\n");
+
+
+#Pfam:PF00001 7tm_1 > GO:rhodopsin-like receptor activity ; GO:0001584
+#Pfam:PF00001 7tm_1 > GO:G-protein coupled receptor protein signaling pathway ; GO:0007186
+while( my $l = <$in> ) {
+  next unless $l =~ m/^Pfam:/;
+  my ($acc,$go_id) = $l =~ m/^Pfam:(PF\d+).*; GO:0*(\d+)$/;
+  my $pmodel_id = pmodel_id_by_acc($acc);
+  if (not defined $pmodel_id) {
+	warn("!! no model for $acc\n");
+	next;
+  }
+  print("inserting $acc: $pmodel_id $go_id\n");
+  $i_sth->execute( $pmodel_id, $go_id, 'pfam2go' );
+}
+
+
+
+my %m_cache;
+sub pmodel_id_by_acc {
+  my $a = shift;
+  if (not exists $m_cache{$a}) {
+	$m_sth->execute($a);
+	$m_cache{$a} = $m_sth->fetchrow_array;	# may be undef
+	$m_sth->finish;
+  }
+  return $m_cache{$a};
+  }
