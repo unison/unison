@@ -1,0 +1,67 @@
+#!/usr/bin/env perl
+# ssp-build -- build a fasta file of spdi sequences to load into Unison
+
+my @GB = 
+  (
+   'Virtual',
+   'Fragment',
+   'OrigeneFLS',
+   'Full Length Screen',
+   'Gene Exons',
+   'Genomic Celera',
+  );
+
+
+use DBI;
+
+my $dsn = 'dbi:Oracle:bioprd1';
+my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
+  || die("connect($dsn) failed: ", $DBI::errstr, "\n");
+
+
+open(GS, "| xargs /usr/local/seq/bin/getseq -F")
+  || die("couldn't open pipe to getseq\n");
+
+
+
+my $sql = 
+  'SELECT DISTINCT proid FROM dna D,prodna PD'
+  .' WHERE D.dnaid=PD.dnaid and ('
+  .join(' or ', map {"D.generatedby='$_'"} @GB)
+  .') ORDER BY proid';
+my @proids = map {$_->[0]} @{$dbh->selectall_arrayref($sql)};
+
+printf(STDERR "# selected %d proids\n", $#proids+1);
+
+print(GS map {"ssp.PRO$_\n"} @proids);
+close(GS);
+
+exit;
+
+
+
+
+__END__
+rkh@bioprd1> select generatedby,count(distinct proid)
+          -> from dna D,prodna PD where D.dnaid=PD.dnaid
+          -> group by generatedby order by 2 desc;
+ 
+GENERATEDBY            COUNT(DISTINCTPROID)
+---------------------- --------------------
+Virtual                               51852
+Fragment                              24593
+OrigeneFLS                            20027
+Full Length Screen                    19972
+Gene Exons                             8297
+Genomic Celera                         8026
+Construct                              4926
+Hybridoma                              3212
+PatinUpload                            2635
+IMGT                                    544
+Amylase Screen                          156
+Genomic NCBI                             64
+.
+.
+.
+ 
+34 rows selected (4.57 seconds)

@@ -1,0 +1,40 @@
+#!/usr/bin/env perl
+# This script writes a file which loads Unison's mirror of the sst
+# unqproform (sigh) table
+
+use DBI;
+
+my $dsn = 'dbi:Oracle:bioprd1';
+my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
+  || die("connect($dsn) failed: ", $DBI::errstr, "\n");
+
+
+print("TRUNCATE sst.unqproform;\n");
+print("COPY sst.unqproform (unqid, proid) FROM stdin;\n");
+my $sql = 'select unqid,proid from unqproform';
+my $sth = $dbh->prepare($sql);
+$sth->execute()
+  || die("$sql: ", $dbh->errstr());
+while( my @row = $sth->fetchrow_array() ) {
+  print( join("\t", map {sql_escape($_)} @row), "\n" );
+}
+print("\\.\n");
+
+
+
+
+
+#################################################################333
+## INTERNALS
+
+sub sql_escape() {
+  my $v = shift;
+
+  if (not defined $v) {
+	return '\N';
+  }
+
+  $v =~ s/\t/\\t/g;
+  $v =~ s/\n/\\n/g;
+  return $v;
+}
