@@ -13,7 +13,7 @@ $v->{ident} = 98 unless exists $v->{ident};
 
 
 print $p->render("Patents 'near' Unison:$v->{pseq_id}",
-				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
+				 $p->best_annotation($v->{pseq_id}),
 
 				 $p->start_form(-method => 'GET'),
 #								-action => $p->make_url()),
