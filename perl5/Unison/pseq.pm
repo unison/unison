@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.1 2003/04/28 20:52:00 rkh Exp $>
+S<$Id: pseq.pm,v 1.2 2003/05/02 06:08:04 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -24,8 +24,20 @@ B<> is a
 package Unison;
 
 
+
 sub pseq_si_pseq_id
   {
+=pod
+
+=over
+
+=item B<::pseq_si_pseq_id( C<sequence> )>
+
+returns the pseq_id for a given sequence, creating it if necessary
+
+=back
+
+=cut
   my ($self, $seq) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
@@ -35,16 +47,9 @@ sub pseq_si_pseq_id
   return $rv;
   }
 
+
 sub get_sequence_by_pseq_id($)
   {
-  my ($self,$pseq_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached("select seq from pseq where pseq_id=?");
-  $sth->execute($pseq_id);
-  my ($rv) = $sth->fetchrow_array();
-  $sth->finish();
-  return $rv;
 =pod
 
 =over
@@ -56,21 +61,19 @@ fetches a single protein sequence from the pseq table.
 =back
 
 =cut
+  my ($self,$pseq_id) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my $sth = $self->prepare_cached("select seq from pseq where pseq_id=?");
+  $sth->execute($pseq_id);
+  my ($rv) = $sth->fetchrow_array();
+  $sth->finish();
+  return $rv;
   }
 
 
 sub best_alias
   {
-  my $self = shift;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  ($#_==0)
-	|| croak("exactly one porigin_id needed\n");
-  my $sth = $self->prepare_cached("select best_alias(?)");
-  $sth->execute(shift);
-  my $ba = $sth->fetchrow_array;
-  $sth->finish();
-  return( $ba );
 =pod
 
 =over
@@ -85,21 +88,21 @@ porigin.ann_pref ranking.  See also best_annotation.
 =back
 
 =cut
-  }
-
-
-sub best_annotation
-  {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
   ($#_==0)
 	|| croak("exactly one porigin_id needed\n");
-  my $sth = $self->prepare_cached("select best_annotation(?)");
+  my $sth = $self->prepare_cached("select best_alias(?)");
   $sth->execute(shift);
   my $ba = $sth->fetchrow_array;
   $sth->finish();
   return( $ba );
+  }
+
+
+sub best_annotation
+  {
 =pod
 
 =over
@@ -113,19 +116,21 @@ Compare with the C<best_alias> method and see that for a definition of
 =back
 
 =cut
-  }
-
-
-sub pseq_get_aliases
-  {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
   ($#_==0)
 	|| croak("exactly one porigin_id needed\n");
-  my $pseq_id = shift;
-  my $sql = "select origin||':'||alias from palias as a join porigin as o on a.porigin_id=o.porigin_id  where pseq_id=$pseq_id  order by o.ann_pref";
-  return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
+  my $sth = $self->prepare_cached("select best_annotation(?)");
+  $sth->execute(shift);
+  my $ba = $sth->fetchrow_array;
+  $sth->finish();
+  return( $ba );
+  }
+
+
+sub pseq_get_aliases
+  {
 =pod
 
 =over
@@ -138,6 +143,14 @@ by porigin.ann_pref.
 =back
 
 =cut
+  my $self = shift;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  ($#_==0)
+	|| croak("exactly one porigin_id needed\n");
+  my $pseq_id = shift;
+  my $sql = "select origin||':'||alias from palias as a join porigin as o on a.porigin_id=o.porigin_id  where pseq_id=$pseq_id  order by o.ann_pref";
+  return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
   }
 
 
