@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5", "$FindBin::Bin/../../../perl5";
 
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW;
@@ -13,7 +13,7 @@ use Unison::pseq_features;
 use Unison::SQL;
 use Unison::Exceptions;
 
-my $pdbDir = '/gne/compbio/share/prospect2/pdb';
+my $pdbDir = (defined($ENV{PDB_PATH}) ? $ENV{PDB_PATH} : '/gne/compbio/share/pdb/all.ent');
 my @statevars = qw(pseq_id params_id offset limit sort pmodelset_id);
 #my $scopURL = 'http://scop.mrc-lmb.cam.ac.uk/scop';
 my $scopURL = 'http://scop.berkeley.edu';
@@ -53,9 +53,10 @@ $v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
+$v->{viewer} = 'pymol' unless defined $v->{viewer};
 $v->{details} = 0;
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.20 2004/10/12 16:32:28 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.21 2005/02/16 23:07:05 rkh Exp $ ');
 
 
 my @cols;
@@ -113,7 +114,7 @@ my $feats = $u->Unison::pseq_features::coalesce_scop( \@raw_data );
 
 # build ar array which will store row data
 my @ar;
-my $xmol = 'pymol';
+
 foreach my $row ( @{$feats} ) {
   # build checkbox for alignment
   my $aln = "<input type=\"checkbox\" name=\"templates\" "
@@ -121,10 +122,10 @@ foreach my $row ( @{$feats} ) {
 
   # build structure link
   my $strxlink = $row->{acc};
-  if ( -f "$pdbDir/$row->{acc}.pdb" ) {
-    $strxlink = "<a href=\"p2$xmol.pl?pseq_id=$v->{pseq_id};params_id="
+  if ( -f "$pdbDir/pdb".substr($row->{acc},0,4).".ent" ) {
+    $strxlink = "<a href=\"p2cm.pl?pseq_id=$v->{pseq_id};viewer=$v->{viewer};params_id="
 	  . "$v->{params_id};templates=$row->{acc}\" tooltip=\""
-	  . "show threading alignment with $xmol\">$row->{acc}</a>";
+	  . "show threading alignment with $v->{viewer}\">$row->{acc}</a>";
   }
 
   # build scop description
@@ -132,7 +133,7 @@ foreach my $row ( @{$feats} ) {
   # This builds a list of sunid classificiations (e.g., cl>sf>dm),
   # and joins them with '<br>'
   my @scop;
-  my $scop;
+
   for (my $i=0; $i<=$#{$row->{scop}}; $i++) {
 	my $scopr = $row->{scop}[$i];
 	# 2005-02-14: tried to add cfid/cfname, but the coalesce scop
@@ -183,7 +184,7 @@ my @ctl;
 if ($v->{offset}>0) {
   my $no = $v->{offset}-$v->{limit};
   $no = 0 if $no<0;
-  push(@ctl, 
+  push(@ctl,
      sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>0},@statevars),
 			 '<span tooltip="first (full) page" class="button">|&lt;&lt;</span>'),
      sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$no},@statevars), 
@@ -213,6 +214,7 @@ my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset order by pmodelset_id') };
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
+
 print $p->render
   ("threading summary for Unison:$v->{pseq_id}",
    $p->best_annotation($v->{pseq_id}),
@@ -220,6 +222,8 @@ print $p->render
    '<!-- pseq_prospect2 parameters -->',
    $p->start_form(-method=>'GET'),
    $p->hidden('pseq_id',$v->{pseq_id}),
+
+
    '<br>parameters: ', $p->popup_menu(-name => 'params_id',
 									  -values => [map {$_->[0]} @ps],
 									  -labels => \%ps,
@@ -228,9 +232,17 @@ print $p->render
    'models:',  $p->popup_menu(-name => 'pmodelset_id',
 							  -values => ['all', map {$_->[0]} @ms],
 							  -labels => \%ms,
-							  -default => "$v->{pmodelset_id}"),
+							  -default => "all"),
    '&nbsp;&nbsp;',
+
+   'Viewer: ',$p->radio_group(-name => 'viewer',
+			      -values => ['pymol','rasmol'],
+			      -default => 'pymol'),
+   '&nbsp;&nbsp;',
+
    $p->submit(-value=>'redisplay'),
+
+   '&nbsp;&nbsp;',
    $p->end_form(), "\n",
 
    $p->tip('clicking some column headings will dynamically sort by that column'),
