@@ -12,12 +12,14 @@ create table run_history (
 	ran_on timestamp default now()
 ) without oids;
 
-create unique index run_history_search1 on run_history (pseq_id,params_id,porigin_id,pmodelset_id)
-	where porigin_id is not null;
-create unique index run_history_search2 on run_history (pseq_id,params_id,pmodelset_id)
-	where porigin_id is null and pmodelset_id is not null;
-create unique index run_history_search3 on run_history (pseq_id,params_id)
+create unique index run_history_search on run_history (pseq_id,params_id)
 	where porigin_id is null and pmodelset_id is null;
+create unique index run_history_search_o on run_history (pseq_id,params_id,porigin_id)
+	where porigin_id is not null and pmodelset_id is null;
+create unique index run_history_search_m on run_history (pseq_id,params_id,pmodelset_id)
+	where porigin_id is null and pmodelset_id is not null;
+create unique index run_history_search_om on run_history (pseq_id,params_id,porigin_id,pmodelset_id)
+	where porigin_id is not null and pmodelset_id is not null;
 
 comment on table run_history is 'history of runs analyses for a given sequence';
 
