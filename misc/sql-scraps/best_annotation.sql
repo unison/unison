@@ -5,7 +5,7 @@ DECLARE
 	rv text;
 BEGIN
 	if a_id is null then
-		return a_id;
+		return null;
 	end if;
 
 	select into rv 
@@ -23,7 +23,9 @@ DECLARE
 	a_id alias for $1;
 	rv text;
 BEGIN
-	if a_id is null then return; end if;
+	if a_id is null then
+		return null;
+	end if;
 	select into rv 
 		O.origin || '':'' || A.alias
 		from paliasorigin A
