@@ -6,7 +6,7 @@ DECLARE
 	rv text;
 BEGIN
 	select into rv
-		asset(distinct tax.spspec_name(spspec_id)) from pseqalias
+		asset(distinct tax.tax_id2gs(tax_id)) from pseqalias
 		natural join paliasorigin
 		where pseq_id=v_pseq_id and iscurrent=TRUE
 		group by pseq_id;
