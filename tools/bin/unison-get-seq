@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
-# get-seq -- retrieve sequences from unison
-# $Id: get-seq,v 1.6 2003/07/03 16:47:14 rkh Exp $
+# get-seq -- output selected sequences from Unison in fasta format
+# $Id: get-seq,v 1.7 2003/09/16 23:24:46 rkh Exp $
 
 use warnings;
 use strict;
@@ -8,19 +8,27 @@ use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 
-my %opts;
+my %opts = 
+  (
+   'best-alias' => 0,
+   'best-annotation' => 0,
+   'all-aliases' => 0,
+   'dnaid' => [],
+   'proid' => [],
+   'verbose' => 0,
+  );
 GetOptions( \%opts,
-			'best-alias|best-oa|a+',
-			'best-annotation|best-oad|D+',
-			'all-aliases|A+',
+			'best-alias|best-oa|b+',
+			'best-annotation|best-oad|B+',
+			'all-aliases|a+',
 			'dnaid|D=s@',
-			'proid|P=s@'
+			'proid|P=s@',
+			'verbose|v+'
 		  )
   || die("$0: you got usage issues, homey\n");
 
 my $u = new Unison( username => 'PUBLIC' );
 die( "! couldn't open a connection to unison\n" ) unless $u;
-
 
 @{$opts{proid}} = map {split(/,/,$_)} @{$opts{proid}};
 unshift(@ARGV, SPDI_lookup('PRO',@{$opts{proid}}));
@@ -30,7 +38,7 @@ unshift(@ARGV, SPDI_lookup('DNA',@{$opts{dnaid}}));
 
 if (@ARGV) {
   while( my $r = shift ) {
-	eval "process1(\$_) for $r"
+	process1($_) for eval "$r";
   }
 } else {
   while (my $id=<>)	{
@@ -42,34 +50,40 @@ exit(0);
 
 ############################################################################
 
-sub process1
-  {
+sub process1 {
   my $pseq_id = shift;
   my $seq = get1($pseq_id);
-  if (not defined $seq)
-	{ warn("Unison:$pseq_id not found\n"); return; }
-  print $seq;
+  if (not defined $seq) {
+	warn("Unison:$pseq_id not found\n"); return;
   }
+  print $seq;
+}
 
-sub get1
-  {
+sub get1 {
   my $pseq_id = shift;
-  my @aliases;
+  my @descr;
   my $rv;
   my $seq = $u->get_sequence_by_pseq_id($pseq_id);
+
   if (not defined $seq)
-	{ warn("pseq $pseq_id doesn't exist\n"); return; }
-  if (defined $opts{'best-alias'})
-	{ (@aliases) = $u->best_alias($pseq_id) }
-  elsif (defined $opts{'best-annotation'})
-	{ (@aliases) = $u->best_annotation($pseq_id) }
-  elsif (defined $opts{'all-aliases'})
-	{ (@aliases) = $u->pseq_get_aliases($pseq_id) }
-  $rv = join(' ',">Unison:$pseq_id",@aliases) . "\n";
+	{ warn("! pseq $pseq_id doesn't exist\n"); return; }
+
+  if ($opts{'best-alias'})
+	{ (@descr) = $u->best_alias($pseq_id,1) }
+  elsif ($opts{'best-annotation'})
+	{ (@descr) = $u->best_annotation($pseq_id,1) }
+  elsif ($opts{'all-aliases'})
+	{ (@descr) = $u->pseq_get_aliases($pseq_id) }
+
+  @descr = () unless @descr;
+
+  $rv = join(' ',">Unison:$pseq_id",@descr) . "\n";
   while( length($seq) )
 	{ $rv .= substr($seq,0,60,'') . "\n"; }
+
+  print(STDERR "# $pseq_id (", $descr[0]||'<no description>', ")\n") if $opts{verbose};
   return $rv;
-  }
+}
 
 
 
@@ -98,7 +112,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.6 2003/07/03 16:47:14 rkh Exp $>
+S<$Id: get-seq,v 1.7 2003/09/16 23:24:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
