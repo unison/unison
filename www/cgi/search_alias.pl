@@ -46,7 +46,7 @@ sub do_search {
 		   .'); please narrow your query (max is 100)</b>');
   }
 
-  my $sth = $u->prepare('select best_oad(?)');
+  my $sth = $u->prepare('select best_annotation(?)');
   my @ar = map { [$_, $u->selectrow_array($sth,undef,$_) ] } @pids;
   my @fields = ( 'pseq_id', 'origin:alias (description)' );
   my $ar = \@ar;
