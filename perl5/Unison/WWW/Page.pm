@@ -6,8 +6,7 @@ use Unison::Exceptions;
 use Unison;
 
 
-sub new
-  {
+sub new {
   my $class = shift;
   my $self = $class->SUPER::new(@_);
   my $username = $ENV{REMOTE_USER};
@@ -18,16 +17,16 @@ sub new
   else
 	{ $username = 'PUBLIC'; }
   $username = 'PUBLIC';
-  try
-	{ $self->{unison} = new Unison( username=>$username, password=>undef ); }
-  catch Unison::Exception::ConnectionFailed with
-	{
+  try { 
+	$self->{unison} = new Unison( username=>$username, password=>undef ); 
+  }
+  catch Unison::Exception::ConnectionFailed with {
 	die($self->header(),
 		$self->start_html('Unison Connection Failed'),
 		"<h1>Unison Connection Failed</h1>\n",
 		$_[0],
 		$self->end_html());
-	};
+  };
 #  print(STDERR "## unison = ", $self->{unison}, "\n");
   $self->start_html;
   return $self;
@@ -46,6 +45,10 @@ sub start_html
   {
   my $self = shift;
   return $self->SUPER::start_html( @_,
+								   -head =>[
+											Link({-rel=>'shortcut icon',
+												  -href=>'../av/favicon.png'})
+										   ],
 								   -style=>{'src'=>'../unison.css'}
 								 );
   }
@@ -56,9 +59,24 @@ sub render
   my $title = shift;
   return ($p->header(),
 		  $p->start_html(-title=>"Unison:$title")."\n",
-		  '<table class="page">',
-		  '<tr>', '<td width="20%"><img valign="top"  src="../av/unison.png"></td>', "<td><b>$title</b><br>[navbar placeholder]</td>", '</tr>',
-		  '<tr>', '<td width="20%" valign="top">[subnav]</td>', '<td>', @_, '</td>', '</tr>',
+		  '<table class="page">', "\n",
+		  '<tr>', "\n",
+		  '  <td class="logo" rowspan=2 width="20%"><a href="/csb/unison/"><img class="logo" src="../av/unison.png"></a></td>', "\n",
+		  '  <td padding=0>', navbar2(1,['pseq','pseq.html'],['pset','pset.html']),'</td>', "\n",
+		  '</tr>', "\n",
+		  '<tr>', "\n", '  <td>[subnav placeholder]</td>', "\n", '</tr>',
+		  '<tr>', "\n",
+		  '  <td class="cnav" width="20%">[contextnav]</td>', "\n",
+		  '<!-- begin page content -->', "\n",
+		  '  <td>', "<b>$title</b><br>", "\n", 
+		  '  ', @_, "\n",
+		  '<!-- end page content -->', "\n",
+		  '  </td>', "\n",
+		  '<tr>', "\n",
+		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" src="../av/poweredby_postgresql.png"></a></td>', "\n",
+		  '  <td valign="top">contact:<a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a>, 
+</td>', "\n",
+		  '</tr>', "\n",
 		  $p->end_html(),"\n");
   }
 
@@ -91,8 +109,32 @@ sub die
   print $p->render("error: $_[0]",'<span class="error">',join('<br>',@_),'</span>');
   exit(0);
   }
-sub debug
-  {
+
+sub debug {
   my $p = shift;
   print $p->render("debug: $_[0]",'<span class="debug">',join('<br>',@_),'</span>');
+}
+
+
+sub navbar {
+  my ($sel,@tu) = @_;
+  my $rv = '<ul class="nav">';
+  for(my $i=0; $i<=$#tu; $i++) {
+	my $cl = (defined $sel and $sel-1 == $i) ? ' class="selected"' : '';
+	$rv .= sprintf('<li%s><a href="%s">%s</a></li>',$cl,@{$tu[$i]}[1,0]);
   }
+  $rv .= '</ul>';
+  return $rv;
+}
+
+sub navbar2 {
+  my ($sel,@tu) = @_;
+  my @nav = ();
+  for(my $i=0; $i<=$#tu; $i++) {
+	my $cl = (defined $sel and $sel-1 == $i) ? 'selected' : 'unselected';
+	push(@nav, sprintf('<td class="%s"><a href="%s">%s</a></li>',$cl,@{$tu[$i]}[1,0]));
+  }
+  return( '<table class="nav">',  # cellpadding=0 cellspacing=0 border=0>';
+		  join('<td class="spc" width=1></td>', @nav),
+		  '</table>');
+}
