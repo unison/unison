@@ -2,19 +2,20 @@
 
 use warnings;
 use strict;
-use lib ('.', "$ENV{HOME}/unison/perl5");
 use Unison;
 use IO::File;;
+
+die("I AM BROKEN, KAPUT, AND COMPLETELY NON-FUNCTIONAL\n");
 
 
 my $fn = "/tmp/sc-$$";
 my $fh = new IO::File;
 my $u = new Unison;
 
-#foreach my $pseq_id ( $u->seq_not_from_origin(1001) )
-foreach my $pseq_id (qw(18 ))
-  {
-  my $seq = $u->get_seq($pseq_id);
+
+
+foreach my $pseq_id (@ARGV) {
+  my $seq = $u->get_sequence_by_pseq_id($pseq_id);
   $fh->open(">$fn")
 	|| die("$fn: $!\n");
   $fh->print(">$pseq_id\n",$seq,"\n");

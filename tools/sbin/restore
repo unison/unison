@@ -1,37 +1,35 @@
 #!/bin/sh
 
-unset PGUSER
 unset PGHOST
 
 if [ "`uname -n`" != "interceptor" ]; then
-	echo "this is best run on interceptor" 1>&2
+	echo "this should be run on interceptor" 1>&2
 	exit 1
 fi
 
-if [ -z "$PGPASSWORD" ]; then
-	echo "PGPASSWORD isn't set; run like this:" 1>&2
-	echo "  PGPASSWORD=blah PGDATABASE=dbname $0" 1>&2
-	exit 2
-fi
-if [ -z "$PGDATABASE" ]; then
-	echo "PGDATABASE isn't set; run like this:" 1>&2
-	echo "  PGPASSWORD=blah PGDATABASE=dbname $0" 1>&2
+if [ -z "$PGPORT" -o -z "$PGPASSWORD" -o  -z "$PGDATABASE" -o -z "PGUSER" ]; then
+	echo "PGPORT, PGUSER, PGDATABASE, and PGPASSWORD must be set:" 1>&2
+	echo "  PGPORT=6543 PGUSER=me PGPASSWORD=blah PGDATABASE=dbname $0" 1>&2
 	exit 2
 fi
 
 
-if psql -UPUBLIC -d"$PGDATABASE" -c'\q' >/dev/null 2>/dev/null; then
+# attempt to connect and fail if connection succeeds
+if psql -UPUBLIC -c'\q' >/dev/null 2>/dev/null; then
 	echo "$PGDATABASE already exists; aborting" 1>&2
 	exit 3
 fi
 
 
-psql -Uadmin -dtemplate1 -qaf - <<EOF
+psql -dtemplate1 -qaf - <<EOF
 create database "$PGDATABASE";
 grant create on database "$PGDATABASE" to rkh;
 grant create on database "$PGDATABASE" to cavs;
 EOF
 
-gzip -cd "$1" \
-| psql -Uadmin -d"$PGDATABASE" -qaf -
+case "$1" in
+	*.gz) GZIP= gzip -cd "$1" | psql -qaf -;;
+	*)  psql -qaf $1;;
+esac
 
+exit $?

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # run-pfantigenic -- run EMBOSS antigenic and load into unison
-# $Id: run-pfantigenic,v 1.3 2003/10/07 18:59:37 rkh Exp $
+# $Id: run-pfantigenic,v 1.4 2003/10/28 22:29:52 rkh Exp $
 
 
 use Unison;
@@ -24,7 +24,7 @@ GetOptions( \%opts,
 
 unshift(@PATH, '/apps/compbio/i686-linux-2.4/opt/EMBOSS/bin');
 
-my $run_id = 4;								# hardwired for now
+my $params_id = 4;								# hardwired for now
 my $temp_fn = "/tmp/run-pfantigenic-$$.fa";
 
 
@@ -32,10 +32,10 @@ sub run1($$$);
 
 my $u = new Unison;
 
-my @cmd = ('antigenic', split(' ',$u->run_commandline_by_run_id( $run_id )));
+my @cmd = ('antigenic', split(' ',$u->run_commandline_by_params_id( $params_id )));
 print(STDERR "# running with @cmd\n");
 
-my $sth = $u->prepare( 'insert into pfantigenic(pseq_id,start,stop,score,max_pos,run_id) values (?,?,?,?,?,?)' );
+my $sth = $u->prepare( 'insert into pfantigenic(pseq_id,start,stop,score,max_pos,params_id) values (?,?,?,?,?,?)' );
 
 my @list = Unison::utils::range_to_enum(@ARGV);
 for(my $i=0; $i<=$#list; $i++) {
@@ -84,8 +84,8 @@ sub run1($$$) {
 	  = $block =~ m/Start: (\d+)\nEnd: (\d+)\nLength: \d+\nScore: (\S+)\nMax_score_pos: (\d+)\n/;
 	next unless defined $start;
 	next if $opts{debug};
-	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$run_id);
-	$u->last_run_update($pseq_id,$run_id);
+	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$params_id);
+	$u->last_run_update($pseq_id,$params_id);
   }
 }
 
@@ -134,10 +134,10 @@ sub run1_NO_TEMP_FILE($$$) {
 	  = $block =~ m/Start: (\d+)\nEnd: (\d+)\nLength: \d+\nScore: (\S+)\nMax_score_pos: (\d+)\n/;
 	next unless defined $start;
 	next if $opts{debug};
-	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$run_id);
+	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$params_id);
   }
 
-  $u->last_run_update($pseq_id,$run_id);
+  $u->last_run_update($pseq_id,$params_id);
 }
 
 

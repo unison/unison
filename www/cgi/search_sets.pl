@@ -20,7 +20,7 @@ my %defaults =
    pssm => 0,
    pssm_eval => '1e-10',
    p2 => 0,
-   p2_run_id => 1,
+   p2_params_id => 1,
    p2_svm => 12,
    p2_raw => -500,
   );
@@ -103,7 +103,7 @@ if (exists $v->{submit}) {
   }
 
   if ($v->{p2}) {
-	my $url = $p->make_url( qw(pset_id pmodelset_id p2 p2_run_id p2_svm) );
+	my $url = $p->make_url( qw(pset_id pmodelset_id p2 p2_params_id p2_svm) );
 	my ($M,$sql,$P) = _get_p2_hits();
 	$data{p2}{sql} = $sql;
 	$data{p2}{M} = $#$M+1;
@@ -123,7 +123,7 @@ if (exists $v->{submit}) {
   }
 
   # UNION
-  my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_run_id p2_svm) );
+  my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_params_id p2_svm) );
   my @U_P = sort keys %P;
   if ($v->{submit} !~ m/^I_/) {
 	($FNr,$UPr,$TPr) = acomm(\@SP,\@U_P);
@@ -148,7 +148,7 @@ if (exists $v->{submit}) {
 	{ @$set = @$UPr; }
   else {
 	# INTERSECTION
-	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_run_id p2_svm) );
+	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_params_id p2_svm) );
 	my $n = ($v->{hmm}?1:0) + ($v->{pssm}?1:0) + ($v->{p2}?1:0);
 	my @I_P = grep { $P{$_} == $n } @U_P;
 	if ($v->{submit} ne 'I_P') {
@@ -197,7 +197,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.10 2003/11/04 21:55:16 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.11.2.1 2004/01/07 00:02:12 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -306,9 +306,9 @@ print $p->render("Sequence Mining Summary",
 							  -checked => $v->{p2}),
 
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
-				 $p->popup_menu(-name => 'p2_run_id',
+				 $p->popup_menu(-name => 'p2_params_id',
 								-values => [qw(1)],
-								-default => "$v->{p2_run_id}"),
+								-default => "$v->{p2_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with svm >= ',
 				 $p->popup_menu(-name => 'p2_svm',
 								-values => [qw(13 12 11 10 9 8 7 6 5)],
@@ -422,7 +422,7 @@ sub _get_p2_hits {
 	  ->table('paprospect2 A')
 	  ->columns('distinct A.pseq_id')
 	  ->where("A.svm>=$v->{p2_svm}::real")
-	  ->where("A.run_id=$v->{p2_run_id}")
+	  ->where("A.params_id=$v->{p2_params_id}")
 	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
   @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
   }

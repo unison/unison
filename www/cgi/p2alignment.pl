@@ -17,7 +17,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->ensure_required_params(qw(pseq_id run_id templates));
+$p->ensure_required_params(qw(pseq_id params_id templates));
 
 my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 if (not defined $seq)
@@ -25,9 +25,9 @@ if (not defined $seq)
 
 my @templates = split(/[\0,]/,$v->{templates});
 
-my $po = $u->get_p2options_by_run_id( $v->{run_id} );
+my $po = $u->get_p2options_by_params_id( $v->{params_id} );
 if (not defined $po)
-  { $p->die("The run_id parameter ($v->run_id) is invalid."); }
+  { $p->die("The params_id parameter ($v->params_id) is invalid."); }
 $po->{templates} = \@templates;
 
 my $pf = new Prospect::LocalClient( {options=>$po} );

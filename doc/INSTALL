@@ -14,22 +14,28 @@ IMPORTANT:
 * preparing and starting a database "cluster" (instance of postgresql) for the first time
 $ audit compbio
 $ unset PGUSER PGDATABASE PGHOST PGPORT
-$ initdb -U admin -D $PGDATA
-$ psql -dtemplate1 -c "alter user admin password 'blah'";
+$ initdb -U compbio -D $PGDATA
+$ pg_ctl -D $PGDATA start
+$ psql -U compbio -d template1 -c "alter user compbio password 'thepass'";
 $ cp csb-db/conf/{postgresql.conf,pg_hba.conf} $PGDATA/
-$ pg_ctl -l $PGDATA/log start
-$ createuser -Uadmin -A -D -P loader
-$ createuser -Uadmin -A -D PUBLIC
+$ pg_ctl -l $PGDATA/log -D $PGDATA restart
+$ psql -Ucompbio -dtemplate1 -c 'select version()'  ## to test connection
+$ createuser -i2 -Ucompbio -A -D    PUBLIC
+$ createuser -i3 -Ucompbio -A -D -P unison
+$ createuser -i4 -Ucompbio -A -D -P loader
 $ csb-db/bin/passwd2sql </etc/passwd rkh cavs wiw ... | psql -dtemplate1 -Uadmin -qaf-
 
 
 * languages and unison C functions
-$ createlang -dtemplate1 -Uadmin plpgsql
-$ createlang -dtemplate1 -Uadmin plperl
-$ createlang -dtemplate1 -Uadmin plpython
+## This is optional. We're better off doing it for the database itself, NOT template1
+$ PGPASSWORD= createlang -dtemplate1 -Uadmin plpgsql
+$ PGPASSWORD= createlang -dtemplate1 -Uadmin plperl
+$ PGPASSWORD= createlang -dtemplate1 -Uadmin plperlu
+$ PGPASSWORD= createlang -dtemplate1 -Uadmin plpython
 $ cd csb-db/unison/src
 $ make unison.so
 $ make install
+
 
 
 * (re-)starting the database
@@ -51,3 +57,11 @@ $ PGPASSWORD=xxx PGDATABASE=csb-dev restore <timestamp.pgdump.gz>
 
 * setting the default database schema search path:
 $ psql -Uadmin -c "alter database csb set search_path = '\$user',unison,gong,scop,tax,public";
+pg_restore -a -v -p5433 -d csb-dev -S compbio -U compbio --disable-triggers --use-set-session-authorization  csb.pgd
+
+
+
+* copying a list of users
+$ psql -At -dtemplate1 -c 'select usename from pg_user' >|/tmp/logins
+(see pg_dumpall -g too)
+

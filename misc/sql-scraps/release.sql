@@ -22,37 +22,39 @@ BEGIN
 	ts:=now(); raise notice ''meta_stats_update: started %'',ts;
 
 	-- sequence stats
-	select into n count(*) from pseq;
-	perform meta_update_kv(''unique sequences'',n);
-	select into n count(*) from pseq where added>=now()-''30 days''::interval;
-	perform meta_update_kv(''new sequences in last 30 days'',n);
-	select into n count(*) from pseq where added>=now()-''60 days''::interval;
-	perform meta_update_kv(''new sequences in last 60 days'',n);
-	select into n count(*) from pseq where added>=now()-''180 days''::interval;
-	perform meta_update_kv(''new sequences in last 180 days'',n);
+--	select into n count(*) from pseq;
+--	perform meta_update_kv(''unique sequences'',n);
+--	select into n count(*) from pseq where added>=now()-''30 days''::interval;
+--	perform meta_update_kv(''new sequences in last 30 days'',n);
+--	select into n count(*) from pseq where added>=now()-''60 days''::interval;
+--	perform meta_update_kv(''new sequences in last 60 days'',n);
+--	select into n count(*) from pseq where added>=now()-''180 days''::interval;
+--	perform meta_update_kv(''new sequences in last 180 days'',n);
+--
+--	-- alias and origin stats
+--	select into n count(*) from palias;
+--	perform meta_update_kv(''aliases'',n);
+--	select into n count(distinct tax_id) from palias;
+--	perform meta_update_kv(''species'',n);
 
-	-- alias and origin stats
-	select into n count(*) from palias;
-	perform meta_update_kv(''aliases'',n);
-	select into n count(distinct tax_id) from palias;
-	perform meta_update_kv(''species'',n);
-
-	-- distinct sequences in an origin and distinct sequence unique to an origin
+	-- number of distinct sequences in an origin and 
+	-- number of distinct sequences unique to an origin
 	FOR r IN select porigin_id,origin from porigin where ann_pref is not null LOOP
-		drop table in_r;
 		create temp table in_r as select distinct pseq_id from palias
-			where porigin_id=r.porigin_id;
+			where porigin_id=r.porigin_id limit 10000;
 		select into n count(*) from in_r;
 		perform meta_update_kv(''distinct sequences in ''||r.origin ,n);
 
-		-- create temp table not_in_r as select pseq_id from in_r 
-		--	except select pseq_id from palias where porigin_id!=r.porigin_id;
-		-- select into n count(*) from not_in_r;
+		create temp table not_in_r as select pseq_id from in_r
+			except select pseq_id from palias where porigin_id!=r.porigin_id limit 1000;
+		select into n count(*) from not_in_r;
 		-- this is faster (I think):
-		select into n count(distinct pseq_id) from palias a1 where a1.porigin_id=r.porigin_id 
- 			and	not exists (select * from palias a2 where a2.pseq_id=a1.pseq_id and a2.porigin_id!=a1.porigin_id);
+--		select into n count(distinct pseq_id) from palias a1 where a1.porigin_id=r.porigin_id
+-- 			and	not exists (select * from palias a2 where a2.pseq_id=a1.pseq_id and a2.porigin_id!=a1.porigin_id);
+--		perform meta_update_kv(''distinct sequences unique to ''||r.origin ,n);
 
-		perform meta_update_kv(''distinct sequences unique to ''||r.origin ,n);
+		drop table in_r;
+		drop table not_in_r;
 	END LOOP;
 
 	-- pfeatures
@@ -100,17 +102,6 @@ BEGIN
 	return;
 END;';
 comment on function meta_stats_update() is 'update database statistics in meta';
-
-
-create or replace function meta_stats_unique() returns void
-language plpgsql as '
-DECLARE
-	n integer;
-	r record;
-BEGIN
-	return;
-END;';
-comment on function meta_stats_distinct() is 'count number of sequences unique to an origin';
 
 
 create or replace function meta_update_kv(text,text) returns void

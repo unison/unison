@@ -1,5 +1,5 @@
 # -*- sh -*-
-# $Id: utils,v 1.6 2003/10/02 17:25:31 rkh Exp $
+# $Id: utils,v 1.7 2003/10/02 17:36:57 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 JEMAPPELLE=`basename $0`
@@ -41,7 +41,7 @@ dothis () {
 if [ -t 0 ]; then
 	logger "logging to stdout/stderr (`tty`)"
 else
-	logger "logging to $LOG_DIR/$JEMAPPELLE"
+	#logger "logging to $LOG_DIR/$JEMAPPELLE"
 	exec >>"$LOG_DIR/$JEMAPPELLE" 2>&1
 fi
 
