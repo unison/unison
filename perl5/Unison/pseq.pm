@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.17.2.1 2004/11/30 19:55:23 rkh Exp $>
+S<$Id: pseq.pm,v 1.18 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -99,11 +99,10 @@ porigin.ann_pref ranking.  See also best_annotation.
 sub best_alias {
   my $self = shift;
   my $pseq_id = shift;
-  my $any = shift || 0;
   $self->is_open()
 	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached("select best_alias(?,?)");
-  $sth->execute( $pseq_id, $any?'true':'false' );
+  my $sth = $self->prepare_cached("select best_alias(?)");
+  $sth->execute( $pseq_id );
   my $ba = $sth->fetchrow_array();
   $sth->finish();
   return( $ba );
@@ -126,11 +125,10 @@ Compare with the C<best_alias> method and see that for a definition of
 sub best_annotation {
   my $self = shift;
   my $pseq_id = shift;
-  my $any = shift || 0;
   $self->is_open()
 	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached("select best_annotation(?,?)");
-  $sth->execute( $pseq_id, $any?'true':'false' );
+  my $sth = $self->prepare_cached("select best_annotation(?)");
+  $sth->execute( $pseq_id );
   my $ba = $sth->fetchrow_array();
   $sth->finish();
   return( $ba );
