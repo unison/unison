@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.11 2005/03/19 18:22:46 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.12 2005/03/19 21:35:26 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -29,7 +29,7 @@ our @EXPORT_OK = qw( pseq_features_panel %opts );
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::utilities qw( warn_deprecated );
-#use Unison::pseq_structure;					# DON'T UNCOMMENT UNTIL CHECKED IN!
+use Unison::Utils::pseq_structure;
 
 my %opts = 
   (
@@ -83,7 +83,7 @@ sub pseq_features_panel($%) {
   }
 
   if(!defined($opts{features})) {
-    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic regexp pssm hmm prospect2 mim);
+    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic regexp pssm hmm prospect2);
   }
   if(defined($opts{track_length})) {
     $opts{features}{$_} = 0 foreach (keys %{$opts{features}});
@@ -114,6 +114,7 @@ sub pseq_features_panel($%) {
 					 -label => 1, -description=>1
 				   );
 
+  add_pftemplate  ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
   add_pfssp_psipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{ssp_psipred});
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
@@ -121,12 +122,13 @@ sub pseq_features_panel($%) {
   add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
   add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
-  add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure} ) if($opts{features}{hmm});
+  add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{hmm});
   add_paprospect2  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect2});
-  add_pfmim        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure} ) if($opts{features}{mim});
+  add_pfsnp        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{snp});
+  add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.11 2005/03/19 18:22:46 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.12 2005/03/19 21:35:26 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -220,11 +222,12 @@ sub add_pfssp_psipred {
  				  #-arrowstyle => "filled",
 				  -fontcolor => 'black',
 				  -description => 1,
-				  -min_score => -5,
-				  -max_score => 5,
+				  -min_score => 0,
+				  -max_score => 8,
 				  -linewidth =>  sub {
 				    my $feat = shift @_;
 				    return '2' if $feat->type eq 'E';
+				    return '2' if $feat->type eq 'C';
 				  },
 				 ) if(defined($strands_helices[$i]));
   }
@@ -711,7 +714,7 @@ sub add_pfregexp {
   return $nadded;
 }
 
-sub add_pfmim {
+sub add_pfsnp {
 
     my ($u, $panel, $q, $view, $pseq_structure) = @_;
 
@@ -719,14 +722,15 @@ sub add_pfmim {
 
     my $track = $panel->add_track( -glyph => 'graded_segments',
                                                                  -bgcolor => 'lred',
-                                                                 -key => 'MIM',
+                                                                 -key => 'SNPs',
                                                                  -bump => +1,
                                                                  -label => 1,
                                                                  -description => 1,
                                                                  -height => 4
 			       );
 
-    my $sql = "select f.acc_pos,f.original_aa,f.variant_aa,f.pdb_id,f.pdb_pos,f.pdb_chain,m.title from mukhyala.pseq_mim p join mukhyala.fasp_omim f on f.swissprot_id=p.alias join mukhyala.mim m on m.mim_number = p.mim_number where p.pseq_id=$q";
+    my $sql = "select s.start_pos,s.original_aa,s.variant_aa,s.descr from mukhyala.pseq_mim p join mukhyala.sp_snp s on s.sp_id = p.alias where p.pseq_id=$q";
+
     print(STDERR $sql, ";\n\n") if $opts{verbose};
     my $featref = $u->selectall_arrayref( $sql );
 
@@ -738,9 +742,86 @@ sub add_pfmim {
           ( Bio::Graphics::Feature->new( -start => $r->[0],
 					 -end => $r->[0],
 					 -name => $r->[1]."->".$r->[2],
-					 -attributes => { tooltip => $r->[6],
+					 -attributes => { tooltip => $r->[3],
 							  href => $href
 							}
+					 ) );
+        $nadded++;
+    }
+    return $nadded;
+
+}
+
+sub add_pfuser {
+
+    my ($u, $panel, $q, $view, $pseq_structure, $user_feats) = @_;
+
+    my $nadded = 0;
+
+    my $track = $panel->add_track( -glyph => 'graded_segments',
+                                                                 -bgcolor => 'green',
+                                                                 -key => 'USER',
+                                                                 -bump => +1,
+                                                                 -label => 1,
+                                                                 -description => 1,
+                                                                 -height => 4
+			       );
+
+    foreach my $r (sort keys %{$user_feats}) {
+
+      next if($user_feats->{$r}{type} eq 'hmm');
+      my $end = $user_feats->{$r}{end};
+
+      my $href = ($view ? (defined ($end) ?
+			   $pseq_structure->region_script($user_feats->{$r}{start},$user_feats->{$r}{end},$r,$user_feats->{$r}{colour}) :
+			   $pseq_structure->pos_script($user_feats->{$r}{start},$r,$user_feats->{$r}{colour})) :
+		  "pseq_structure.pl?pseq_id=$q");
+
+      $end =  ( $end ? $end : $user_feats->{$r}{start});
+
+      $track->add_feature
+          ( Bio::Graphics::Feature->new( -start => $user_feats->{$r}{start},
+					 -end => $end,
+					 -name => $r,
+					 -attributes => { tooltip => $r,
+							  href => $href
+							}
+					 ) );
+        $nadded++;
+    }
+    return $nadded;
+
+}
+
+sub add_pftemplate {
+
+    my ($u, $panel, $q, $view, $pseq_structure) = @_;
+
+    my $nadded = 0;
+
+    my $track = $panel->add_track( -glyph => 'graded_segments',
+                                                                 -bgcolor => 'orange',
+                                                                 -key => 'STRUCTURE_TEMPLATES',
+                                                                 -bump => +1,
+                                                                 -label => 1,
+                                                                 -description => 1,
+                                                                 -height => 4
+			       );
+
+    foreach my $t (@{$pseq_structure->{'template_ids'}}) {
+
+      my $start = $pseq_structure->{'templates'}{$t}{'qstart'};
+      my $end   = $pseq_structure->{'templates'}{$t}{'qstop'};
+      my $descr = $pseq_structure->{'templates'}{$t}{'descr'};
+      my $href = ($view ? $pseq_structure->change_structure($t) : "pseq_structure.pl?pseq_id=$q");
+
+      $track->add_feature
+          ( Bio::Graphics::Feature->new( -start => $start,
+					 -end => $end,
+					 -name => $t,
+					 -attributes => { tooltip => $descr,
+							  href => $href
+							  }
 					 ) );
         $nadded++;
     }
@@ -752,7 +833,7 @@ sub glyph_type {
     my $feat = shift (@_);
     return 'sec_str::helix' if $feat->type eq 'H';
     return 'sec_str::myarrow' if $feat->type eq 'E';
-    return 'graded_segments' if $feat->type eq 'C';
+    return 'sec_str::coil' if $feat->type eq 'C';
 }
 
 sub glyph_colour{
