@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: template.pm,v 1.1 2004/05/14 20:33:19 rkh Exp $>
+S<$Id: Page.pm,v 1.31 2005/01/18 18:50:42 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -102,9 +102,9 @@ sub new {
 
   $self->{userprefs} = $self->{unison}->get_userprefs();
   $self->{readonly} = 1;
-  $self->{readonly} = 0 if ($self->{unison}->{dbname} eq 'csb-dev' 
-							and $self->{unison}->{username} =~ m/^(rkh|cavs)$/
-							and exists $v->{update} );
+  #$self->{readonly} = 0 if ($self->{unison}->{dbname} eq 'csb-dev' 
+  #							and $self->{unison}->{username} =~ m/^(rkh|cavs)$/
+  #							and exists $v->{update} );
 
   $self->{tmproot} = exists $ENV{'DOCUMENT_ROOT'} ? "$ENV{'DOCUMENT_ROOT'}" : '';
   $self->{tmpdir} = "$self->{tmproot}/tmp";
@@ -565,29 +565,27 @@ sub page_connect ($) {
   my $self = shift;
   my $v = $self->Vars();
 
-  # choose database based on port unless explicitly set
-  # SERVER_PORT is always set, EXCEPT when debugging from the command line
+  # If dbname is not explicitly set, set it based on SERVER_PORT
+  # SERVER_PORT is always set, except when debugging from the command line
   if (not exists $v->{dbname}) {
-	$v->{dbname} = 'csb';
-	if (defined $ENV{SERVER_PORT}) {
-	  $v->{dbname} =  ($ENV{SERVER_PORT} == 8080) ? 'csb-dev'
-					: ($ENV{SERVER_PORT} == 8040) ? 'csb-stage'
-					:      				            'csb';
+    $v->{dbname} = 'csb';
+    if (defined $ENV{SERVER_PORT}) {
+      if    ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
+      elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev' }
 	}
   }
 
-  # establish session authentication, preferably via kerberos
-  # must connect to host 'csb' for Kerberos authentication
-  if (exists $ENV{REMOTE_USER} and -f "/tmp/krb5cc_$ENV{REMOTE_USER}") {
+  # If KRB5CCNAME is set, we're doing kerberos authentication.
+  if (exists $ENV{KRB5CCNAME}) {
 	$v->{username} = $ENV{REMOTE_USER};
-	$ENV{KRB5CCNAME}="FILE:/tmp/krb5cc_$v->{username}";
-	$v->{host} = 'csb';
-  } else {
-	$v->{username} = `id -nu`
-	#$v->{username} = 'PUBLIC' unless defined $v->{username};
+	$v->{username} =~ s/@.+//;				# strip domain name
   }
 
+  # Attempt a PUBLIC connection unless username is set.
+  $v->{username} = 'PUBLIC' unless defined $v->{username};
 
+  # host "csb" is most likely ("csb-dev" may exist)
+  $v->{host} = 'csb' unless defined $v->{host};
 
   # NOTE: password=>undef works for PUBLIC and krb auth
   $self->{unison} = new Unison( username => $v->{username},
