@@ -1,3 +1,10 @@
+-- -----------------------------------------------------------------------------
+-- NAME: assign_tax_id.sql
+-- PURPOSE: assign tax_id in the paliasorigin table
+--
+-- $Id$
+-- -----------------------------------------------------------------------------
+
 -- swissprot - key off the gs info in the accession
 UPDATE paliasorigin SET tax_id=gs2tax_id('HUMAN') 
   WHERE porigin_id=porigin_id_lookup('Swiss-Prot'::text) AND alias ~ '_HUMAN$'::text AND tax_id IS NULL;
