@@ -1,4 +1,6 @@
 #!/usr/bin/env perl
+# fetch-hmm-results -- Unison hmm results fetching example
+# eg$ fetch-hmm-results 1..30
 
 use strict;
 use warnings;
@@ -6,16 +8,26 @@ use Unison;
 
 my $u = new Unison();
 my $sth = $u->prepare(<<EOSQL);
-	SELECT A.start, A.stop, A.mstart, A.mstop, 
-		   A.score, A.eval, M.name, M.descr
-	FROM pahmm A, pmhmm M 
-	WHERE A.pmodel_id=M.pmodel_id AND pseq_id=? 
+	SELECT A.start, A.stop, A.score, A.eval, M.acc, M.name, M.descr
+	FROM pahmm A
+	JOIN pmhmm M on A.pmodel_id=M.pmodel_id
+	WHERE A.params_id=params_id('Pfam 14.0') AND A.eval<=1 AND A.pseq_id=?
 	ORDER BY eval
 EOSQL
 
+@ARGV = map {eval $_} @ARGV;
+
 while( my $q = shift ) {
-  my @a = @{ $u->selectall_arrayref($sth,undef,$q) };
-  printf("* Unison:%d (%s); %d hmm alignments:\n",
-		 $q, $u->best_alias($q), $#a);
-  ## dump the data...
+  # be lazy: fetch once for the count...
+  my @results = @{ $u->selectall_arrayref($sth,undef,$q) };
+  printf("* Unison:%d (%s); %d hmm alignments\n",
+		 $q, $u->best_alias($q) || '<no alias>', $#results+1);
+
+  next unless @results;
+
+  printf("  [%3.3s,%3.3s]  %5s  %8s  %-10.10s  %-15.15s  %s\n",
+		 qw(srt stp score eval acc name descr));
+  foreach my $a (@results) {
+	printf("  [%3d,%3d]  %5d  %8g  %-10.10s  %-15.15s  %s\n", @$a);
+  }
 }
