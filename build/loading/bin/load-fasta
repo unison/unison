@@ -83,7 +83,7 @@ sub process_seq
 
   # description reformatting
   $descr = '' unless defined $descr;
-  $descr =~ s/\s+//g;
+  $descr =~ s/\s{2,}/ /g;
   $descr =~ s/^\s+//;
   $descr =~ s/\s+$//;
   if ($origin eq 'SPDI')
