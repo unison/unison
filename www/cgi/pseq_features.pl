@@ -11,9 +11,8 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 print $p->render("Unison:$v->{pseq_id} Features Overview",
+				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
 				 $p->group("Unison:$v->{pseq_id} Features",
-						   '<center>',
-						   "<img align=\"center\" src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\">",
-						   '</center>',
+						   "<center><img src=\"graphic_features.sh?pseq_id=$v->{pseq_id}\"></center>",
 						  ),
 				);

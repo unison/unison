@@ -22,6 +22,7 @@ for(my $i=0; $i<=$#$ar; $i++) {
 
 
 print $p->render("Loci of Unison:$v->{pseq_id}",
+				 '<b>current "best" annotation:</b> ', $p->{unison}->best_annotation($v->{pseq_id}),
 				 $p->group("Loci",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)
