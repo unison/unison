@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.12 2004/04/21 20:09:28 rkh Exp $>
+S<$Id: pseq.pm,v 1.13 2004/04/21 23:30:19 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -23,12 +23,13 @@ B<> is a
 
 
 package Unison;
+use CBT::debug;
+CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
 use strict;
 use warnings;
-use CBT::debug;
 use vars qw( %alias %md5 );
 use Digest::MD5  qw(md5_hex);
-CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 
 
@@ -82,19 +83,13 @@ fetches a single protein sequence from the pseq table.
 
 sub best_alias {
   my $self = shift;
+  my $pseq_id = shift;
+  my $any = shift || 0;
   $self->is_open()
 	|| croak("Unison connection not established");
-  ($#_ >= 0)
-	|| croak("usage: best_alias(pseq_id [,anyalias])\n");
-  my $sth;
-  if ($#_ == 0 ) {
-	$sth = $self->prepare_cached("select best_alias(?)");
-	$sth->execute($_[0]);
-  } else {
-	$sth = $self->prepare_cached("select best_alias(?,?)");
-	$sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
-  }
-  my $ba = $sth->fetchrow_array;
+  my $sth = $self->prepare_cached("select best_alias(?,?)");
+  $sth->execute( $pseq_id, $any?'true':'false' );
+  my $ba = $sth->fetchrow_array();
   $sth->finish();
   return( $ba );
 
@@ -117,19 +112,13 @@ porigin.ann_pref ranking.  See also best_annotation.
 
 sub best_annotation {
   my $self = shift;
+  my $pseq_id = shift;
+  my $any = shift || 0;
   $self->is_open()
 	|| croak("Unison connection not established");
-  ($#_ >= 0)
-	|| croak("usage: best_annotation(pseq_id [,anyalias])\n");
-  my $sth;
-  if ($#_ == 0 ) {
-	$sth = $self->prepare_cached("select best_annotation(?)");
-	$sth->execute($_[0]);
-  } else {
-	$sth = $self->prepare_cached("select best_annotation(?,?)");
-	$sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
-  }
-  my $ba = $sth->fetchrow_array;
+  my $sth = $self->prepare_cached("select best_annotation(?,?)");
+  $sth->execute( $pseq_id, $any?'true':'false' );
+  my $ba = $sth->fetchrow_array();
   $sth->finish();
   return( $ba );
 
