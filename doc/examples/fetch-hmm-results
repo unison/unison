@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use Unison;
+
+my $u = new Unison();
+my $sth = $u->prepare(<<EOSQL);
+	SELECT A.start, A.stop, A.mstart, A.mstop, 
+		   A.score, A.eval, M.name, M.descr
+	FROM pahmm A, pmhmm M 
+	WHERE A.pmodel_id=M.pmodel_id AND pseq_id=? 
+	ORDER BY eval
+EOSQL
+
+while( my $q = shift ) {
+  my @a = @{ $u->selectall_arrayref($sth,undef,$q) };
+  printf("* Unison:%d (%s); %d hmm alignments:\n",
+		 $q, $u->best_alias($q), $#a);
+  ## dump the data...
+}
