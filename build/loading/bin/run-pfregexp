@@ -102,6 +102,10 @@ for(my $i=0; $i<=$#pseq_ids; $i++) {
   if (not %hits or exists $hits{$pseq_id}) {
 	my @mbe;
 	my $seq = $u->get_sequence_by_pseq_id($pseq_id);
+	if (not defined $seq) {
+	  warn("couldn't retrieve Unison:$pseq_id; skipping\n");
+	  next PSEQ_ID;
+	}
 	foreach my $pmodel_id (@pmodel_ids) {
 	  while ($seq =~ m/$regexps{$pmodel_id}/g) {
 		my $e = pos($seq);
