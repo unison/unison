@@ -1,5 +1,5 @@
 \echo =======================================================================
-\echo $Id: api.sql,v 1.2 2002/11/27 00:42:01 rkh Exp $
+\echo $Id: api.sql,v 1.3 2002/12/10 19:48:11 rkh Exp $
 -- functions to facilitate unison access
 
 
@@ -11,18 +11,21 @@
 */
 
 
+
 -- =========================================================================
-create function si_pseq_id (text)
+create or replace function si_pseq_id (text)
 returns integer as '
 DECLARE
 	S text;
 	rv integer;
+	o oid;
 BEGIN
 	S := clean_sequence($1);
-	select into rv pseq_id from pseq where md5 = md5(S) and len = length(S);
-	if found then return rv; end if;
-	insert into pseq (seq) values (S);
-	select into rv pseq_id from pseq where md5 = md5(S) and len = length(S);
+	select into rv pseq_id from pseq where seq=S;
+	if not found then
+		insert into pseq (seq) values (S);
+		select into rv pseq_id from pseq where seq=S;
+	end if;
 	return rv;
 END;'
 language 'plpgsql';

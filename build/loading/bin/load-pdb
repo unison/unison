@@ -2,7 +2,7 @@
 
 $^W++;
 use strict;
-use lib '/home/rkh/unison/perl5';
+use lib ('./perl5','/home/rkh/unison/perl5');
 use Unison;
 
 $|++; select(STDERR); $|++; select(STDOUT);
@@ -39,7 +39,7 @@ while (my $fn = shift)
 	if ( $len->{$c} != length($sr->{$c}) )
 	  { warn("! $id$c: sequence doesn't match provided sequence length\n"); }
 	if ( length($sr->{$c}) < 20 )
-	  { warn("! $id$c: discarding short sequence (",length($sr->{$c})," AA)\n"); }
+	  { warn("! $id$c: discarding short sequence (",length($sr->{$c})," AA)\n"); next; }
 	my $dc = $c ne ' ' ? $c : '';
 	add1($udb,$porigin_id,$sr->{$c},"$id$dc",$desc);
 	}

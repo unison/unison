@@ -7,7 +7,7 @@ PORT=5432
 LOCKFILE=/tmp/.s.PGSQL.$PORT.lock
 export LD_LIBRARY_PATH=$ROOT/lib
 
-PATH=/home/rkh/opt/$PLATFORM/bin:/usr/bin:/bin
+PATH=/home/rkh/opt/$PLATFORM/pkgs/postgresql/bin:/bin
 
 
 get_pid()  { head -1 $LOCKFILE 2>/dev/null; }
@@ -18,6 +18,12 @@ case $1 in
 		cp $ROOT/conf/*.conf $PGDATA
 		;;
 	start)
+		if [ -f $LOCKFILE ]; then
+			echo "$LOCKFILE exists... attempting shutdown first"
+			if ! $0 stop; then
+				echo "can't restart"; exit 1;
+			fi
+		fi
 		(set -x; postmaster -D $PGDATA >>$PGDATA/log 2>&1) &
 		sleep 2;
 		if [ ! -f $LOCKFILE ]; then
@@ -51,6 +57,14 @@ case $1 in
 		echo -n "giving $PID a swift kick in the arse..."
 		kill -HUP $PID
 		echo done
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	*)
+		echo "$0: $1 isn't a valid command"
+		exit 1
 		;;
 esac
 
