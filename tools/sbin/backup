@@ -1,11 +1,11 @@
 #!/bin/bash
-# $Id: backup,v 1.18 2004/02/19 23:08:21 rkh Exp $
+# $Id: backup,v 1.19 2004/04/02 18:12:07 rkh Exp $
 
-# backup -- backup the csb database
-# you must set PGPASSWORD before running this script
-# any user with write permission in /home/rkh/csb-db/backups/$PGDATABASE
-# should be able to run this script.
+# backup -- backup the csb database you must set PGPASSWORD before running
+# this script any user with write permission in BACKUPDIR (below) should
+# be able to run this script.
 
+BACKUPDIR="$HOME/adm/backups"
 PATH=/apps/compbio/i686-linux-2.4/bin:/usr/bin:/bin
 PGD_OPTS="-X disable-triggers -X use-set-session-authorization -Ucompbio"
 
@@ -23,19 +23,18 @@ if [ -z "$PGDATABASE" ]; then
 fi
 
 case `hostname` in
-    svc*|td-svc*|interceptor*|td-interceptor*)
+    csb)
     	PGHOST=;;
     *) 
-    	PGHOST=td-svc;;
+    	PGHOST=csb;;
 esac
 export PGHOST
 
 
-DIR="$HOME/adm/backups/$PGDATABASE"
-mkdir -p "$DIR"
-DATE=`date +%Y-%m-%d-%H:%M`;
-R="$DIR/$DATE.pgdump$PGD_SOPT"
-
+#DATE=`date +%Y-%m-%d-%H:%M`;
+DATE=`date +%Y-%m/%Y-%m-%d-%H:%M`;
+R="$BACKUPDIR/$PGDATABASE/$DATE.pgdump$PGD_SOPT"
+mkdir -p "`dirname $R`"
 
 
 # after this point and until `trap' near end, all exits are unexpected
@@ -46,11 +45,12 @@ trap cleanup EXIT
 # do the backup
 OPTS="$PGD_SOPT $PGD_OPTS $TABLE $PGDATABASE"
 logger "starting backup (PGHOST=$PGHOST; OPTS=$OPTS)"
+logger "logging to $R.err"
 (time -p pg_dump $OPTS | gzip -cq) >"$R".gz 2>"$R".err
 E="$?"
 S=`perl -le 'printf( "%.2f", (-s $ARGV[0]) / 2**20)' "$R".gz`
-logger "backup completed; status $E; size: $S MB; time: `tr '\012' , <"$R".err`"
-logger "backup log in $R.err"
+logger "backup in $R.gz ($S MB)"
+logger "backup completed; status $E; time: `tr '\012' , <"$R".err`"
 
 
 # reset signal trap to exit gracefully
