@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.13 2005/03/31 21:59:59 rkh Exp $
+# $Id: load-pahmm,v 1.4 2005/04/01 19:17:43 rkh Exp $
 # load-pahmm -- load hmmer results from a file
 
 use warnings;
@@ -59,13 +59,13 @@ my $toterrs = 0;
 my $totfiles = 0;
 
 while( my $alnfn = shift ) { 
-  my ($seqs,$hits,$hsps,$errs) = load_aln_file($u,$alnfn);
-  printf(STDERR "file stats: %d seqs, %d hits, %d hsps, %d errs in %s\n",
-		 $seqs,$hits,$hsps,$errs,$alnfn);
-  $totseqs += $seqs;
-  $tothits += $hits;
-  $tothsps += $hsps;
-  $toterrs += $errs;
+  my ($fileseqs,$filehits,$filehsps,$fileerrs) = load_aln_file($u,$alnfn);
+  printf(STDERR "# file stats: %d seqs, %d hits, %d hsps, %d errs in %s\n",
+		 $fileseqs,$filehits,$filehsps,$fileerrs,$alnfn);
+  $totseqs += $fileseqs;
+  $tothits += $filehits;
+  $tothsps += $filehsps;
+  $toterrs += $fileerrs;
   $totfiles++;
 }
 printf(STDERR "# total stats: %d seqs, %d hits, %d hsps, %d errs in %d files\n",
@@ -151,5 +151,5 @@ sub load_aln_file ($$) {
   }
 
   $alnfh->close();
-  return( $totseqs, $tothits, $tothsps, $toterrs );
+  return( $fileseqs, $filehits, $filehsps, $fileerrs );
 }
