@@ -1,54 +1,56 @@
-#include "unison.h"
-
-#include <postgres.h>
-#include <fmgr.h>
-
+#include <server/postgres.h>
+#include <server/fmgr.h>
 #include <ctype.h>
 #include <string.h>
+
+
+static char* clean_sequence(const char* in, char* out, int32 n);
 
 
 PG_FUNCTION_INFO_V1(pg_clean_sequence);
 Datum pg_clean_sequence(PG_FUNCTION_ARGS)
   {
-  text* tin;
-  char* out;
+  text* t0;                                 /* in */
+  text* t1;                                 /* out */
   int32 outl;
-  text* tout;
 
   if ( PG_ARGISNULL(0) )
     { PG_RETURN_NULL(); }
 
-  tin = PG_GETARG_TEXT_P(0);
-  /* elog( NOTICE, "tin (len=%d)=%s...", VARSIZE(tin)-VARHDRSZ, VARDATA(tin) ); */
+  t0 = PG_GETARG_TEXT_P(0);
+  t1 = (text*) palloc( VARSIZE(t0)-VARHDRSZ );
+  if (!t1)
+    { elog( ERROR, "couldn't palloc (%d)", VARSIZE(t0)-VARHDRSZ ); }
 
-  out = clean_sequence( VARDATA(tin) , VARSIZE(tin)-VARHDRSZ );
-  outl = (int32) strlen(out);
-  /* elog( NOTICE, "out (len=%d)=%s...", outl, out ); */
+  clean_sequence( VARDATA(t0),
+                  VARDATA(t1),
+                  VARSIZE(t0)-VARHDRSZ );
 
-  tout = (text*) palloc(outl);
-  VARATT_SIZEP(tout) = outl + VARHDRSZ ;
-  memcpy(VARDATA(tout), out, outl);
+  outl = (int32) strlen(VARDATA(t1));
 
-  free(out);
-  PG_RETURN_TEXT_P(tout);
+  VARATT_SIZEP(t1) = outl + VARHDRSZ ;      /* potentially lie about length
+                                               allocated space may be larger */
+  /* elog( NOTICE, "shrank sequence from %d to %d bytes\n",
+     VARSIZE(t0)-VARHDRSZ, VARSIZE(t1)-VARHDRSZ); */
+
+  PG_RETURN_TEXT_P(t1);
   }
 
 
 
-/* clean_sequence -- strip non-sequence characters (roughly)
+/* clean_sequence -- strip whitespace
    in: char*, length
-   out: char*, <=length, NULL-TERMINATED
+   out: char*, |out|<=length, NULL-TERMINATED
 */
 #define isseq(c) ((c)>='A' && (c)<='Z') || ((c)=='*') || ((c)=='-') || ((c)=='?')
-char* clean_sequence(const char* in, int32 n)
+char* clean_sequence(const char* in, char* out, int32 n)
   {
-  char* out = (char*) malloc(n+1);
   char* oi = out;
   int32 i;
   for( i=0; i<=n-1; i++ )
     {
     char c = toupper(in[i]);
-    if ( isseq(c) )
+    if ( ! isspace(c) )
       { *oi++ = c; }
     }
   *oi = '\0';

@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-p2thread,v 1.4 2003/03/21 04:25:34 rkh Exp $
+# $Id: load-p2thread,v 1.5 2003/03/25 22:43:39 rkh Exp $
 # load-p2thread -- load prospect2 thread results into unison
 # from xml files (optionally with svm scores from sort files)
 
@@ -46,6 +46,7 @@ my %svm;
 
 my $p2params_id;							# determined once!  don't concat
 my $pseq_id;								#   xml files from separate runs!
+my $n = 0;
 while( my $t = $pf->next_thread() )
   {
   if (not defined $pseq_id)					# once per file

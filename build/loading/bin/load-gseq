@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+# load fasta sequences into unison
+# $ load-gseq -o origin <fastafile
+
+$^W++;
+use strict;
+use IO::File;
+use Bio::SeqIO;
+use Getopt::Long qw(:config gnu_getopt);
+use DBI;
+use Digest::MD5  qw(md5_hex);
+use Data::Dumper;
+use Genentech::Unison;
+
+

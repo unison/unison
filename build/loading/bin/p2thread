@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# run p2 and insert into Unison
+# run prospect on specified sequence ids with specified params
 
 use warnings;
 use strict;
@@ -46,6 +46,7 @@ while( my $pseq_id = shift )
   {
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   my ($t) = $pc->thread( $seq );
+  print $t; next;
   print(STDERR "done threading...\n") if $ENV{DEBUG};
   my ($h,@f) = $pc->summary( $seq );
   print(STDERR "done summary...\n") if $ENV{DEBUG};
