@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.4 2003/06/11 00:15:16 cavs Exp $>
+S<$Id: pseq.pm,v 1.5 2003/10/09 19:51:42 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -77,10 +77,16 @@ sub best_alias {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
-  ($#_==0)
-	|| croak("exactly one pseq_id needed\n");
-  my $sth = $self->prepare_cached("select best_alias(?)");
-  $sth->execute(shift);
+  ($#_ >= 0)
+	|| croak("usage: best_alias(pseq_id [,anyalias])\n");
+  my $sth;
+  if ($#_ == 0 ) {
+	$sth = $self->prepare_cached("select best_alias(?)");
+	$sth->execute($_[0]);
+  } else {
+	$sth = $self->prepare_cached("select best_alias(?,?)");
+	$sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
+  }
   my $ba = $sth->fetchrow_array;
   $sth->finish();
   return( $ba );
@@ -106,10 +112,16 @@ sub best_annotation {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
-  ($#_==0)
-	|| croak("exactly one pseq_id needed\n");
-  my $sth = $self->prepare_cached("select best_annotation(?)");
-  $sth->execute(shift);
+  ($#_ >= 0)
+	|| croak("usage: best_annotation(pseq_id [,anyalias])\n");
+  my $sth;
+  if ($#_ == 0 ) {
+	$sth = $self->prepare_cached("select best_annotation(?)");
+	$sth->execute($_[0]);
+  } else {
+	$sth = $self->prepare_cached("select best_annotation(?,?)");
+	$sth->execute( $_[0], ($_[1] == '1' ? 'true' : 'false') );
+  }
   my $ba = $sth->fetchrow_array;
   $sth->finish();
   return( $ba );
