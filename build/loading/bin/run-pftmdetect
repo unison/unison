@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-tmdetect,v 1.4 2004/04/02 00:34:05 rkh Exp $
+# $Id: run-tmdetect,v 1.5 2004/05/14 20:52:57 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -26,16 +26,16 @@ use Data::Dumper;
 use Error qw(:try);
 
 my %opts = (
-      'debug' => 0,
-      'params_id' => undef,
-      'pmodelset_id' => undef,
-      'porigin_id' => undef,
-      'update' => 0,          # try update before insert
-      'verbose' => 0,
-       );
+			'debug' => 0,
+			'params_id' => 9,
+			'pmodelset_id' => undef,
+			'porigin_id' => undef,
+			'update' => 0,          # try update before insert
+			'verbose' => 0,
+		   );
 GetOptions(\%opts,
        'debug+',
-       'params_id|p=i',
+       'params_id=i',
        'update',
        'verbose!',
       )
@@ -44,6 +44,7 @@ GetOptions(\%opts,
 
 (defined $opts{params_id})
   || die( "$0: --params_id|-p parameter missing\n" );
+
 
 if ($opts{debug}) {
   select STDERR; $|++;
@@ -55,6 +56,8 @@ my $u = new Unison;
 
 my $args = $u->run_commandline_by_params_id( $opts{params_id});
 my %run_me;  #pseqs to tmdetect
+
+my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 
 # get temp files for sequences to be tmdetect'd and
 # the tmdetect output
@@ -70,8 +73,11 @@ die( "Can't retrieve all of the pftype_ids for tmdetect" ) if
 
 # output FASTA file with pseqs that need to be
 # tmdetect'd
-my $seqio = new Bio::SeqIO( -fh => $fa_fh, -format => 'Fasta' );
-PSEQ_ID: while( my $pseq_id = shift ) {
+my $seqio = new Bio::SeqIO( -fh => $fa_fh,
+							-format => 'Fasta' );
+
+PSEQ_ID:
+while( my $pseq_id = shift(@pseq_ids) ) {
   my $leader = "\rUnison:$pseq_id";
   print(STDERR $leader);
 
