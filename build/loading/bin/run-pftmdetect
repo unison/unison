@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-tmdetect,v 1.5 2004/05/14 20:52:57 rkh Exp $
+# $Id: run-pftmdetect,v 1.6 2004/07/27 16:33:53 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -33,6 +33,10 @@ my %opts = (
 			'update' => 0,          # try update before insert
 			'verbose' => 0,
 		   );
+
+
+print(STDERR '$Id: gltop,v 1.6 2004/06/10 00:31:29 rkh Exp $ ', "\n");
+
 GetOptions(\%opts,
        'debug+',
        'params_id=i',
@@ -52,17 +56,29 @@ if ($opts{debug}) {
   print Dumper(\%opts);
 }
 
-my $u = new Unison;
-
-my $args = $u->run_commandline_by_params_id( $opts{params_id});
 my %run_me;  #pseqs to tmdetect
-
 my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
+
 
 # get temp files for sequences to be tmdetect'd and
 # the tmdetect output
-my ($fa_fh,  $fa_fn)  = File::Temp::tempfile( UNLINK => 1, SUFFIX => '.fa' );
-my ($out_fh, $out_fn) = File::Temp::tempfile( UNLINK => 1, SUFFIX => '.out' );
+my ($fa_fh,  $fa_fn)  = File::Temp::tempfile( UNLINK => 1,
+											  SUFFIX => '.fa' );
+my ($out_fh, $out_fn) = File::Temp::tempfile( UNLINK => 1,
+											  SUFFIX => '.out' );
+
+# output FASTA file with pseqs that need to be tmdetect'd
+my $seqio = new Bio::SeqIO( -fh => $fa_fh,
+							-format => 'Fasta' );
+
+
+my $u = new Unison ( dbname=>'csb-dev' );
+
+
+# get command line
+my $clo = $u->run_commandline_by_params_id($opts{params_id});
+my @cl = (split(' ',$clo),$fa_fn,">$out_fn");
+$cl[0] = "/home/rkh/opt/i686-linux-2.4/bin/tmdetect"; # FIX: this is sloppy
 
 # get pftype_ids for tmdetect output types (i.e. signal, N-TM, M-TM)
 my $tmds_id = &get_pftype_id( $u, 'tmdetect/signal' );
@@ -71,83 +87,102 @@ my $tmdn_id = &get_pftype_id( $u, 'tmdetect/N (out->in)' );
 die( "Can't retrieve all of the pftype_ids for tmdetect" ) if 
   ( ! ( defined $tmds_id && defined $tmdm_id && defined $tmdn_id ) ); 
 
-# output FASTA file with pseqs that need to be
-# tmdetect'd
-my $seqio = new Bio::SeqIO( -fh => $fa_fh,
-							-format => 'Fasta' );
 
+# fetch sequences
 PSEQ_ID:
 while( my $pseq_id = shift(@pseq_ids) ) {
-  my $leader = "\rUnison:$pseq_id";
-  print(STDERR $leader);
-
   my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
   if (defined $ran_on and not $opts{update}) {
-    print(STDERR "$leader: run with these options on $ran_on; skipping\n");
+    print(STDERR "Unison:$pseq_id: run with these options on $ran_on; skipping\n");
     next PSEQ_ID;
   }
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  $leader .= " (" . length($seq) . " AA)";
+  if (not defined $seq) {
+	warn("Unison:$pseq_id: no such sequence\n");
+	next PSEQ_ID;
+  }
 
-#  print("$leader: outputted for tmdetect\n");
-  $seqio->write_seq(new Bio::Seq(-id=>"Unison:$pseq_id",-seq=>$seq));
+  $seqio->write_seq(new Bio::Seq(-id=>"Unison:$pseq_id",
+								 -seq=>$seq));
+  printf(STDERR "Unison:$pseq_id: %dAA sequence written\n", length($seq));
 
   $run_me{ $pseq_id }++;
 }
 $seqio->close();
 
 
-# run tmdetect (only if we have seqs to tmdetect) and parse results
-if ( scalar(keys %run_me) > 0 ) {
-  my $cmd = "tmdetect $args $fa_fn > $out_fn";
-  system($cmd);
-  print STDERR "exec'n: $cmd\n" if $opts{verbose};
+# exit unless we have seqs to tmdetect
+if ( scalar(keys %run_me) == 0 ) {
+  warn("no sequences need to be run\n");
+  exit(0);
+}
 
-  #Unison:291 1 (S) 7 0 17 0.999933
-  my $sql = 'insert into pftmdetect (pseq_id,pftype_id,start,stop,confidence,params_id) '.
-    'values (?,?,?,?,?,?)';
-  (my $sqlf = $sql) =~ s/\?/%s/g;
-  my $sth = $u->prepare( $sql );
-  open(FP,$out_fn) or die("can't open $out_fn for parsing tmdetect results");
-  while(<FP>) {
-    my @tmd = split;
+# build the commmand line
+system("@cl");
+my $status = $? >> 8;
+($status == 0)
+  || die("$0: @cl: exit $?");
+print STDERR "cmdline=@cl\n" if $opts{verbose};
 
-    my $pft;
-    if ( $tmd[2] eq '(S)' ) { 
-      $pft = $tmds_id;
-    } elsif ( $tmd[2] eq '(M)' ) {
-      $pft = $tmdm_id;
-    } elsif ( $tmd[2] eq '(N)' ) {
-      $pft = $tmdn_id;
-    } else {
-        die("Don't understand $tmd[2] feature type");
-    }
-    my $b = $tmd[3]-10 < 1 ? 1 : $tmd[3]-10;
-    $tmd[0] =~ m/^Unison:(\d+)$/;
-    my $pseq_id = $1;
-    printf("$sqlf\n",$pseq_id, $pft, $b, $tmd[3]+10, $tmd[6],$opts{params_id});
-	try {
-	  $sth->execute( $pseq_id, $pft, $b, $tmd[3]+10, $tmd[6],$opts{params_id});
-	} catch Unison::Exception with {
-	  warn($_[0]);
-	};
+# parse the results
+# we should do this in a pipe without the temp file...
+#Unison:291 1 (S) 7 0 17 0.999933
+my $sql = 'insert into pftmdetect (pseq_id,pftype_id,start,stop,confidence,params_id) '.
+  'values (?,?,?,?,?,?)';
+my $sth = $u->prepare( $sql );
+open(FP,$out_fn)
+  or die("can't open $out_fn for parsing tmdetect results");
+while(<FP>) {
+  my @tmd = split;
+  my $pseq_id;
 
-    # delete this pseq_id from the run_me hash and then update
-    # the run history table.  any pseqs left in %run_me are pseqs
-    # that tmdetect was run on but had no results.  we'll update
-    # the run_history table below for those fellas.
-    delete $run_me{ $pseq_id };
-    $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+  if (not (($pseq_id) = $tmd[0] =~ m/^Unison:(\d+)$/)) {
+	die("$tmd[0]: looks like query sequences aren't from Unison!\n");
   }
+  delete $run_me{ $pseq_id };				# remaining keys are those with
+											# no tmdetect results; see below
+
+  my $pft;									# feature type
+  if ( $tmd[2] eq '(S)' ) {
+	$pft = $tmds_id;
+  } elsif ( $tmd[2] eq '(M)' ) {
+	$pft = $tmdm_id;
+  } elsif ( $tmd[2] eq '(N)' ) {
+	$pft = $tmdn_id;
+  } else {
+	die("I don't understand feature type `$tmd[2]'\n  line $.: $_\n");
+  }
+
+  my $start = $tmd[3]-10 < 1 ? 1 : $tmd[3]-10;
+
+  try {
+	$sth->execute( $pseq_id, $pft, $start, $tmd[3]+10,
+				   $tmd[6],$opts{params_id});
+  } catch Unison::Exception with {
+	die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
+  };
+
+  my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+  print("Unison:$pseq_id: run_history tickled $z\n");
 }
-  
-# update run history for the seqs that were tmdetected but had no results
-# (the above block of code parses the tmdetect results and updates the 
-# run history for those seqs with results).
+
+
+# keys remaining in %run_me are sequences which didn't have any tmdetect
+# results... update their run_history (see `delete $run_me{}') above.
 foreach my $pseq_id ( keys %run_me ) {
-  $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+  print("Unison:$pseq_id: no results; run_history tickled ",
+		$u->upd_run_history($pseq_id,$opts{params_id},undef,undef),
+		"\n");
 }
+
+exit(0);
+
+
+
+############################################################################
+## INTERNAL FUNCTIONS
+
 
 #-------------------------------------------------------------------------------
 # NAME: get_pftype_id
