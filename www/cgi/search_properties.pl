@@ -20,20 +20,20 @@ my $v = $p->Vars();
 
 if (not exists $v->{submit}) {
   print $p->render("Property Mining",
-				   '$Id: search_by_properties.pl,v 1.2 2003/09/18 21:33:15 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.3 2003/09/20 00:04:09 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
   exit(0);
 }
 
-#print $p->render("Dump",'<pre>',Dumper($v),'</pre>'); exit(0);
 
 
-
+###########################################################
+## build SQL statement
 
 my $s_sql = Unison::SQL->new()
-  ->table('palias_w_taxid A')
+  ->table('palias A')
   ->columns('distinct A.pseq_id');
 
 if (exists $v->{o_sel}) {
@@ -60,7 +60,7 @@ if (exists $v->{r_age} or exists $v->{r_len}) {
 
 if (exists $v->{r_sigp}) {
   $s_sql->join('pseqprop P on A.pseq_id=P.pseq_id')
-	->where("P.sigpredict>=$v->{r_sigp_sel}");
+	->where("P.sigpredict>=$v->{r_sigp_sel}::real");
 }
 
 if (exists $v->{al_hmm}) {
@@ -78,10 +78,17 @@ if (exists $v->{al_papssm}) {
 }
 
 if (exists $v->{al_prospect2}) {
+  my @models = map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{al_ms_sel}" ) };
+  @models = sort { $a<=>$b } @models;
   $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
-	->where("T.svm>=$v->{al_prospect2_svm}")
-	->join('pmsm_p2template PT on T.pmodel_id=PT.pmodel_id')
-	->where("PT.pmodelset_id=$v->{al_ms_sel}");
+	->where("T.svm>=$v->{al_prospect2_svm}::real")
+	->where("T.run_id=$v->{al_prospect2_run_id}")
+	->where('T.pmodel_id in (' . join(',',@models) . ')');
+
+#  $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
+#	->where("T.svm>=$v->{al_prospect2_svm}::real")
+#	->join('pmsm_prospect2 PT on T.pmodel_id=PT.pmodel_id')
+#	->where("PT.pmodelset_id=$v->{al_ms_sel}");
 }
 
 
@@ -94,18 +101,23 @@ $sql = "select X1.pseq_id,best_annotation(X1.pseq_id) from ($sql) X1";
 
 
 
-my @fields = ( 'pseq_id', 'origin:alias (description)' );
-my $ar;
-$ar = $u->selectall_arrayref($sql);
-for(my $i=0; $i<=$#$ar; $i++) {
-  $ar->[$i][0] = sprintf('<a href="pseq_summary.pl?pseq_id=%d">%d</a>',
-						 $ar->[$i][0],$ar->[$i][0]);
+my $results = "<p>(SQL only requested -- go back and hit vroom! for results)\n";
+if ($v->{submit} !~ m/^sql/) {
+  my @fields = ( 'pseq_id', 'origin:alias (description)' );
+  my $ar;
+  $ar = $u->selectall_arrayref($sql);
+  for(my $i=0; $i<=$#$ar; $i++) {
+	$ar->[$i][0] = sprintf('<a href="pseq_summary.pl?pseq_id=%d">%d</a>',
+						   $ar->[$i][0],$ar->[$i][0]);
+  }
+  $results = $p->group(sprintf("%d results",$#$ar+1),
+					   Unison::WWW::Table::render(\@fields,$ar));
 }
 
+
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.2 2003/09/18 21:33:15 rkh Exp $',
-				 $p->group(sprintf("%d results",$#$ar+1),
-						   Unison::WWW::Table::render(\@fields,$ar)),
+				 '$Id: search_by_properties.pl,v 1.3 2003/09/20 00:04:09 rkh Exp $',
+				 $results,
 				 $p->sql( $sql ));
 
 
@@ -134,7 +146,6 @@ sub spit_form {
 
   join('',
 	   $p->start_form(-method=>'GET'),
-	   $p->submit(-name=>'submit', -value=>'vroom!'),
 
 	   '<table border=0 width="100%">',
 
@@ -158,6 +169,8 @@ sub spit_form {
 					  -labels => \%sl,
 					  -default => 9606
 					 ),
+	   '<br>NOTE: selecting species filtering will eliminate sequences whose species is not explicity denoted',
+
 	   '<br>',
 	   $p->checkbox(-name => 'r_age',
 					-label => 'fewer than ',
@@ -210,6 +223,10 @@ sub spit_form {
 	   $p->popup_menu(-name => 'al_prospect2_svm',
 					  -values => [qw(13 12 11 10 9 8 7 6 5)],
 					  -default => '9'),
+	   ' using parameter set ',
+	   $p->popup_menu(-name => 'al_prospect2_run_id',
+					  -values => [qw(1)],
+					  -default => '1'),
 	   '<hr>',
 	   $p->checkbox(-name => 'al_ms',
 					-label => 'to Genentech-curated sets of ',
@@ -248,6 +265,7 @@ sub spit_form {
 	   "</table>",
 
 	   $p->submit(-name=>'submit', -value=>'vroom!'),
+	   $p->submit(-name=>'submit', -value=>'sql only'),
 	   $p->end_form(), "\n",
 	  );
 }
