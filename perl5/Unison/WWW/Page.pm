@@ -1,5 +1,5 @@
 package Unison::WWW::Page;
-use CGI qw(:standard *table);
+use CGI qw( :standard *table -newstyle_urls );
 our @ISA = qw(CGI);
 
 use Unison::Exceptions;
@@ -8,7 +8,7 @@ use Unison;
 
 sub new {
   my $class = shift;
-  my $self = $class->SUPER::new(@_);
+  my $self = $class->SUPER::new( @_ );
   my $username = $ENV{REMOTE_USER};
 
   # establish session authentication, preferably via kerberos
@@ -58,31 +58,42 @@ sub render
   my $p = shift;
   my $title = shift;
   return ($p->header(),
-		  $p->start_html(-title=>"Unison:$title")."\n",
+
+		  $p->start_html(-title=>"Unison:$title"), "\n\n\n",
+
 		  '<table class="page">', "\n",
+
+		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td class="logo" rowspan=2 width="20%"><a href="/csb/unison/"><img class="logo" src="../av/unison.png"></a></td>', "\n",
-		  '  <td padding=0>', navbar2(1,['pseq','pseq.html'],['pset','pset.html']),'</td>', "\n",
+		  '  <td title="Unison home page" class="logo" width="10%"><a href=".."><img class="logo" src="../av/unison.png"></a></td>', "\n",
+		  '  <td padding=0>', $p->navbar(), '</td>', "\n",
 		  '</tr>', "\n",
-		  '<tr>', "\n", '  <td>[subnav placeholder]</td>', "\n", '</tr>',
+		  "<!-- ========== end banner bar ========== -->\n",
+
+		  "\n<!-- ========== begin page content ========== -->\n",
 		  '<tr>', "\n",
-		  '  <td class="cnav" width="20%">[contextnav]</td>', "\n",
-		  '<!-- begin page content -->', "\n",
-		  '  <td>', "<b>$title</b><br>", "\n", 
+		  '  <td class="cnav">[wasted space?]</td>', "\n",
+		  '  <td>', 
+		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
-		  '<!-- end page content -->', "\n",
 		  '  </td>', "\n",
+		  "\n<!-- ========== end page content ========== -->\n",
+
+		  "\n<!-- ========== begin footer ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" src="../av/poweredby_postgresql.png"></a></td>', "\n",
-		  '  <td valign="top">contact:<a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a>, 
-</td>', "\n",
+		  '  <td valign="top">contact:<a href="http://gwiz/local-bin/empshow.cgi?empkey=26599">Reece Hart</a></td>', "\n",
 		  '</tr>', "\n",
-		  $p->end_html(),"\n");
+		  "\n<!-- ========== end footer ========== -->\n",
+
+		  '</table>', "\n",
+
+		  "\n", $p->end_html(),"\n"
+		 );
   }
 
 
-sub group
-  {
+sub group {
   my $self = shift;
   my $name = shift;
   my $contents = shift;
@@ -90,18 +101,17 @@ sub group
 		 "<tr><th class=\"grouptag\">$name</th><th></th></tr>\n" .
 		 "<tr><td colspan=\"2\">\n".$contents."\n</td></tr>\n" .
 		 "</table>\n");
-  }
+}
 
 sub ensure_required_params
   {
   my $p = shift;
-  foreach my $v (@_)
-	{
+  foreach my $v (@_) {
 	(defined $p->param($v))
 	  || $p->die("The $v parameter wasn't defined.");
-	}
-  return;									# all needed params defined
   }
+  return;									# all needed params defined
+}
 
 sub die
   {
@@ -116,25 +126,99 @@ sub debug {
 }
 
 
+
 sub navbar {
-  my ($sel,@tu) = @_;
-  my $rv = '<ul class="nav">';
-  for(my $i=0; $i<=$#tu; $i++) {
-	my $cl = (defined $sel and $sel-1 == $i) ? ' class="selected"' : '';
-	$rv .= sprintf('<li%s><a href="%s">%s</a></li>',$cl,@{$tu[$i]}[1,0]);
+  my $p = shift;
+  my $v = $p->Vars();
+  my @navs =
+	( [ 'Analysis',
+		['Summary', 'summary of sequence information', 'pseq_summary.pl', "pseq_id=$v->{pseq_id}" ],
+		['Aliases', 'all aliases of this sequence', 'pseq_paliases.pl', "pseq_id=$v->{pseq_id}"],
+		['Patents', 'Patents on this sequences', 'pseq_patents.pl', "pseq_id=$v->{pseq_id}"],
+		['Features', 'Sequences features', 'pseq_features.pl', "pseq_id=$v->{pseq_id}"],
+		['BLAST', 'BLAST-related sequences', 'pseq_blast.pl', "pseq_id=$v->{pseq_id}"],
+		['Prospect2', 'Prospect2 threadings', 'pseq_paprospect2.pl', "pseq_id=$v->{pseq_id};run_id=1"],
+		['HMM', 'Hidden Markov Model alignments', 'pseq_pahmm.pl', "pseq_id=$v->{pseq_id}"],
+		['PSSM', 'PSSM alignments', 'pseq_papssm.pl', "pseq_id=$v->{pseq_id}"],
+		['Loci', 'Genomic localization', 'pseq_loci.pl', "pseq_id=$v->{pseq_id}"],
+	  ],
+	  [ 'Mining',
+		['By Sequence', undef, 'seq_find.pl'],
+		['By Feature', undef, 'feature_find.pl'],
+	  ],
+	  [ 'Browse',
+		['Sets', undef, 'sets.pl'],
+		['Origins', undef, 'origins.pl']
+	  ],
+	  [ 'Update',
+		['Aliases', 'update aliases', 'aliases.pl', 'upd=1']
+	  ],
+	  [ 'Help',
+		['About', undef, '..']
+	  ],
+	);
+
+  my ($navi,$subnavi) = $p->find_nav_ids(@navs);
+  if (not defined $navi) {
+	# oops... not in @navs
+	push( @navs, [ $p->{Nav} ] );
+	$navi = $#navs;
   }
-  $rv .= '</ul>';
+  if (not defined $subnavi) {
+	# oops... not in @{$navs[$navi]}
+	push( @{$navs[$navi]}, [ $p->{SubNav}, undef ] );
+	$subnavi = $#{$navs[$navi]};
+  }
+  my $rv;
+  $rv .= make_navbar($navi, map {[$_->[0],$_->[1]->[1]]} @navs);
+  my @sn = @{$navs[$navi]}; shift @sn;
+  $rv .= make_navbar($subnavi, @sn);
   return $rv;
 }
 
-sub navbar2 {
+
+sub find_nav_ids {
+  my $p = shift;
+  my @navs = @_;
+  my $script = $p->url(-relative => 1);
+  for(my $i=0; $i<=$#navs; $i++) {
+	my @snavs = @{$navs[$i]};
+	shift @snavs;
+	for(my $j=0; $j<=$#snavs; $j++) {
+	  return($i,$j) if (defined $snavs[$j]->[2] and $snavs[$j]->[2] eq $script);
+	}}
+  return;
+  }
+
+
+sub make_navbar {
+  # $sel is which is selected
+  # @tu = array ref of [title,url]
   my ($sel,@tu) = @_;
   my @nav = ();
   for(my $i=0; $i<=$#tu; $i++) {
-	my $cl = (defined $sel and $sel-1 == $i) ? 'selected' : 'unselected';
-	push(@nav, sprintf('<td class="%s"><a href="%s">%s</a></li>',$cl,@{$tu[$i]}[1,0]));
+	my $cl = 'unselected';
+	my ($text,$title,$url,$params) = @{$tu[$i]};
+	$title = " title=\"$title\"" if defined $title;
+	$url .= "?$params" if defined $params;
+	if (defined $sel and $sel == $i) {
+	  $cl = 'selected';
+	  $url = undef;
+	}
+	push(@nav, "<td class=\"$cl\">"
+		 . (defined $url ? "<a href=\"$url\"$title>$text</a>" : $text)
+		 . "</td>" );
   }
-  return( '<table class="nav">',  # cellpadding=0 cellspacing=0 border=0>';
-		  join('<td class="spc" width=1></td>', @nav),
-		  '</table>');
+  return( '<table class="nav" width="100%">'
+		  . join('<td class="spc" width=1></td>', @nav)
+		  . '<td width="%80"></td>'
+		  . '</table>' );
 }
+
+sub where {
+  my $self = shift;
+  ($self->{Nav},$self->{SubNav}) = @_;
+  return $self;
+}
+
+1;
