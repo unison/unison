@@ -1,6 +1,12 @@
 #!/usr/bin/env perl
 # search_sets.pl -- compare a pset and pmodelset among several methods
 
+## TODO:
+## - species limits
+## - sequence details should include appropriate scores
+## - show params names in menus
+
+
 use strict;
 use warnings;
 
@@ -19,14 +25,19 @@ my %defaults =
   ( 
    pset_id => 5,
    pmodelset_id => 3,
+
    hmm => 0,
+   hmm_params_id => 15,
    hmm_eval => '1e-10',
+
    pssm => 0,
+   pssm_params_id => 8,
    pssm_eval => '1e-10',
-   p2 => 0,
-   p2_params_id => 1,
-   p2_svm => 12,
-   p2_raw => -500,
+
+   prospect2 => 0,
+   prospect2_params_id => 1,
+   prospect2_svm => 12,
+   prospect2_raw => -500,
   );
 
 my $v = $p->Vars();
@@ -45,7 +56,7 @@ $v = \%v;
 ## In schematic:
 ## - compute hmm_* if needed
 ## - compute pssm_* if needed
-## - compute p2_* if needed
+## - compute prospect2_* if needed
 ## - compute U_*
 ## - compute I_ unless we're showing a list of U_*
 
@@ -57,7 +68,7 @@ my $set;									# pseq_id array ref; if set below, show seq list
 my %data = (
 			hmm =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
 			pssm =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
-			p2 =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			prospect2 =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
 			I =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
 			U =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
 		   );
@@ -67,7 +78,7 @@ if (exists $v->{submit}) {
   my (@P,$FNr,$UPr,$TPr);
 
   if ($v->{hmm}) {
-	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval) );
+	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_params_id hmm_eval) );
 	my ($M,$sql,$P) = _get_hmm_hits();
 	$data{hmm}{sql} = $sql;
 	$data{hmm}{M} = $#$M+1;
@@ -87,7 +98,7 @@ if (exists $v->{submit}) {
   }
 
   if ($v->{pssm}) {
-	my $url = $p->make_url( qw(pset_id pmodelset_id pssm pssm_eval) );
+	my $url = $p->make_url( qw(pset_id pmodelset_id pssm pssm_params_id pssm_eval) );
 	my ($M,$sql,$P) = _get_pssm_hits();
 	$data{pssm}{sql} = $sql;
 	$data{pssm}{M} = $#$M+1;
@@ -106,28 +117,28 @@ if (exists $v->{submit}) {
 	}
   }
 
-  if ($v->{p2}) {
-	my $url = $p->make_url( qw(pset_id pmodelset_id p2 p2_params_id p2_svm) );
-	my ($M,$sql,$P) = _get_p2_hits();
-	$data{p2}{sql} = $sql;
-	$data{p2}{M} = $#$M+1;
+  if ($v->{prospect2}) {
+	my $url = $p->make_url( qw(pset_id pmodelset_id prospect2 prospect2_params_id prospect2_svm) );
+	my ($M,$sql,$P) = _get_prospect2_hits();
+	$data{prospect2}{sql} = $sql;
+	$data{prospect2}{M} = $#$M+1;
 	$P{$_}++ for @$P;
 	if ($v->{submit} !~ m/^[IU]/) {
 	  ($FNr,$UPr,$TPr) = acomm(\@SP,$P);
-	  $data{p2}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
+	  $data{prospect2}{P}  = sprintf('<a href="%s;submit=U_P">%d</a>',$url, $#$P+1);
 	  if ($nSP>0) {
-		$data{p2}{TP} = sprintf('<a href="%s;submit=U_TP">%d<br>(%5.1f%%)</a>',
+		$data{prospect2}{TP} = sprintf('<a href="%s;submit=U_TP">%d<br>(%5.1f%%)</a>',
 						  $url, $#$TPr+1, ($#$TPr+1)/($#SP+1)*100);
-		$data{p2}{FN} = sprintf('<a href="%s;submit=U_FN">%d<br>(%5.1f%%)</a>',
+		$data{prospect2}{FN} = sprintf('<a href="%s;submit=U_FN">%d<br>(%5.1f%%)</a>',
 						  $url, $#$FNr+1, ($#$FNr+1)/($#SP+1)*100);
 	  }
-	  $data{p2}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
+	  $data{prospect2}{UP}  = sprintf('<a href="%s;submit=U_UP">%d</a>',
 						 $url, $#$UPr+1);
 	}
   }
 
   # UNION
-  my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_params_id p2_svm) );
+  my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_params_id hmm_eval pssm pssm_params_id pssm_eval prospect2 prospect2_params_id prospect2_svm) );
   my @U_P = sort keys %P;
   if ($v->{submit} !~ m/^I_/) {
 	($FNr,$UPr,$TPr) = acomm(\@SP,\@U_P);
@@ -152,8 +163,8 @@ if (exists $v->{submit}) {
 	{ @$set = @$UPr; }
   else {
 	# INTERSECTION
-	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_eval pssm pssm_eval p2 p2_params_id p2_svm) );
-	my $n = ($v->{hmm}?1:0) + ($v->{pssm}?1:0) + ($v->{p2}?1:0);
+	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_params_id hmm_eval pssm pssm_params_id pssm_eval prospect2 prospect2_params_id prospect2_svm) );
+	my $n = ($v->{hmm}?1:0) + ($v->{pssm}?1:0) + ($v->{prospect2}?1:0);
 	my @I_P = grep { $P{$_} == $n } @U_P;
 	if ($v->{submit} ne 'I_P') {
 	  ($FNr,$UPr,$TPr) = acomm(\@SP,\@I_P);
@@ -201,7 +212,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.12 2004/01/08 02:17:39 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.13 2004/04/30 23:48:38 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -274,6 +285,10 @@ print $p->render("Sequence Mining Summary",
 				 $p->checkbox(-name => 'hmm',
 							  -label => 'HMM/Pfam ',
 							  -checked => $v->{hmm}),
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
+				 $p->popup_menu(-name => 'hmm_params_id',
+								-values => [qw(15)],
+								-default => "$v->{hmm_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with eval <= ',
 				 $p->popup_menu(-name => 'hmm_eval',
 								-values => [qw(1e-60 1e-50 1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
@@ -291,6 +306,10 @@ print $p->render("Sequence Mining Summary",
 				 $p->checkbox(-name => 'pssm',
 							  -label => 'PSSM/PSI-BLAST profiles (SBP)',
 							  -checked => $v->{pssm}),
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
+				 $p->popup_menu(-name => 'pssm_params_id',
+								-values => [qw(8)],
+								-default => "$v->{pssm_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with eval <= ',
 				 $p->popup_menu(-name => 'pssm_eval',
 								-values => [qw(1e-60 1e-50 1e-40 1e-30 1e-20 1e-10 1e-5 1 5 10)],
@@ -305,28 +324,28 @@ print $p->render("Sequence Mining Summary",
 
 				 '<tr>',
 				 '<td>',
-				 $p->checkbox(-name => 'p2',
+				 $p->checkbox(-name => 'prospect2',
 							  -label => 'Prospect2 ',
-							  -checked => $v->{p2}),
+							  -checked => $v->{prospect2}),
 
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
-				 $p->popup_menu(-name => 'p2_params_id',
+				 $p->popup_menu(-name => 'prospect2_params_id',
 								-values => [qw(1)],
-								-default => "$v->{p2_params_id}"),
+								-default => "$v->{prospect2_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with svm >= ',
-				 $p->popup_menu(-name => 'p2_svm',
+				 $p->popup_menu(-name => 'prospect2_svm',
 								-values => [qw(13 12 11 10 9 8 7 6 5)],
-								-default => "$v->{p2_svm}"),
+								-default => "$v->{prospect2_svm}"),
 #				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with raw <= ',
-#				 $p->popup_menu(-name => 'p2_raw',
+#				 $p->popup_menu(-name => 'prospect2_raw',
 #								-values => [qw(-2000 -1500 -1000 -500 -250 0 100 250)],
-#								-default => "$v->{p2_raw}"),
+#								-default => "$v->{prospect2_raw}"),
 				 '</td>',
-				 '<td align="right">', $data{p2}{M} ,'</td>',
-				 '<td align="right">', $data{p2}{P} ,'</td>',
-				 '<td align="right">', $data{p2}{TP},'</td>',
-				 '<td align="right">', $data{p2}{FN},'</td>',
-				 '<td align="right">', $data{p2}{UP},'</td>',
+				 '<td align="right">', $data{prospect2}{M} ,'</td>',
+				 '<td align="right">', $data{prospect2}{P} ,'</td>',
+				 '<td align="right">', $data{prospect2}{TP},'</td>',
+				 '<td align="right">', $data{prospect2}{FN},'</td>',
+				 '<td align="right">', $data{prospect2}{UP},'</td>',
 				 '</tr>',"\n",
 
 				 '<tr>',
@@ -374,7 +393,7 @@ print $p->render("Sequence Mining Summary",
 
 				 ("$data{hmm}{sql}"  eq '' ? '' : $p->sql($data{hmm}{sql})),
 				 ("$data{pssm}{sql}" eq '' ? '' : $p->sql($data{pssm}{sql})),
-				 ("$data{p2}{sql}"   eq '' ? '' : $p->sql($data{p2}{sql})),
+				 ("$data{prospect2}{sql}"   eq '' ? '' : $p->sql($data{prospect2}{sql})),
 				);
 
 
@@ -391,6 +410,7 @@ sub _get_hmm_hits {
 	$sql = Unison::SQL->new()
 	  ->table('pahmm A')
 	  ->columns('distinct A.pseq_id')
+	  ->where("A.params_id=$v->{hmm_params_id}")
 	  ->where("A.eval<=$v->{hmm_eval}")
 	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
   @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
@@ -408,6 +428,7 @@ sub _get_pssm_hits {
 	$sql = Unison::SQL->new()
 	  ->table('papssm A')
 	  ->columns('distinct A.pseq_id')
+	  ->where("A.params_id=$v->{pssm_params_id}")
 	  ->where("A.eval<=$v->{pssm_eval}")
 	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
   @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
@@ -415,7 +436,7 @@ sub _get_pssm_hits {
   return (\@models,$sql,\@hits);
 }
 
-sub _get_p2_hits {
+sub _get_prospect2_hits {
   my @models;
   my $sql;
   my @hits;
@@ -425,8 +446,8 @@ sub _get_p2_hits {
 	$sql = Unison::SQL->new()
 	  ->table('paprospect2 A')
 	  ->columns('distinct A.pseq_id')
-	  ->where("A.svm>=$v->{p2_svm}::real")
-	  ->where("A.params_id=$v->{p2_params_id}")
+	  ->where("A.svm>=$v->{prospect2_svm}::real")
+	  ->where("A.params_id=$v->{prospect2_params_id}")
 	  ->where('A.pmodel_id in (' . join(',',@models) . ')');
   @hits = map { $_->[0] } @{ $u->selectall_arrayref("$sql") };
   }
