@@ -2,6 +2,11 @@
 # load fasta sequences into unison
 # $ load-fasta -o origin <fastafile
 
+# TODO: There's too much origin-specific code in here... it should be
+# moved to origin-specific coversion scripts and this should be used
+# SOLELY to load fasta files.
+
+
 use strict;
 use warnings;
 use Bio::SeqIO;
@@ -20,14 +25,12 @@ my $startafter;
 my $maxlen = 8200;							# empirical limit
 my $sqlonly = 0;
 my $nomd5 = 1;								# now default!
-my $noalias = 0;
+my $noalias = 1;							# now default!
 my $inclsubex = 0;
 GetOptions( @Unison::options,
 			'origin|o=s' => \$origin,
 			'startafter|A=s' => \$startafter,
 			'maxlen|L=s' => \$maxlen,
-			'nomd5' => \$nomd5,
-			'noalias' => \$noalias,
 			'sqlonly' => \$sqlonly,
 			'inclsubex' => \$inclsubex,
 		  )
@@ -43,7 +46,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.17 2003/07/09 20:32:04 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.18 2003/07/13 03:08:44 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
 if (not $noalias)
   {
