@@ -37,7 +37,7 @@ GetOptions(\%opts,
 		   'palias-id-max|e=i',
 
 		   'drop-paotax|D+',
-		   'create-paotax|c+',
+		   'create-paotax|C+',
 		   'assign|a+',
 		   'reassign|r+',
 		   'nullify|n+',
@@ -60,18 +60,21 @@ select(STDERR); $|++;
 select(STDOUT); $|++;
 
 
-print(STDERR '$Id: update_tax_ids.pl,v 1.4 2004/04/07 21:48:23 rkh Exp $ ', "\n");
+print(STDERR '$Id: update_tax_ids.pl,v 1.5 2004/04/07 21:55:08 rkh Exp $ ', "\n");
+print(STDERR '# ', join(', ', grep { $opts{$_} } qw(drop-paotax create-paotax assign reassign nullify)), "\n");;
 
 
 my $u = new Unison;
 
 if (not defined $opts{'palias-id-max'}) {
-  $opts{'palias-id-max'} = $u->selectrow_array
-	('select max(palias_id) from paliasorigin');
+  my $sql = 'select max(palias_id) from paliasorigin';
+  $sql .= " WHERE AO.porigin_id=$opts{origin}" if (defined $opts{origin});
+  $opts{'palias-id-max'} = $u->selectrow_array( $sql );
+  printf(STDERR "# palias-id-max=%d\n", $opts{'palias-id-max'});
 }
 
 
-create_paotax($u) 						if $opts{'create-paotax'};
+create_paotax($u)  if $opts{'create-paotax'};
 
 my $nrows_changed = 0;
 $nrows_changed += assign_tax_ids($u)	if $opts{'assign'};
@@ -92,7 +95,7 @@ sub execute_sth($$$) {
   my ($fx,$sth,$inc) = @_;
   my $nr_tot = 0;
   for(my $b=$opts{'palias-id-min'};
-	  $b<$opts{'palias-id-max'};
+	  $b<=$opts{'palias-id-max'};
 	  $b+=$inc) {
 	my $e = $b+$inc;
 	my $nr = $sth->execute($b,$e);
@@ -100,7 +103,7 @@ sub execute_sth($$$) {
 	printf(STDERR "\r%-30s [%9d,%9d)    rows:%9d  tot:%9d", "$fx(;$inc)",
 		   $b, $e, $nr, $nr_tot);
   }
-  printf(STDERR "\r%-30s [%9d,%9d)         %9s  tot:%9d", "$fx(;$inc)", 
+  printf(STDERR "\r%-30s [%9d,%9d]         %9s  tot:%9d", "$fx(;$inc)", 
 		 $opts{'palias-id-min'}, $opts{'palias-id-max'}, '', $nr_tot);
   print(STDERR "... done\n");
   return $nr_tot;
@@ -111,19 +114,34 @@ sub execute_sth($$$) {
 sub create_paotax ($) {
   ## create a temp table with palias_id, current tax_id, inferred tax_id
   my $u = shift;
-  eval { $u->do('drop table paotax') } if $opts{'drop-paotax'};
-  $u->do(qq/create table paotax (palias_id integer not null,
-			tax_id integer, infer_tax_id integer) without oids/);
   my $sql = qq/
 	INSERT INTO PAOTAX
 	SELECT AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr)
     FROM paliasorigin AO
     JOIN porigin O ON AO.porigin_id=O.porigin_id
-    WHERE palias_id>=? and palias_id<?
+    WHERE AO.palias_id>=? and AO.palias_id<?
 	/;
+
   if (defined $opts{origin}) {
-	$sql .= "AND porigin_id=$opts{origin}";
+	$sql .= " AND AO.porigin_id=$opts{origin}";
   }
+
+  my @cond;
+  if ($opts{assign}) {
+	push(@cond, 'tax_id IS NULL AND infer_tax_id(O.origin,AO.alias,AO.descr) IS NOT NULL');
+  }
+  if ($opts{nullify}) {
+	push(@cond, 'tax_id IS NOT NULL AND infer_tax_id(O.origin,AO.alias,AO.descr) IS NULL');
+  }
+  if ($opts{reassign}) {
+	push(@cond, 'tax_id != infer_tax_id(O.origin,AO.alias,AO.descr)');
+  }
+  $sql .= ' AND (' . join(' OR ', map {"($_)"} @cond) . ')';
+
+
+  eval { $u->do('drop table paotax') } if $opts{'drop-paotax'};
+  $u->do(qq/create table paotax (palias_id integer not null,
+			tax_id integer, infer_tax_id integer) without oids/);
   my $sth = $u->prepare( $sql );
   execute_sth((caller(0))[3], $sth, $opts{'increment'});
   $u->do('create index paotax_palias_id on paotax(palias_id)');
