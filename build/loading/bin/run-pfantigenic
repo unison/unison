@@ -1,9 +1,10 @@
 #!/usr/bin/env perl
 # run-pfantigenic -- run EMBOSS antigenic and load into unison
-# $Id$
+# $Id: run-pfantigenic,v 1.1 2003/10/06 19:23:01 rkh Exp $
 
 
 use Unison;
+use Unison::utils;
 use Bio::SeqIO;
 use Bio::PrimarySeq;
 use IPC::Open2;
@@ -11,6 +12,7 @@ use IO::Handle;
 use Env qw(@PATH);
 
 unshift(@PATH, '/apps/compbio/i686-linux-2.4/opt/EMBOSS/bin');
+
 my $run_id = 4;								# hardwired for now
 
 sub run1($$);
@@ -22,9 +24,15 @@ print(STDERR "# running with @cmd\n");
 
 my $sth = $u->prepare( 'insert into pfantigenic(pseq_id,start,stop,score,max_pos,run_id) values (?,?,?,?,?,?)' );
 
-while( @ARGV ) {
-  run1( $u, shift );
+my @list = Unison::utils::range_to_enum(@ARGV);
+for(my $i=0; $i<=$#list; $i++) {
+  my $pseq_id = $list[$i];
+  printf(STDERR "\rloading %8s (%4d/%4d %3d%%)...",
+		 $pseq_id, ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
+  run1( $u, $pseq_id );
+  print(STDERR "done");
 }
+print(STDERR "\n");
 
 exit(0);
 
@@ -36,6 +44,10 @@ sub run1($$) {
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   if (not defined $seq) {
 	warn("$0: Unison:$pseq_id doesn't exist\n");
+	return;
+  }
+  if (length($seq) >= 1000) {
+	warn("$0: Unison:$pseq_id is too long (", length($seq), ">=1000 AA)\n");
 	return;
   }
 
@@ -63,6 +75,7 @@ sub run1($$) {
 	  = $block =~ m/Start: (\d+)\nEnd: (\d+)\nLength: \d+\nScore: (\S+)\nMax_score_pos: (\d+)\n/;
 	next unless defined $start;
 	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$run_id);
+	$u->last_run_update($pseq_id,$run_id);
   }
 }
 
