@@ -1,5 +1,5 @@
 #!/bin/bash
-# $Id: backup,v 1.14 2003/11/11 23:59:00 rkh Exp $
+# $Id: backup,v 1.15 2004/01/08 02:17:38 rkh Exp $
 
 # backup -- backup the csb database
 # you must set PGPASSWORD before running this script
@@ -40,7 +40,7 @@ if [ -n "$DEBUG" ]; then
 	TABLE="-t porigin";
 fi
 
-DIR="/home/rkh/csb-db/backups/$PGDATABASE"
+DIR="/home/rkh/adm/csb-db/backups/$PGDATABASE"
 mkdir -p "$DIR"
 DATE=`date +%Y-%m-%d-%H:%M`;
 R="$DIR/$DATE.pgdump$PGD_OPTS"
