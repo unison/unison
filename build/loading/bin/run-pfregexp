@@ -63,35 +63,65 @@ my @pmodel_ids = sort keys %regexps;
 printf("%d models selected\n", $#pmodel_ids+1);
 
 ## now filter the requested pseq_ids for those which actually hit any of the regexps
-##my (%hits) = map {$_=>1} get_matching_pseq_ids($u,values %regexps);
-##my (@pseq_ids) = grep {exists $hits{$_}} map {eval "$_"} @ARGV;
-my (@pseq_ids) = map {eval "$_"} @ARGV;
+my @pseq_ids = map {eval "$_"} @ARGV;
 my $N = $#pseq_ids+1;
 
 
-my $insert_sth = $u->prepare('insert into pfregexp (pseq_id,start,stop,params_id,pmodel_id) values (?,?,?,?,?)');
-
-for(my $i=0; $i<=$#pseq_ids; $i++) {
-  my $pseq_id = $pseq_ids[$i];
-  my $seq = $u->get_sequence_by_pseq_id($pseq_id);
-  my $leader = sprintf("Unison:%-8d (%5d AA) %d/%d (%5.1f%%)",
-					   $pseq_id, length($seq), $i+1, $N, ($i+1)/$N*100);
-  foreach my $pmodel_id (@pmodel_ids) {
-	my $re = $regexps{$pmodel_id};
-	while ($seq =~ m/$re/g) {
-	  my $e = pos($seq);
-	  my $b = $e-length($&)+1;
-	  #printf(STDERR "\n# $pseq_id,$b,$e,$opts{params_id},$pmodel_id\n");
-	  try {
-		$insert_sth->execute($pseq_id,$b,$e,$opts{params_id},$pmodel_id);
-	  } catch Unison::Exception::DBIError with {
-		print(STDERR "\n$_[0]");
-	  };
-	}
-  }
-  $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_ids},$opts{pmodelset_id});
+# if the number of pseq_ids is large, we can save the time to fetch each
+# sequence by doing a server-side scan for pseq_ids which hit ANY of the
+# regexps, and using that locally to determine which sequences to fetch.
+my %hits;
+if ($N >= 10000) {
+  %hits = map {$_=>1} get_matching_pseq_ids($u,values %regexps);
 }
 
+
+my $insert_sth = $u->prepare('insert into pfregexp (params_id,pseq_id,pmodel_id,start,stop) values (?,?,?,?,?)');
+
+
+PSEQ_ID:
+for(my $i=0; $i<=$#pseq_ids; $i++) {
+  my $pseq_id = $pseq_ids[$i];
+  my $leader = sprintf("\rUnison:%-8d %d/%d (%5.1f%%)", $pseq_id, $i+1, $N, ($i+1)/$N*100);
+  print(STDERR $leader);
+
+  foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
+  foreach my $o (defined $opts{porigin_id} ? @{$opts{porigin_id}} : undef) {
+	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$o,$m);
+	if (defined $ran_on and not $opts{update}) {
+	  ## IMPORTANT NOTE: This is arguably broken when running with
+	  ## multiple pmodelset_id and/or porigin_id arguments. Specifically,
+	  ## this conservatively skips running this entire sequence if ANY of
+	  ## the m/o compbinations are present. This may leave some m/o
+	  ## combinations un-run.
+	  print(STDERR ": run with these options on $ran_on; skipping\n");
+	  next PSEQ_ID;
+	}
+  }}
+
+  if (not %hits or exists $hits{$pseq_id}) {
+	my @mbe;
+	my $seq = $u->get_sequence_by_pseq_id($pseq_id);
+	foreach my $pmodel_id (@pmodel_ids) {
+	  while ($seq =~ m/$regexps{$pmodel_id}/g) {
+		my $e = pos($seq);
+		push(@mbe,[$pmodel_id,$e-length($&)+1,$e])
+	  }
+	}
+
+	printf(STDERR "%4d features...", $#mbe+1);
+	try {
+	  foreach my $mbe (@mbe) {
+		$insert_sth->execute($opts{params_id},$pseq_id,@$mbe);
+	  }
+	} catch Unison::Exception::DBIError with {
+	  print(STDERR "$leader: $_[0]\n!! skipping remaining features for this sequence\n");
+	};
+  }
+
+  $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_ids},$opts{pmodelset_id});
+}
+print(STDERR "\n");
 
 
 
