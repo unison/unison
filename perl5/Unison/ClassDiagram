@@ -372,15 +372,15 @@
     </dia:object>
     <dia:object type="Standard - Text" version="0" id="O2">
       <dia:attribute name="obj_pos">
-        <dia:point val="6.05,30.8"/>
+        <dia:point val="19,31"/>
       </dia:attribute>
       <dia:attribute name="obj_bb">
-        <dia:rectangle val="5.0688,30.1535;7.0812,31.1035"/>
+        <dia:rectangle val="4.5988,30.3535;33.4512,31.3035"/>
       </dia:attribute>
       <dia:attribute name="text">
         <dia:composite type="text">
           <dia:attribute name="string">
-            <dia:string>#$Id$#</dia:string>
+            <dia:string>#$Id: ClassDiagram,v 1.1 2003/06/10 20:28:10 cavs Exp $#</dia:string>
           </dia:attribute>
           <dia:attribute name="font">
             <dia:font name="Courier"/>
@@ -389,7 +389,7 @@
             <dia:real val="0.8"/>
           </dia:attribute>
           <dia:attribute name="pos">
-            <dia:point val="6.05,30.8"/>
+            <dia:point val="19,31"/>
           </dia:attribute>
           <dia:attribute name="color">
             <dia:color val="#000000"/>
