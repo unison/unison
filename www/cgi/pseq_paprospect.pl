@@ -25,7 +25,7 @@ my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id));
 
 $v->{run_id} = 1 unless defined $v->{run_id}; # should be required?
-$v->{offset} = 1 unless defined $v->{offset};
+$v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 
