@@ -32,22 +32,21 @@ my @templates = split(/[\0,]/,$v->{templates});
 my @missing = grep { not -f "$pdbDir/$_.pdb" } @templates;
 if (@missing)
   { $p->die('missing templates',
-			"I couldn't find Dave's pdb templates in $pdbDir for @missing"); }
+			"I couldn't find Dave's pdb templates in $pdbDir for @missing",
+			"(These are manually derived from the threading templates... go bug Dave)"); }
+my $template = $templates[0];
 
 my $po = $u->get_p2options_by_p2params_id( $v->{p2params_id} );
 if (not defined $po)
   { $p->die("The p2params_id parameter ($v->p2params_id) is invalid."); }
 $po->{templates} = \@templates;
 
-my $tid = $templates[0];
 my $pf = new Prospect2::LocalClient( {options=>$po} );
-my $in  = Bio::Structure::IO->new(-file => "$pdbDir/$tid.pdb" ,
-								  -format => 'pdb');
-my $struc = $in->next_structure();
-
 my $pt = new Prospect2::Transformation;
-my $t = ($pf->thread( $seq ))[0];
+my $str = Bio::Structure::IO->new(-file => "$pdbDir/$template.pdb",
+								  -format => 'pdb')->next_structure();
+my $thr = ($pf->thread( $seq ))[0];
 
 print("Content-type: application/x-rasmol\n\n",
-	  $pt->outputRasmolScript( $t, $struc ));
+	  $pt->outputRasmolScript( $thr, $str ));
 exit(0);
