@@ -1,10 +1,12 @@
 # -*- sh -*-
-# $Id: utils,v 1.2 2003/05/07 23:51:50 rkh Exp $
+# $Id: utils,v 1.3 2003/07/31 22:42:23 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 LOGDIR="/services/logs"
 JEMAPPELLE=`basename $0`
 LOGFN="$LOGDIR/$JEMAPPELLE"
+
+source /apps/compbio/setup.sh
 
 # logger -- format a log line
 # logger <message>
