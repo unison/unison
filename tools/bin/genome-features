@@ -13,42 +13,47 @@ use Data::Dumper;
 
 my $logo_margin = 10;
 
-my %opts = 
-  (
+my %opts = (
+  show_all => undef,
    genasm_id => undef,
    gstart => undef,
    gstop => undef,
    chr => undef,
+   margin => 0,
    imap => undef,
    png => undef,
    pseq_id => undef,
    width => 750,
-   show_exons => 0,
    verbose => 0
-  );
+);
 GetOptions( \%opts,
+      'show_all|a+',
       'genasm_id|q=i',
       'chr|c=s',
       'gstart|b=i',
       'gstop|e=i',
+      'margin|m=i',
       'imap|i=s',
       'pseq_id|p=i',
-      'show_exons|s+',
       'width|w=i',
       'png|f=s',
       'verbose|v+',
-      )
-  || die("$0: usage issues, chief\n");
+) || die("$0: usage issues, chief\n");
 
 die("$0: usage issues, chief\n") if 
-  ! (( defined $opts{genasm_id} && defined $opts{gstart} && defined $opts{gstop} ) || (  defined $opts{pseq_id} ) );
+  ! ( defined $opts{genasm_id} && (( defined $opts{chr} && defined $opts{gstart} && defined $opts{gstop} ) || (  defined $opts{pseq_id} ) ));
 
 my $u = new Unison;
 
 
 if ( defined $opts{pseq_id}) {
-  ($opts{gstart},$opts{gstop},$opts{p2gblataln_id},$opts{chr}) = &get_blataln($u,$opts{pseq_id});
+  ($opts{chr},$opts{gstart},$opts{gstop},$opts{p2gblataln_id}) = &get_blataln($u,$opts{pseq_id});
 }
+
+# expand gstart and gstop to include margin
+$opts{gstart} -= $opts{margin};
+$opts{gstop}  += $opts{margin};
+
 my $len = int($opts{gstop}-$opts{gstart});
 
 my $panel = Bio::Graphics::Panel->new( 
@@ -74,21 +79,26 @@ $panel->add_track( Bio::Graphics::Feature->new
   -label => 1, -description=>1
 );
 
+
+
 #print STDERR "pseq_id: $opts{pseq_id}, start: $opts{gstart}, stop: $opts{gstop}, p2gblataln_id: $opts{p2gblataln_id}\n";
-if ( defined $opts{pseq_id}) {
+if ( defined $opts{pseq_id} ) {
   $panel->add_track( 
     -key => "Chr$opts{chr} from $opts{gstart} to $opts{gstop}",
     -key_font => 'gdSmallFont',
     -bump => +1,
   );
   add_p2gblataln( $u, $panel, $opts{p2gblataln_id} );
+  if (defined $opts{show_all} || $opts{show_all} ) {
+    add_blatloci( $u, $panel, $opts{genasm_id}, $opts{chr}, $opts{gstart}, $opts{gstop} );
+  }
 } else {
   add_blatloci( $u, $panel, $opts{genasm_id}, $opts{chr}, $opts{gstart}, $opts{gstop} );
 }
 
 $panel->add_track( ) for 1..2;         # spacing
 $panel->add_track( 
-  -key => '$Id: genome-features,v 1.1 2004/02/19 00:15:17 cavs Exp $',
+  -key => '$Id: genome-features,v 1.2 2004/02/20 00:50:42 cavs Exp $',
   -key_font => 'gdSmallFont',
   -bump => +1,
 );
@@ -96,19 +106,6 @@ $panel->add_track(
 #print(STDERR map {sprintf("[%3d,%3d,%3d,%3d]\n",@$_[1..4])} @{$panel->boxes()});
 
 my $gd = $panel->gd();
-
-#my $unison_fn = '/home/rkh/www/csb/unison/av/unison.xpm';
-#if ( -f $unison_fn ) {
-  #my $ugd = GD::Image->newFromXpm($unison_fn);
-  #if (defined $ugd) {
-  #my ($sw,$sh) = $ugd->getBounds();
-  #my ($dw,$dh) = $gd->getBounds();
-  #$gd->copy($ugd,
-        #$dw-$sw-$logo_margin,$dh-$sh-$logo_margin,
-        #0,0,$sw,$sh);
-#}
-#}
-
 
 open(FP,">$opts{png}") or die("can't open $opts{png} for writing png");
 print FP $gd->png();
@@ -132,7 +129,6 @@ if ( defined $opts{imap} ) {
 }
   
 exit(0);
-
 
 
 #-------------------------------------------------------------------------------
@@ -244,8 +240,7 @@ sub add_p2gblataln {
     -min_score => 0,
     -max_score => 1,
     -sort_order => 'high_score',
-    -bgcolor => 'blue',
-    #-key => '',
+    -bgcolor => 'green',
     -bump => +1,
     -label => 1,
     -fgcolor => 'black',
@@ -275,7 +270,7 @@ sub add_p2gblataln {
 sub get_blataln {
   my ($u, $pseq_id) = @_;
 
-  my $sql = "select gstart,gstop,p2gblataln_id,chr from blatloci where pseq_id=?";
+  my $sql = "select chr,gstart,gstop,p2gblataln_id from blatloci where pseq_id=?";
 
   my $sth = $u->prepare($sql);
   $sth->execute($pseq_id);
@@ -283,7 +278,7 @@ sub get_blataln {
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my @f;
   foreach my $r ($sth->fetchrow_hashref) {
-    return $r->{gstart},$r->{gstop},$r->{p2gblataln_id},$r->{chr};
+    return $r->{chr},$r->{gstart},$r->{gstop},$r->{p2gblataln_id};
   }
 }
 
