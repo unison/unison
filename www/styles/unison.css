@@ -1,4 +1,6 @@
-/* $Id: unison.css,v 1.8 2003/08/20 22:40:00 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.9 2003/09/19 18:51:24 rkh Exp $     emacs: -*-c-*-  */
+
+/* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
 BODY {
  background: #FFFFEB;
@@ -6,28 +8,28 @@ BODY {
 
 /* page layout */
 TABLE.page {
- border: grey thin dashed;
+ border: #150067 thin dashed;
 }
 TABLE.page TD.logo {
- border: grey thin dashed;
- padding: 5px;
+ border: #150067 thin dashed;
  align: center;
  vertical-align: center;
 }
 TABLE.page TD.navbar {
- border: grey thin dashed;
+ border: #150067 thin dashed;
  padding: 0px;
 }
 TABLE.page TD.cnav {
- border: grey thin dashed;
+ border: #150067 thin dashed;
  vertical-align: top;
 }
 TABLE.page TD.body {
- border: grey thin dashed;
+ border: #150067 thin dashed;
  padding: 0px;
 }
 TABLE.page TD.contact {
- border: grey thin dashed;
+ border: #150067 thin dashed;
+ vertical-align: center;
  padding: 0px;
 }
 
@@ -50,7 +52,9 @@ TABLE.nav TD.selected {
  border-top: black thin solid;
  border-left: black thin solid;
  border-right: black thin solid;
- background: #9F94F3;
+ background: #150067; /* #9F94F3; */
+ color: #FFFFEB;
+ font-weight: bold;
  width: 50px;
  padding-left: 5px;
  padding-right: 5px;

@@ -2,7 +2,6 @@
 
 use strict;
 use warnings;
-use CGI( -debug );
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;

@@ -20,9 +20,9 @@ my $v = $p->Vars();
 
 if (not exists $v->{submit}) {
   print $p->render("Property Mining",
-				   '$Id$',
-				   $p->warn('this page is a work-in-progress',
-							'gnarly searches may take several minutes'),
+				   '$Id: search_by_properties.pl,v 1.2 2003/09/18 21:33:15 rkh Exp $',
+				   $p->warn('This page is a work-in-progress. ' .
+							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
   exit(0);
 }
@@ -96,14 +96,14 @@ $sql = "select X1.pseq_id,best_annotation(X1.pseq_id) from ($sql) X1";
 
 my @fields = ( 'pseq_id', 'origin:alias (description)' );
 my $ar;
-#$ar = $u->selectall_arrayref($sql);
+$ar = $u->selectall_arrayref($sql);
 for(my $i=0; $i<=$#$ar; $i++) {
   $ar->[$i][0] = sprintf('<a href="pseq_summary.pl?pseq_id=%d">%d</a>',
 						 $ar->[$i][0],$ar->[$i][0]);
 }
 
 print $p->render("Gnarly Search Results",
-				 '$Id$',
+				 '$Id: search_by_properties.pl,v 1.2 2003/09/18 21:33:15 rkh Exp $',
 				 $p->group(sprintf("%d results",$#$ar+1),
 						   Unison::WWW::Table::render(\@fields,$ar)),
 				 $p->sql( $sql ));
@@ -139,7 +139,7 @@ sub spit_form {
 	   '<table border=0 width="100%">',
 
 	   '<!-- ORIGINS -->',
-	   '<tr class="tablesep"><td colspan=2>Select sequences from:</td></tr>',
+	   '<tr class="tablesep"><td colspan=2>Select non-redundant sequences from:</td></tr>',
 	   '<tr><td>&nbsp;</td><td>',
 	   _tablify(5, $p->checkbox_group(-name => 'o_sel', 
 									  -values => [@db_pri, @db_sec],

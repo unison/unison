@@ -2,14 +2,7 @@
 
 use strict;
 use warnings;
-use CGI( -debug );
-use Data::Dumper;
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
+use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 
@@ -19,8 +12,9 @@ my $v = $p->Vars();
 
 
 my $blurb = <<EOT;
-<p>Unison is a database of non-redundant protein sequences and precomputed
-results on those sequences.  Because many results have been precomputed,
+
+<p>Unison is a comprehensive, non-redundant database of protein sequences
+and precomputed results.  Because many results have been precomputed,
 Unison enables answers to hypothesis that might have been previously
 impractical.
 

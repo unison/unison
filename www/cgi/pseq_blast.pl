@@ -20,7 +20,7 @@ my $sql = qq/select target,best_annotation(target),qstart||'-'||qstop,tstart||'-
 my $ar = $u->selectall_arrayref($sql) ;
 splice(@$_,0,2,mk_palias_link($_->[0],$_->[1])) for @$ar;
 
-my @f = ( 'target','qstart-qstop','tstop-tstart','len',
+my @f = ( 'target',"$v->{pseq_id}<br>qstart-qstop",'target<br>stop-start','len',
 		  'ident','sim','gaps','eval','identity (%)',
 		  'HSP coverage (%)','coverage (%)' );
 

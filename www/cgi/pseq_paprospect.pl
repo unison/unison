@@ -2,15 +2,7 @@
 
 use strict;
 use warnings;
-use CGI( -debug );
-use CGI::Carp qw(fatalsToBrowser);
-use Data::Dumper;
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
+use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Prospect2::Options;
@@ -22,13 +14,13 @@ my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->ensure_required_params(qw(pseq_id));
+$p->ensure_required_params(qw(pseq_id run_id));
 
 $v->{run_id} = 1 unless defined $v->{run_id}; # should be required?
 $v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
-$v->{sort} = 'raw' unless defined $v->{sort};
+$v->{sort} = 'svm' unless defined $v->{sort};
 
 
 my @cols = (['aln?',					],

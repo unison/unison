@@ -8,12 +8,7 @@ use CGI::Carp qw(fatalsToBrowser);
 use Bio::Structure::IO;
 
 # use's below here might come from ../perl5 if available
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
+use Unison::WWW;
 use Unison::WWW::Page;
 use Prospect2::Options;
 use Prospect2::LocalClient;

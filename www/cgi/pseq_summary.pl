@@ -2,20 +2,17 @@
 
 use strict;
 use warnings;
-use CGI( -debug );
-use Data::Dumper;
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
+use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
+use Unison::WWW::Utils qw(alias_link);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+
+$p->ensure_required_params( qw( pseq_id ) );
+
 
 my $sql = qq/select O.origin,AO.alias,AO.descr from pseqalias SA
 			join paliasorigin AO on AO.palias_id=SA.palias_id
@@ -23,6 +20,7 @@ my $sql = qq/select O.origin,AO.alias,AO.descr from pseqalias SA
 			where SA.pseq_id=$v->{pseq_id} and SA.iscurrent=true and O.ann_pref<=10000 
 			order by O.ann_pref/;
 my $ar = $u->selectall_arrayref($sql);
+do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
 my @f = qw( origin alias description );
 
 my $seq = $u->get_sequence_by_pseq_id($v->{pseq_id});
