@@ -13,31 +13,36 @@ use Unison::pseq_features;
 use Unison::SQL;
 use Unison::Exceptions;
 
-my $pdbDir = '/apps/compbio/share/prospect2/pdb';
+my $pdbDir = '/gne/compbio/share/prospect2/pdb';
+my @statevars = qw(pseq_id params_id offset limit sort pmodelset_id);
 #my $scopURL = 'http://scop.mrc-lmb.cam.ac.uk/scop';
 my $scopURL = 'http://scop.berkeley.edu';
-my $scoplinkfmt = "<A HREF=\"$scopURL/search.cgi?sunid=%d\">%s</A>";
-my @statevars = qw(pseq_id params_id offset limit sort);
-
+my $scoplinkfmt = '<A HREF="'.$scopURL.'/search.cgi?sunid=%d" TOOLTIP="%s">%s</A>';
 sub scoplink ($$);
 
 
-my @cols =
-  (# HTML col    DB col       order tag  sql order by
+my @aln_cols =
+  (
+   # HTML col    DB col       order tag  sql order by
    ['aln?',                                              ],
    ['acc',       'acc',       'acc',     'acc'           ],
    ['%IDE', 	 'pct_ident', 'pide',    'pct_ident desc'],
    ['raw',       'raw',       'raw',     'raw desc'      ],
-   ['svm',       'svm',       'svm',     'svm desc'      ],
+  );
+my @detail_cols =
+  (
+   # HTML col    DB col       order tag  sql order by
    ['singleton', 'singleton', 'sing', 	 'singleton'     ],
    ['pairwise',  'pairwise',  'pair',  	 'pairwise'      ],
    ['mutation',  'mutation',  'mut',     'mutation'      ],
    ['gap',       'gap',       'gap',     'gap'           ],
-   ['SCOP (sf&nbsp;>&nbsp;dm)',                          ]
   );
-my @htmlcols = map { $_->[0] } @cols;
-my %order_by = map {$_->[2]=>$_->[3]} grep {defined $_->[2]} @cols;
-my %sort_col = map {$_->[2]=>$_->[1]} grep {defined $_->[2]} @cols;
+my @scop_cols=
+  (
+   # HTML col    DB col       order tag  sql order by
+   ['svm',       'svm',       'svm',     'svm desc'      ],
+   ['SCOP (cl&nbsp;>&nbsp;sf&nbsp;>&nbsp;dm; see mouseovers)',  ]
+  );
 
 
 my $p = new Unison::WWW::Page;
@@ -48,8 +53,19 @@ $v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
+$v->{details} = 0;
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.19 2004/07/22 22:30:49 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.20 2004/10/12 16:32:28 rkh Exp $ ');
+
+
+my @cols;
+push(@cols, @aln_cols);
+push(@cols, @detail_cols) if ($v->{details});
+push(@cols, @scop_cols);
+
+my @htmlcols = map { $_->[0] } @cols;
+my %order_by = map {$_->[2]=>$_->[3]} grep {defined $_->[2]} @cols;
+my %sort_col = map {$_->[2]=>$_->[1]} grep {defined $_->[2]} @cols;
 
 
 my $u = $p->{unison};
@@ -59,10 +75,10 @@ my $sc = $sort_col{$v->{sort}};
 
 # construct query
 $sql->columns('*')
-  ->distinct($sc,($sc eq 'acc'?'':'acc,').'clid,sfid,dmid')
+  ->distinct($sc,($sc eq 'acc'?'':'acc,').'clid,cfid,sfid,dmid')
   ->table('v_paprospect2_scop')
   ->where("pseq_id=$v->{pseq_id} AND params_id=$v->{params_id}")
-  ->order($ob,($sc eq 'acc'?'':'acc,').'clid,sfid,dmid');
+  ->order($ob,($sc eq 'acc'?'':'acc,').'clid,cfid,sfid,dmid');
 if (defined $v->{pmodelset_id}
 	and $v->{pmodelset_id} !~ m/\D/) {
   $sql->where("pmodel_id in (select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{pmodelset_id})");
@@ -112,16 +128,32 @@ foreach my $row ( @{$feats} ) {
   }
 
   # build scop description
+  # pdbids may be associated with 0 or more scop sunids
+  # This builds a list of sunid classificiations (e.g., cl>sf>dm),
+  # and joins them with '<br>'
   my @scop;
+  my $scop;
   for (my $i=0; $i<=$#{$row->{scop}}; $i++) {
 	my $scopr = $row->{scop}[$i];
-    push(@scop, scoplink( $scopr->{sfid}, $scopr->{sfname} )
-	            . '&nbsp;&gt;&nbsp;' 
+	# 2005-02-14: tried to add cfid/cfname, but the coalesce scop
+	# function doesn't pass it. Too bad. I'll revisit that horrendous
+	# bit of code later. For now, we can't add other SCOP fields easily.
+    push(@scop, scoplink( $scopr->{clid}, $scopr->{clname} )
+	            . '&nbsp;<b>&gt;</b>&nbsp;' 
+		 		. scoplink( $scopr->{sfid}, $scopr->{sfname} )
+	            . '&nbsp;<b>&gt;</b>&nbsp;' 
 			    . scoplink( $scopr->{dmid}, $scopr->{dmname} ) );
   }
   my $scop = join('<br>',@scop);
 
-  push @ar,[ $aln, $strxlink, (map { $row->{$_->[1]}  } @cols[2..8]), $scop];
+
+  push( @ar, [
+			  $aln, $strxlink, 
+			  (map { $row->{$_->[1]}  } @cols[2..($#cols-1)]),
+#			  (map { $row->{$_->[1]}  } (grep {not m/^(?:acc|aln|SCOP)/} @cols)),
+			  $scop 
+			 ] 
+	  );
 }
 
 
@@ -144,6 +176,8 @@ for(my $fi=0; $fi<=$#htmlcols; $fi++) {
 
 
 
+# generate nav tab (e.g.,  |<< < 1-5 of 5 > >>|  )
+# This needs to be rethought completely
 my @ctl;
 
 if ($v->{offset}>0) {
@@ -156,10 +190,10 @@ if ($v->{offset}>0) {
 			 '<span tooltip="back one page" class="button">&lt;</span>' )
      );
 }
-push(@ctl,
-   sprintf("%d-%d of %d</a>",
-       $v->{offset}+1,$v->{offset}+$v->{limit},$N)
-  );
+my $b = $v->{offset}+1;
+my $e = $v->{offset}+$v->{limit};
+$e = $N if $e>$N;
+push(@ctl, sprintf("%d-%d of %d</a>", $b, $e, $N) );
 if ($N-1-$v->{offset}>0) {
   my $no = $v->{offset}+$v->{limit};
   $no=$N-$v->{limit} if $no>$N-1;
@@ -168,6 +202,7 @@ if ($N-1-$v->{offset}>0) {
      sprintf("<a href=\"%s\">%s</a>", $p->make_url({offset=>$N-$v->{limit}},@statevars), '<span tooltip="last (full) page" class="button">&gt;&gt;|</span>')
     );
 }
+
 
 #my $ctl = join(' | ',@ctl)
 my $ctl = '<table border=0><tr>' . join('',map {"<td>$_</td>"} @ctl) . '</tr></table>';
@@ -221,6 +256,7 @@ print $p->render
 
 sub scoplink ($$) {
   my ($id,$name) = @_;
-  $name =~ s/\s+/&nbsp;/g;
-  return sprintf($scoplinkfmt,$id,$name);
+  my $sname = length($name) > 20 ? substr($name,0,20).'...' : $name;
+  $sname =~ s/\s+/&nbsp;/g;
+  return sprintf($scoplinkfmt,$id,$name,$sname);
 }

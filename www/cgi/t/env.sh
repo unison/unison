@@ -3,8 +3,9 @@
 echo "Content-type: text/plain"
 echo
 
-env|sort
+/usr/bin/env | /usr/bin/sort
 
 echo "====================================="
 
-id
+/usr/bin/id
+
