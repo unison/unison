@@ -8,9 +8,9 @@ use Data::Dumper;
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
-use Prospect2::Options;
-use Prospect2::LocalClient;
-use Prospect2::Align;
+use Prospect::Options;
+use Prospect::LocalClient;
+use Prospect::Align;
 
 my $pdbDir = '/apps/compbio/share/prospect2/pdb';
 
