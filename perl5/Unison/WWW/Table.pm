@@ -72,7 +72,7 @@ sub render_compat {
 
   if (not defined $opts->{highlight_column}) {
 	$rv .= "<tr>" . join('',map {'<th align="'.guess_alignment($_).'">'.$_.'</th>'} @$fr)."</tr>\n";
-	$rv .= "<tr>" . join('',map {'<td ailgn="'.guess_alignment($_).'">'.coalesce($_,'').'</td>'} @$_) ."</tr>\n" for @$ar; 
+	$rv .= "<tr>" . join('',map {'<td align="'.guess_alignment($_).'">'.coalesce($_,'').'</td>'} @$_) ."</tr>\n" for @$ar; 
 	$rv .= $tbl_end;
 	return $rv;
   }
