@@ -5,12 +5,7 @@ use warnings;
 use CGI( -debug );
 use CGI::Carp qw(fatalsToBrowser);
 use Data::Dumper;
-BEGIN
-  {
-  if (exists $ENV{SCRIPT_FILENAME})
-	{ ($ENV{PWD}) = $ENV{SCRIPT_FILENAME} =~ m%^(.*/)%; }
-  }
-use lib $ENV{PWD}."/../perl5";
+use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Prospect2::Options;
