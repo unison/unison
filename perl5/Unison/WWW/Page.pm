@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.37 2005/02/19 23:24:38 rkh Exp $>
+S<$Id: Page.pm,v 1.38 2005/02/23 19:47:16 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -949,21 +949,27 @@ sub _make_temp_dir () {
   # set the temporary file directory and ensure that it exists
   # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
   # as a CGI, or in /tmp/ if run on the command line 
+  # sets: $self->{tmproot} as the root of the tmp directory
+  # 		(either /tmp/ or DOCUMENT_ROOT/tmp/)
+  #       $self->{tmpuri} as the URI-portion of the temporary file
+  #         directory which may be used in URLs
+  #       $self->{tmpdir} is the full local path of the actual location of
+  #       temporary files
 
   my $self = shift;
 
   return if exists $self->{tmpdir};			# been here before
 
-  $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '';
-
   my @lt = localtime();
-  $self->{tmpdir} = sprintf("$self->{tmproot}/tmp/%4d-%02d-%02d",
-						 $lt[5]+1900, $lt[4]+1, $lt[3]);
+  $self->{tmpuri} = sprintf("/tmp/%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
+  $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '';
+  $self->{tmpdir} = "$self->{tmproot}/$self->{tmpuri}";
+
   if ( not -d $self->{tmpdir} ) {
 	mkdir($self->{tmpdir})
-    || $self->die("mkdir($self->{tmpdir}: $!\n");
+	  || $self->die("mkdir($self->{tmpdir}: $!\n");
   }
-  
+
   return $self->{tmpdir};
 }
 
