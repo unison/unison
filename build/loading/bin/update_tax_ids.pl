@@ -23,6 +23,7 @@ my %opts =
    'nullify' => 0,
 
    'origin' => undef,
+   'porigin_id' => undef,
   );
 
 
@@ -34,27 +35,30 @@ sub nullify_tax_ids ($);
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '# $Id: update_tax_ids.pl,v 1.6 2004/04/08 23:39:20 rkh Exp $ ', "\n");
+print(STDERR '# $Id: update_tax_ids.pl,v 1.7 2004/04/11 00:41:47 rkh Exp $ ', "\n");
 
 
 
 GetOptions(\%opts,
 		   'increment|i=i',
 		   'update-increment|u=i',
+
+		   # palias_id selection:
+		   'origin|o=s',
 		   'palias-id-min|b=i',
 		   'palias-id-max|e=i',
 
-		   'drop-paotax|D+',
+		   # paotax table handling:
 		   'create-paotax|C+',
-		   'assign|a+',
-		   'reassign|r+',
-		   'nullify|n+',
+		   'drop-paotax|D+',
 
+		   # update operations
 		   'all|A' => sub { $opts{assign}++;
 							$opts{reassign}++;
 							$opts{nullify}++; },
-
-		   'origin|o=i',
+		   'assign|a+',
+		   'reassign|r+',
+		   'nullify|n+',
 		   )
   || die("$0: aye, you've got usage issues, mate\n");
 
@@ -69,13 +73,18 @@ print(STDERR '# ', join(', ', grep { $opts{$_} } qw(drop-paotax
 
 my $u = new Unison;
 
+if (defined $opts{origin}) {
+  $opts{porigin_id} = $u->selectrow_array("select porigin_id('$opts{origin}')");
+  print(STDERR "# porigin_id('$opts{origin}') = $opts{porigin_id}\n");
+}
+
 if (not defined $opts{'palias-id-min'} or not defined $opts{'palias-id-max'}) {
   my $sql = 'select min(palias_id),max(palias_id) from paliasorigin';
-  $sql .= " WHERE porigin_id=$opts{origin}" if (defined $opts{origin});
+  $sql .= " WHERE porigin_id=$opts{porigin_id}" if (defined $opts{porigin_id});
   my ($b,$e) = $u->selectrow_array( $sql );
   $opts{'palias-id-min'} = $b unless defined $opts{'palias-id-min'};
   $opts{'palias-id-max'} = $e unless defined $opts{'palias-id-max'};
-  printf(STDERR "# palias-id-{min,max}=%d,%d\n", $opts{'palias-id-min'}, $opts{'palias-id-max'});
+  printf(STDERR "# palias_id range = [%d,%d]\n", $opts{'palias-id-min'}, $opts{'palias-id-max'});
 }
 
 
@@ -127,8 +136,8 @@ sub create_paotax ($) {
     WHERE AO.palias_id>=? and AO.palias_id<?
 	/;
 
-  if (defined $opts{origin}) {
-	$sql .= " AND AO.porigin_id=$opts{origin}";
+  if (defined $opts{porigin_id}) {
+	$sql .= " AND AO.porigin_id=$opts{porigin_id}";
   }
 
   my @cond;
