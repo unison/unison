@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.9 2004/05/04 05:10:34 rkh Exp $
+# $Id: get-seq,v 1.10 2004/05/19 23:01:05 rkh Exp $
 
 use warnings;
 use strict;
@@ -39,15 +39,22 @@ if (defined $opts{pro_id}) {
   unshift(@ARGV, SPDI_lookup('PRO',@{$opts{pro_id}}));
 } elsif (defined $opts{pset_id}) {
   my @Q = map {@$_} @{$u->selectall_arrayref("select pseq_id from pseqset where pset_id=$opts{pset_id}")};
-  unshift(@ARGV, @Q);
+  if (not @Q) {
+	die("$0: pset $opts{pset_id} apparently contains no sequences\n");
+  }
   printf(STDERR "# %d sequence ids in pset_id=%d\n", $#Q+1, $opts{pset_id});
+  unshift(@ARGV, @Q);
 }
 
+@ARGV = map { eval "$_" } @ARGV;
 
 if (@ARGV) {
-  while( my $r = shift ) {
-	process1($_) for eval "$r";
+  for(my $i=0; $i<=$#ARGV; $i++) {
+	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
+		   $i+1,$#ARGV+1, ($i+1)/($#ARGV+1)*100, $ARGV[$i]);
+	process1($ARGV[$i]);
   }
+  print(STDERR "\n");
 } else {
   while (my $id=<>)	{
 	chomp $id;
@@ -120,7 +127,7 @@ sub SPDI_lookup1 {
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.9 2004/05/04 05:10:34 rkh Exp $>
+S<$Id: get-seq,v 1.10 2004/05/19 23:01:05 rkh Exp $>
 
 =head1 SYNOPSIS
 
