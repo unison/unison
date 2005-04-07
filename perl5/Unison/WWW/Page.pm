@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.40 2005/03/19 18:13:21 rkh Exp $>
+S<$Id: Page.pm,v 1.41 2005/03/19 18:35:43 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -743,7 +743,6 @@ sub _infer_pseq_id ($) {
   }
 
 
-
   if (exists $v->{md5}) {
 	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
 	if ($#ids == -1) {
@@ -772,7 +771,12 @@ sub _infer_pseq_id ($) {
 	return $ids[0];
   }
 
-  return undef;
+  $self->die('Please specify sequence', <<EOT );
+The page you requested requires you to specify a sequence.
+<p>You may wish to <a href="search_by_alias.pl">search for a sequence by name</a>.
+EOT
+
+  # NO RETURN
 }
 
 
