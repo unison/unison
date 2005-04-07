@@ -8,7 +8,7 @@
 
 Unison::pseq_structure -- sequence-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.2 2005/04/05 21:46:54 mukhyala Exp $;
 
 =head1 SYNOPSIS
 
@@ -180,7 +180,7 @@ sub _get_seq_str_map {
 
   my ($self,$pdbCode) = @_;
 
-  my $map_sql = "select seq_pos,res_id, seq_res,atom_res from pdb.seqstrmap where pdbc=\'$pdbCode\'";
+  my $map_sql = "select seq_pos,res_id, seq_res,atom_res from pdb.residue where pdbc=\'$pdbCode\'";
 
   my $map_ar = $self->{'unison'}->selectall_arrayref($map_sql);
 
