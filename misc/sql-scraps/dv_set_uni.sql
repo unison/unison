@@ -15,6 +15,7 @@ CREATE OR REPLACE VIEW v_uni_originD as
 SELECT pseq_id FROM v_uni_originC
 UNION SELECT pseq_id FROM palias WHERE porigin_id in (porigin_id('Geneseq'));
 
+grant select on v_uni_originA,v_uni_originB,v_uni_originC,v_uni_originD to PUBLIC;
 
 
 CREATE OR REPLACE VIEW v_uni_speciesA as
@@ -32,6 +33,7 @@ CREATE OR REPLACE VIEW v_uni_speciesD as
 SELECT pseq_id FROM v_uni_speciesC
 UNION SELECT pseq_id FROM palias WHERE tax_id=gs2tax_id('YEAST') or tax_id=gs2tax_id('BRARE');
 
+grant select on v_uni_speciesA,v_uni_speciesB,v_uni_speciesC,v_uni_speciesD to PUBLIC;
 
 
 CREATE OR REPLACE VIEW v_uni_lengthA as
@@ -45,6 +47,8 @@ SELECT pseq_id FROM pseq WHERE len>=50 AND len<=1500;
 
 CREATE OR REPLACE VIEW v_uni_lengthD as
 SELECT pseq_id FROM pseq WHERE len>=50 AND len<=2000;
+
+grant select on v_uni_lengthA,v_uni_lengthB,v_uni_lengthC,v_uni_lengthD to PUBLIC;
 
 
 
@@ -68,6 +72,12 @@ CREATE OR REPLACE VIEW dv_set_uniD as
 INTERSECT	SELECT pseq_id from v_uni_speciesD
 INTERSECT	SELECT pseq_id from v_uni_lengthD;
 
+grant select on dv_set_uniA,dv_set_uniB,dv_set_uniC,dv_set_uniD to PUBLIC;
+
+comment on view dv_set_uniA is 'defining view for pseq uniA';
+comment on view dv_set_uniB is 'defining view for pseq uniB';
+comment on view dv_set_uniC is 'defining view for pseq uniC';
+comment on view dv_set_uniD is 'defining view for pseq uniD';
 
 
 -- TESTING
