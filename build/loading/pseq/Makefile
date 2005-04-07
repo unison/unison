@@ -1,3 +1,5 @@
+# eg$ PGPASSWORD=blah make uniprot.load
+
 default all:
 	@echo "no default target" 1>&2; exit 1
 
@@ -7,8 +9,10 @@ _D:=$(shell mkdir -p data logs)
 
 vpath %.fa .
 
-all.load: uniprot.load
 
+.PHONY: all.load
+all.load: uniprot.load PDB.load GenenGenes.load refseq.load
+#NOTE: geneseq.load must be done on geneland
 
 
 ## UNIPROT LOADING
@@ -61,6 +65,7 @@ refseq/%.log: ${REFSEQ_DIR}/%.protein.gpff.gz
 
 
 ## DERWENT/GENESEQ
+## MUST BE DONE ON GENELAND!
 GENESEQ_DIR:=/usr/seqdb_nb/geneseq/Aa
 GENESEQs:=$(notdir $(basename $(wildcard ${GENESEQ_DIR}/AA*.DAT)))
 .PHONY: geneseq
