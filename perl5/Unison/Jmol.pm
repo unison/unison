@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: Jmol.pm,v 1.2 2005/02/17 01:06:36 mukhyala Exp $;
+#$ID = q$Id: Jmol.pm,v 1.3 2005/03/22 01:10:43 mukhyala Exp $;
 #utilities for calling jmol functions
 ###########################################################
 package Unison::Jmol;
@@ -39,7 +39,7 @@ sub initialize{
     my $select_chain = ":".uc(substr($name,4,1)).".*";
     $stringio->print($pseq_structure->set_js_vars());
     $stringio->print("<center><table border=\"1\" cellpadding=\"5\"><tr><td><script>jmolInitialize(\"../js/jmol/\");");
-    $stringio->print("jmolApplet([$self->{'width'}, $self->{'height'}], \"load ../js/jmol/pdb/$fn; set frank off;spacefill off; wireframe off; cartoon on; color cartoon yellow; select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;");
+    $stringio->print("jmolApplet([$self->{'width'}, $self->{'height'}], \"load ../js/Jmol/pdb/all.ent/$fn; set frank off;spacefill off; wireframe off; cartoon on; color cartoon yellow; select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;");
     $stringio->print($self->highlights($select_chain)) if(defined($self->{'highlights'}));
     $stringio->print("\");");
     $stringio->print("</script></td>");
@@ -56,7 +56,7 @@ sub load{
     my $stringio = IO::String->new($retval);
     my $select_chain = ":".uc($chain).".*";
     my $name = substr($fn,3,4);
-    $stringio->print("load ../js/jmol/pdb/$fn; set frank off;spacefill off; wireframe off; cartoon on; color cartoon yellow;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;");
+    $stringio->print("load ../js/Jmol/pdb/all.ent/$fn; set frank off;spacefill off; wireframe off; cartoon on; color cartoon yellow;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;");
     return( $retval );
 }
 
