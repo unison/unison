@@ -1,0 +1,110 @@
+#!/usr/local/tools/bin/perl
+# gg-proids-to-load -- fetch GenenGenees proids to load into Unison
+#
+# This script identifies DNA ids which are either primary DNA ids or are
+# "GENERATED_BY" one of several methods.  The intent is to identify the
+# most worthwhile PROs to load into Unison.
+
+
+use strict;
+use warnings;
+use DBI;
+
+print(STDERR '$Id: ssp-build,v 1.7 2004/12/24 00:09:54 rkh Exp $ ', "\n");
+
+
+# @GB: list of GENERATED_BY values which we'll load into Unison
+# 'GB is NULL' is explicitly included in the query below
+my @GB = 
+  (
+   'Virtual',
+   'Fragment',
+   'OrigeneFLS',
+   'Full Length Screen',
+   'Gene Exons',
+   'Genomic Celera',
+   'PatinUpload',
+   'Genomic NCBI',
+   'Predicted Celera',
+   'Incyte',
+   'Predicted NCBI',
+  );
+
+my $sql = sprintf(qq/SELECT DISTINCT PD.proid FROM dna D,prodna PD
+				  WHERE D.dnaid=PD.proid AND ( %s )
+				  ORDER BY PD.proid/,
+				  join(' OR ',
+					   'D.is_primarydna IS NOT NULL', 
+					   'D.generatedby IS NULL',
+					   map {"D.generatedby='$_'"} @GB)
+				 );
+
+my $dsn = 'dbi:Oracle:bioprd1';
+my $dbh = DBI->connect($dsn, '/',)
+  || die("connect($dsn) failed: ", $DBI::errstr, "\n");
+my $sth = $dbh->prepare( $sql );
+$sth->execute();
+my (@ids) = map {$_->[0]} @{$sth->fetchall_arrayref()};
+$sth->finish();
+$dbh->disconnect();
+
+print("$_\n") for @ids;
+
+printf(STDERR "# Done (wrote %d ids)\n", $#ids+1);
+
+exit;
+
+
+
+__END__
+rkh@bioprd1> select is_primarydna,count(*) from dna group by is_primarydna;
+ 
+IS_PRIMARYDNA COUNT(*)
+------------- --------
+*                44482
+NULL            354599
+
+
+
+
+rkh@bioprd1> select generatedby,count(distinct proid)
+          -> from dna D,prodna PD where D.dnaid=PD.dnaid
+          -> group by generatedby order by 2 desc;
+
+GENERATEDBY            COUNT(DISTINCTPROID)
+---------------------- --------------------
+Virtual                               56560 *
+Fragment                              24593 *
+OrigeneFLS                            20027 *
+Full Length Screen                    19972 *
+Gene Exons                             8294 *
+Genomic Celera                         8026 *
+Construct                              5076
+Hybridoma                              3211
+PatinUpload                            2635 *
+IMGT                                    544
+Amylase Screen                          156
+Genomic NCBI                             64
+Predicted Celera                         54
+GEPIS Screen                             49
+ECD Homology                             40
+Signal Algorithm                         18
+NULL                                     18
+ECD H Genomic                            14
+Collaboration                            12
+Sig Genomic                              12
+Bar1 Screen                              11
+HMM Homology                              9
+HMM Signal Pep                            8
+Incyte                                    6
+Origene Virtual                           6
+Other Secretion Screen                    3
+Predicted NCBI                            3
+Amylase Virtual                           2
+Marker Virtual                            2
+Invertase Screen                          2
+Bar1 Virtual                              1
+Curagen                                   1
+Genomic Cloned                            1
+Cluster                                   1
+
