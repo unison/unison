@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.7 2004/12/24 00:09:46 rkh Exp $
+# $Id: load-pmhmm,v 1.8 2005/03/29 03:27:05 rkh Exp $
 # load pfam HMM into unison
 # eg$ load-pmhmm /path/to/pfam-14.0/Pfam_fs
 
@@ -45,18 +45,32 @@ $sth->execute('http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s',
 printf(STDERR "# loading models into $origin (porigin_id=$porigin_id)\n");
 
 
-my $sth_insert_pmhmm = $u->prepare("insert into pmhmm (porigin_id,name,acc,descr,len,nseq,cksum,hmm) ".
-						"values ($porigin_id,?,?,?,?,?,?,?)");
+my @insert_fields = q(porigin_id name acc descr len nseq cksum
+					ga_seq ga_dom tc_seq tc_dom nc_seq nc_dom);
+my $sth_insert_pmhmm = $u->prepare(sprintf('insert into pmhmm (%s) values (%s)',
+										   join(',',@insert_fields),
+										   join(',',map {'?'} @insert_fields)
+										  )
+								  );
+
+#my $sth_update_pmhmm = $u->prepare('update pmhmm set ga_seq=?,ga_dom=?,tc_seq=?,tc_dom=?,nc_seq=?,nc_dom=?
+#									where porigin_id=? and acc=?');
 
 $/ = "\n//\n";
 $u->begin_work();
 while(my $blk = <$in>) {
   chomp($blk);
-  my ($name,$acc,$descr,$len,$nseq,$cksum) 
-	= map {$blk =~ m/^$_\s+(.+)/m}  qw(NAME ACC DESC LENG NSEQ CKSUM);
-  my $hmm = $blk . $/;
+  my ($name,$acc,$descr,$len,$nseq,$cksum,$ga,$tc,$nc) 
+	= map {$blk =~ m/^$_\s+(.+)/m}  qw(NAME ACC DESC LENG NSEQ CKSUM GA TC NC);
+  my ($gas,$gad) = split(' ',$ga);
+  my ($tcs,$tcd) = split(' ',$tc);
+  my ($ncs,$ncd) = split(' ',$nc);
+  #my $hmm = $blk . $/;
 
-  $sth_insert_pmhmm->execute($name,$acc,$descr,$len,$nseq,$cksum,$hmm);
+  #$sth_update_pmhmm->execute($gas,$gad,$tcs,$tcd,$ncs,$ncd,$porigin_id,$acc);
+
+  $sth_insert_pmhmm->execute($porigin_id,$name,$acc,$descr,$len,$nseq,$cksum,
+							 $gas,$gad, $tcs,$tcd, $ncs,$ncd);
 
   print(STDERR "loaded $acc: $name ($descr)\n");
 }
