@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.2 2005/04/05 18:27:50 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -128,7 +128,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.2 2005/04/05 18:27:50 mukhyala Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -694,7 +694,7 @@ sub add_pfregexp {
   my $nadded = 0;
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -bgcolor => 'blue',
-								 -key => 'regexp motif',
+								 -key => 'Sequence motif (regexp)',
 								 -bump => +1,
 								 -label => 1,
 								 -description => 1,
@@ -760,7 +760,7 @@ sub add_pfuser {
 
     my $track = $panel->add_track( -glyph => 'graded_segments',
                                                                  -bgcolor => 'green',
-                                                                 -key => 'USER',
+                                                                 -key => 'User Features',
                                                                  -bump => +1,
                                                                  -label => 1,
                                                                  -description => 1,
@@ -801,7 +801,7 @@ sub add_pftemplate {
 
     my $track = $panel->add_track( -glyph => 'graded_segments',
                                                                  -bgcolor => 'orange',
-                                                                 -key => 'STRUCTURE_TEMPLATES',
+                                                                 -key => 'Structure Templates (including modeled structures)',
                                                                  -bump => +1,
                                                                  -label => 1,
                                                                  -description => 1,
