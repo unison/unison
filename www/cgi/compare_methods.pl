@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.5 2005/03/20 03:36:16 rkh Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.6 2005/03/21 21:45:53 mukhyala Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -25,7 +25,7 @@ my ($scores,$data);
 my %defaults = 
   (
    pmodelset_id => 3,
-   pcontrolset_id => 52,
+   pcontrolset_id => 500,
    tag => '',
   );
 
