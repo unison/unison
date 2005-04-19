@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################
 # compare_scores.pl -- compare scoring systems for pmodelsets
-# $ID = q$Id: compare_scores.pl,v 1.5 2005/03/20 19:11:16 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pl,v 1.6 2005/03/21 21:42:13 mukhyala Exp $;
 #############################################################
 use strict;
 use warnings;
@@ -25,7 +25,7 @@ my ($scores,$data);
 my %defaults = 
   (
    pmodelset_id => 3,
-   pcontrolset_id => 52,
+   pcontrolset_id => 500,
    tag => '',
   );
 
