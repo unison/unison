@@ -6,7 +6,9 @@ DECLARE
 	v_pset_id alias for $1;
 	v_row record;
     v_cmd text;
-    v_nrows integer;
+    v_nrows_del integer;
+    v_nrows_ins integer;
+    v_nrows_tot integer;
 BEGIN
 	select into v_row pset_id,name,def FROM pset WHERE pset_id=v_pset_id;
 
@@ -20,21 +22,31 @@ BEGIN
 		RETURN NULL;
 	END IF;
 
-	RAISE NOTICE ''* % (pset_id=%)'', v_row.name, v_row.pset_id;
+	RAISE DEBUG ''* % (pset_id=%)'', v_row.name, v_row.pset_id;
 
-    v_cmd:=''DELETE FROM pseqset WHERE pset_id=''||v_row.pset_id;
-    RAISE NOTICE ''  %'', v_cmd;
+	-- __newseqs may exist already, but there is no easy way to drop it preemptively
+	-- if it exists, an exception will be thrown
+	v_cmd:=''CREATE TEMP TABLE __newseqs AS SELECT DISTINCT pseq_id FROM (''||v_row.def||'') X'';
+    RAISE DEBUG ''  %'', v_cmd;
     EXECUTE v_cmd;
+	GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
 
-    v_cmd:=''INSERT INTO pseqset (pset_id,pseq_id) SELECT DISTINCT ''||v_row.pset_id||'',pseq_id FROM (''||v_row.def||'') X'';
-    RAISE NOTICE ''  %'', v_cmd;
+    v_cmd:=''DELETE FROM pseqset WHERE pset_id=''||v_row.pset_id||'' AND pseq_id NOT IN (SELECT pseq_id FROM __newseqs)'';
+    RAISE DEBUG ''  %'', v_cmd;
     EXECUTE v_cmd;
+	GET DIAGNOSTICS v_nrows_del = ROW_COUNT;
 
-	GET DIAGNOSTICS v_nrows = ROW_COUNT;
-	--RAISE NOTICE ''  % rows inserted for % (pset_id=%)'', 
-	--	v_nrows, v_row.name, v_row.pset_id;
+    v_cmd:=''INSERT INTO pseqset (pset_id,pseq_id) SELECT ''||v_row.pset_id||'',pseq_id FROM (SELECT pseq_id FROM __newseqs EXCEPT SELECT pseq_id FROM pseqset WHERE pset_id=''||v_pset_id||'') X'';
+    RAISE DEBUG ''  %'', v_cmd;
+    EXECUTE v_cmd;
+	GET DIAGNOSTICS v_nrows_ins = ROW_COUNT;
 
-	return v_nrows;	
+	EXECUTE ''DROP TABLE __newseqs'';
+
+	RAISE DEBUG ''  % (pset_id=%): % sequences deleted, % sequences added, % total'',
+		v_row.name, v_row.pset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
+
+	return v_nrows_tot;
 END
 ';
 
