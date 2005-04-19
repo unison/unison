@@ -1,37 +1,75 @@
-Unison Update Tasks				-*-outline-*-
+Unison Loading and Updating				-*-outline-*-
+
+This document describes the Unison loading and updating process. It is
+intended for maintainers of a Unison database.
+
+Unison loading and updating is mostly achieved through makefiles using
+scripts in unison/sbin. There's is an ongoing effort to unify the
+operation of these, but some tweaking and debugging may still be required.
+
+Loading occurs in these phases:
+- Loading auxiliary data
+- Loading sequences
+- Loading models (HMMs, threading backbones, etc)
+- Inferring tax_ids for loaded sequences.
+- Building sequence sets based on simple sequence data (init met, length)
+  or associated data (origin, tax_id). This includes building sets of
+  sequences for which results should be precomputed.
+- Computing and loading results.
+- Building sequence sets based on computed results.
+
+Details about these loading phases are elaborated upon below.
 
 
+* General loading 
+Data are always loaded by the 'loader' user. The exact permissions on a
+table for insert, update, or delete depend on the needs for that data
+source.
 
-* Data:
-
-** load sequences (SPDI, nr, incyte, ensemble, swiss-prot)
-see loading/pseq/Makefile
-
-** load go, build gong
-
-** load Prospect2 models
-
-** load new scop
-scop2pmodel 
-
-** General loading
-In a loading/pa* directory:
-$ export PGUSER=unison PGPASSWORD=... 
-$ make pset42.ids
-$ make pset42-todo.ids
-$ make pset42-todo-N10
-$ make pset42-todo-qload
+A typical data loading invocation is:
+$ PGPASSWORD=thepass make Refseq.load
 
 
-** load HMMs (in-house, Pfam)
-- In addition to loading Pfam, one must also make a new params set for
-  each Pfam because the E-values depend on the number of models.
+* Auxiliary data loading
+Auxiliary data refers to third party loaded into distinct schemas.  This
+includes scop, swiss-prot taxonomy, go/gong, pdb, and others.  The intent
+is to incorporate these with no (or very minor) changes.  These are
+intentially distinct from the Unison schema and not dependent on it in any
+way.
 
-** load PSSMs (Proceryon, CDD)
+These schemas have same-named subdirectories in csb-db, and typically
+Makefiles within which load or update the schemas.
 
-** load genome assemblies
+Current auxiliary schemas:
+** go (and GOng)
+** pdb
+** scop
+** tax
 
-** load regexps
+NB: homologene and MINT were incorrectly loaded into unison itself and
+will be moved.
+
+
+* Sequence loading
+Sequences may be loaded from any source recognized by bioperl's SeqIO
+module. Currently, fasta and Refseq-formatted files are loaded routinely.
+See loading/pseq/Makefile for examples.
+
+Sequences are loaded with aliases and annotations into origins. An alias
+must be unique within the origin; if it is not, the previous sequence is
+deprecated and the new sequence assumes the alias.
+
+
+* Model loading
+Models are any entity to which a sequence may be aligned. Currently,
+models are other sequences, HMMs, PSSMs, structure templates, or regular
+expressions.
+
+** Prospect2 templates
+** HMMs (Pfam, in-house)
+** PSSMs (Proceryon, CDD)
+** genome assemblies
+** regexps
 
 
 
@@ -43,7 +81,6 @@ See sbin/update_tax_ids.
 ** update sets
 select update_uni_sets;
 
-** update stats
 
 
 
@@ -65,16 +102,19 @@ Currently, there is no single script which runs new sequences.
 ** run regexps
 
 
+* Extrinsic sequence sets
 
 
-* Other:
+* Post-loading tasks
 
-** generate blast database files
-see sbin/dump-seqdb
+** move blast database files to common location
 
 ** generate schema docs
 
-** best_alias
-truncate & update from dv_best_alias
+** mv_best_annotation
 
+** update stats
+
+** load new scop
+scop2pmodel 
 
