@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.2 2005/02/17 01:05:41 mukhyala Exp $;
+#$ID = q$Id: pseq_structure.pl,v 1.3 2005/03/21 21:53:17 mukhyala Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -38,9 +38,6 @@ my @templates_cols = qw(alias descr qstart qstop tstart tstop ident sim gaps eva
 #this is a list of columns we want in the snp table
 my @snp_cols = qw(wt_aa variant_aa position_in_sequence Description);
 
-#this is a list of columns we want in the mim table
-my @mim_cols = qw(Title GeneSymbols Disorders Mouse_corelate Chr_Map);
-
 my $p = new Unison::WWW::Page;
 
 my $u = $p->{unison};
@@ -69,7 +66,7 @@ try {
     $pseq_structure->find_snps();
     $structures_ar = edit_structure_rows($structures_ar);
     $templates_ar = edit_structure_rows($templates_ar,1);
-    my $mim_ar = edit_mim_rows($pseq_structure->get_mims());
+
     my $snp_ar = edit_snp_rows(\@snp_cols);
 
     $pseq_structure->load_first_structure();
@@ -90,10 +87,8 @@ try {
 		       '<p>',
 		     $p->group("Structures found for Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@structures_cols,$structures_ar)),
 		     '<p>',
-		     $p->group("Structural Templates found for Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@templates_cols,$templates_ar)),
-		     $p->group("SNPs in Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@snp_cols,$snp_ar)),
-		     '<p>',
-		     $p->group("Disease Associated with Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@mim_cols,$mim_ar))
+		     $p->group("Structural Templates found for Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@templates_cols,$templates_ar,{scroll => 1})),
+		     $p->group("SNPs in Unison:$v->{pseq_id}",  Unison::WWW::Table::render(\@snp_cols,$snp_ar,{scroll => 1}))
 		   );
 } catch Unison::Exception with {
     $p->die($_[0]);
@@ -158,26 +153,7 @@ sub edit_snp_rows {
   foreach my $r (@$ar) {
     foreach my $i(@$r) {$i = "<center><font size=2>$i</font></center>";}
   }
-  #just to make the data centered in each col header
-  foreach my $i (@$hr) {
-    $i = "<center>$i</center>";
-  }
   return $ar;
-}
-
-sub edit_mim_rows {
-  my ($ar) = @_;
-  my $arnew;
-  my $href = "http://www.ncbi.nlm.nih.gov/entrez/dispomim.cgi?id=";
-  foreach my $r (@$ar) {
-    $r->[1] = "<a href=\"$href$r->[0]\">$r->[1]</a>";
-    $r->[2] =~ s/\"//g;
-    $r->[2] =~ s/\{//g;
-    $r->[2] =~ s/\}//g;
-    foreach my $i(@$r) {$i = "<center><font size=2>$i</font></center>";}
-    push @$arnew, [@$r[1..7]];
-  }
-  return $arnew;
 }
 
 sub get_user_specs {
