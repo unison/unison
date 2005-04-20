@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.2 2005/04/05 18:27:50 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.3 2005/04/17 00:58:09 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -128,7 +128,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.2 2005/04/05 18:27:50 mukhyala Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.3 2005/04/17 00:58:09 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -796,19 +796,22 @@ sub add_pfuser {
 sub add_pftemplate {
 
     my ($u, $panel, $q, $view, $pseq_structure) = @_;
+    my ($nadded,$topN) = (0,5);
 
-    my $nadded = 0;
+    my @templates = @{$pseq_structure->{'template_ids'}};
 
+    my $nfeat = $#templates+1;
+    splice(@templates,$topN) if $#templates > $topN;
     my $track = $panel->add_track( -glyph => 'graded_segments',
-                                                                 -bgcolor => 'orange',
-                                                                 -key => 'Structure Templates (including modeled structures)',
+				   -bgcolor => 'orange',
+				   -key => sprintf('Structure Templates (top %d hits of %d, including modeled structures)',$#templates+1,$nfeat),
                                                                  -bump => +1,
                                                                  -label => 1,
                                                                  -description => 1,
                                                                  -height => 4
 			       );
 
-    foreach my $t (@{$pseq_structure->{'template_ids'}}) {
+    foreach my $t (@templates) {
 
       my $start = $pseq_structure->{'templates'}{$t}{'qstart'};
       my $end   = $pseq_structure->{'templates'}{$t}{'qstop'};
