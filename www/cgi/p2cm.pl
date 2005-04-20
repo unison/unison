@@ -11,6 +11,7 @@ use Error qw(:try);
 # uses below here might come from ../perl5 if available
 use Unison::WWW;
 use Unison::WWW::Page;
+use Unison::Jmol;
 
 use Bio::Prospect::Options;
 use Bio::Prospect::LocalClient;
@@ -20,8 +21,6 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id params_id templates viewer));
-
-my ($pdb_fh, $pdb_fn, $pdb_urn) = $p->tempfile(SUFFIX => '.pdb' );
 
 my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 if (not defined $seq) {
@@ -62,8 +61,21 @@ try {
 	  $thr->output_pymol_script($root ),
 	 );
   }
-} catch Bio::Prospect::RuntimeError with {
-  $p->die("couldn't generate $v->{viewer} script",$@)
-};
+  elsif($v->{viewer} eq 'jmol') {
+      my $jmol = new Unison::Jmol(600,300);
+      $p->add_html($jmol->script_header());
+      print $p->render("Threading model for Unison:$v->{pseq_id}",
+		       $p->best_annotation($v->{pseq_id}),
+		       $jmol->initialize_inline($thr->output_jmol_script),
+		       "<center>Threading alignment : Identities are colored <font color=blue>blue</font>, similarities are colored <font color=cyan>cyan</font> and mismatches are colored <font color=red>red</font>. Insertions are shown in <font color=green>>number of insertions<</font>. Deletions are colored <font color=grey>grey</font>. All Cysteines are colored <font color=yellow>yellow</font> and conserved cysteines are spacefilled.</center>"
+		      );
 
+    }
+}
+  catch Bio::Prospect::Exception with {
+    $p->die("No threading result!",$_[0]);
+  }
+  catch Bio::Prospect::RuntimeError with {
+    $p->die("couldn't generate $v->{viewer} script",$@)
+  };
 exit(0);
