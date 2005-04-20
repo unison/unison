@@ -56,7 +56,7 @@ $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
 $v->{viewer} = 'pymol' unless defined $v->{viewer};
 $v->{details} = 0;
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.21 2005/02/16 23:07:05 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.22 2005/04/05 19:54:46 mukhyala Exp $ ');
 
 
 my @cols;
@@ -236,7 +236,7 @@ print $p->render
    '&nbsp;&nbsp;',
 
    'Viewer: ',$p->radio_group(-name => 'viewer',
-			      -values => ['pymol','rasmol'],
+			      -values => ['pymol','rasmol','jmol'],
 			      -default => 'pymol'),
    '&nbsp;&nbsp;',
 
