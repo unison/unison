@@ -6,9 +6,9 @@
 
 =head1 NAME
 
-Unison::pseq_structure -- sequence-structure-related functions for Unison
+Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.2 2005/04/05 21:46:54 mukhyala Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.3 2005/04/07 22:53:09 mukhyala Exp $;
 
 =head1 SYNOPSIS
 
@@ -82,7 +82,7 @@ sub find_structures {
 
     my $self = shift;
 
-    my $structures_sql = "select alias, descr from palias where pseq_id=$self->{'pseq_id'} and porigin_id=11";
+    my $structures_sql = "select pdbc, descr from v_alias_pdbcs where pseq_id=$self->{'pseq_id'}";
     my $structures_ar = $self->{'unison'}->selectall_arrayref($structures_sql);
 
     return undef unless defined($structures_ar);
@@ -105,13 +105,14 @@ sub find_snps {
 
     my $self = shift;
 
-    my $jmb_sql = "select s.original_aa,s.variant_aa,s.start_pos,s.descr,s.var_id from mukhyala.pseq_mim p join mukhyala.sp_snp s on s.sp_id = p.alias where p.pseq_id=".$self->{'pseq_id'};
+    my $snp_sql = "select s.original_aa,s.variant_aa,s.start_pos,s.descr,s.var_id from v_pseq_sp_var s where s.pseq_id=".$self->{'pseq_id'};
 
-    my $jmb_data = $self->{'unison'}->selectall_arrayref($jmb_sql);
+    my $snp_data = $self->{'unison'}->selectall_arrayref($snp_sql);
 
-    $self->initialize_snps($jmb_data);
+    $self->initialize_snps($snp_data);
 }
 
+#not used, but will use after we move to a permanent mim schema
 sub get_mims {
 
      my $self = shift;
@@ -128,6 +129,7 @@ sub initialize_snps {
 	push @{$self->{'features'}{'snps'}}, $snp;
     }
 }
+
 #Don't call this any more
 sub set_templates {
     my ($self,$ar) = @_;
@@ -135,11 +137,12 @@ sub set_templates {
 	$self->{'templates'}{$r->[2].$r->[3]} = undef;
     }
 }
+
 sub find_templates {
 
     my $self = shift;
 
-    my $templates_sql = "select B.target,p.alias, p.descr,B.qstart,B.qstop,B.tstart,B.tstop,B.ident,B.sim,B.gaps,B.eval,B.pct_ident,B.len,B.pct_coverage from v_papseq B join palias p on B.target=p.pseq_id where p.porigin_id=11 and B.query = $self->{'pseq_id'} and B.gaps=0 order by B.pct_ident desc, pct_hsp_coverage desc";
+    my $templates_sql = "select B.t_pseq_id,B.pdbc, B.descr,B.q_start,B.q_stop,B.t_start,B.t_stop,B.ident,B.sim,B.gaps,B.eval,B.pct_ident,B.len,B.pct_coverage from v_papseq_pdbcs B where B.q_pseq_id = $self->{'pseq_id'} and B.pct_ident>50 order by B.pct_coverage desc, B.pct_ident desc";
 
     my $templates_ar = $self->{'unison'}->selectall_arrayref($templates_sql);
     $self->initialize_templates($templates_ar);
@@ -233,7 +236,7 @@ sub set_js_vars {
       my $pdb_res = $self->{'seq_str_map'}{$pdbid}{$template_pos};
       my $res = $pdb_res->{'res_id'};
 
-      $stringio->print("seq_str[pdbid][$i] = \'$res\';\n");
+      $stringio->print("seq_str[pdbid][$i] = \'$res\';\n") if(defined($res));
       #print "$pdbid\t$i\t$j\t$template_pos\t",$res,"\n";
     }
   }
