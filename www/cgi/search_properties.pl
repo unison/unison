@@ -14,7 +14,7 @@ use Data::Dumper;
 
 my (@db_pri) = ('GenenGenes', sort( 'Swiss-Prot', 'ProAnno v1', 'Incyte',
 						  'Proteome', 'RefSeq') );
-my (@db_sec) = ( 'Curagen', 'Geneseq', 'Ensembl', , 'FANTOM' );
+my (@db_sec) = ( 'Curagen', 'Geneseq', 'Ensembl/Human', , 'FANTOM' );
 
 
 my $p = new Unison::WWW::Page;
@@ -24,7 +24,7 @@ my $v = $p->Vars();
 
 if (not exists $v->{submit}) {
   print $p->render("Property Mining",
-				   '$Id: search_by_properties.pl,v 1.6 2004/04/30 23:48:38 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.7 2005/04/08 22:13:04 mukhyala Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
@@ -120,7 +120,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.6 2004/04/30 23:48:38 rkh Exp $',
+				 '$Id: search_by_properties.pl,v 1.7 2005/04/08 22:13:04 mukhyala Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
