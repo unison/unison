@@ -71,9 +71,14 @@ sub render_compat {
   }
 
   if (not defined $opts->{highlight_column}) {
-	$rv .= "<tr>" . join('',map {'<th align="'.guess_alignment($_).'">'.$_.'</th>'} @$fr)."</tr>\n";
+
+        $rv = "<DIV STYLE=\"overflow: auto; height: 100px;
+            padding:0px; margin: 0px\">".$tbl_start if($opts->{scroll});
+
+	$rv .= "<tr>" . join('',map {'<th align="center">'.$_.'</th>'} @$fr)."</tr>\n";
 	$rv .= "<tr>" . join('',map {'<td align="'.guess_alignment($_).'">'.coalesce($_,'').'</td>'} @$_) ."</tr>\n" for @$ar; 
 	$rv .= $tbl_end;
+        $rv .= "</DIV>" if($opts->{scroll});
 	return $rv;
   }
 
