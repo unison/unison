@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.41 2005/03/19 18:35:43 rkh Exp $>
+S<$Id: Page.pm,v 1.42 2005/04/07 22:11:18 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -389,9 +389,9 @@ sub group {
   }
   $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;	# don't nbsp-ize HTML
   return("<table class=\"group\">\n",
-		 "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
-		 "<tr><td colspan=\"2\">\n",@_,"\n</td></tr>\n",
-		 "</table>\n");
+	   "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
+	   "<tr><td colspan=\"2\">\n",@_,"\n</td></tr>\n",
+	   "</table>\n");
 }
 
 
@@ -822,7 +822,6 @@ sub _navbar {
 
 	  [ # Search menu
 	   ['Search', 		'search for sequences which match criteria' ],
-	   ['By Sequence',	'search for sequences by subsequnce expression', 'search_by_sequence.pl'],
 	   ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
 	   ['By Properties','mine for sequences based on properties', 'search_by_properties.pl'],
 	   ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
