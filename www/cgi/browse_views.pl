@@ -23,11 +23,17 @@ my %cvlabels = map {$_ => sprintf("%s (view %d)",$cv{$_}->{name}, $_)} @cv;
 
 my %coldescr = (
 				'pseq_id' => 'Unison unique sequence identifier',
-				'#TM' => 'number of transmembrane domains',
+				'TM' => 'number of transmembrane domains',
 				'pat' => 'is this (exact) sequence patented?',
 				'pat98' => 'is this sequence within 98% of a patented
                             sequence? (not including the sequence itself)',
 				'eval' => 'HMM expectation value',
+				'Ig' => 'start and end of the Ig domain',
+				'ITIM' => 'start and end of the ITIM domain',
+				'alias' => 'Unison sequence annotation',
+				'gs' => 'genus and species',		
+				'descr' => 'sequence description',
+				'confidence' => 'TM region prediction confidence',
 				'best_annotation' => 'Best annotations are
 					   a guess about the most informative and reliable
 					   annotation for this sequence from all source
@@ -79,6 +85,7 @@ sub do_search {
 	  }
 	}
   }
+
 
   my @colhdrs = map {$p->tooltip($_,$coldescr{$_})} @f;
   return( "<hr>\n",
