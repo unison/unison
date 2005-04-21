@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.2 2005/04/05 20:14:08 mukhyala Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -49,7 +49,7 @@ my ($pmodel_scop,$pmodel_pdb);
 my ($scores,$sp,$data, $stats_data);
 ##
 ## 1. get pseqs,pmodels of pmodelset
-## 2. get pseqs of universal_seq_set (pset_id=52)
+## 2. get pseqs of universal_seq_set (pset_id=500)
 ## 3. subtract pseqs from universal_set_pseqs
 ## 4. set the $scores hash in this form:
 ## {model}{sequence} => score
@@ -67,7 +67,7 @@ sub get_p2_scores($$$) {
     my %ms = map { $_->[0] => $_->[1] } @ms;
 
     #2
-    @ps = map {$_->[0]} @{$u->selectall_arrayref( "select pseq_id from pseqset where pset_id=52")};
+    @ps = map {$_->[0]} @{$u->selectall_arrayref( "select pseq_id from pseqset where pset_id=$params{pcontrolset_id}")};
 
     #3
     @test{keys %ms} = undef;
