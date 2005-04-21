@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.2 2005/04/05 20:14:08 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.3 2005/04/21 03:37:15 mukhyala Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -282,7 +282,7 @@ sub _print_graph {
   $mygraph->set(
 		axislabelclr  => 'red',
 		labelclr      => 'dgreen',
-		logo          => '../av/logo-50.png',
+		logo          => '../av/logo-50.gif',
 		logo_resize   => 0.25
 		);
 
