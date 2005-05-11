@@ -1,5 +1,3 @@
-#!/usr/bin/env perl
-#$ID = q$Id: Jmol.pm,v 1.3 2005/03/22 01:10:43 mukhyala Exp $;
 #utilities for calling jmol functions
 ###########################################################
 package Unison::Jmol;
@@ -31,11 +29,9 @@ sub script_header {
 }
 
 sub initialize{
-
     my ($self,$fn,$name,$pseq_structure) = @_;
     my $retval;
     my $stringio = IO::String->new($retval);
-
     my $select_chain = ":".uc(substr($name,4,1)).".*";
     $stringio->print($pseq_structure->set_js_vars());
     $stringio->print("<center><table border=\"1\" cellpadding=\"5\"><tr><td><script>jmolInitialize(\"../js/jmol/\");");
@@ -50,7 +46,6 @@ sub initialize{
 }
 
 sub load{
-
     my ($self,$fn,$chain) = @_;
     my $retval;
     my $stringio = IO::String->new($retval);
@@ -61,9 +56,7 @@ sub load{
 }
 
 sub pos_view {
-
     my ($self,$pos,$chain,$label,$colour) = @_;
-
     $colour = (defined($colour) ? $colour : 'cpk');
 
     if($colour =~ /-/) {
@@ -85,24 +78,19 @@ sub pos_view {
 }
 
 sub region_view {
-
     my ($self,$pos1,$chain1,$pos2,$label,$colour) = @_;
-
     $colour = (defined($colour) ? $colour : 'cpk');
-
     if($colour =~ /-/) {
       $colour =~ s/-/,/g;
       $colour = "[$colour]";
     }
-
     return "select $pos1-$pos2$chain1; color cartoon $colour; select ".int($pos1+($pos2-$pos1)/2)."$chain1 and *.CA; label $label; color label white;";
 }
 
 
 sub set_highlight_regions {
-
   my ($self,$ref) = @_;
-  $self->{'highlights'}= $ref;
+  $self->{'highlights'} = $ref;
 }
 
 sub highlights {
@@ -112,8 +100,8 @@ sub highlights {
   my $script = '';
   my $ref = $self->{'highlights'};
 
-   foreach my $r (sort {($ref->{$b}{end} - $ref->{$b}{start}) <=> ($ref->{$a}{end} - $ref->{$a}{start})} keys %{$ref}) {
-
+   foreach my $r (sort {($ref->{$b}{end} - $ref->{$b}{start}) <=> ($ref->{$a}{end} - $ref->{$a}{start})} 
+				  keys %{$ref}) {
      next unless defined($ref->{$r}{colour});
      my $end = $ref->{$r}{end};
      $script .= (defined ($end) ?
@@ -125,70 +113,39 @@ sub highlights {
 }
 
 sub link {
-
     my ($self,$script,$name) = @_;
-    my $retval;
-    my $stringio = IO::String->new($retval);
-
-    $stringio->print("<form><script>jmolLink(\"$script\",\"$name\");</script></form>");
-    return( $retval );
+    return( "<form><script>jmolLink(\"$script\",\"$name\");</script></form>" );
 }
 
 sub changeStructureLink {
-
     my ($self,$script,$name) = @_;
-    my $retval;
-    my $stringio = IO::String->new($retval);
-
-    $stringio->print("<form><script>jmolChangeStructureLink(\"$script\",\"$name\");</script></form>");
-    return( $retval );
+    return( "<form><script>jmolChangeStructureLink(\"$script\",\"$name\");</script></form>" );
 }
-
 
 sub changeStructureLoad {
-
     my ($self,$script,$name) = @_;
-    my $retval;
-    my $stringio = IO::String->new($retval);
-
-    $stringio->print("jmolChangeStructureLoad(\'$script\',\'$name\');");
-    return( $retval );
+	return( "jmolChangeStructureLoad(\'$script\',\'$name\');" );
 }
+
 sub script {
-
     my ($self,$script) = @_;
-    my $retval;
-    my $stringio = IO::String->new($retval);
-
-    $stringio->print("javascript:jmolScript(\'$script\');");
-    return( $retval );
+    return( "javascript:jmolScript(\'$script\');" );
 }
 
 sub selectRegion {
-
     my ($self,$pos1,$pos2,$label,$colour) = @_;
-    my $retval;
-    my $stringio = IO::String->new($retval);
-    $stringio->print("jmolSelectRegion(\'$pos1\',\'$pos2\',\'$label\',\'$colour\');");
-    return( $retval );
+    return( "jmolSelectRegion(\'$pos1\',\'$pos2\',\'$label\',\'$colour\');" );
 }
 
 sub selectPosition {
-
     my ($self,$pos,$label,$colour) = @_;
-    my $retval;
-    my $stringio = IO::String->new($retval);
-    $stringio->print("jmolSelectPosition(\'$pos\',\'$label\',\'$colour\');");
-    return( $retval );
+    return( "jmolSelectPosition(\'$pos\',\'$label\',\'$colour\');" );
 }
 
 sub selectPositionLink {
-
     my ($self,$pos,$label,$text) = @_;
-    my $retval;
-    my $stringio = IO::String->new($retval);
-    $stringio->print("<form><script>jmolSelectPositionLink(\'$pos\',\'$label\',\'$text\');</script></form>");
-    return( $retval );
+	return( "<form><script>jmolSelectPositionLink(\'$pos\',\'$label\',\'$text\');</script></form>" );
 }
 
-'Yatv';
+1;
+

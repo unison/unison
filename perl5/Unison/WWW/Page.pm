@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.42 2005/04/07 22:11:18 rkh Exp $>
+S<$Id: Page.pm,v 1.43 2005/04/21 03:19:33 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -733,13 +733,12 @@ sub _infer_pseq_id ($) {
 
 
   if (exists $v->{seq}) {
-	my (@ids) = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
-	if ($#ids == -1) {
+	my $pseq_id = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
+	if (not defined $pseq_id) {
 	  $self->die('sequence not found',
 				 'The sequence you provided wasn\'t found in Unison.');
 	}
-	# REMINDER: can't be more than 1
-	return $ids[0];
+	return $pseq_id;
   }
 
 
@@ -762,11 +761,8 @@ sub _infer_pseq_id ($) {
 	  $self->die('alias not found',
 				 'The alias you provided wasn\'t found in Unison (case insensitive).');
 	} elsif ($#ids > 0) {
-	  # this should be moved to a general search CGI
 	  print CGI::redirect("search_by_alias.pl?alias=$v->{alias}");
-	  #exit(0);
-	  #$self->die('alias collision',
-	  #		   'The alias you provided corresponds to more than one sequence.');
+	  exit(0);
 	}
 	return $ids[0];
   }

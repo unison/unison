@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.3 2005/04/17 00:58:09 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.4 2005/04/20 21:55:11 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -128,7 +128,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.3 2005/04/17 00:58:09 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.4 2005/04/20 21:55:11 mukhyala Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -289,7 +289,7 @@ sub add_pfsignalp {
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
-									 -name => sprintf("HMM (%3.2f)",$r->[3]),
+									 -name => sprintf("Pfam HMM (%3.2f)",$r->[3]),
 									 -score => $r->[3]
 								   ) );
 	$nadded++;
@@ -375,7 +375,7 @@ sub add_paprospect2 {
   my $track = $panel->add_track( 
 								-glyph => 'graded_segments',
 								-bgcolor => 'green',
-								-key => sprintf('prospect (top %d hits of %d w/svm>=%s)',
+								-key => sprintf('Prospect Threading (top %d hits of %d w/svm>=%s)',
 												($#$feats+1),$nfeat,$svm_thr),
 								-bump => +1,
 								-label => 1,
@@ -489,14 +489,14 @@ Add pahmm features to a panel and return the number of features added.
 sub add_pahmm {
   my ($u, $panel, $q, $view, $pseq_structure) = @_;
 
-  my ($eval_thr,$topN) = (5,4);
+  my ($eval_thr,$topN) = (1,4);
   my $nadded = 0;
   ## XXX: don't hardwire the following
   my $params_id = 15;
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
 FROM v_pahmm
-WHERE pseq_id=? AND params_id=$params_id AND eval<=1 ORDER BY start
+WHERE pseq_id=? AND params_id=$params_id AND eval<=$eval_thr ORDER BY start
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql, undef, $q );
@@ -504,7 +504,7 @@ EOSQL
 								 -min_score => 1,
 								 -max_score => 25,
 								 -sort_order => 'high_score',
-								 -key => sprintf('HMM (%d w/eval<%s)',
+								 -key => sprintf('HMM (%d w/eval<=%s)',
 												 ($#$featref+1),$eval_thr),
 								 -bgcolor => 'blue',
 								 -bump => +1,
@@ -567,7 +567,7 @@ sub add_papssm {
 								 -max_score => 500,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'red',
-								 -key => sprintf('PSSM/SBP (top %d hits of %d w/eval<%s)',
+								 -key => sprintf('PSSM/SBP (top %d hits of %d w/eval<=%s)',
 												 ($#$featref+1),$nfeat,$eval_thr),
 								 -bump => +1,
 								 -label => 1,

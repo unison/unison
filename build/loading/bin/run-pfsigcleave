@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsigcleave [pseq_ids]
 #
-# $Id: run-pfsigcleave,v 1.5 2003/10/20 23:11:19 cavs Exp $
+# $Id: run-pfsigcleave,v 1.6 2004/01/08 02:17:38 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -83,7 +83,7 @@ RESULT: while(my $r = $parser->next_result) {
     printf(STDOUT "\rloading Unison:%-8s (score: %.2f, start: %d, end: %d)\n",
        $pseq_id,$score,$start,$end);
     $sth->execute($pseq_id,$start,$end,$score,$params_id);
-    $u->last_run_update($pseq_id,$params_id);
+	$u->upd_run_history($pseq_id,$params_id,undef,undef);
 
     next RESULT;
   }

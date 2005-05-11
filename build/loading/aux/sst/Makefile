@@ -1,9 +1,9 @@
-
 default all: sst.log
 
 ifndef SSTPASS
 $(warning SSTPASS isn't set ) 	#'
 endif
+
 include ../defaults.mk
 
 

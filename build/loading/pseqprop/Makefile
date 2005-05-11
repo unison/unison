@@ -1,4 +1,3 @@
-IDFILE=cavs.ids
 TARGETS:=${shell cat $(IDFILE)}
 
 default all: $(addsuffix .fa,$(TARGETS))

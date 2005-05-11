@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # run-pfantigenic -- run EMBOSS antigenic and load into unison
-# $Id: run-pfantigenic,v 1.5 2004/01/08 02:17:38 rkh Exp $
+# $Id: run-pfantigenic,v 1.6 2005/03/22 05:44:23 rkh Exp $
 
 
 use Unison;
@@ -85,7 +85,7 @@ sub run1($$$) {
 	next unless defined $start;
 	next if $opts{debug};
 	$sth->execute($pseq_id,$start,$end,$score,$max_pos,$params_id);
-	$u->last_run_update($pseq_id,$params_id);
+	$u->upd_run_history($pseq_id,$params_id,undef,undef);
   }
 }
 

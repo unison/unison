@@ -6,7 +6,7 @@ use Unison;
 use Unison::Exceptions;
 use Data::Dumper;
 
-my $commit_interval = 50;
+my $commit_interval = 1;
 
 sub _parseBlock($);
 

@@ -40,7 +40,7 @@ if ($opts{debug}) {
   print Dumper(\%opts);
 }
 
-my $u = new Unison;
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 my %regexps;
 
 
@@ -50,26 +50,25 @@ $opts{params_id} = $u->get_params_id_by_name('regexp');
 (defined $opts{params_id})
   || die("$0: couldn't find params_id for params `regexp'\n");
 
-
 # for @ of pmodelset_id and/or @ of porigin_id, get list of ppmodel_ids
 if (not (defined $opts{'pmodelset_id'} or defined $opts{'porigin_id'})) {
   die("$0: you must specify either --modelset_id or --origin_id to select models\n");
 }
-
 
 # get the models as a hash of pmodel_id => regexp
 %regexps = get_regexps($u,$opts{pmodelset_id},$opts{porigin_id});
 my @pmodel_ids = sort keys %regexps;
 printf("%d models selected\n", $#pmodel_ids+1);
 
-## now filter the requested pseq_ids for those which actually hit any of the regexps
-my @pseq_ids = map {eval "$_"} @ARGV;
+
+my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 my $N = $#pseq_ids+1;
 
-
-# if the number of pseq_ids is large, we can save the time to fetch each
-# sequence by doing a server-side scan for pseq_ids which hit ANY of the
-# regexps, and using that locally to determine which sequences to fetch.
+# Filter the requested pseq_ids for those which actually hit any of the
+# regexps. If the number of pseq_ids is large, we can save the time to
+# fetch each sequence by doing a server-side scan for pseq_ids which hit
+# ANY of the regexps, and using that locally to determine which sequences
+# to fetch.
 my %hits;
 if ($N >= 10000) {
   %hits = map {$_=>1} get_matching_pseq_ids($u,values %regexps);

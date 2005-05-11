@@ -26,6 +26,7 @@ print $p->render("Sequence lookup by alias"
                                -size=>50,
                                -maxlength=>50),
 				 $p->submit(-value=>'vroom!'),
+				 '<br><i>e.g.,</i> <code>UNQ615</code>, <code>NP_000506.2</code>, or <code>^TNFA</code>',
 				 $p->end_form(), "\n",
 
 				 (defined $v->{alias} ? do_search($v->{alias}) : '')
@@ -34,21 +35,23 @@ print $p->render("Sequence lookup by alias"
 
 sub do_search {
   my $q = shift;
-  my @pids = $u->get_pseq_id_from_alias( $q );
+  my $max_seqs = 100;
+  my (@pseq_ids) = $u->get_pseq_id_from_alias( $q );
 
-  if ($#pids == -1) {
+  if ($#pseq_ids == -1) {
 	return( '<b>No results returned</b>'
 			. '<br>NOTE: Short regexp queries are silently ignored.');
   }
 
-  if ($#pids >= 100) {
-	return('<b>Too many results returned (' .($#pids+1) 
-		   .'); please narrow your query (max is 100)</b>');
+  if ($#pseq_ids >= $max_seqs) {
+	return( "<b>Too many results returned (" 
+			. ($#pseq_ids+1)
+			. "); please narrow your query (max is $max_seqs)</b>");
   }
 
   my $sth = $u->prepare('select best_annotation(?)');
-  my @ar = map { [$_, $u->selectrow_array($sth,undef,$_) ] } @pids;
-  my @fields = ( 'pseq_id', 'origin:alias (description)' );
+  my @ar = map { [$_, $u->selectrow_array($sth,undef,$_) ] } @pseq_ids;
+  my @fields = ( 'pseq_id', 'best annotation [origin:alias (description)]' );
   my $ar = \@ar;
   for(my $i=0; $i<=$#$ar; $i++) {
 	$ar->[$i][0] = sprintf('<a href="pseq_summary.pl?pseq_id=%d">%d</a>',

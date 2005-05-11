@@ -10,7 +10,7 @@ DECLARE
     v_nrows_ins integer;
     v_nrows_tot integer;
 BEGIN
-	select into v_row pset_id,name,def FROM pset WHERE pset_id=v_pset_id;
+	SELECT INTO v_row pset_id,name,def FROM pset WHERE pset_id=v_pset_id;
 
 	IF NOT FOUND THEN
 		RAISE EXCEPTION ''pset_id=% does not exist'', v_pset_id;
@@ -29,7 +29,6 @@ BEGIN
 	v_cmd:=''CREATE TEMP TABLE __newseqs AS SELECT DISTINCT pseq_id FROM (''||v_row.def||'') X'';
     RAISE DEBUG ''  %'', v_cmd;
     EXECUTE v_cmd;
-	GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
 
     v_cmd:=''DELETE FROM pseqset WHERE pset_id=''||v_row.pset_id||'' AND pseq_id NOT IN (SELECT pseq_id FROM __newseqs)'';
     RAISE DEBUG ''  %'', v_cmd;
@@ -43,10 +42,12 @@ BEGIN
 
 	EXECUTE ''DROP TABLE __newseqs'';
 
-	RAISE DEBUG ''  % (pset_id=%): % sequences deleted, % sequences added, % total'',
+	SELECT INTO v_nrows_tot COUNT(*) FROM pseqset WHERE pset_id = v_pset_id;
+
+	RAISE NOTICE ''  % (pset_id=%): % sequences deleted, % sequences added, % total'',
 		v_row.name, v_row.pset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
 
-	return v_nrows_tot;
+	RETURN v_nrows_tot;
 END
 ';
 
@@ -64,10 +65,10 @@ DECLARE
 	v_nseqs integer;
 BEGIN
 	FOR v_row IN SELECT pset_id,name FROM pset WHERE pset_id between 1 and 99 order by pset_id LOOP
-		select into v_nseqs update_pset( v_row.pset_id );
+		SELECT INTO v_nseqs update_pset( v_row.pset_id );
 		RAISE NOTICE ''% (pset_id=%): % sequences'', v_row.name, v_row.pset_id, v_nseqs;
     END LOOP;
-    return;
+    RETURN;
 END;
 ';
 
@@ -85,10 +86,10 @@ DECLARE
 	v_nseqs integer;
 BEGIN
 	FOR v_row IN SELECT pset_id,name FROM pset WHERE pset_id between 100 and 199 order by pset_id LOOP
-		select into v_nseqs update_pset( v_row.pset_id );
+		SELECT INTO v_nseqs update_pset( v_row.pset_id );
 		RAISE NOTICE ''% (pset_id=%): % sequences'', v_row.name, v_row.pset_id, v_nseqs;
     END LOOP;
-    return;
+    RETURN;
 END;
 ';
 

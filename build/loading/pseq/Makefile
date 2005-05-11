@@ -48,6 +48,7 @@ data/GenenGenes.fa: data/GenenGenes.proids
 data/GenenGenes.proids:
 	gg-proids-to-load >$@.tmp 2>$@.err
 	/bin/mv -f $@.err $@.log; /bin/mv $@.tmp $@
+	@wc -l $@
 
 
 ## REFSEQ
@@ -74,6 +75,12 @@ geneseq/%.log: ${GENESEQ_DIR}/%.DAT
 	(echo "# Loading geneseq $?"; \
 	 time -p geneseq2fa $? | load-pseq -ffasta -oGeneseq -v -) >$@.err 2>&1
 	/bin/mv -f $@.err $@
+
+
+## UNIGENE
+#SPECIES:=Hs Mm Rn Cel
+SPECIES:=Hs
+#%.load: %
 
 
 

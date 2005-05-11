@@ -22,15 +22,15 @@ my @table_defs =
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '$Id: sst-import,v 1.4 2004/06/25 00:20:56 rkh Exp $ ', "\n");
+print(STDERR '$Id: sst-import,v 1.5 2005/04/04 16:44:57 rkh Exp $ ', "\n");
 
-(defined $ENV{SSTPASS})
-  || die("$0: SSTPASS not defined\n");
+#(defined $ENV{SSTPASS})
+#  || die("$0: SSTPASS not defined\n");
 
 my $sql;
 my $sth;
 my $dsn = 'dbi:Oracle:bioprd1';
-my $dbh = DBI->connect($dsn, 'rkh', $ENV{SSTPASS})
+my $dbh = DBI->connect($dsn) #, 'rkh', $ENV{SSTPASS}) 
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
 

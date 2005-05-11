@@ -26,8 +26,6 @@ Data are always loaded by the 'loader' user. The exact permissions on a
 table for insert, update, or delete depend on the needs for that data
 source.
 
-A typical data loading invocation is:
-$ PGPASSWORD=thepass make Refseq.load
 
 
 * Auxiliary data loading
@@ -45,8 +43,9 @@ Current auxiliary schemas:
 ** pdb
 ** scop
 ** tax
+** sst (aka GenenGenes; Genentech specific)
 
-NB: homologene and MINT were incorrectly loaded into unison itself and
+NB: homologene and MINT were errantly loaded into unison itself and
 will be moved.
 
 
@@ -58,6 +57,9 @@ See loading/pseq/Makefile for examples.
 Sequences are loaded with aliases and annotations into origins. An alias
 must be unique within the origin; if it is not, the previous sequence is
 deprecated and the new sequence assumes the alias.
+
+A typical data loading invocation is:
+$ PGPASSWORD=thepass make Refseq.load
 
 
 * Model loading
@@ -72,37 +74,60 @@ expressions.
 ** regexps
 
 
-
 * Data derived in Unison (e.g., by plpgsql code):
-
 ** infer_tax_id
-See sbin/update_tax_ids.
+select update_tax_ids();
+
+** mv_best_annotation
 
 ** update sets
-select update_uni_sets;
+select update_psets_intrinsic();
 
 
 
 
 * Precomputed results
-Typically, results are only precomputed for the uni_hmr set, which are
-intended to be high-quality sequences from human, mouse, and rat.
-Currently, there is no single script which runs new sequences.
+Results are typically precomputed for the runA, runB, or runC set,
+depending on the computational cost.
 
-** run-paprospect2
+A typical data loading invocation is:
+$ export PGPASSWORD=thepass
+$ make runA.ids runA-todo.ids
+$ make runA-todo.load (or) make qsub/runA-todo.load
 
-** run-pahmm
+You may also break large runs into pieces:
+$ make runA.ids runA-todo.ids
+$ make runA-todo-l100
+  breaks runA-todo.ids into 100-id files in a new runA-todo-l100/ directory
+$ make runA-todo-l100-load (or) runA-todo-l100-qload
+  runs (or submits to qsub) each of the 100-id files
 
-** run-papssm
 
+
+** BLAST (against reliable sequences and PDB sequences)
 ** run-blat
-
-** pairwise blast
-
-** run regexps
+** run-pahmm
+** run-paprospect2
+** run-papssm
+** run-pfregexp
+** run-protcomp; 
+** run-tmdetect (in-house); 1500/min
+** run-tmhmm
+secondary structure
+sigcleave
+antigenic
+bigpi
+signalp
 
 
 * Extrinsic sequence sets
+secreted
+tm (1,5,7)
+intracellular
+PM
+patented
+typeI
+typeII
 
 
 * Post-loading tasks

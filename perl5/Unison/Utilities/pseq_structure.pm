@@ -8,7 +8,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.3 2005/04/07 22:53:09 mukhyala Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.4 2005/04/20 22:00:49 mukhyala Exp $;
 
 =head1 SYNOPSIS
 
@@ -203,44 +203,44 @@ sub get_hmm_range {
     my $ar = $self->{'unison'}->selectall_arrayref($sql);
     return $ar->[0];
 }
+
+
 ####################################################################################
 # related to jmol javascript
 sub set_js_vars {
-   
   my ($self) = @_;
 
   my $retval;
   my $stringio = IO::String->new($retval);
 
-  $stringio->print("<form><script LANGUAGE=\"javascript\">var seq_str = new Object; var pdbid;");
+  $stringio->print("<!-- sequence-structure mapping -->\n");
+  $stringio->print("<form><script LANGUAGE=\"javascript\">\nvar seq_str = new Object; var pdbid;\n");
 
   foreach my $pdbid(@{$self->{'structure_ids'}}) {
-
     $stringio->print("pdbid = \'$pdbid\';seq_str[pdbid] = new Object;");
-    foreach my $i(1..$self->pseq_length) {
-
+    for(my $i=1; $i<=$self->pseq_length; $i++) {
       my $pdb_res = $self->{'seq_str_map'}{$pdbid}{$i};
       my $res = $pdb_res->{'res_id'};
-
-      $stringio->print("seq_str[pdbid][$i] = \'$res\';\n");
-      #print "$pdbid\t$i\t",$res,"\n";
+      $stringio->print("seq_str[pdbid][$i] = \'$res\';") if(defined($res));
     }
+	$stringio->print("\n");
   }
-  foreach my $pdbid(@{$self->{'template_ids'}}) {
 
+  foreach my $pdbid(@{$self->{'template_ids'}}) {
     my $j  = 0;
     $stringio->print("pdbid = \'$pdbid\';seq_str[pdbid] = new Object;");
-    foreach my $i($self->{'templates'}{$pdbid}{'qstart'}..$self->{'templates'}{$pdbid}{'qstop'}) {
+    for( my $i=$self->{'templates'}{$pdbid}{'qstart'};
+		 $i<=$self->{'templates'}{$pdbid}{'qstop'};
+		 $i++) {
       my $template_pos = $self->{'templates'}{$pdbid}{'tstart'} + $j++;
       next if (!defined($self->{'seq_str_map'}{$pdbid}{$template_pos}));
       my $pdb_res = $self->{'seq_str_map'}{$pdbid}{$template_pos};
       my $res = $pdb_res->{'res_id'};
-
-      $stringio->print("seq_str[pdbid][$i] = \'$res\';\n") if(defined($res));
-      #print "$pdbid\t$i\t$j\t$template_pos\t",$res,"\n";
+      $stringio->print("seq_str[pdbid][$i] = \'$res\';") if(defined($res));
     }
+	$stringio->print("\n");
   }
-  $stringio->print("pdbid=\'$self->{loaded_structure}\';</script></form>");
+  $stringio->print("pdbid=\'$self->{loaded_structure}\';</script></form>\n");
   return $retval;
 }
 
@@ -252,19 +252,18 @@ sub region_script {
 }
 
 sub pos_script {
-
   my ($self,$pos,$label,$colour) = @_;
   my $jmol = $self->{'jmol'};
   return "javascript:".$jmol->selectPosition($pos,$label,$colour);
 }
 
 sub change_structure {
-
   my ($self,$name) = @_;
-
   my ($pdb_id,$chain) = (substr($name,0,4),substr($name,4,1));
   my $jmol = $self->{'jmol'};
   return "javascript:".$jmol->changeStructureLoad($jmol->load("pdb$pdb_id.ent",$chain),$name);
 }
-'some true value';
+
+1;
+
 

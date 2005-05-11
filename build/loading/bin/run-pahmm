@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.12 2005/03/29 22:39:04 rkh Exp $
+# $Id: run-pahmm,v 1.13 2005/03/31 21:59:59 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -28,26 +28,12 @@ sub get_pmodel_id ($);
 sub run_and_load ($$);
 
 
-my %pfams = 
+my %pfam_opts = 
   (
-   '12fs' => {modelfile => '/gne/compbio/share/pfam-12.0/Pfam_fs',
-			  origin => 'Pfam_fs 12.0',
-			  params => 'Pfam_fs 12.0'},
-   '14fs' => {modelfile => '/gne/compbio/share/pfam-14.0/Pfam_fs.hmmb',
-			  origin => 'Pfam_fs 14.0',
-			  params => 'Pfam_fs 14.0'},
-   '14ls' => {modelfile => '/gne/compbio/share/pfam-14.0/Pfam_ls.hmmb',
-			  origin => 'Pfam_ls 14.0',
-			  params => 'Pfam_ls 14.0'},
-   '14fsld' => {modelfile => '/gne/compbio/share/pfam-14.0/Pfam_fs.hmmb',
-			  origin => 'Pfam_fs 14.0',
-			  params => 'Pfam_fs 14.0 (ldhmmer)'},
-   '17fs' => {modelfile => '/gne/compbio/share/pfam-17.0/Pfam_fs.hmmb',
-			  origin => 'Pfam_fs 17.0',
-			  params => 'Pfam_fs 17.0'},
-   '17ls' => {modelfile => '/gne/compbio/share/pfam-17.0/Pfam_ls.hmmb',
-			  origin => 'Pfam_ls 17.0',
-			  params => 'Pfam_ls 17.0'},
+   21 => { modelfile => '/gne/compbio/share/pfam-17.0/Pfam_fs.hmmb',
+		   origin => 'Pfam_fs 17.0' },
+   22 => { modelfile => '/gne/compbio/share/pfam-17.0/Pfam_ls.hmmb',
+		   origin => 'Pfam_ls 17.0' },
   );
 
 my %opts = 
@@ -56,28 +42,18 @@ my %opts =
    params_id => undef,
    pmodelset_id => undef,
    verbose => 0,
-   pfam => '17fs',
    'seqs-per-run' => 50
   );
 GetOptions(\%opts,
 		   'force|f+',
-		   #'params_id|p=i',
+		   'params_id|p=i',
 		   'pmodelset_id|M=i@',
-		   'pfam=s',
 		   'verbose|v+',
 		   'seqs-per-run|N=i',
 		  ) || die("$0: you got usage issues, short stack\n");
 
-(exists $pfams{$opts{pfam}})
-  || die("$0: pfam $opts{pfam} doesn't exist\n");
-
-print(STDERR "# using Pfam $opts{pfam}\n");
-%opts = (%opts,%{$pfams{$opts{pfam}}});
-
 my $temproot = "/tmp/run-pahmm-$$";
 my $seqfn = "$temproot.fa";
-my $hmmfn;  # filename will be set below
-
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
@@ -88,6 +64,14 @@ if (not defined $opts{params_id}) {
   }
 }
 
+(exists $pfam_opts{$opts{params_id}})
+  || die("No options defined in $0 for params_id=$opts{params_id}");
+
+%opts = (%opts, %{ $pfam_opts{$opts{params_id}} });
+
+(-e $opts{modelfile})
+  || die("$opts{modelfile} doesn't exist\n");
+
 if (not defined $opts{porigin_id}) {
   $opts{porigin_id} = $u->porigin_porigin_id_by_origin($opts{origin});
   if (not defined $opts{porigin_id}) {
@@ -96,26 +80,8 @@ if (not defined $opts{porigin_id}) {
 }
 
 
-if ( defined $opts{pmodelset_id} ) {
-	$hmmfn = "$temproot.pfam";
-	my $sql = new Unison::SQL;
-	$sql->columns('distinct name')
-		->table('pmhmm M');
-	$sql->join('pmsm_pmhmm S on M.pmodel_id=S.pmodel_id')
-		->where('S.pmodelset_id in (' . join(',',@{$opts{pmodelset_id}}) . ')');
-	$sql->order('name');
-		(@{$opts{'templates'}}) = map {@$_} @{$u->selectall_arrayref("$sql")};
-
-	my $cmd = "hmm-extract <$opts{modelfile} @{$opts{'templates'}} >$hmmfn";
-	print "$cmd\n" if $opts{verbose};
-	system( $cmd );
-	$? && die("$cmd: $!\n");
-} else {
-	$hmmfn = $opts{modelfile};
-}
-
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
-my @cl = (split(' ',$clo), '--acc', $hmmfn, $seqfn);
+my @cl = (split(' ',$clo), '--acc', $opts{modelfile}, $seqfn);
 print "cl: ",join(' ',@cl),"\n" if $opts{verbose};
 
 my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
@@ -172,6 +138,7 @@ sub fetch_sequences ($$@) {
 	  warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
 	  next;
 	}
+
 	$so->write_seq( new Bio::PrimarySeq( -seq => $seq,
 										 -id => "Unison:$pseq_id" ) );
 	$nseq++;

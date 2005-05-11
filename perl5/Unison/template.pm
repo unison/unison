@@ -2,7 +2,7 @@
 
 Unison::template -- Unison:: module template
 
-S<$Id: template.pm,v 1.1 2004/05/14 20:33:19 rkh Exp $>
+S<$Id: template.pm,v 1.2 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -19,11 +19,32 @@ B<Unison::template> is template for building new perl modules.
 
 =pod
 
-=head1 ROUTINES AND METHODS
+=head1 PUBLIC METHODS
 
 =over
 
 =cut
+
+
+
+=pod
+
+=head1 PRIVATE METHODS (_ prefix)
+
+=over
+
+=cut
+
+
+
+=pod
+
+=head1 INTERNAL ROUTINES (__ prefix)
+
+=over
+
+=cut
+
 
 
 
@@ -40,6 +61,9 @@ B<Unison::template> is template for building new perl modules.
 
 sub functionName {
 }
+
+
+
 
 
 

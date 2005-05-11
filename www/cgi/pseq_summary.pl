@@ -26,7 +26,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.25 2005/03/21 21:32:53 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.26 2005/04/04 18:46:40 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
@@ -65,11 +65,8 @@ sub aliases_group ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
-  my $sql = qq/select O.origin,AO.alias,AO.descr from pseqalias SA
-      join paliasorigin AO on AO.palias_id=SA.palias_id
-      join porigin O on O.porigin_id=AO.porigin_id
-      where SA.pseq_id=$v->{pseq_id} and SA.iscurrent=true and O.ann_pref<=10000
-      order by O.ann_pref/;
+  my $sql = qq/select origin,alias,descr from v_current_annotations
+			 where pseq_id=$v->{pseq_id} AND ann_pref<=10000/;
   my $ar = $u->selectall_arrayref($sql);
   do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
   my @f = qw( origin alias description );

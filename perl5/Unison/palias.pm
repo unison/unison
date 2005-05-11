@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.16 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: palias.pm,v 1.17 2005/03/19 21:11:54 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -118,12 +118,13 @@ sub get_pseq_id_from_alias {
 	my ($type,$id) = (uc($1),$2);
 	my $sql;
 
+	# Genengenes occasionally has sequences which aren't in Unison,
+	# in which case the view returns rows with empty pseq_ids.  This
+	# is the origin of the 'and pseq_id is not null' condition.
 	if ($type eq 'PRO' or $type eq 'DNA' or $type eq 'UNQ') {
-	  $sql = sprintf('select distinct pseq_id from sst.v_sst_unison where %sID=%d',
-					 $type,$id);
+	  $sql = "select distinct pseq_id from sst.v_unq_pro_dna_pseq where ${type}ID=$id and pseq_id is not null";
 	} elsif ($type eq 'FAM') {
-	  $sql = sprintf('select distinct pseq_id from sst.v_fam_pseq where %sID=%d',
-					 $type,$id);
+	  $sql = "select distinct pseq_id from sst.v_fam_pseq where ${type}ID=$id and pseq_id is not null";
 	} else {
 	  throw Unison::Exception('Unmatched SST entry type',
 							  "I don't know what a $type entry is");

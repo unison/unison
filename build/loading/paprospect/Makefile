@@ -19,8 +19,3 @@ done.ids:
 	@wc -l $@
 
 
-cleaner:: clean
-	/bin/rm -fr *.bak
-cleanest:: cleaner
-	/bin/rm -f  *.mt *.ids
-	/bin/rm -fr *.d no
