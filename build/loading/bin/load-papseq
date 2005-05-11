@@ -23,7 +23,7 @@ my $cnt=0;
 local $/ = "\nBLAST";
 print "start: ",scalar(localtime),"\n";
 $loaded=0;
-while( my $block = <> ) {
+while ( my $block = <> ) {
   $block =~ s/^(?!BLAST)/BLAST/;
   $block =~ s/\nBLAST$//;
   local $/ = "\n";
@@ -35,39 +35,37 @@ while( my $block = <> ) {
   my $q_pseq_id = $u->get_pseq_id_from_FASTA_name($report->query());
   if ( !defined $q_pseq_id ) {
     throw Unison::RuntimeError("No pseq_id defined for this query sequence: " . 
-      $report->query() );
+							   $report->query() );
   }
-  while(my $sbjct = $report->nextSbjct) {
-		my $swapme = 0;
+  while (my $sbjct = $report->nextSbjct) {
+	my $swapme = 0;
     print "\t",'-'x80,"\n" if $ENV{DEBUG};
     my $t_pseq_id = $u->get_pseq_id_from_FASTA_name($sbjct->name());
     print "\tqname: " . $report->query() . "\n" if $ENV{DEBUG};
     print "\ttname: " . $sbjct->name() . "\n" if $ENV{DEBUG};
     throw Unison::RuntimeError( "No pseq_id defined for this target sequence: " 
-      . $sbjct->name() ) if ( !defined $t_pseq_id );
-    if      ( $q_pseq_id == $t_pseq_id ) {
+								. $sbjct->name() ) if ( !defined $t_pseq_id );
+    if ( $q_pseq_id == $t_pseq_id ) {
       print "Skipping this target ($t_pseq_id) because it is a self hit\n" if $ENV{DEBUG};
       next;
     } elsif ( $t_pseq_id > $q_pseq_id  ) {
-			if ( $swap_upper_triangle ) {
-				$swapme = 1;
-				print "Swap t_pseq_id ($t_pseq_id) and q_pseq_id ($q_pseq_id) because q_pseq_id < t_pseq_id\n" if $ENV{'DEBUG'};
-			} else {
-				print "Skipping this target ($t_pseq_id) because its id greater than self ($q_pseq_id)\n" if $ENV{'DEBUG'};
-				next;
-			}
+	  if ( $swap_upper_triangle ) {
+		$swapme = 1;
+		print "Swap t_pseq_id ($t_pseq_id) and q_pseq_id ($q_pseq_id) because q_pseq_id < t_pseq_id\n" if $ENV{'DEBUG'};
+	  } else {
+		print "Skipping this target ($t_pseq_id) because its id greater than self ($q_pseq_id)\n" if $ENV{'DEBUG'};
+		next;
+	  }
     }
 
-
-    while(my $hsp = $sbjct->nextHSP) {
-      
+    while (my $hsp = $sbjct->nextHSP) {
       # criteria for accepting HSP:
       #  - over 98% identity AND
       #  - hsp len > 50 AND
       #  - query is a subsequence of target or vice versa OR
       #  - query c-terminus overlaps with target n-terminus  OR
       #  - target c-terminus overlaps with query n-terminus
-      if      ( $hsp->percent() < $pct_identity_cutoff ) {
+      if ( $hsp->percent() < $pct_identity_cutoff ) {
         print "Skipping this target ($t_pseq_id) because its percent identity (" .
           $hsp->percent() . ") < $pct_identity_cutoff\n" if $ENV{DEBUG};
         next;
@@ -77,33 +75,33 @@ while( my $block = <> ) {
         next;
       }
 
-			my ($q_start,$q_end,$q_len);
-			my ($t_start,$t_end,$t_len);
+	  my ($q_start,$q_end,$q_len);
+	  my ($t_start,$t_end,$t_len);
 
-			# if we need to swap the query/target orientation b/c the
-			# q_pseq_id < t_pseq_id and $swap_upper_triangle is true.
-			if ( $swapme ) {
-				$q_start = $hsp->hit->start;
-				$q_end = $hsp->hit->end;
-				$q_len = $hsp->hit->seqlength();
-				$t_start = $hsp->query->start;
-				$t_end = $hsp->query->end;
-				$t_len = $report->qlength;
-			} else {
-				$q_start = $hsp->query->start;
-				$q_end = $hsp->query->end;
-				$q_len = $report->qlength;
-				$t_start = $hsp->hit->start;
-				$t_end = $hsp->hit->end;
-				$t_len = $hsp->hit->seqlength();
-			}
+	  # if we need to swap the query/target orientation b/c the
+	  # q_pseq_id < t_pseq_id and $swap_upper_triangle is true.
+	  if ( $swapme ) {
+		$q_start = $hsp->hit->start;
+		$q_end = $hsp->hit->end;
+		$q_len = $hsp->hit->seqlength();
+		$t_start = $hsp->query->start;
+		$t_end = $hsp->query->end;
+		$t_len = $report->qlength;
+	  } else {
+		$q_start = $hsp->query->start;
+		$q_end = $hsp->query->end;
+		$q_len = $report->qlength;
+		$t_start = $hsp->hit->start;
+		$t_end = $hsp->hit->end;
+		$t_len = $hsp->hit->seqlength();
+	  }
 
-			# if the accept_overlap_seqs flag is true, then also insert
-			# HSPs with mid sequence overlaps.
-			if ( $accept_overlap_seqs ) {
+	  # if the accept_overlap_seqs flag is true, then also insert
+	  # HSPs with mid sequence overlaps.
+	  if ( $accept_overlap_seqs ) {
         &_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
-				next;
-			}
+		next;
+	  }
 
       my $q_start_remainder =  $q_start - 1;
       my $q_end_remainder = $q_len - $q_end;
@@ -115,7 +113,7 @@ while( my $block = <> ) {
       print "\tt_start_remainder: $t_start_remainder \n" if $ENV{DEBUG};
       print "\tt_end_remainder: $t_end_remainder \n" if $ENV{DEBUG};
 
-      if      ( $q_end_remainder <= $remainder_cutoff && $t_start_remainder < $remainder_cutoff ) {
+      if ( $q_end_remainder <= $remainder_cutoff && $t_start_remainder < $remainder_cutoff ) {
         &_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
       } elsif ( $t_end_remainder <= $remainder_cutoff && $q_start_remainder < $remainder_cutoff ) {
         &_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
@@ -131,26 +129,26 @@ print "loaded $loaded hsps\n";
 print "stop: ",scalar(localtime),"\n";
 
 sub _insert_hsp {
-	my ($q_pseq_id, $t_pseq_id, $hsp, $swap ) = @_;
+  my ($q_pseq_id, $t_pseq_id, $hsp, $swap ) = @_;
 
-	if ( $swap ) {
-		my $holder = $t_pseq_id;
-		$t_pseq_id = $q_pseq_id;
-		$q_pseq_id = $holder;
-	}
-	print "insert this hsp ( q_pseq_id: $q_pseq_id, t_pseq_id: $t_pseq_id )\n" if $ENV{DEBUG};
+  if ( $swap ) {
+	my $holder = $t_pseq_id;
+	$t_pseq_id = $q_pseq_id;
+	$q_pseq_id = $holder;
+  }
+  print "insert this hsp ( q_pseq_id: $q_pseq_id, t_pseq_id: $t_pseq_id )\n" if $ENV{DEBUG};
 
-	# get the pmodel_id for this sequence
-	my $pmodel_id = $u->_get_pmodel_id_from_pseq_id($t_pseq_id);
-	if ( ! defined $pmodel_id ) {
-		throw Unison::Exception::RuntimeError( "Can't find pmodel_id for pseq_id=$t_pseq_id" );
-	}
+  # get the pmodel_id for this sequence
+  my $pmodel_id = $u->_get_pmodel_id_from_pseq_id($t_pseq_id);
+  if ( ! defined $pmodel_id ) {
+	throw Unison::Exception::RuntimeError( "Can't find pmodel_id for pseq_id=$t_pseq_id" );
+  }
 
-	try {
-	  $u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap );
-	  $loaded++;
-	} catch Unison::Exception with {
-	  die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
-	};
+  try {
+	$u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap );
+	$loaded++;
+  } catch Unison::Exception with {
+	die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
+  };
 
 }

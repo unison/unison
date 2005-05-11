@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.18 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: pseq.pm,v 1.19 2005/04/04 18:42:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -25,6 +25,7 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use strict;
 use warnings;
+use Unison::Utilities::misc;
 
 
 =pod
@@ -99,9 +100,10 @@ porigin.ann_pref ranking.  See also best_annotation.
 sub best_alias {
   my $self = shift;
   my $pseq_id = shift;
+  # my $from_view = true_or_false( shift );
   $self->is_open()
 	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached("select best_alias(?)");
+  my $sth = $self->prepare_cached( 'select best_alias(?)' );
   $sth->execute( $pseq_id );
   my $ba = $sth->fetchrow_array();
   $sth->finish();

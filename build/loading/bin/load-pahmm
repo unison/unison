@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pahmm,v 1.4 2005/04/01 19:17:43 rkh Exp $
+# $Id: load-pahmm,v 1.5 2005/04/02 02:42:46 rkh Exp $
 # load-pahmm -- load hmmer results from a file
 
 use warnings;
@@ -128,7 +128,8 @@ sub load_aln_file ($$) {
 					  $pseq_id, $hsp->start('query'), $hsp->end('query'),
 					  $pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
 					  $hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
-					  int($hsp->score()), $hsp->evalue());
+					  int($hsp->score()),
+					  ($hsp->evalue() < 1e-300 ? 0 : $hsp->evalue())   ); # underflows dbl prec.
 		  $pahmm_sth->execute(@data);
 		}
 	  }

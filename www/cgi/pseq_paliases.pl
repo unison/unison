@@ -14,13 +14,10 @@ use Unison::WWW::utilities qw(alias_link text_wrap);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.20 2004/06/14 23:40:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.13 2004/06/25 00:20:14 rkh Exp $ ');
 
-my $sql = qq/select O.origin,AO.alias,AO.descr from pseqalias SA
-			join paliasorigin AO on AO.palias_id=SA.palias_id
-			join porigin O on O.porigin_id=AO.porigin_id
-			where SA.pseq_id=$v->{pseq_id} and SA.iscurrent=true and AO.porigin_id!=10031
-			order by O.ann_pref/;
+my $sql = qq/select origin,alias,descr from v_current_annotations
+			where pseq_id=$v->{pseq_id} AND porigin_id!=porigin_id('geneseq')/;
 my $ar = $u->selectall_arrayref($sql);
 my @f = qw( origin alias description );
 

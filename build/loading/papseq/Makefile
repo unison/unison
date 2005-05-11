@@ -1,31 +1,39 @@
 include ../defaults.mk
 
-BLAST:=blastall -p blastp -F F -e 1e-20 -z2829482
+PARAMS_ID:=3
+BLAST_CMD=$(shell ${PSQL_CMD} 'select commandline from params where params_id=${PARAMS_ID}')
+DB:=unison
 
 default:
 	@echo no $@ target; exit 1
 
+.PHONY: setup
+setup: ${DB}.phr
+
+unison.ids:
+	${PSQL_CMD} "select pseq_id from pseqset where pset_id=pset_id('BLAST DB')" >$@.tmp
+	/bin/mv -f $@.tmp $@
+
+.PRECIOUS: %.phr
 %.phr: %.fa
-	formatdb -t "PDB `date +'%Y-%m-%d %H:%M'`" -l $@.log -pT -n tmp-$* -i $<
+	formatdb -t "$* `date +'%Y-%m-%d %H:%M'`" -l $@.log -pT -n tmp-$* -i $<
 	for f in $*.phr $*.pin $*.psq; do /bin/mv -f "tmp-$$f" "$$f" || /bin/true; done
 
-%-unison.bo: %.fa unison.phr
-	${BLAST} -i $< -d ./unison >$@.tmp
+%-${DB}.bo: %.fa ${DB}.phr
+	${BLAST_CMD} -i $< -d ./${DB} >$@.tmp
 	/bin/mv -f $@.tmp $@
 
-%-pdb.bo: %.fa pdb.phr
-	${BLAST} -i $< -d ./pdb >$@.tmp
-	/bin/mv -f $@.tmp $@
-
-%.load: %.bo
+.PRECIOUS: %-${DB}.load
+%-${DB}.load: %-${DB}.bo
 	load-papseq <$< >$@.tmp 2>&1
 	/bin/mv -f $@.tmp $@
 
+%.load: %-${DB}.load; 
+
+
 
 clean::
-	/bin/rm -f *.bo
 cleaner::
-	/bin/rm -f *.phr *.pin *.psq
 	/bin/rm -f *.bo *.log
 cleanest::
-	/bin/rm -f *.fa
+	/bin/rm -f *.fa *.phr *.pin *.psq

@@ -1,110 +1,293 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.8 2004/12/24 00:09:46 rkh Exp $
-# run-pahmm -- run hmmer on specified sequences
+# run-psprotcomp -- run protcomp results
 
-
-use warnings;
 use strict;
-use Bio::SeqIO;
-use Bio::PrimarySeq;
-use Error qw(:try);
-use File::Temp qw(tempfile tempdir);
-use IO::Pipe;
-use Getopt::Long qw(:config gnu_getopt);
-use Unison::Exceptions;
-use Unison::SQL;
 use Unison;
+use Unison::Exceptions;
+use Getopt::Long qw(:config gnu_getopt);
+use File::Temp qw(tempfile);
+use IO::Pipe;
+use Bio::SeqIO;
 
+
+sub _parseBlock( $ );
+sub _fetch_sequences ($$@);
 
 my %opts = 
   (
+   commit_interval => 1,
    force => 0,
-   params => 'protcomp default',
    params_id => undef,
    pmodelset_id => undef,
    verbose => 0,
+   'seqs-per-run' => 50
   );
 GetOptions(\%opts,
 		   'force|f+',
-		   'params_id|p=i',
-		   'pmodelset_id|M=i@',
+		   'commit_interval=i',
+		   #'params_id|p=i',
+		   #'pmodelset_id|M=i@',
 		   'verbose|v+',
+		   'seqs-per-run|N=i',
 		  ) || die("$0: you got usage issues, short stack\n");
 
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
+
+# get params_id for loading
+$opts{params_id} = $u->get_params_id_by_name('protcomp default');
 if (not defined $opts{params_id}) {
-  $opts{params_id} = $u->get_params_id_by_name($opts{params});
-  if (not defined $opts{params_id}) {
-	die("$0: couldn't find params_id for params `$opts{params}'\n");
-  }
+  die("couldn't find params_id for 'protcomp default'\n");
+}
+my $cl = $u->run_commandline_by_params_id( $opts{params_id} );
+if (not defined $cl) {
+  die("couldn't get command line for params_id $opts{params_id}\n");
 }
 
-my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
-my ($tmpfh, $tmpfn) = tempfile( UNLINK=>1 );
-(defined $tmpfn)
-  || die("couldn't generate temporary file\n");
-my $so = new Bio::SeqIO( -format => 'fasta',
-						 -fh => $tmpfh );
 
-PSEQ_ID:
-foreach my $pseq_id (@pseq_ids) {
-  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
-  if (defined $ran_on and not $opts{update}) {
-	if (not $opts{update}) {
-	  print(STDERR "Unison:$pseq_id run with these options on $ran_on; skipping\n");
-	  next PSEQ_ID;
+# hash cellular locations to psloc_ids
+my $hr = $u->selectall_hashref( 'select location,psloc_id from psprotcomp_location', 'location' );
+my %pslocids = map { $_ => $hr->{$_}->{psloc_id} } (keys %$hr);
+$pslocids{''} = 0;
+
+
+# prepare the insertion statement
+my @cols = qw(
+ pseq_id params_id
+ sim_psloc_id sim_score sim_db sim_target_ac
+ nn_psloc_id nn_score
+ int_psloc_id int_score int_membrane
+ int_nuc_score int_pm_score int_ext_score int_cyt_score int_mit_score
+ int_er_score int_per_score int_lys_score int_gol_score
+ features
+ result_block
+);
+my $ins_sth = $u->prepare(sprintf('insert into psprotcomp (%s) values (%s)',
+								  join(',',@cols),
+								  join(',',map {'?'} @cols)
+								 ));
+				
+
+# possible locations (rows in weights table)
+my @loc_rows = ('Nuclear', 'Plasma membrane', 'Extracellular', 'Cytoplasmic',
+				'Mitochondrial', 'Endoplasm. retic.', 'Peroxisomal',
+				'Lysosomal', 'Golgi');
+# prediction methods (cols in weights table)
+my @loc_cols = ('LocDB', 'PotLocDB', 'Neural Nets', 'Pentamers', 'Integral');
+
+
+my ($seqfh,$seqfn) = tempfile( "/tmp/psprotcomp-$$-XXXXX", SUFFIX=>'.fa', UNLINK=>0 );
+
+my (@Q) = @ARGV ? (map {eval "$_"} @ARGV) : (map { chomp;$_ } <>);
+while( @Q ) {
+  my @q = splice( @Q, 0, $opts{'seqs-per-run'} );
+  for(my $i=$#q; $i>=0; $i--) {
+	if ($u->already_ran($q[$i],$opts{params_id},$opts{porigin_id},$opts{pmodelset_id})) {
+	  warn("Unison:$q[$i] already run with these parameters\n");
+	  splice(@q,$i,1);
 	}
-	print(STDERR "Unison:$pseq_id run with these options on $ran_on; running anyway\n");
   }
+  next unless @q;							# all have been run 
 
-  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  if (not defined $seq) {
-	warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+  my $nseq = _fetch_sequences($u,$seqfn,@q);
+  print(STDERR "fetched $nseq / ", $#q+1, " sequences (@q)\n");
+
+  next if ($nseq == 0);						# ids must've been bogus
+
+
+  my $fh = new IO::Pipe;
+  $fh->reader( split(' ',$cl), $seqfn );
+
+  local $/ = "\n\n";
+  my $blk = $fh->getline();					# version line
+  if (not defined $blk) {
+	if ($#q == 0 and $nseq == 1) {
+	  warn("pseq_id $q[0] failed and was flagged in run_history\n");
+	  $u->upd_run_history( $q[0], $opts{params_id}, undef, undef, 1 ); # 1=>FAILED
+	} else {
+	  warn("! one or more of pseq_ids in (@q) failed\n");
+	}
 	next;
+  } elsif ($blk !~ /^ProtComp Version 6\./) {
+	die("didn't find 'ProtComp Version 6' header\ninstead, I found: $blk\n");
   }
-  $so->write_seq( new Bio::PrimarySeq( -seq => $seq,
-									   -id => "Unison:$pseq_id" ) );
+
+  # begin reading and loading
+  $u->begin_work();
+  while( my $blk = $fh->getline() ) {
+	my ($pseq_id) = $blk =~ m/Unison:(\d+)/;
+	if (not defined $pseq_id) {
+	  warn("! WARNING: couldn't parse Unison pseq_id from block; skipping remaining block\n");
+	  last;
+	}
+
+	my $pb = _parseBlock($blk);
+	(defined $pb)
+	  || die("_parseBlock returned undef; shouldn't happen!\n");
+	if (not ref $pb) {
+	  # error message in $pb
+	  warn("Couldn't parse block for Unison:$pseq_id: $pb\n$blk\n\n");
+	  last;
+	}
+
+	my $sim_pslocid = 0;
+	if (defined $pb->{sim_loc}) {
+	  exists $pslocids{$pb->{sim_loc}}
+		|| die("sim location '$pb->{sim_loc}' undefined in psprotcomp_locations\n");
+	  $sim_pslocid = $pslocids{$pb->{sim_loc}};
+	}
+	my $nn_pslocid = 0;
+	if (defined $pb->{nn_loc}) {
+	  exists $pslocids{$pb->{nn_loc}}
+		|| die("nn location '$pb->{nn_loc}' undefined in psprotcomp_locations\n");
+	  $nn_pslocid = $pslocids{$pb->{nn_loc}};
+	}
+	my $int_pslocid = 0;
+	if (defined $pb->{int_loc}) {
+	  exists $pslocids{$pb->{int_loc}}
+		|| die("int location '$pb->{int_loc}' undefined in psprotcomp_locations\n");
+	  $int_pslocid = $pslocids{$pb->{int_loc}};
+	}
+
+	my @weights = map { $pb->{locweights}{$_}{Integral} } @loc_rows;
+	
+	try {
+	  $ins_sth->execute($pseq_id, $opts{params_id},
+						$sim_pslocid,$pb->{sim_score},$pb->{sim_db},$pb->{sim_target},
+						$nn_pslocid, $pb->{nn_score},
+						$int_pslocid, $pb->{int_score},($pb->{int_membrane} eq 'yes' ? 'TRUE' : 'FALSE'),
+						@weights,
+						$pb->{features},
+						$blk);
+	  $u->upd_run_history( $pseq_id, $opts{params_id}, undef, undef );
+	  print(STDERR "# inserted psprotcomp for Unison:$pseq_id\n") if $opts{verbose};
+	} catch Unison::Exception with {
+	  $u->commit();
+	  die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
+	  $u->begin_work();
+	};
+  }
+  $u->commit();
+  $fh->close();
 }
-$so->close();
+
+exit(0);
 
 
-# prepare the insert statement
-my @fields = qw(pseq_id params_id site_no quality start score confidence);
-my $sth = $u->prepare_cached(sprintf("insert into pfbigpi (%s) values (%s)",
-									 join(',',@fields), join(',',map {'?'} @fields)));
 
 
-# command line and open the pipe
-my $clo = $u->run_commandline_by_params_id($opts{params_id});
-my $cmd = sprintf($clo,$tmpfn);
-my @cl = split(' ',$cmd);
 
-my $pipe = new IO::Pipe;
-$pipe->reader( @cl )
-  || die("couldn't do @cl\n");
+sub _parseBlock($) {
+  my $blk = shift;
+  my @fields = qw(ac
+				  features
+				  sim_loc sim_score sim_db sim_target_ac
+				  nn_loc nn_score
+				  int_loc int_score int_membrane
+				  locweights);
 
+  my %rv = map { $_=>undef } @fields;
+  $rv{locweights} = { map { $_=>{map {$_=>undef} @loc_cols} } @loc_rows }; # ref to hash of hashes
 
-my $N = $#pseq_ids+1;
-my $n = 0;
-
-$u->begin_work();
-while( my $line = <$pipe> ) {
-  my ($pseq_id) = $line =~ m/Unison:(\d+)/;
-  if (not defined $pseq_id) {
-	die("Couldn't parse Unison pseq_id:\n$_");
+  # sequence id
+  if ($blk =~ m/^Seq name: ([^\,]+).+\n/m) {
+	$rv{ac} = $1 
+  } else {
+	return("Bad block: Couldn't parse Seq name\n");
   }
 
-  if (my ($siten,$quality,$start,$score,$confidence) = $line =~ m/(1):$data_re/) {
-	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$confidence);
-  }
-  if (my ($siten,$quality,$start,$score,$confidence) = $line =~ m/(2):$data_re/) {
-	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$confidence);
+
+  # similarity
+  if ($blk =~ m/^Significant similarity in (.+?) -  Location:\s*(.+)/m) {
+	$rv{sim_loc} = $2;
+	$rv{sim_db} = ( ($1 eq 'Location DB') 
+					? 'LocDB' 
+					: ( ($1 eq 'Potential Location DB')
+						? 'PotLocDB'
+						: 'UNKNOWN!'
+					  )
+				  );
+	$rv{sim_loc} =~ s/\s+$//;				# some have trailing spaces
+	if ($blk =~ m/^Database sequence: AC=(\w+)/m) {
+	  $rv{sim_target_ac} = $1
+	} else {
+	  return("Bad block: similarity results without database sequence\n");
+	}
+	if ($blk =~ m/^Score=(\d+)/m) {
+	  $rv{sim_score} = $1
+	} else {
+	  return("Bad block: similarity results without alignment score\n");
+	}
+  } elsif ($blk =~ m/^Significant similarity by DBSCAN-P - NONE/m) {
+	# ignore
+  } else {
+	return("Bad block: didn't find similarity results\n");
   }
 
-  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},undef,undef);
-  printf(STDERR "Unison:$pseq_id: $z\n");
+
+  # neural net
+  if ($blk =~ m/^Predicted by Neural Nets - (.+) with score\s*(\S+)/m) {
+	$rv{nn_loc} = $1;
+	$rv{nn_score} = $2;
+	$rv{nn_loc} =~ s/\s+$//;				# some have trailing spaces
+  } else {
+	return("Bad block: didn't find neural net results\n");
+  }
+
+
+  # integral
+  if ($blk =~ m/^Integral Prediction of protein location:\s+(?:(Membrane bound) )?(.+)\s+with score\s*(\S+)/m) {
+	$rv{int_membrane} = $1 && 'yes';
+	$rv{int_loc} = $2;
+	$rv{int_score} = $3;
+	$rv{int_loc} =~ s/\s+$//;				# some have trailing spaces
+  } else {
+	return("Bad block: didn't find integral prediction results\n");
+  }
+
+
+  # weights
+  foreach my $loc (@loc_rows) {
+	if (my (@F) = $blk =~ m%^ $loc\s+(\S+) /\s+(\S+) /\s+(\S+) /\s+(\S+) /\s+(\S+)%m) {
+	  $rv{locweights}{$loc}{$loc_cols[$_]} = $F[$_] for 0..$#F;
+	} else {
+	  return("Bad block: missing $loc row for location weights\n");
+	}
+  }
+
+
+  # features
+  while ($blk =~ m/^\Q********\E (.+)/mg) {
+	$rv{features} = '' unless defined $rv{features};
+	$rv{features} .= $1 . "\n";
+  }
+
+  return \%rv;
 }
-$u->commit();
-$pipe->close();
+
+
+sub _fetch_sequences ($$@) {
+  # fetch sequences to temp file
+  my $u = shift;
+  my $seqfn = shift;
+  my @pseq_ids = @_;
+  my $nseq = 0;
+
+  my $so = new Bio::SeqIO( -format => 'fasta',
+						   -file => ">$seqfn" )
+	|| die("! couldn't open $seqfn for writing\n");
+
+  foreach my $pseq_id (@pseq_ids) {
+	my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+	if (not defined $seq) {
+	  warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+	  next;
+	}
+	$so->write_seq( new Bio::PrimarySeq( -seq => $seq,
+										 -id => "Unison:$pseq_id" ) );
+	$nseq++;
+  }
+  $so->close();
+  return $nseq;
+}

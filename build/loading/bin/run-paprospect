@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.16 2004/12/24 00:09:46 rkh Exp $
+# $Id: run-paprospect2,v 1.17 2005/03/22 05:44:23 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -100,7 +100,7 @@ if (defined $opts{'templates'}) {
   $po->{tfile} = '/gne/compbio/share/prospect2/tfiles/all';
 }
 
-my $temproot = (defined $ENV{'PBS_JOBID'}) ? "/scr/$ENV{'PBS_JOBID'}" : '/tmp/';
+my $temproot = $ENV{TMPDIR} || '/tmp/';
 my $pc = new Bio::Prospect::LocalClient(options => $po,
 										temproot => $temproot
 									   );
@@ -176,6 +176,9 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 
 ############################################################################
 # $Log: run-paprospect2,v $
+# Revision 1.17  2005/03/22 05:44:23  rkh
+# updated for /gne/ and linux-2.6
+#
 # Revision 1.16  2004/12/24 00:09:46  rkh
 # 2004 sync
 #

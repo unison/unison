@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.18 2005/03/17 00:51:27 rkh Exp $
+# $Id: get-seq,v 1.19 2005/03/17 01:15:37 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.18 2005/03/17 00:51:27 rkh Exp $>
+S<$Id: get-seq,v 1.19 2005/03/17 01:15:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ sub map_args_to_pseq_ids($@);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.18 2005/03/17 00:51:27 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.19 2005/03/17 01:15:37 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -268,9 +268,9 @@ sub get1 {
 	push( @descr, "Unison:$pseq_id" );
   }
   if ($opts{'best-alias'})
-	{ push( @descr, $u->best_alias($pseq_id,1)        ) }
+	{ push( @descr, $u->best_alias($pseq_id)        ) }
   elsif ($opts{'best-annotation'})
-	{ push( @descr, $u->best_annotation($pseq_id,1)   ) }
+	{ push( @descr, $u->best_annotation($pseq_id)   ) }
   elsif ($opts{'all-aliases'})
 	{ push( @descr, $u->pseq_get_aliases($pseq_id)    ) }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.3 2005/03/21 21:53:17 mukhyala Exp $;
+#$ID = q$Id: pseq_structure.pl,v 1.4 2005/04/20 21:48:07 mukhyala Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -18,6 +18,8 @@ use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::Exceptions;
 use Unison::Jmol;
+use Data::Dumper;
+
 
 use Unison::Utilities::pseq_structure;
 use Unison::Utilities::pseq_features qw( %opts );
@@ -58,7 +60,6 @@ my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 get_user_specs($jmol);
 
 try {
-
     my $structures_ar=$pseq_structure->find_structures();
     my $templates_ar=$pseq_structure->find_templates();
     $p->die("Sorry no structures/templates found\n") if($pseq_structure->{'num_structures'} == 0 and $pseq_structure->{'num_templates'}==0);
@@ -76,11 +77,12 @@ try {
     #for structure view
     my ($pdb_id) = substr($pseq_structure->{'loaded_structure'},0,4);
 
-    my $imagemap = generate_imagemap() || $p->die("pseq_structure.pl couldn't generate imagemap");
+    my $imagemap = generate_imagemap();
 
     print $p->render("Unison:$v->{pseq_id} Structural Features",
 		     $p->best_annotation($v->{pseq_id}),
 		     $jmol->initialize("pdb$pdb_id.ent",$pseq_structure->{'loaded_structure'},$pseq_structure),
+			 (defined $imagemap ? '' : $p->warn("no clickable entities for this sequence")),
 		     $p->group("Unison:$v->{pseq_id} Features",
 			       "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
 			       "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
@@ -98,7 +100,6 @@ try {
 
 
 sub generate_imagemap {
-
   my $imagemap;
   $opts{features}{$_}++ foreach qw(template hmm snp user);
   $opts{view}=1;
@@ -118,18 +119,14 @@ sub generate_imagemap {
 	$imagemap .= sprintf('<AREA SHAPE="RECT" COORDS="%d,%d,%d,%d" TOOLTIP="%s" HREF="%s">'."\n",
 						$x1,$y1,$x2,$y2, $attr->{tooltip}||'', $attr->{href}||'');
   }
-
   return $imagemap;
-
 }
 
 sub edit_structure_rows {
   my ($ar,$sh) = @_;
   foreach my $r (@$ar) {
     shift @$r if($sh);
-
     my ($pdb_id,$chain) = (substr($r->[0],0,4),substr($r->[0],4,1));
-
     $r->[0] = $jmol->changeStructureLink($jmol->load("pdb$pdb_id.ent",$chain),$r->[0],'link');
     foreach my $i(@$r) {$i = "<center><font size=2>$i</font></center>";}
   }
@@ -138,15 +135,11 @@ sub edit_structure_rows {
 
 sub edit_snp_rows {
   my ($hr) = @_;
-
   my $href = "http://us.expasy.org/cgi-bin/get-sprot-variant.pl?";
   my $ar;
-
   foreach my $r (@{$pseq_structure->{'features'}{'snps'}}) {
-
     my $snp_lnk = "<a href=\"javascript:".$jmol->selectPosition($r->{'start'}, $r->{'wt_aa'})."\">$r->{'wt_aa'}</a>";
     my $swiss_lnk = "<a href=\"$href$r->{ref}\">$r->{name}</a>";
-
     push @$ar, [($snp_lnk,$r->{'var_aa'},$r->{'start'},$swiss_lnk)];
   }
   #just to make the data centered in each table cell
@@ -157,7 +150,6 @@ sub edit_snp_rows {
 }
 
 sub get_user_specs {
-
   if(defined($v->{userfeatures})) {
     foreach (split(/,/,$v->{userfeatures})) {
       $p->die("wrong userfeatures format expecting :: name@\coord[-coord]\n") unless (/(\S+)\@(\S+)/);

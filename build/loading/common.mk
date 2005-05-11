@@ -1,9 +1,10 @@
-.PHONY: FORCE FORCED_BUILD
 .SUFFIXES:
+.PHONY: FORCE FORCED_BUILD
 
 
 COMPBIO:=/gne/compbio
 UHOME:=${HOME}/csb-db/unison
+SHELL:=/bin/bash
 
 PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc
 PATH:=${PATH}:${COMPBIO_EPREFIX}/bin:${COMPBIO_PREFIX}/bin
@@ -17,18 +18,35 @@ export PERL5LIB:=${UHOME}/perl5:${PERL5LIB}
 
 RENAME=${HOME}/opt/bin/rerename
 
+PSQL:=psql -Uunison
+PSQL_CMD:=${PSQL} -At -c
+
+SUBDIR:=$(shell basename ${PWD})
+
+PSET_ID_A:=60
+PSET_ID_B:=61
+PSET_ID_C:=62
+
+# %.ids files, relative to subdirs
+vpath %.ids ../ids
+
+
+ids: FORCE
+	mkdir -p $@
+	make -C ids -f ../defaults.mk runA.ids runB.ids runC.ids
+
 
 ### QSUB arguments and command
 # -V is necessary since we'll pass passwords in the env.
-ARCH:=
+# eg$ make PBSARCH=xeon
 QPPN:=2
-QNODES:=nodes=1:ppn=${QPPN}${ARCH}
+QNODES:=nodes=1:ppn=${QPPN}
+ifdef PBSARCH
+QNODES:=${QNODES}:${PBSARCH}
+endif
 QTIME:=120000:00
 #QOE:=-ogoose.gene.com:${PWD}/$@.out -egoose.gene.com:${PWD}/$@.err
 QSUB:=qsub -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
-
-
-vpath %.ids ids
 
 
 
@@ -66,15 +84,9 @@ NO_DEFAULT_TARGET:
 	/bin/mv -f $@.tmp $@
 	@wc -l $@
 
-# wanted.ids and done.ids files (or rules) must exist
-todo.ids: wanted.ids done.ids
-	comm -23 $^ >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv -f $@.tmp $@
-	@wc -l $@
-
-genengenes.ids sugen.ids pdb.ids: %.ids:
-	psql -Atc "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
+# sequences by from unison's psets
+runA.ids runB.ids runC.ids uniA.ids uniB.ids uniC.ids uniD.ids: %.ids:
+	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@.tmp
 	sort -u -o $@.tmp $@.tmp
 	/bin/mv $@.tmp $@
 	@wc -l $@
@@ -83,8 +95,10 @@ pset%.ids:
 	sort -u -o $@.tmp $@.tmp
 	/bin/mv $@.tmp $@
 	@wc -l $@
-fam%.ids:
-	psql -Atc 'select distinct pseq_id from sst.v_fam_pseq where famid=$*' >$@.tmp
+
+# sequence lists by origin
+genengenes.ids sugen.ids pdb.ids: %.ids:
+	psql -Atc "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
 	sort -u -o $@.tmp $@.tmp
 	/bin/mv $@.tmp $@
 	@wc -l $@
@@ -109,6 +123,68 @@ ggi-me1.ids:
 	/bin/mv $@.tmp $@
 	@wc -l $@
 
+# sequence lists by other info
+fam%.ids:
+	psql -Atc 'select distinct pseq_id from sst.v_fam_pseq where famid=$*' >$@.tmp
+	sort -u -o $@.tmp $@.tmp
+	/bin/mv $@.tmp $@
+	@wc -l $@
+
+
+# -Nn rules: split .ids files into N sets, approximately the same number
+# of ids in each set
+%-N2 %-N3 %-N5 %-N10 %-N25 %-N50 %-N100 %-N250 %-N500: %.ids
+	@mkdir "$@"
+	@N=`expr "$@" : '.*-N\([0-9][0-9]*\)$$'`; \
+	wcl=`wc -l <$< `; L=`expr $$wcl / $$N + 1`; \
+	echo "L = wcl / N = $$wcl / $$N = $$L"; \
+	set -x; split -l$$L "$<" "$@/"
+	${RENAME} 's/$$/.ids/' "$@"/??
+
+# -ln rules: split .ids file into files of l lines each
+%-l5 %-l10 %-l50 %-l100 %-l250 %-l500 %-l1000 %-l5000 %-l10000: %.ids
+	mkdir "$@"
+	@l=`expr "$@" : '.*-l\([0-9][0-9]*\)$$'`; \
+	set -x; split -l$$l "$<" "$@/"
+	${RENAME} 's/$$/.ids/' "$@"/??
+
+
+# Any target can be farmed to PBS by preceeding it with 'qsub/'
+# e.g., $ make qsub/FOO.log
+# make -n ensures that the target is legit and that make
+# can figure out how to build it
+qsub/%:
+	@mkdir -p ${@D}
+	@if ! make -C${PWD} -n $* >/dev/null 2>/dev/null; then \
+		echo "couldn't make -n $* -- impossible target" 1>&2; \
+		exit 1; \
+	fi
+	@mkdir -p "${@D}"
+#	@N=`expr '$*' : '\(.*\)\.[a-z]*'`; 
+	@N="${SUBDIR}/`basename '$(basename $*)'`"; \
+	set -x; \
+	echo "make -C${PWD} $*" | ${QSUB} -N$$N >$@.tmp
+	/bin/mv -f $@.tmp $@
+
+#qdel:
+#	qstat -urkh | grep '^[0-9]' | cut -f1 -d. | xargs -t qdel
+
+
+# %-load -- make the .load targets for a set of .id files, run locally
+# %-qload -- same, but submit each job to qsub
+# e.g., make pset42-todo-l500-qload
+PREFIX=?
+%-load: %
+	@for f in $*/${PREFIX}?.ids; do echo "$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
+%-qload: %
+	@for f in $*/${PREFIX}?.ids; do echo "qsub/$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
+
+
+# gzip
+%.gz:: %
+	gzip $<
+%:: %.gz
+	gzip -d $<
 
 # get sequences for a set of ids
 %.fa: %.ids
@@ -121,86 +197,6 @@ ggi-me1.ids:
 	&& /bin/mv $@.tmp $@
 
 
-# Any target can be a qsub target
-# e.g., $ make qsub/FOO.log
-# make -n ensures that the target is legit and that make
-# can figure out how to build it
-qsub/%:
-	@mkdir -p ${@D}
-	@if ! make -C${PWD} -n $* >/dev/null 2>/dev/null; then \
-		echo "couldn't make -n $* -- impossible target" 1>&2; \
-		exit 1; \
-	fi
-	@mkdir -p "${@D}"
-	@N=`expr '$*' : '\(.*\)\.[a-z]*'`; \
-	set -x; \
-	echo "make -C${PWD} $*" \
-		| ${QSUB} -N$$N >$@.tmp
-	/bin/mv -f $@.tmp $@
-
-#qdel:
-#	qstat -urkh | grep '^[0-9]' | cut -f1 -d. | xargs -t qdel
-
-
-
-
-# -Nn rules: split .ids files into n sets, approximately the same number
-# of ids in each set
-%-N10: %.ids
-	mkdir  "$*"
-	N=`wc -l <$< `; L=`expr $$N / 10 + 1`; split -l$$L "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-%-N20: %.ids
-	mkdir  "$*"
-	N=`wc -l <$< `; L=`expr $$N / 20 + 1`; split -l$$L "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-%-N30: %.ids
-	mkdir  "$*"
-	N=`wc -l <$< `; L=`expr $$N / 30 + 1`; split -l$$L "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-
-
-# -ln rules: split .ids file into files of n lines each
-%-l50: %.ids
-	mkdir  "$*"
-	split -l50 "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-%-l100: %.ids
-	mkdir  "$*"
-	split -l100 "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-%-l250: %.ids
-	mkdir "$*"
-	split -l250 "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-%-l500: %.ids
-	mkdir "$*"
-	split -l500 "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-%-l1000: %.ids
-	mkdir "$*"
-	split -l1000 "$<" "$*/"
-	${RENAME} 's/$$/.ids/' "$*"/??
-
-
-# %-load -- make the .load targets for a set of .id files, run locally
-# %-qload -- same, but submit each job to qsub
-# e.g., make pset42-todo-qload
-PREFIX=?
-%-load: %
-	@for f in $*/${PREFIX}?.ids; do echo "$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE}
-%-qload: %
-	@for f in $*/${PREFIX}?.ids; do echo "qsub/$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE}
-
-
-
-
-
-# gzip
-%.gz:: %
-	gzip $<
-%:: %.gz
-	gzip -d $<
 
 
 env:
@@ -215,6 +211,10 @@ clean::
 	/bin/rm -fr *.err
 cleaner:: clean
 	/bin/rm -fr qsub todo
-	find . -name pset\* -type d -print0 | xargs -0rt /bin/rm -fr
+	/bin/rm -f *.load *.log
+	/bin/rm -f *.[eo][0-9][0-9]*[0-9]
 cleanest:: cleaner
 	/bin/rm -fr *.ids *.load *.log
+	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
+	/bin/rm -fr          *-l[1-9][0-9] *-l[1-9][0-9][0-9] *-l[1-9][0-9][0-9][0-9]
+	find . -name pset\* -type d -print0 | xargs -0rt /bin/rm -fr

@@ -2,7 +2,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: run_history.pm,v 1.6 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: run_history.pm,v 1.7 2005/04/04 16:42:31 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -40,13 +40,16 @@ use warnings;
 
 =pod
 
-=item B<< $u->upd_run_history( C<pseq_id>, C<params_id>, C<porigin_id>, C<pmodelset_id> ) >>
+=item B<< $u->upd_run_history( C<pseq_id>, C<params_id>, C<porigin_id>, C<pmodelset_id>, failed ) >>
 
 =cut
 
 sub upd_run_history(@) {
   my $u = shift;
-  return $u->selectrow_array("select upd_run_history(?,?,?,?)",undef,@_);
+  my ($q,$p,$o,$m,$f) = @_;
+  $f ||= 'FALSE';
+  return $u->selectrow_array("select upd_run_history(?,?,?,?,?)"
+							 ,undef, $q,$p,$o,$m,$f);
 }
 
 
@@ -55,18 +58,18 @@ sub upd_run_history(@) {
 
 =pod
 
-=item B<< $u->upd_run_histories( C<pseq_id>, C<params_id>, C<[porigin_ids]>, C<[pmodelset_ids]> ) >>
+=item B<< $u->upd_run_histories( C<pseq_id>, C<params_id>, C<[porigin_ids]>, C<[pmodelset_ids]>  ) >>
 
 =cut
 
 sub upd_run_histories($$$$$) {
-  my ($u,$pseq_id,$params_id,$O,$M) = @_;
+  my ($u,$pseq_id,$params_id,$O,$M,$f) = @_;
   my (@O) = defined $O ? ref $O ? @$O : ($O) : (undef);
   my (@M) = defined $M ? ref $M ? @$M : ($M) : (undef);
   my $z;
   foreach my $o (@O) {
 	foreach my $m (@M) {
-	  $z = $u->upd_run_history($pseq_id,$params_id,$o,$m);
+	  $z = $u->upd_run_history($pseq_id,$params_id,$o,$m,$f);
 	}
   }
   return $z;
@@ -117,15 +120,6 @@ sub get_run_timestamp(@) {
 
 
 
-### DEPRECATED FUNCTIONS
-
-sub last_run_update($$) {
-  warn_deprecated();
-  my $u = shift;
-  my $pseq_id = shift;
-  my $run_id = shift;
-  return $u->selectrow_array("select last_run_update($pseq_id,$run_id)");
-}
 
 
 =pod

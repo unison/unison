@@ -2,7 +2,7 @@
 
 Unison::utilities -- general Unison utilities
 
-S<$Id: misc.pm,v 1.1 2005/03/21 22:26:55 mukhyala Exp $>
+S<$Id: misc.pm,v 1.2 2005/03/25 19:44:44 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -162,6 +162,22 @@ sub wrap ($) {
   my $seq = shift;
   $seq =~ s/.{1,60}/$&\n/g;
   return $seq;
+}
+
+
+
+######################################################################
+=pod
+
+=item B<< true_or_false( value ) >>
+
+return 'true' if value is defined and non-zero, 'false' otherwise
+
+=cut
+
+sub true_or_false ($) {
+  return 'true' if (defined $_[0] and $_[0] ne '0');
+  return 'false';
 }
 
 

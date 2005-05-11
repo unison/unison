@@ -1,7 +1,7 @@
 /* $RCSfile: Jmol.js,v $
  * $Author: mukhyala $
- * $Date: 2005/02/17 00:33:24 $
- * $Revision: 1.1 $
+ * $Date: 2005/03/21 18:11:44 $
+ * $Revision: 1.2 $
  *
  * Copyright (C) 2004  The Jmol Development Team
  *
@@ -341,10 +341,11 @@ function jmolScript(script, targetSuffix) {
     _jmolCheckBrowser();
     var target = "jmolApplet" + (targetSuffix ? targetSuffix : "0");
     var applet = _jmolFindApplet(target);
-    if (applet)
+    if (applet) { 
       return applet.script(script);
-    else
+	} else {
       alert("could not find applet " + target);
+	}
   }
 }
 
@@ -740,10 +741,11 @@ function _jmolSearchFrames(win, target) {
   } else { // look for the applet in this window
     var doc = win.document;
 // getElementById fails on MacOSX Safari & Mozilla	
-    if (doc.applets)
+    if (doc.applets) {
       applet = doc.applets[target];
-    else
+	} else {
       applet = doc[target];
+	}
   }
   return applet;
 }

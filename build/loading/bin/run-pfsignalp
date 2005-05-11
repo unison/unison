@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.5 2004/03/03 16:42:35 cavs Exp $
+# $Id: run-pfsignalp,v 1.6 2004/03/08 21:18:13 cavs Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -13,20 +13,28 @@ use IO::File;
 use Env qw(@PATH);
 use Bio::SeqIO;
 use Bio::PrimarySeq;
-use Getopt::Long;
+use Getopt::Long qw(:config gnu_getopt);
 use warnings;
 use strict;
 
 my %opts = 
   (
-   debug => 0
+   debug => 0,
+   params_id => 6,
+   verbose => 0,
+   #'seqs-per-run' => 50
   );
 GetOptions( \%opts,
-      'debug|d+' )
+			'debug|d+',
+			'force|f+',
+			'params_id|p=i',
+			'verbose|v+',
+			#'seqs-per-run|N=i',
+		  )
   || die("$0: usage\n");
 
-
 $opts{params_id} = 6;                # hardwired for now
+
 my $temp_in_fn =  "/tmp/run-pfsignalp-$$.fa";
 my $temp_out_fn = "/tmp/run-pfsignalp-$$.out";
 
@@ -43,7 +51,7 @@ die( "Signalp barfs on many seqs and large seq files.\n" .
 
 my $u = new Unison;
 
-my @cmd = ('signalp', split(' ',$u->run_commandline_by_params_id( $opts{params_id} )),$temp_in_fn,"1>$temp_out_fn");
+my $cmd = $u->run_commandline_by_params_id( $opts{params_id} ) . " $temp_in_fn 1>$temp_out_fn";
 my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
 my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,confidence,params_id) values (?,?,?,?,?)' );
 my $sthhmm = $u->prepare( 'insert into pfsignalphmm(pseq_id,start,stop,confidence,siganchor_prob,max_cleavage_prob,params_id) values (?,?,?,?,?,?,?)' );
@@ -62,14 +70,12 @@ PSEQ_ID: for(my $i=0; $i<=$#list; $i++) {
   $run_me{ $pseq_id }++;
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
-  printf(STDERR "retrieving Unison:%-8s (%5d AA) %4d/%4d %3d%% complete...\n",
-     $pseq_id, length($seq), ($i+1), ($#list+1), ($i+1)/($#list+1)*100 );
-  if      (not defined $seq) {
+  if (not defined $seq) {
     warn("$0: Unison:$pseq_id doesn't exist\n");
     return;
   } elsif ((length($seq) < $len_lower_cutoff) || (length($seq) >  $len_upper_cutoff)) {
     printf(STDERR "skipping Unison:%s since its len (%d) not in the range of [%d .. %d]\n",
-       $pseq_id, length($seq), $len_lower_cutoff , $len_upper_cutoff);
+		   $pseq_id, length($seq), $len_lower_cutoff , $len_upper_cutoff);
     next;
   }
 
@@ -80,7 +86,8 @@ $seqio->close();
 # run signalp
 if ( scalar(keys %run_me) > 0 ) {
 
-  system(join(' ',@cmd));
+  system($cmd) == 0
+	or die("$cmd failed: $?\n");
 
   my $fp = new IO::File $temp_out_fn;
   local $/='----------------------------------------------------------------------';

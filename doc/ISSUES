@@ -11,6 +11,15 @@ IMPORTANT:
   well.  Ex: given a good thread to pseq_id 333, how does one determine that
   333 is really a sigcleave'd fragment of 222 (case 1 above).
 
+* deprecate aliases
+Sequence aliases and identifiers may become obsolete between versions of a
+database (e.g., Swiss-Prot:T13X_HUMAN became TR13B_HUMAN). Although this
+isn't typically significant between two versions, the total accumulated
+number of obsolete aliases is steadily growing. Possible solution:
+load-pseq should provide an option which retires unused aliases. We need
+to consider the case of multi-file loads (e.g., Geneseq) which might only
+load a subset in any single run.
+
 * failed loading in paprospect
 If loads fail, run_history is updated nonetheless. This is bad.  On the
 other hand, we want to tolerate (at least) attempts to insert redundant
@@ -28,6 +37,18 @@ will change over time, thereby making run_history data incorrect. The
 options are to make such sets immutable (not possible for porigin), or
 better, attach time stamps to pmodelset and porigin rows, or to simply
 remove run_history rows when a pmodelset or porigin set is changed.
+
+* overriding inherited fields
+pmpseq (others?) override inherited fields (specifically, porigin_id and
+acc are made not null) and therefore conflicts conceptually with the
+parent and, more pragmatically, upon restore. We should strictly follow
+inheritance of columns AND their attributes.
+
+
+* linking
+URLs are stored in the porigin table, but they're not used by the web
+tools.  Solution: cache origin->url mapping, then use this to format. See
+U::WWW::utilities.pm.
 
 
 

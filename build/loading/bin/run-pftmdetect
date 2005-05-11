@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-pftmdetect,v 1.7 2004/07/27 17:41:54 rkh Exp $
+# $Id: run-pftmdetect,v 1.8 2004/12/24 00:09:46 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -37,7 +37,7 @@ my %opts = (
 		   );
 
 
-print(STDERR '$Id: run-pftmdetect,v 1.7 2004/07/27 17:41:54 rkh Exp $ ', "\n");
+print(STDERR '$Id: run-pftmdetect,v 1.8 2004/12/24 00:09:46 rkh Exp $ ', "\n");
 
 GetOptions(\%opts,
        'debug+',
@@ -137,6 +137,7 @@ $pipe->reader( @cl )
 # parse the results
 # we should do this in a pipe without the temp file...
 #Unison:291 1 (S) 7 0 17 0.999933
+my %tickled;								# pseq_ids which have been r_h tickled
 my $sql = 'insert into pftmdetect (pseq_id,pftype_id,start,stop,confidence,params_id) '.
   'values (?,?,?,?,?,?)';
 my $sth = $u->prepare( $sql );
@@ -149,7 +150,7 @@ while(<FP>) {
   if (not (($pseq_id) = $tmd[0] =~ m/^Unison:(\d+)$/)) {
 	die("$tmd[0]: looks like query sequences aren't from Unison!\n");
   }
-  delete $run_me{ $pseq_id };				# remaining keys are those with
+  delete $run_me{ $pseq_id };				# keys remaining after loading have
 											# no tmdetect results; see below
 
   my $pft;									# feature type
@@ -172,7 +173,7 @@ while(<FP>) {
 	die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
   };
 
-  my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+  my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef) if not $tickled{$pseq}++;
   print("Unison:$pseq_id: run_history tickled $z\n");
 }
 
