@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.43 2005/04/21 03:19:33 mukhyala Exp $>
+S<$Id: Page.pm,v 1.44 2005/05/11 21:53:21 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -93,6 +93,11 @@ sub new {
   };
 
 
+  $self->{userprefs} = $self->{unison}->get_userprefs();
+  $self->{readonly} = 1;
+  $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
+					  {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
+
   if (not exists $v->{pseq_id} and $infer_pseq_id) {
 	my @st = grep {exists $v->{$_}} qw(q pseq_id seq md5 alias);
 	if (@st > 1) {
@@ -111,11 +116,6 @@ sub new {
 	delete $v->{md5};
 	delete $v->{seq};
   }
-
-  $self->{userprefs} = $self->{unison}->get_userprefs();
-  $self->{readonly} = 1;
-  $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
-					  {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
 
   # if we've made it this far, we'll eventually get a page out
   $self->start_html;
@@ -295,25 +295,27 @@ sub render {
   my $elapsed = '';
 
   if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
-	$cnav = join('<p>',
+	if (dev_instance()) {
+	  $cnav .= '<center><span style="background-color: red"><b>development</b></span></center>';
+	}
+	if (not $self->{readonly}) {
+	  $cnav .= '<center><span style="background-color: lightgreen"><b>writable</b></span></center>';
+	}
+	$cnav .= join('<p>',
 				 map( {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
 					  # key-value pairs:
 					  (map {[$_ , (defined $self->{unison}->{$_} ? $self->{unison}->{$_} : 'unknown')]}
 					   qw(username host dbname)),
-
 					  ['db<br>release',
 					   $self->{unison}->selectrow_array
 					   ('select value::date from meta where key=\'release timestamp\'') || ''],
-
 					  ['API<br>release', $Unison::RELEASE],
-
 					  ['WWW<br>release', $Unison::WWW::RELEASE]
-					)
+					  ),
+				 ( dev_instance() ? $self->warn('This is a development
+		    		version of Unison. Pages may be unstable and features may change.
+		    		Do not bookmark this page.') : ''),
 				);
-	if (not $self->{readonly}) {
-	  $cnav .= '<p><center><span style="background-color: red">'
-		. '<b><i>&nbsp;&nbsp;writable&nbsp;&nbsp;</i></b></span></center>';
-	}
 	$elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
   }
 
@@ -326,7 +328,7 @@ sub render {
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-		  '<a title="Unison home page" href=".."><img class="logo" src="../av/unison.gif"></a>',
+		  '<a title="Unison home page" href=".."><img width="90%" class="logo" src="../av/unison.gif"></a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
@@ -340,9 +342,6 @@ sub render {
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '  <td class="body">', "\n",
 		  "  <b>$title</b><br>", "\n", 
-		    ( dev_instance() ? $self->warn('This is a development
-		    version of Unison. Pages may be unstable and features may change.
-		    Do not bookmark this page.') : ''),
 		  '  ', @_, "\n",
 		  '  </td>', "\n",
 		  "\n<!-- ========== end page content ========== -->\n",
@@ -561,7 +560,7 @@ sub best_annotation {
   my $self = shift;
   my $pseq_id = shift;
 
-  return( $self->tooltip( 'current "best" annotation', 'Best annotations are
+  return( $self->tooltip( '"best" annotation', 'Best annotations are
 					   a guess about the most informative and reliable
 					   annotation for this sequence from all source
 					   databases. Click the Aliases tab to see all
@@ -791,7 +790,17 @@ sub _navbar {
 	##   [ sub2, tooltip2, script2, args2 ],
 	##   ...
 	## ]
-	( [ # Analyze MENU
+	(
+	 [ # About menu
+	  ['About', 		'about Unison'],
+	  ['Unison', 		'about unison', 					'about_unison.pl'],
+	  ['Credits', 		'thanks, ma!',						'about_credits.pl'],
+	  ['Contents', 		'show unison meta information', 	'about_contents.pl'],
+	  ['Env', 			'Environment info', 				'about_env.pl'],
+	  ['Prefs',			'User Prefs', 						'about_prefs.pl'],
+	 ],
+
+	 [ # Analyze menu
 	   ['Analyze', 		'display precomputed analyses for a given sequence'],
 	   ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
@@ -831,23 +840,12 @@ sub _navbar {
 	  ],
 
 	  # empty list forces right-justification of subsequent menus
-	  [ [ '' ]  ],
+	  #[ [ '' ]  ],
 
-	  [
-	   ['Help', 		'Help using Unison'],
-	   ['Tips',			'Tips', 						'about_prefs.pl'],
-	  ],
-
-	  [
-	   ['Info', 		'about Unison'],
-	   ['About', 		'about unison', 				'about_unison.pl'],
-	   ['Contents', 	'show unison meta information', 'about_contents.pl'],
-	   ['Credits', 		'thanks, ma!',					'about_credits.pl'],
-	   ['Home', 		'go to Unison\'s low budget home page', '..'],
-	   ['Env', 			'Environment info', 			'about_env.pl'],
-	   ['Prefs',		'User Prefs', 					'about_prefs.pl'],
-	  ]
-
+	  #[
+	  # ['Help', 		'Help using Unison'],
+	  # ['Tips',			'Tips', 						'about_prefs.pl'],
+	  #],
 
 	  #[ # run menu
 	  # ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
@@ -869,22 +867,21 @@ sub _navbar {
 	);
 
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
-  # if (not defined $navi) {
-  # 	# oops... not in @navs
-  # 	push( @navs, [ $self->{Nav} ] );
-  # 	$navi = $#navs;
-  # }
-  # if (not defined $subnavi) {
-  # 	# oops... not in @{$navs[$navi]}
-  # 	push( @{$navs[$navi]}, [ $self->{SubNav}, undef ] );
-  # 	$subnavi = $#{$navs[$navi]};
-  # }
-
-  my $rv = '';
-  $rv .= make_navbar($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs);
+  my $rv = "\n  <table    class=\"nav\" width=\"100%\">"
+	. "\n    <tr>" . _make_navrow($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs) . '</tr>'
+	. "\n    <tr>" 
+	    . ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
+	    . '<td align="center"><img src="../av/v.gif"></td>'
+		. ($navi==$#navs ? '' : sprintf('<td colspan=%d></td>',$#navs-$navi))
+		. '</tr>'
+	. "\n  </table>\n";
+  # second-level "subnav" row:
   if (defined $navi) {
-	my @sn = @{$navs[$navi]}; shift @sn;
-	$rv .= make_navbar($subnavi, @sn);
+	my @nav = @{$navs[$navi]};
+	shift @nav;				# menu header is first item; menu items remain
+	$rv .= "\n  <table class=\"subnav\" width=\"100%\">" 
+	  . '<tr>' . _make_navrow($subnavi, @nav) . '</tr>'
+	  . "</table>\n";
   }
   return $rv;
 }
@@ -894,9 +891,10 @@ sub _find_nav_ids {
   my $self = shift;
   my @navs = @_;
   my $script = $self->url(-relative => 1);
+  $script =~ s/\?$//;
   for(my $i=0; $i<=$#navs; $i++) {
 	my @snavs = @{$navs[$i]};
-	shift @snavs;
+	shift @snavs;							# menu title
 	for(my $j=0; $j<=$#snavs; $j++) {
 	  return($i,$j) if (defined $snavs[$j]->[2] and $snavs[$j]->[2] eq $script);
 	}}
@@ -906,23 +904,25 @@ sub _find_nav_ids {
 
 
 
-sub make_navbar {
-  # $sel is which is selected
+sub _make_navrow {
+  # makes one row of the navbar as an array of <td>...</td> objects
+  # $sel is which is selected, and may be undef
   # @tu = array ref of [text,tooltip,url,params]
   my ($sel,@tu) = @_;
-  my $spacer = '<td width="%80"></td>';
+  my $spacer = '<td width="%80">&nbsp;</td>';
   my @nav = ();
   for(my $i=0; $i<=$#tu; $i++) {
 	my ($text,$tooltip,$url,$params) = @{$tu[$i]};
-	$text =~ s/ /&nbsp;/g;
 	if ($text eq '') {
 	  push(@nav, $spacer);
 	  $spacer = '';
 	  next;
 	}
-	my $cl = 'unselected';
+
+	$text =~ s/ /&nbsp;/g;					# make tab headings non-breaking
 	$tooltip = defined $tooltip ? ' tooltip="'.$tooltip.'"' : '';
 	$url .= "?$params" if defined $params;
+	my $cl = 'unselected';
 	if (defined $sel and $sel == $i) {
 	  $cl = 'selected';
 	  $url = undef;
@@ -931,10 +931,7 @@ sub make_navbar {
 		 . (defined $url ? "<a href=\"$url\"$tooltip>$text</a>" : "<span$tooltip>$text</span>")
 		 . "</td>" );
   }
-  return( '<table class="nav" width="100%">'
-		  . join('<td class="spc" width=1></td>', @nav)
-		  . $spacer
-		  . '</table>' );
+  return( join('', @nav) . $spacer );
 }
 
 sub _make_temp_dir () {
