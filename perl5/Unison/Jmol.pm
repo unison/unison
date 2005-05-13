@@ -33,7 +33,7 @@ sub initialize{
     my $retval;
     my $stringio = IO::String->new($retval);
     my $select_chain = ":".uc(substr($name,4,1)).".*";
-    $stringio->print($pseq_structure->set_js_vars());
+    $stringio->print($pseq_structure->set_js_vars(1));
     $stringio->print("<center><table border=\"1\" cellpadding=\"5\"><tr><td><script>jmolInitialize(\"../js/jmol/\");");
     $stringio->print("jmolApplet([$self->{'width'}, $self->{'height'}], \"load ../js/Jmol/pdb/all.ent/$fn; set frank off;spacefill off; wireframe off; cartoon on; color cartoon yellow; select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;");
     $stringio->print($self->highlights($select_chain)) if(defined($self->{'highlights'}));
@@ -43,6 +43,26 @@ sub initialize{
     $stringio->print("<tr><td><script>jmolCheckbox(\"select all; cartoon on;\",\"cartoon on; select $select_chain; restrict selected; center $select_chain;zoom 150;\",\"show all chains\")</script><td></tr></table></td>");
     $stringio->print("</tr></table></center>");
     return( $retval );
+}
+
+sub initialize_inline {
+  my ($self,$coord,$script,$pseq_structure) = @_;
+  my ($retval);
+  my $c = "\"\"";
+  my $stringio = IO::String->new($retval);
+  $stringio->print($pseq_structure->set_js_vars(0)) if(defined($pseq_structure));
+  $stringio->print("<center><table border=\"1\" cellpadding=\"5\"><tr><td><script>jmolInitialize(\"../js/jmol/\");");
+
+  foreach my $line(split(/\n/,$coord)) {
+    if($line =~ /^ATOM/) {
+      $c .= "+\"$line\\n\"\n" if($line =~ /CA/);
+    }
+  }
+  $stringio->print("var myPdb = $c;");
+  $stringio->print("jmolAppletInline([$self->{'width'}, $self->{'height'}],myPdb,\"$script\");");
+  $stringio->print("</script></td>");
+  $stringio->print("</tr></table></center>");
+  return( $retval );
 }
 
 sub load{
