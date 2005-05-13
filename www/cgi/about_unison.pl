@@ -20,21 +20,22 @@ print $p->render("About Unison", <<EOT );
 
 <h3>WHAT IS UNISON, IN A NUTSHELL?</h3>
 
-Unison is a database of non-redundant protein sequences, extensive
-precomputed sequence- and structure-based predictions for those sequences,
-and auxiliary information which facilitates the interpretation of these
-predictions.  The intent is to integrate data types in order to enable
-meaningful, holistic queries.  Because results are precomputed and indexed
-for fast access, Unison enables answers to complex queries that were
-previously impractical.
-
+Unison is a database of non-redundant protein sequences and extensive
+<i>precomputed</i> predictions for those sequences.  Unison's primary
+mission is to enable Genentech to ask and answer proteomic queries for
+target discovery more efficiently, more completely, more reliably, and
+more often, and to enable queries which were previously impractical.
 
 <h3>WHAT CAN I DO WITH UNISON?</h3>
 <dl>
-  <dt><b>Answer complex, integrative queries efficiently.</b>
-  <dd>Because precomputed results and auxiliary data are integrated within one resource,
-  it is possible construct holistic queries and test complex
-  hypotheses. <!--[ITIM EXAMPLE]-->
+
+  <dt><b>Answer complex, integrative queries efficiently.</b> <dd>Because
+  precomputed results and auxiliary data are integrated within one
+  resource, it is possible construct holistic queries which span multiple
+  types and sources of data. For example: Identify distinct sequences
+  which contain an extracellular immunoglobulin (ig) domain by Pfam,
+  followed by a transmembrane region, followed by an Immunoreceptor
+  Tyrosine Inhibitory Motif (ITIM). Unison answers this in ~18 seconds.
 
   <dt><b>Analyze protein structure models.</b>
   <dd>Unison provides comprehensive sequence-sequence, sequence-profile,
@@ -46,8 +47,10 @@ previously impractical.
 
   <dt><b>Generate <i>in silico</i> hypotheses.</b>
   <dd>Precomputed results also enable rapid responses to "what-if?"
-  questions and the formulation of new hypotheses. <!--[ITIM EXAMPLE]-->
-  Using Unison in this way requires some experience with SQL.
+  questions and the formulation of new hypotheses. For example: What
+  Pfam domains occur upstream of a transmembrane domain and an ITIM?
+  Unison answers this in 30 seconds.
+
 </dl>
 
 <h3>HOW DO I GET STARTED?</h3>
