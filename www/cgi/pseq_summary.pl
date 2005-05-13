@@ -17,24 +17,22 @@ use Unison::Utilities::pseq_features;
 
 sub sequence_group ($);
 sub aliases_group ($);
-sub homologs_group ($);
 sub features_group ($);
-sub mint_group($);
+sub homologs_group ($);
 
 
 my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.27 2005/05/11 21:53:21 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.28 2005/05/13 01:44:39 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
 				 '<p>', sequence_group($p),
 				 '<p>', aliases_group($p),
-				 '<p>', homologs_group($p),
 				 '<p>', features_group($p),
-				 '<p>', mint_group($p),
+				 '<p>', homologs_group($p),
 				);
 
 exit(0);
@@ -77,9 +75,10 @@ sub aliases_group ($) {
 						   all of the known names for this exact
 						   sequence.'),
 					$#$ar+1),
+			Unison::WWW::Table::render(\@f,$ar),
 			'These are the aliases from the most reliable sources only; see also ',
-			'<a href="pseq_paliases.pl?pseq_id=', $v->{pseq_id}, '">other aliases</a><p>',
-			Unison::WWW::Table::render(\@f,$ar));
+			'<a href="pseq_paliases.pl?pseq_id=', $v->{pseq_id}, '">other aliases</a>'
+		   );
 }
 
 
@@ -182,6 +181,7 @@ sub features_group ($) {
   my $imagemap = '';
   my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png');
   my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
+  $opts{features}{$_}++ foreach qw(ssp_psipred signalp hmm );
 
   my $panel = Unison::Utilities::pseq_features::pseq_features_panel($u,%opts);
   
@@ -200,30 +200,10 @@ sub features_group ($) {
 						 ($attr->{href} ? "HREF=\"$attr->{href}\"" : '') );
   }
 
-  $p->group($p->tooltip('Features','precomputed results for this
-						   sequence. NOTE: Not all sequences have all
-						   results precomputed -- see the History tab to
-						   determine which analysis have been performed'),
-						   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
-						   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n");
-}
-
-sub mint_group ($) {
-  my $p = shift;
-  my $u = $p->{unison};
-  my $v = $p->Vars();
-
-  my $sql = qq/select sprot_a, best_alias(pseq_id_a), sprot_b, pseq_id_b, best_alias(pseq_id_b), count(*)
-      from v_mint
-      where pseq_id_a=$v->{pseq_id} group by sprot_a, sprot_b, pseq_id_a, pseq_id_b/;
-
-  my $ar = $u->selectall_arrayref($sql);
-  do { $_->[0] = alias_link($_->[0],'Mint') } for @$ar;
-  do { $_->[2] = alias_link($_->[2],'Mint') } for @$ar;
-  do { $_->[3] = pseq_summary_link($_->[3],$_->[3]) } for @$ar;
-  my @f = qw ( sprot_a alias_a sprot_b pseq_id_b alias_b count );
-  $p->group(sprintf('%s (%d)',
-					$p->tooltip('MINT', 'Molecular INTeraction database'),
-					$#$ar+1),
-			Unison::WWW::Table::render(\@f,$ar));
+  $p->group($p->tooltip('Features','a selection of precomputed results for this sequence.'),
+			"<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
+			"\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n",
+			'See also: <a href="pseq_features.pl?pseq_id=', $v->{pseq_id}, '">a summary of all features</a>',
+			' and <a href="pseq_history.pl?pseq_id=', $v->{pseq_id}, '">run history</a>'
+		   );
 }
