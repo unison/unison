@@ -8,7 +8,7 @@ use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
 use Data::Dumper;
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page;

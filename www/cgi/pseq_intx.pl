@@ -7,14 +7,14 @@ use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.20 2004/06/14 23:40:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_mint.pl,v 1.2 2004/06/25 00:20:14 rkh Exp $ ');
 
 my $sql = qq/select pseq_id_b, sprot_b, best_annotation(pseq_id_b), pmid, interaction_detection_method
       from v_mint where pseq_id_a=$v->{pseq_id}/;

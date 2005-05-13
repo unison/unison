@@ -20,11 +20,14 @@ my $ar = $u->selectall_arrayref($sql);
 my @f = qw( key value );
 
 my $thanks = <<EOF;
+<p>Unison was developed by Reece Hart, with assistance
+from David Cavanaugh and Kiran Mukhyala.
+
 <p>Many thanks to the developers of the following freely available packages:
 <table width="80%">
 <tr>
 	<td align="center"></td>
-	<td align="left"><a href="http://gwiz/groups/Bioinfo/">Genentech Bioinformatics Department</a></td>
+	<td align="left"><a href="http://gwiz.gene.com/groups/Bioinfo/">Genentech Bioinformatics Department</a></td>
 </tr>
 
 <tr>
@@ -65,7 +68,7 @@ my $thanks = <<EOF;
 
 <tr>
 	<td align="center"><img height=30 src="../av/ncbi.gif" alt="NCBI"></td>
-	<td align="left"><a href="http://www.ncbi.nlm.nih.gov/">NCBI</a> for CDD, RefSeq</td>
+	<td align="left"><a href="http://www.ncbi.nlm.nih.gov/">NCBI</a> for BLAST, CDD, RefSeq, Taxonomy</td>
 </tr>
 
 <tr>
@@ -86,6 +89,11 @@ my $thanks = <<EOF;
 <tr>
 	<td align="center"></td>
 	<td align="left"><a href="http://scop.berkeley.edu/">SCOP - Structural Classifcation of Proteins</a></td>
+</tr>
+
+<tr>
+	<td align="center"></td>
+	<td align="left"><a href="http://www.uniprot.org/">UniProt</a></td>
 </tr>
 
 <tr>

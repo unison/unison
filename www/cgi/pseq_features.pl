@@ -7,7 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::Exceptions;
 use Unison;
