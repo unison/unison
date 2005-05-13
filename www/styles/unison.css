@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.16 2005/05/12 22:49:35 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.17 2005/05/13 02:00:36 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -46,6 +46,7 @@ TABLE.nav TR TD.unselected {
  padding-left: 5px;
  padding-right: 5px;
  background: #E2E0F3;
+ /* border-top: #FFFFEB thick solid; */
 }
 TABLE.nav TD.selected {
  width: 50px;
@@ -54,6 +55,9 @@ TABLE.nav TD.selected {
  background: #150067;
  font-weight: bold;
  color: white;
+ /* border-top: #150067 thick solid; */
+ /* border-left: #150067 thick solid; */
+ /* border-right: #150067 thick solid; */
 }
 TABLE.nav TD.selected:hover {
  background: lightgrey;
