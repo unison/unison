@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.15 2004/06/25 00:20:14 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.16 2005/05/12 22:49:35 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -36,14 +36,10 @@ TABLE.page TD.footer {
 }
 
 
-/* navbars */
-/* types; "nav", "subnav", context nav "cnav" */
+/* nav and subnav bars */
 TABLE.nav {
  border: none;
  color: black;
-}
-TABLE.subnav {
- border: #150067 medium solid;
 }
 TABLE.nav TR TD.unselected {
  width: 50px;
@@ -59,6 +55,28 @@ TABLE.nav TD.selected {
  font-weight: bold;
  color: white;
 }
+TABLE.nav TD.selected:hover {
+ background: lightgrey;
+ cursor:pointer;cursor:hand;
+}
+TABLE.nav TD.unselected:hover {
+ background: lightgrey;
+ cursor:pointer;cursor:hand;
+}
+TABLE.nav TD.selected A {
+ color: #ffffff;
+ font-weight: bold;
+ text-decoration: none;
+}
+TABLE.nav TD.unselected A {
+ color: #000000;
+ text-decoration: none;
+}
+
+
+TABLE.subnav {
+ border: #150067 medium solid;
+}
 TABLE.subnav TR TD.unselected {
  width: 50px;
  padding-left: 5px;
@@ -73,23 +91,24 @@ TABLE.subnav TD.selected {
  font-weight: bold;
  color: white;
 }
-TD.selected:hover {
+TABLE.subnav TD.selected:hover {
  background: lightgrey;
  cursor:pointer;cursor:hand;
 }
-TD.unselected:hover {
+TABLE.subnav TD.unselected:hover {
  background: lightgrey;
  cursor:pointer;cursor:hand;
 }
-TD.selected A {
+TABLE.subnav TD.selected A {
  color: #ffffff;
  font-weight: bold;
  text-decoration: none;
 }
-TD.unselected A {
+TABLE.subnav TD.unselected A {
  color: #000000;
  text-decoration: none;
 }
+
 
 
 
