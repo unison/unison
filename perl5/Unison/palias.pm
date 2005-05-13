@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.17 2005/03/19 21:11:54 rkh Exp $>
+S<$Id: palias.pm,v 1.18 2005/05/11 21:53:41 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -110,6 +110,12 @@ sub get_pseq_id_from_alias {
   (defined $alias)
 	|| throw Unison::RuntimeError("alias not defined");
   my @ids;
+
+  # Unison pseq_ids, qualified by origin
+  # this should be extended to other origins
+  if ($alias =~ m/Unison:(\d+)/i) {
+	return $1;
+  }
 
   # Genentech-only: if it looks like an Genentech UNQ, DNA, or PRO, 
   # do that search only.

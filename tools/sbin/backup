@@ -1,6 +1,6 @@
 #!/bin/bash
 # csb-db/sbin/backup -- backup the csb database
-# $Id: backup,v 1.20 2004/04/28 17:46:13 rkh Exp $
+# $Id: backup,v 1.21 2004/12/24 00:10:05 rkh Exp $
 #
 # you must set PGPASSWORD before running
 # this script any user with write permission in BACKUPDIR (below) should
@@ -21,8 +21,8 @@
 
 
 BACKUPDIR="$HOME/csb-db/backups"
-PATH=/gne/compbio/i686-linux-2.4/bin:/usr/bin:/bin
-PGD_OPTS="-X disable-triggers -X use-set-session-authorization -Ucompbio"
+PATH=/usr/bin:/bin
+PGD_OPTS="-Upostgres"
 
 source `dirname $0`/utils
 
@@ -39,7 +39,7 @@ fi
 
 case `hostname` in
     csb)
-    	PGHOST=;;
+    	PGHOST=localhost;;
     *) 
     	PGHOST=csb;;
 esac
@@ -48,7 +48,7 @@ export PGHOST
 
 #DATE=`date +%Y-%m-%d-%H:%M`;
 DATE=`date +%Y-%m/%Y-%m-%d-%H:%M`;
-R="$BACKUPDIR/$PGDATABASE/$DATE.pgdump$PGD_SOPT"
+R="$BACKUPDIR/$PGDATABASE/$DATE.pgdump${PGD_SOPT}"
 mkdir -p "`dirname $R`"
 
 
@@ -61,10 +61,11 @@ trap cleanup EXIT
 OPTS="$PGD_SOPT $PGD_OPTS $TABLE $PGDATABASE"
 logger "starting backup (PGHOST=$PGHOST; OPTS=$OPTS)"
 logger "logging to $R.err"
-(time -p pg_dump $OPTS | gzip -cq) >"$R".gz 2>"$R".err
+#(time -p pg_dump $OPTS | gzip -cq) >"$R".gz 2>"$R".err
+(time -p pg_dump -Fc $OPTS) >"$R" 2>"$R".err
 E="$?"
-S=`perl -le 'printf( "%.2f", (-s $ARGV[0]) / 2**20)' "$R".gz`
-logger "backup in $R.gz ($S MB)"
+S=`perl -le 'printf( "%.2f", (-s $ARGV[0]) / 2**20)' "$R"`
+logger "backup in $R ($S MB)"
 logger "backup completed; status $E; time: `tr '\012' , <"$R".err`"
 
 

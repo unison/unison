@@ -1,68 +1,57 @@
 -*-outline-*-
 
-IMPORTANT:
-- The database user is compbio. You must become that user for these to work
-- make sure that you're using the postgresql tools in
-  /apps/compbio/i686-linux-2.4/opt/postgresql/bin/.  It usually suffices
-  to have /a/c/i686-linux-2.4/bin/ in your PATH ahead of system bin/
-  directories.
-- $ export PGDATA=/services/postgresql
-- $ unset PGUSER
-- $ unset PGHOST
-
+* DO THIS FIRST. I MEAN IT.
+$ sudo -H -s -u postgres
+$ unset PGHOST PGPORT
+$ export PGUSER=postgres
+$ export PGDATA=/srv/postgresql
 
 * preparing and starting a database "cluster" (instance of postgresql) for the first time
-$ audit compbio
-$ unset PGUSER PGDATABASE PGHOST PGPORT
-$ initdb -U compbio -D $PGDATA
-$ pg_ctl -D $PGDATA start
-$ psql -U compbio -d template1 -c "alter user compbio password 'thepass'";
+$ initdb --locale=C -D $PGDATA
+$ pg_ctl -D $PGDATA -l $PGDATA/postgresql.log start
+
+* configure the cluster
+$ psql -d template1 -c "alter user $PGUSER password 'thepass'";
 $ cp csb-db/conf/{postgresql.conf,pg_hba.conf} $PGDATA/
 $ pg_ctl -l $PGDATA/log -D $PGDATA restart
-$ psql -Ucompbio -dtemplate1 -c 'select version()'  ## to test connection
-$ createuser -i2 -Ucompbio -A -D    PUBLIC
-$ createuser -i3 -Ucompbio -A -D -P unison
-$ createuser -i4 -Ucompbio -A -D -P loader
-$ csb-db/sbin/passwd2sql </etc/passwd -g1279 -g227 -g199 -g136 -g140 | psql -dtemplate1 -Ucompbio -qaf-
-
 
 * languages and unison C functions
 $ cd csb-db/unison/src
 $ make unison.so
 $ make install
 
-## DEPRECATED -- DON'T DO THE FOLLOWING
-# We're better off doing it for the database itself, NOT template1
-$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plpgsql
-$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plperl
-$ PGPASSWORD= createlang -dtemplate1 -Ucompbio plperlu
+* creating users
+$ createuser -i2 -A -D    PUBLIC
+$ createuser -i3 -A -D -P unison
+$ createuser -i4 -A -D -P loader
+$ csb-db/sbin/passwd2sql </etc/passwd -g1279,227,199,136,140,201,202,984,81 \
+  | psql -Upostgres -hcsb -dtemplate1 -qaf-
 
 
+* stopping/starting/restarting the database
+$ pg_ctl -l $PGDATA/postgresql.log stop
+$ pg_ctl -l $PGDATA/postgresql.log start
+$ pg_ctl -l $PGDATA/postgresql.log restart
 
-* (re-)starting the database
-$ export PGDATA=/services/postgresql
-$ pg_ctl -l$PGDATA/log restart    # works even if not already running
+* backups and restore
+backups are kept in ~rkh/csb-db/backups/csb/.
 
+Prior to 2005-02-02, full backups are named <timestamp>.pgdump.gz;
+schema-only backups are named <timestamp>-s.pgdump.gz. 'pgdump-s' files
+are schema-only. Either type may be resotred with psql, like this:
+$ gzip -cdq backup.pgdump.gz | psql -dcsb-dev -af- >restore.log 2>&1
 
-* backups and restoration; csb-dev creation
-backups are kept in ~rkh/csb-db/backups/csb/. Full backups are named
-<timestamp>.pgdump.gz; schema-only backups are named
-<timestamp>-s.pgdump.gz. 
-
-The basic DIY restore is like this:
-$ gzip -cdq backup.sql | psql -dcsb-dev -Ucompbio -af- >restore.log 2>&1
-
-Instead, use csb-db/sbin/restore, like this:
-$ PGPASSWORD=xxx PGDATABASE=csb-dev restore <timestamp.pgdump.gz>
-
+Beginning 2005-02-02, I started using pg_dump "custom" format. These are
+stored in the same directory. Individual records in the dump are
+compressed, but the archive itself is not. See pg_restore for information
+on restoring, but it goes something like this:
+$ createdb csbA
+$ pg_restore -v -dcsbA 2005-02-02-06\:20.pgdump >|csbA.restore 2>&1 &
+I /highly/ recommend creating into an empty database with an unlikely db
+name to preclude inadvertenly overwritting an existing db.
 
 * setting the default database schema search path:
-$ psql -Ucompbio -c "alter database csb set search_path = '\$user',unison,gong,scop,tax,public";
-pg_restore -a -v -p5433 -d csb-dev -S compbio -U compbio --disable-triggers --use-set-session-authorization  csb.pgd
-
-
-
-* copying a list of users
-$ psql -At -dtemplate1 -c 'select usename from pg_user' >|/tmp/logins
-(see pg_dumpall -g too)
+$ export PGDATABASE=csb-dev
+$ psql -c "alter database $PGDATABASE set search_path = '\$user',unison,gong,scop,tax,public";
+Note: You should connect to the same database that you're modifying, as above.
 
