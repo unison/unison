@@ -19,7 +19,7 @@ my %cv = %{ $u->selectall_hashref(
 	'select cv_id,name,descr,sql from canned_views where cv_id>0',
  	'cv_id') };
 my @cv = sort {$a<=>$b} keys %cv;
-my %cvlabels = map {$_ => sprintf("%s (view %d)",$cv{$_}->{name}, $_)} @cv;
+my %cvlabels = map {$_ => sprintf("%s (canned view %d)",$cv{$_}->{name}, $_)} @cv;
 
 my %coldescr = (
 				'pseq_id' => 'Unison unique sequence identifier',
@@ -41,9 +41,9 @@ my %coldescr = (
 			   );
 
 
-print $p->render('Browse Unison Views',
+print $p->render('Browse Unison Canned Views',
 
-				 $p->warn('Canned queries on this page may be
+				 $p->warn('"Canned" queries on this page may be
 				 computationally expensive and take several minutes to
 				 complete. Please be patient and click vroom! only once.'),
 

@@ -26,7 +26,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.26 2005/04/04 18:46:40 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.27 2005/05/11 21:53:21 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
@@ -193,9 +193,11 @@ sub features_group ($) {
   foreach my $box ( $panel->boxes() ) {
 	my ($feature, $x1, $y1, $x2, $y2) = @$box;
 	my $attr = $feature->{attributes};
-	next unless defined $attr;
-	$imagemap .= sprintf('<AREA SHAPE="RECT" COORDS="%d,%d,%d,%d" TOOLTIP="%s" HREF="%s">'."\n",
-						 $x1,$y1,$x2,$y2, $attr->{tooltip}||'', $attr->{href}||'');
+	next unless defined $attr;				# if no tooltip or href, then no need for map
+	$imagemap .= sprintf("<AREA SHAPE=\"RECT\" COORDS=\"%d,%d,%d,%d\" %s %s>\n",
+						 $x1,$y1,$x2,$y2,
+						 ($attr->{tooltip} ? "TOOLTIP=\"$attr->{tooltip}\"" : ''),
+						 ($attr->{href} ? "HREF=\"$attr->{href}\"" : '') );
   }
 
   $p->group($p->tooltip('Features','precomputed results for this

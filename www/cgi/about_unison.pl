@@ -16,7 +16,7 @@ my $v = $p->Vars();
 
 print $p->render("About Unison", <<EOT );
 
-<DIV STYLE="overflow: auto; height: 400px; padding:0px; margin: 0px">
+<!-- DIV STYLE="overflow: auto; height: 400px; padding:0px; margin: 0px" -->
 
 <h3>WHAT IS UNISON, IN A NUTSHELL?</h3>
 
@@ -56,30 +56,34 @@ previously impractical.
 <p>Sequences in Unison are culled from numerous sources and include both
 well-annotated sequences (<i>e.g.,</i> from UniProt, Derwent Geneseq) and
 speculative sequences (<i>e.g.,</i> from Ensembl, gene transcript
-predictions, raw 6-frame translations).  Sequences are stored
+predictions, raw 6-frame translations).  The intent is to provide a
+superset of all available sequences. Sequences are stored
 <i>non-redundandtly</i> and are given a permanent identifier, a
 <code>pseq_id</code>.  Sequences are never deleted or modified, and the
 corresponding <code>pseq_id</code> is never changed. [<a
 href="pseq_summary.pl?pseq_id=76">example</a>]
 
-<p>Of course, sequences are imported from highly redundant source
-databases.  The source databases, accessions, and descriptions of each
-sequence are stored in Unison and provide a record of when a sequence was
-loaded. [<a href="pseq_paliases.pl?pseq_id=76">example</a>].  Each origin
-is ranked for its reliability and informative content, and this is the
-basis for providing a heuristic "best annotation" for each sequence as
-seen in the example.
+<p>Although sequences in Unison are stored non-redundantly, they came from
+many highly redundant databases. Each of those databases typically
+provides an accession number, a name, and a description for the sequence.
+Unison stores this annotation with each sequence and the date that the
+sequence was loaded from each source database and this provides a record
+of when a sequence was loaded. Furthermore, each origin is ranked for its
+reliability and informative content, and this is used to provide a
+heuristic "best annotation" for each sequence as seen in the example.  [<a
+href="pseq_paliases.pl?pseq_id=76">example</a>]
 
-<p>After sequences are loaded, a set of sequences which are most likely to
-be reliable targets is built based on origin, species, and other
-properties.  These sequences are subjected to an array of algorithms whose
-results are stored.  The predictions currently include signal sequence,
-transmembrane prediction, GPI anchoring, antigenicity, and alignments from
-BLAST, HMM (Pfam) alignments, and threading, and many others.  Unison's
-bookkeeping about which algorithms have been run (and how) provides a
-powerful mechanism for keeping Unison sequences and results up to date.
+<p>After sequences are loaded, a set of reliable sequences is built based
+on origin, species, and other properties.  These sequences are subjected
+to an array of algorithms whose results are stored.  The predictions
+currently include signal sequence, transmembrane prediction, GPI
+anchoring, antigenicity, and alignments from BLAST, HMM (Pfam) alignments,
+and threading, and many others.  Unison's bookkeeping about which
+algorithms have been run (and how) provides a powerful mechanism for
+keeping Unison sequences and results up to date [<a
+href="pseq_history.pl?pseq_id=76">example</a>].
 
-<p>All precomputed results are linked directly to the pseq_id [<a
+<p>All precomputed results are linked directly to the <code>pseq_id</code> [<a
 href="pseq_features.pl?pseq_id=76">example</a>].  And because precomputed
 results are linked to immutable sequences, there's no issue about results
 being "stale" with respsect to a changed sequence.  Unison also
@@ -89,8 +93,9 @@ compare several sets of analyses.
 <p>Unison integrates many other data sources which are useful in
 querying. For example, NCBI's Homologene enables queries to require that a
 human putative target also has a homolog in mouse or rat with similar
-protein features.  Patents, Gene Ontology, NCBI taxonomy, and genomic
-localization are also available in Unison.
+protein features.  The Structural Classification of Proteins (SCOP),
+Patents, Gene Ontology, NCBI taxonomy, and genomic localization and
+clustering are also available in Unison.
 
 
 <h3>HOW DO I GET STARTED?</h3>
@@ -112,6 +117,6 @@ saved search strategies and are good starting points for common searches.
 (Send Reece mail if you want to design other views.)
 </ul>
 
-</DIV>
+<!-- /DIV -->
 EOT
 

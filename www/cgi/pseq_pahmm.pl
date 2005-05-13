@@ -7,7 +7,7 @@ use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page;
@@ -15,7 +15,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 $v->{params_id} = 15 unless defined $v->{params_id};
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.8 2004/07/14 00:20:25 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.9 2005/01/04 22:45:20 mukhyala Exp $ ');
 
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});

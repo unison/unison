@@ -7,14 +7,14 @@ use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::utilities qw(alias_link text_wrap);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.13 2004/06/25 00:20:14 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.14 2005/05/11 21:53:21 rkh Exp $ ');
 
 my $sql = qq/select origin,alias,descr from v_current_annotations
 			where pseq_id=$v->{pseq_id} AND porigin_id!=porigin_id('geneseq')/;
