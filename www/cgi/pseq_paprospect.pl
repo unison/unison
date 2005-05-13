@@ -47,16 +47,23 @@ my @scop_cols=
 
 my $p = new Unison::WWW::Page;
 my $v = $p->Vars();
+my $u = $p->{unison};
+
+my @ps = $u->get_params_info_by_pftype('prospect2');
+my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
+
 $v->{params_id} = 1 unless defined $v->{params_id};
 $v->{pmodelset_id} = undef unless defined $v->{params_id};
 $v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
 $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
-$v->{viewer} = 'pymol' unless defined $v->{viewer};
+$v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
+
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.23 2005/04/20 21:43:20 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.24.2.1 2005/05/13 18:48:41 rkh Exp $ ');
+
 
 
 my @cols;
@@ -69,7 +76,6 @@ my %order_by = map {$_->[2]=>$_->[3]} grep {defined $_->[2]} @cols;
 my %sort_col = map {$_->[2]=>$_->[1]} grep {defined $_->[2]} @cols;
 
 
-my $u = $p->{unison};
 my $sql = new Unison::SQL;
 my $ob = $order_by{$v->{sort}};
 my $sc = $sort_col{$v->{sort}};
@@ -209,8 +215,6 @@ if ($N-1-$v->{offset}>0) {
 my $ctl = '<table border=0><tr>' . join('',map {"<td>$_</td>"} @ctl) . '</tr></table>';
 
 
-my @ps = @{ $u->selectall_arrayref("select params_id,name from only params where pftype_id=pftype_id('Prospect2') order by params_id") };
-my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset order by pmodelset_id') };
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
@@ -236,8 +240,8 @@ print $p->render
    '&nbsp;&nbsp;',
 
    '<br>viewer: ',$p->radio_group(-name => 'viewer',
-								  -values => ['pymol','rasmol','jmol'],
-								  -default => 'pymol'),
+								  -values => ['jmol','pymol', 'rasmol'],
+								  -default => 'jmol'),
    '&nbsp;&nbsp;',
 
    $p->submit(-value=>'redisplay'),
