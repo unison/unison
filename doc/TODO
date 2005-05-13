@@ -15,3 +15,5 @@ rename Analysis to Protein?
 - what should pseq_summary do if pseq_id is missing?
 - top level entry point
 
+* popups and redisplay
+consider automatic submit for redisplay when user selects from popup

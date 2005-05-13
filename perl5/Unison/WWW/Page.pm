@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.45 2005/05/13 01:45:04 rkh Exp $>
+S<$Id: Page.pm,v 1.46.2.1 2005/05/13 18:48:42 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -806,7 +806,7 @@ sub _navbar {
 	   ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
 	   ['Structure',	'structural features', 				'pseq_structure.pl', $pseq_id ],
 	   ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id;params_id=1"],
+	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id"],
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	   ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	   ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl', $pseq_id ],
