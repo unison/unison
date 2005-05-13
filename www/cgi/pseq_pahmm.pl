@@ -13,10 +13,13 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$v->{params_id} = 15 unless defined $v->{params_id};
-$p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.9 2005/01/04 22:45:20 mukhyala Exp $ ');
 
+my @ps = $u->get_params_info_by_pftype('hmm');
+my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
+
+$v->{params_id} = $ps[0]->[0] unless defined $v->{params_id};
+$p->ensure_required_params(qw(pseq_id params_id));
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.10 2005/05/13 01:44:39 rkh Exp $ ');
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
 select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
@@ -26,9 +29,6 @@ EOSQL
 my $ar = edit_rows( $u->selectall_arrayref($sql,undef) );
 my @f = ('aln?', 'name', 'start-stop', 'mstart-mstop', '[]', 'score', 'eval');
 
-
-my @ps = @{ $u->selectall_arrayref("select params_id,name from params where name~'^Pfam' order by name") };
-my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 
 
 print $p->render
