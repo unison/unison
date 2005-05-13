@@ -22,6 +22,7 @@ my $v = $p->Vars();
 my $sql = qq/select pstart,pstop,pct_ident,G.name,chr,gstart,gstop
 			from blatloci L  join genasm G on L.genasm_id=G.genasm_id where L.pseq_id=$v->{pseq_id}/;
 
+## BUG: the genasm_id isn't passed to the Unison or geode views.
 
 try {
   my $ar = $u->selectall_arrayref($sql);
@@ -34,6 +35,7 @@ try {
 
   print $p->render("Loci of Unison:$v->{pseq_id}",
 				   $p->best_annotation($v->{pseq_id}),
+				   '<p> THIS PAGE IS UNDER DEVELOPMENT.',
 				   '<p>',
 				   $p->group("Loci",
 							 Unison::WWW::Table::render(\@f,$ar)),

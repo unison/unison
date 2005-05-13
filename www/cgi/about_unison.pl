@@ -34,22 +34,48 @@ previously impractical.
   <dt><b>Answer complex, integrative queries efficiently.</b>
   <dd>Because precomputed results and auxiliary data are integrated within one resource,
   it is possible construct holistic queries and test complex
-  hypotheses. [ITIM EXAMPLE]
-
-  <dt><b>Generate <i>in silico</i> hypotheses.</b>
-  <dd>Precomputed results also enable rapid responses to "what-if?"
-  questions and the formulation of new hypotheses. [ITIM EXAMPLE]
+  hypotheses. <!--[ITIM EXAMPLE]-->
 
   <dt><b>Analyze protein structure models.</b>
-  <dd>Unison's bread and butter is protein structural analyses. Unison
-  provides comprehensive sequence-sequence, sequence-profile,
+  <dd>Unison provides comprehensive sequence-sequence, sequence-profile,
   sequence-structure, and structure-structure alignments. These provide
   mechanisms to, for example, explore the structural effects of sequence
   variants (even on modeled structures) and to study the sequence
-  divergence among structurally related proteins. [SNP EXAMPLE] [KINASE
-  GATEKEEPER EXAMPLE]
+  divergence among structurally related proteins. <!--[SNP EXAMPLE]-->
+  <!--[KINASE GATEKEEPER EXAMPLE]-->
+
+  <dt><b>Generate <i>in silico</i> hypotheses.</b>
+  <dd>Precomputed results also enable rapid responses to "what-if?"
+  questions and the formulation of new hypotheses. <!--[ITIM EXAMPLE]-->
+  Using Unison in this way requires some experience with SQL.
 </dl>
 
+<h3>HOW DO I GET STARTED?</h3>
+
+<p>Most users will access Unison via the web interface.  Here are some
+searches to get you started:
+
+<ul>
+<li>If you've got a favorite protein, <a
+href="search_by_alias.pl">search for it by accession</a>.  Once you've
+identified a sequence, you may click the tabs to show details of the
+precomputed results.
+
+<li>If you'd like to find proteins with particular features, try <a
+href="search_by_properties.pl">searching for sequences by
+properties</a>.
+
+<li>Finally, "<a href="browse_views.pl">canned views</a>" provide
+saved search strategies and are good starting points for common searches.
+(Send Reece mail if you want to design other views.)
+</ul>
+
+<!-- /DIV -->
+EOT
+
+
+
+__END__
 
 <h3>HOW DOES UNISON WORK?</h3>
 
@@ -97,26 +123,4 @@ protein features.  The Structural Classification of Proteins (SCOP),
 Patents, Gene Ontology, NCBI taxonomy, and genomic localization and
 clustering are also available in Unison.
 
-
-<h3>HOW DO I GET STARTED?</h3>
-
-<p>Most users will access Unison via the web interface.  Here are some
-searches to get you started:
-
-<ul>
-<li>If you've got a favorite protein, <a
-href="search_by_alias.pl">search for it by accession</a>.  Once you've
-identified a sequence, you may click the tabs to show details of the
-precomputed results.
-
-<li>Users may also wish to <a href="search_by_properties.pl">mine for
-sequences by properties</a>.
-
-<li>Finally, "<a href="browse_views.pl">canned views</a>" provide
-saved search strategies and are good starting points for common searches.
-(Send Reece mail if you want to design other views.)
-</ul>
-
-<!-- /DIV -->
-EOT
 

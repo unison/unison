@@ -21,6 +21,9 @@ my %cv = %{ $u->selectall_hashref(
 my @cv = sort {$a<=>$b} keys %cv;
 my %cvlabels = map {$_ => sprintf("%s (canned view %d)",$cv{$_}->{name}, $_)} @cv;
 
+
+# It would be much better to get these descriptions from the database
+# view column comments...
 my %coldescr = (
 				'pseq_id' => 'Unison unique sequence identifier',
 				'TM' => 'number of transmembrane domains',

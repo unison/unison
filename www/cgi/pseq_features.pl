@@ -47,9 +47,13 @@ try {
 my $title = (defined($opts{track_length}) ? "Secondary Structure Prediction" : "Features Overview");
 
 print $p->render("Unison:$v->{pseq_id} $title",
-		 $p->best_annotation($v->{pseq_id}),
-		 '<hr>',
-		 $p->group("Unison:$v->{pseq_id} Secondary Structure",
-			   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
-			   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
-		);
+				 $p->best_annotation($v->{pseq_id}),
+				 '<hr>',
+
+				 'See also: <a href="pseq_history.pl?pseq_id=', $v->{pseq_id}, '">run history</a> for ',
+				 'a list of analyses run on this sequence.',
+
+				 $p->group("Unison:$v->{pseq_id} Secondary Structure",
+						   "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
+						   "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n" ),
+				);

@@ -14,7 +14,7 @@ use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_mint.pl,v 1.2 2004/06/25 00:20:14 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_intx.pl,v 1.3 2005/05/13 01:44:39 rkh Exp $ ');
 
 my $sql = qq/select pseq_id_b, sprot_b, best_annotation(pseq_id_b), pmid, interaction_detection_method
       from v_mint where pseq_id_a=$v->{pseq_id}/;
@@ -32,12 +32,12 @@ do { $_->[1] = alias_link($_->[1],'Swiss-Prot') } for @$ar;
 do { $_->[0] = pseq_summary_link($_->[0],"Unison:$_->[0]") } for @$ar;
 
 
-print $p->render("Mint data: $v->{pseq_id}",
+print $p->render("Protein Interactions for Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
 
 				 '<p>',
 				 ($sprot_a ? "Go to MINT with Unison:$v->{pseq_id}: ". alias_link($sprot_a,'Mint') 
-				  : 'No interactions'),
+				  : 'No interactions in MINT'),
 
 				 '<p>',
 				 $p->group("Unison:$v->{pseq_id} interacts with",
