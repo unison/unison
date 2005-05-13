@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.11 2005/01/20 01:21:06 rkh Exp $>
+S<$Id: params.pm,v 1.12 2005/04/01 23:06:21 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -54,6 +54,73 @@ sub run_commandline_by_params_id($$) {
                   undef,$params_id);
   return $cl;
 }
+
+
+
+######################################################################
+## get_params_name_by_params_id()
+
+=pod
+
+=item B<< $u->get_params_name_by_params_id( C<params_id> ) >>
+
+Returns name for the given params_id.
+
+=cut
+
+sub get_params_name_by_params_id($$) {
+  my ($self,$params_id) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my (@rv) = $self->selectrow_array('select name from params where params_id=?',
+									undef,$params_id);
+  return @rv ? $rv[0] : undef;
+}
+
+
+######################################################################
+## get_params_info_by_pftype_id()
+
+=pod
+
+=item B<< $u->get_params_info_by_pftype_id( C<pftype_id> ) >>
+
+Returns array of [params_id, name] for the given pftype_id, in order of
+decreasing relevance.
+
+=cut
+
+sub get_params_info_by_pftype_id($$) {
+  my ($self,$pftype_id) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my $a = $self->selectall_arrayref('select params_id,name from params where pftype_id=? order by params_id desc',
+									undef,$pftype_id);
+  return @$a;
+}
+
+######################################################################
+## get_params_info_by_pftype()
+
+=pod
+
+=item B<< $u->get_params_info_by_pftype( C<pftype_id> ) >>
+
+Returns array of [params_id, name] for the given pftype, in order of
+decreasing relevance.
+
+=cut
+
+sub get_params_info_by_pftype($$) {
+  my ($self,$pftype) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my $a = $self->selectall_arrayref('select params_id,name from params where pftype_id=pftype_id(?) order by params_id desc',
+									undef,$pftype);
+  return @$a;
+}
+
+
 
 
 ######################################################################

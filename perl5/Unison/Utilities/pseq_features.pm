@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.4 2005/04/20 21:55:11 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.5 2005/05/11 21:53:41 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -85,13 +85,13 @@ sub pseq_features_panel($%) {
   if(!defined($opts{features})) {
     $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic regexp pssm hmm prospect2);
   }
+
   if(defined($opts{track_length})) {
     $opts{features}{$_} = 0 foreach (keys %{$opts{features}});
     $opts{features}{ssp_psipred} = 1;
     $tick = 2;
-  }
-  else {
-    $opts{track_length} = int($len / 100 + 1) * 100;		# round up to nearest thousand
+  } else {
+    $opts{track_length} = int($len / 100 + 1) * 100;
   }
 
   my $panel = Bio::Graphics::Panel->new( -length => $opts{track_length},
@@ -114,7 +114,7 @@ sub pseq_features_panel($%) {
 					 -label => 1, -description=>1
 				   );
 
-  add_pftemplate  ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
+  add_pftemplate   ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
   add_pfssp_psipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{ssp_psipred});
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
@@ -128,12 +128,13 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.4 2005/04/20 21:55:11 mukhyala Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.5 2005/05/11 21:53:41 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
 
   my $gd = $panel->gd();
+  # this icon needs to be moved elsewhere... but where?
   my $unison_fn = '/home/rkh/www/csb/unison/av/unison.xpm';
   if ( -f $unison_fn ) {
 	my $ugd = GD::Image->newFromXpm($unison_fn);
@@ -359,11 +360,13 @@ Add paprospect2 features to a panel and return the number of features added.
 sub add_paprospect2 {
   my ($u, $panel, $q, $params_id) = @_;
   my ($svm_thr,$topN) = (7,5);
+  my $params_name;
   my $nadded = 0;
-  ## XXX: add support for params_id
-  my $params_clause = defined $params_id ? " AND params_id=$params_id " : '';
-  my $sql = "SELECT * FROM v_paprospect2_scop WHERE pseq_id=$q AND svm >= $svm_thr";
-  my $sth = $u->prepare($sql);
+  $params_id = 1 unless defined $params_id;
+  $params_name = $u->get_params_name_by_params_id($params_id);
+  my $sth = $u->prepare(<<EOT);
+SELECT * FROM v_paprospect2_scop WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
+EOT
   $sth->execute();
   my @raw_data;
   while ( my $row = $sth->fetchrow_hashref() ) {
@@ -375,8 +378,8 @@ sub add_paprospect2 {
   my $track = $panel->add_track( 
 								-glyph => 'graded_segments',
 								-bgcolor => 'green',
-								-key => sprintf('Prospect Threading (top %d hits of %d w/svm>=%s)',
-												($#$feats+1),$nfeat,$svm_thr),
+								-key => sprintf('Prospect Threading (%s); top %d hits of %d w/svm>=%s',
+												$params_name,($#$feats+1),$nfeat,$svm_thr),
 								-bump => +1,
 								-label => 1,
 								-fgcolor => 'black',
@@ -492,20 +495,21 @@ sub add_pahmm {
   my ($eval_thr,$topN) = (1,4);
   my $nadded = 0;
   ## XXX: don't hardwire the following
-  my $params_id = 15;
+  my (@params_info) = $u->get_params_info_by_pftype_id(7);
+  my ($params_id,$params_name) = @{$params_info[0]};
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
 FROM v_pahmm
-WHERE pseq_id=? AND params_id=$params_id AND eval<=$eval_thr ORDER BY start
+WHERE pseq_id=? AND params_id=? AND eval<=? ORDER BY start
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $featref = $u->selectall_arrayref( $sql, undef, $q );
+  my $featref = $u->selectall_arrayref( $sql, undef, $q, $params_id, $eval_thr );
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 1,
 								 -max_score => 25,
 								 -sort_order => 'high_score',
-								 -key => sprintf('HMM (%d w/eval<=%s)',
-												 ($#$featref+1),$eval_thr),
+								 -key => sprintf('HMM (%s); %d w/eval<=%s',
+												 $params_name, ($#$featref+1),$eval_thr),
 								 -bgcolor => 'blue',
 								 -bump => +1,
 								 -label => 1,
@@ -567,7 +571,7 @@ sub add_papssm {
 								 -max_score => 500,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'red',
-								 -key => sprintf('PSSM/SBP (top %d hits of %d w/eval<=%s)',
+								 -key => sprintf('PSSM/SBP; top %d hits of %d w/eval<=%s',
 												 ($#$featref+1),$nfeat,$eval_thr),
 								 -bump => +1,
 								 -label => 1,
@@ -627,7 +631,8 @@ sub add_pfantigenic {
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
 									 -score => $r->[2],
-									 -name => $r->[3]
+									 -name => $r->[3],
+									 -attributes => {}
 								   ) );
 	$nadded++;
   }
@@ -700,14 +705,16 @@ sub add_pfregexp {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,stop,acc from pfregexp F  join pmregexp M on F.pmodel_id=M.pmodel_id  where F.pseq_id=$q";
-  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $sql = "select start,stop,acc,descr from pfregexp F  join pmregexp M on F.pmodel_id=M.pmodel_id  where F.pseq_id=$q";
   my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
+	my %attr;
+	$attr{tooltip} = sprintf("[%d-%d]: %s (%s)", @$r);
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
-									 -name => $r->[2]
+									 -name => $r->[2],
+									 -attributes => \%attr
 								   ) );
 	$nadded++;
   }

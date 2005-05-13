@@ -12,7 +12,8 @@ my %opts =
   );
 
 GetOptions(\%opts,
-		   'groups|group|g=i@')
+		   'groups|group|g=s@'				# string, for comma-sep lists
+		  )
   || die("usage\n");
 
 my %wanted_logins;
@@ -28,9 +29,9 @@ if (@ARGV) {
 
 my %wanted_groups;
 if ($opts{groups}) {
+  @{$opts{groups}} = map { split /,/ } @{$opts{groups}};
   %wanted_groups = map {$_=>1} @{$opts{groups}};
 }
-
 
 my %omit = map {$_=>1} 
   qw(Bioinfo gx2000-1 compbio postgres pgsql maint Molbio);
