@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.44 2005/05/11 21:53:21 rkh Exp $>
+S<$Id: Page.pm,v 1.45 2005/05/13 01:45:04 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -328,7 +328,7 @@ sub render {
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-		  '<a title="Unison home page" href=".."><img width="90%" class="logo" src="../av/unison.gif"></a>',
+		  '<a href="about_unison.pl"><img tooltip="Unison home page" width="90%" class="logo" src="../av/unison.gif"></a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
@@ -721,8 +721,6 @@ sub _infer_pseq_id ($) {
 
 	if ($q !~ m/\D/)				{ return $q; };
 
-	if ($q =~ m/Unison:(\d+)/)		{ return $1; };
-
 	if (length($q)==32 and $q!~m/[^0-9a-f]/i) {
 	  $v->{md5} = $q;
 	} else {
@@ -800,8 +798,8 @@ sub _navbar {
 	  ['Prefs',			'User Prefs', 						'about_prefs.pl'],
 	 ],
 
-	 [ # Analyze menu
-	   ['Analyze', 		'display precomputed analyses for a given sequence'],
+	 [ # Sequence menu
+	   ['Sequence Analysis', 'display precomputed analyses for a given sequence'],
 	   ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	   ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
@@ -811,8 +809,8 @@ sub _navbar {
 	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id;params_id=1"],
 	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	   ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
+	   ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl', $pseq_id ],
 	   ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
-	   ['Mint', 		'Molecular Interactions database', 	'pseq_mint.pl', $pseq_id ],
 	   ['Notes',		'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
 	   ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	  ],
