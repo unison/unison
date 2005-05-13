@@ -56,7 +56,7 @@ $v->{sort} = 'svm' unless defined $v->{sort}; # = "order tag" above
 $v->{viewer} = 'pymol' unless defined $v->{viewer};
 $v->{details} = 0;
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.22 2005/04/05 19:54:46 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.23 2005/04/20 21:43:20 mukhyala Exp $ ');
 
 
 my @cols;
@@ -209,7 +209,7 @@ if ($N-1-$v->{offset}>0) {
 my $ctl = '<table border=0><tr>' . join('',map {"<td>$_</td>"} @ctl) . '</tr></table>';
 
 
-my @ps = @{ $u->selectall_arrayref('select params_id,name from params_prospect2 order by params_id') };
+my @ps = @{ $u->selectall_arrayref("select params_id,name from only params where pftype_id=pftype_id('Prospect2') order by params_id") };
 my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset order by pmodelset_id') };
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
@@ -235,9 +235,9 @@ print $p->render
 							  -default => "all"),
    '&nbsp;&nbsp;',
 
-   'Viewer: ',$p->radio_group(-name => 'viewer',
-			      -values => ['pymol','rasmol','jmol'],
-			      -default => 'pymol'),
+   '<br>viewer: ',$p->radio_group(-name => 'viewer',
+								  -values => ['pymol','rasmol','jmol'],
+								  -default => 'pymol'),
    '&nbsp;&nbsp;',
 
    $p->submit(-value=>'redisplay'),
@@ -251,8 +251,6 @@ print $p->render
    $p->start_form(-action=>'p2alignment.pl'),
    $p->hidden('pseq_id',$v->{pseq_id}),
    $p->hidden('params_id',$v->{params_id}),
-   '<p>', $p->submit(-value=>'align checked'),
-
    $p->group(['Prospect2 Threadings',$ctl],
 			 Unison::WWW::Table::render(\@htmlcols,\@ar,{highlight_column=>$hc})),
    $p->submit(-value=>'align checked'),
