@@ -1,0 +1,47 @@
+#!/bin/sh -e
+# copy dev database to stage
+# $Id: dev2stage,v 1.5 2004/05/10 21:54:12 rkh Exp $
+
+echo '# $Id: dev2stage,v 1.5 2004/05/10 21:54:12 rkh Exp $' 1>&2
+
+if [ $# != 1 -o -z "$1" ]; then
+	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
+	exit 1;
+fi
+
+export PGDATABASE="$1"
+export PGUSER=compbio
+
+DUMP_OPTS=${DUMP_OPTS:-}
+
+echo `date +'%Y-%m-%d %H:%M:%S'`: $0 started
+
+# new stage database must not already exist
+# die if a connection to it succeeds
+if psql </dev/null >/dev/null 2>/dev/null; then
+	echo "$PGDATABASE already exists; aborting" 1>&2
+	exit 1
+fi
+
+# create the new database with necessary languages
+createdb "$PGDATABASE";
+createlang plpgsql
+createlang plperl
+createlang plperlu
+
+
+# restore selected schemas; order is important
+SCHEMAS="gong scop tax compbio unison"
+echo "WARNING: I'm staging these schemas ONLY: $SCHEMAS" 1>&2
+for s in $SCHEMAS; do
+	pg_dump $DUMP_OPTS -n "$s" "csb-dev" \
+	| psql -qaf-
+done
+
+psql -qaf- <<EOF
+alter database "$PGDATABASE" set search_path = unison,gong,scop,tax;
+analyze verbose;
+select unison.release();
+EOF
+
+echo `date +'%Y-%m-%d %H:%M:%S'`: $0 done
