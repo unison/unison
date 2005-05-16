@@ -1,31 +1,35 @@
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
 
-
 COMPBIO:=/gne/compbio
 UHOME:=${HOME}/csb-db/unison
 SHELL:=/bin/bash
 
-PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc
-PATH:=${PATH}:${COMPBIO_EPREFIX}/bin:${COMPBIO_PREFIX}/bin
-PATH:=${PATH}:/usr/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
-export PATH
+PSET_ID_A:=60
+PSET_ID_B:=61
+PSET_ID_C:=62
 
 export PGUSER:=loader
 export PGHOST:=csb
 export PGDATABASE:=csb-dev
 export PERL5LIB:=${UHOME}/perl5:${PERL5LIB}
 
+
+
+PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc
+PATH:=${PATH}:${COMPBIO_EPREFIX}/bin:${COMPBIO_PREFIX}/bin
+PATH:=${PATH}:/usr/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
+export PATH
+
 RENAME=${HOME}/opt/bin/rerename
 
 PSQL:=psql -Uunison
-PSQL_CMD:=${PSQL} -At -c
+PSQL_VCMD:=${PSQL} -c
+PSQL_DCMD:=${PSQL} -At -c
+
+CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
 
 SUBDIR:=$(shell basename ${PWD})
-
-PSET_ID_A:=60
-PSET_ID_B:=61
-PSET_ID_C:=62
 
 # %.ids files, relative to subdirs
 vpath %.ids ../ids
@@ -210,11 +214,11 @@ clean::
 	/bin/rm -f *.tmp
 	/bin/rm -fr *.err
 cleaner:: clean
-	/bin/rm -fr qsub todo
 	/bin/rm -f *.load *.log
 	/bin/rm -f *.[eo][0-9][0-9]*[0-9]
+	/bin/rm -fr qsub todo
 cleanest:: cleaner
-	/bin/rm -fr *.ids *.load *.log
+	/bin/rm -f *.ids *.load *.log
 	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
 	/bin/rm -fr          *-l[1-9][0-9] *-l[1-9][0-9][0-9] *-l[1-9][0-9][0-9][0-9]
-	find . -name pset\* -type d -print0 | xargs -0rt /bin/rm -fr
+#	find . -name pset\* -type d -print0 | xargs -0rt /bin/rm -fr
