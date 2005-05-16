@@ -1,5 +1,6 @@
-CVS CONVENTIONS AND TIPS FOR UNISON-WEB
----------------------------------------
+CVS CONVENTIONS AND TIPS
+========================
+
 
 The CVS tree follows a "basically unstable" methodology in which the trunk
 is used for development and branches are used for feature development or
@@ -19,40 +20,36 @@ exception.)
 We should tag before every branch and after every merge. Tags and branch
 tags should use the following format:
 
-- RB_x_y: "Release Branch" (branch tag) in preparation for a new release
-- BT_x_y: "Branch Tag" corresponding to files at root of RB_x_y
-- RT_x_y_z: a patch release
-- FB_name: "Feature Branch" (branch tag) in preparation for developing a new feature
-- BT_name: "Feature Tag" corresponding to files at root of FB_name
-
-- M_FB_name: Merge tag on the trunk to indicate that the named
-	feature was merged. THIS BRANCH IS NOW CLOSED.
-- M_RT_x_y_z: Merge tag on the trunk after merging RT_x_y_z into trunk
-	This indicates that these fixes were merged into the trunk and can be used
-	as a datum for merging a future RT.
-
-
+- br-x_y-root: tag just before creating a branch
+- br-x_y: preparation for a new major-minor release branch
+- br-<feature>-root, br-feature: akin to the above but for named features
+- rel-x_y_z: milestone on br-x_y
+- fbt-<feature>: feature branch tag for milestones on br-<feature>
+- merge-rel-x_y_z: tag on br-x_y marking merge of x_y_z to root
+- merge-fbt-<feature>: tag on br-<feature>
 
 COMMON OPERATIONS
 WARNINGS: These need to be more carefully vetted. Use caution.
 
 1. create a new relase branch
 $ cvs up -A    # ensures you've got the most recent trunk
-$ cvs tag BT_1_0
-$ cvs tag -b RB_1_0
-$ cvs up -r RB_1_0
-We now have a tag (BT) on the files created just before a branch, 
+$ cvs tag br-0_0-root
+$ cvs rtag -r br-0_0-root -b br-0_0
+$ cvs up -r br-0_0
+We now have a tag on the files created just before a branch, 
 and a branch with a corresponding name for release.
 
-2. create a new release
-$ cvs up -r RB_x_y
-DO WE NEED $ cvs com -m 'prep for release' for uncommitted changes
-$ cvs tag RT_x_y_z
+2. create a new feature branch
+like above, but use a meaningful feature name instead of the version
 
-3. merge release back into trunk
-$ cd /tmp
-$ cvs up unison-web
-$ cvs up -j RT_x_y_z
-$ cvs tag M_RT_x_y_z
+3. create a new release
+$ cvs up -r br-0_0
+(ensure your changes are committed)
+$ cvs tag rel-0_0_0
 
-4. create a new feature branch
+IN PROGRESS: 4. merge branch (release or feature) into trunk
+IN PROGRESS: $ cd /tmp
+IN PROGRESS: $ cvs up unison-web
+IN PROGRESS: $ cvs up -j RT_x_y_z
+IN PROGRESS: $ cvs tag M_RT_x_y_z
+
