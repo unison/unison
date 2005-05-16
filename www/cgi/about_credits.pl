@@ -20,10 +20,9 @@ my $ar = $u->selectall_arrayref($sql);
 my @f = qw( key value );
 
 my $thanks = <<EOF;
-<p>Unison was developed by Reece Hart, with assistance
-from David Cavanaugh and Kiran Mukhyala.
+<p>Unison was developed by David Cavanaugh, Reece Hart, and Kiran Mukhyala.
 
-<p>Many thanks to the developers of the following freely available packages:
+<p>We gratefully acknowledge the following groups and projects:
 <table width="80%">
 <tr>
 	<td align="center"></td>
