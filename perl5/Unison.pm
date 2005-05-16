@@ -2,7 +2,7 @@
 
 Unison -- Unison database API for perl
 
-S<$Id: Unison.pm,v 1.12 2005/03/19 21:29:34 rkh Exp $>
+S<$Id: Unison.pm,v 1.13.2.1 2005/05/16 01:42:10 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -54,8 +54,6 @@ Modules currently available are:
 =item Unison::userprefs
 
 =back
-
-=item Unison::utilities
 
 d28 1
 

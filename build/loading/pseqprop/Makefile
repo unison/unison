@@ -1,3 +1,7 @@
+$(error THIS MAKEFILE NEEDS TESTING)
+
+include ../defaults.mk
+
 TARGETS:=${shell cat $(IDFILE)}
 
 default all: $(addsuffix .fa,$(TARGETS))

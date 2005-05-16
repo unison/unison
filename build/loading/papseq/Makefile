@@ -1,7 +1,7 @@
 include ../defaults.mk
 
 PARAMS_ID:=3
-BLAST_CMD=$(shell ${PSQL_CMD} 'select commandline from params where params_id=${PARAMS_ID}')
+BLAST_CMD=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
 DB:=unison
 
 default:
@@ -11,7 +11,7 @@ default:
 setup: ${DB}.phr
 
 unison.ids:
-	${PSQL_CMD} "select pseq_id from pseqset where pset_id=pset_id('BLAST DB')" >$@.tmp
+	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('BLAST DB')" >$@.tmp
 	/bin/mv -f $@.tmp $@
 
 .PRECIOUS: %.phr
