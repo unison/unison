@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.5 2005/05/11 21:53:41 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.6.2.1 2005/05/16 01:42:10 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -128,7 +128,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.5 2005/05/11 21:53:41 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.6.2.1 2005/05/16 01:42:10 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -865,7 +865,7 @@ sub avg_confidence {
 }
 
 package Unison;
-use Unison::utilities qw( warn_deprecated );
+#use Unison::utilities qw( warn_deprecated );
 sub features_graphic($$;$) {
  warn_deprecated();
  my %opts = %Unison::pseq_features::opts;

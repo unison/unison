@@ -1,8 +1,8 @@
 #!/bin/sh -e
 # copy dev database to stage
-# $Id: dev2stage,v 1.5 2004/05/10 21:54:12 rkh Exp $
+# $Id: dev2stage,v 1.6.2.1 2005/05/16 01:42:10 rkh Exp $
 
-echo '# $Id: dev2stage,v 1.5 2004/05/10 21:54:12 rkh Exp $' 1>&2
+echo '# $Id: dev2stage,v 1.6.2.1 2005/05/16 01:42:10 rkh Exp $' 1>&2
 
 if [ $# != 1 -o -z "$1" ]; then
 	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
@@ -10,7 +10,7 @@ if [ $# != 1 -o -z "$1" ]; then
 fi
 
 export PGDATABASE="$1"
-export PGUSER=compbio
+export PGUSER=postgres
 
 DUMP_OPTS=${DUMP_OPTS:-}
 
