@@ -106,4 +106,4 @@ cleaner:: clean
 	/bin/rm -f *.0
 cleanest:: cleaner
 	/bin/rm -f *.log
-	/bin/rm -f data logs
+	/bin/rm -fr data logs
