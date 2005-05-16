@@ -2,7 +2,7 @@
 
 Unison -- Unison database API for perl
 
-S<$Id: Unison.pm,v 1.14 2005/05/16 16:44:58 rkh Exp $>
+S<$Id: Unison.pm,v 1.15 2005/05/16 22:01:30 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -67,8 +67,8 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-our ($RELEASE) = q$Name: rel_1-0-0 $ =~ m/Name:\s+rel_(\S*)\s+/;
-$RELEASE =~ s/-/./g;
+use Unison::common;
+our $RELEASE = '';
 if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
 
 use Unison::common;
