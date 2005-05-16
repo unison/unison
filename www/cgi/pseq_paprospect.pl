@@ -62,8 +62,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.24.2.1 2005/05/13 18:48:41 rkh Exp $ ');
-
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.25 2005/05/13 19:02:05 rkh Exp $ ');
 
 
 my @cols;
