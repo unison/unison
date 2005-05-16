@@ -2,7 +2,7 @@
 
 Unison::template -- Unison:: module template
 
-S<$Id: template.pm,v 1.1 2004/05/14 20:33:19 rkh Exp $>
+S<$Id: WWW.pm,v 1.10 2005/01/18 18:51:16 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -23,7 +23,9 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-our ($RELEASE) = q$Name:  $ =~ m/Name:\s+(\S*)\s+/;
+our ($RELEASE) = q$Name: rel_1-0-2 $ =~ m/Name:\s+rel_(\S*)\s+/;
+$RELEASE =~ s/-/./g;
+
 
 
 BEGIN {
