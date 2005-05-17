@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.6.2.1 2005/05/16 01:42:10 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.7 2005/05/16 16:44:58 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -128,7 +128,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.6.2.1 2005/05/16 01:42:10 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.7 2005/05/16 16:44:58 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -188,29 +188,31 @@ sub add_pfssp_psipred {
       my $start = $r->[0] - ($track_length * $track_number);
       my $end = $r->[1] - ($track_length * $track_number);
       while ($end > $track_length) {
-	$end = $track_length;
-	push @{$strands_helices[$track_number]},  new Bio::Graphics::Feature ( -start => $start,
-									       -end => $end,
-									       -type => $r->[2],
-									       -name => $r->[2],
-									       -score => $score,
-									       -attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
-												href => $href }
-									     );	
-	$start = 1;
-	$end = ($r->[1] - ($track_length * $track_number)) - $track_length;
-	$track_number++;
-      }
-      push @{$strands_helices[$track_number]},  new Bio::Graphics::Feature ( -start => $start,
-									     -end => $end,
-									     -type => $r->[2],
-									     -name => $r->[2],
-									     -score => $score,
-									     -attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
-											      href => $href }
-									   );
-  }
-
+		$end = $track_length;
+		push(@{$strands_helices[$track_number]},  
+			 new Bio::Graphics::Feature ( -start => $start,
+										  -end => $end,
+										  -type => $r->[2],
+										  -name => $r->[2],
+										  -score => $score,
+										  -attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
+														   href => $href }
+										));
+		$start = 1;
+		$end = ($r->[1] - ($track_length * $track_number)) - $track_length;
+		$track_number++;
+	  }
+	  push(@{$strands_helices[$track_number]},
+		   new Bio::Graphics::Feature ( -start => $start,
+										-end => $end,
+										-type => $r->[2],
+										-name => $r->[2],
+										-score => $score,
+										-attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
+														 href => $href }
+									  ));
+	}
+  
   for(my $i = 0; $i <= $num_tracks; $i++) {
     my $key = ($num_tracks < 1 ? 'PSIPRED secondary structure prediction' : $track_length*$i+1);
     my $track = $panel->add_track(generic=> [@{$strands_helices[$i]}],				
@@ -801,10 +803,12 @@ sub add_pfuser {
 }
 
 sub add_pftemplate {
-
     my ($u, $panel, $q, $view, $pseq_structure) = @_;
     my ($nadded,$topN) = (0,5);
 
+	# BUG: template_ids is undefined when pseq_id=23788
+	# rkh 2005-05-16
+	return unless defined $pseq_structure->{'template_ids'};
     my @templates = @{$pseq_structure->{'template_ids'}};
 
     my $nfeat = $#templates+1;
@@ -865,7 +869,7 @@ sub avg_confidence {
 }
 
 package Unison;
-#use Unison::utilities qw( warn_deprecated );
+#use Unison::Utilities::misc qw( warn_deprecated );
 sub features_graphic($$;$) {
  warn_deprecated();
  my %opts = %Unison::pseq_features::opts;

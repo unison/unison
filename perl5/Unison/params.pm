@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.12 2005/04/01 23:06:21 rkh Exp $>
+S<$Id: params.pm,v 1.13 2005/05/13 19:14:23 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -115,7 +115,7 @@ sub get_params_info_by_pftype($$) {
   my ($self,$pftype) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
-  my $a = $self->selectall_arrayref('select params_id,name from params where pftype_id=pftype_id(?) order by params_id desc',
+  my $a = $self->selectall_arrayref('select params_id,name from only params where pftype_id=pftype_id(?) order by params_id desc',
 									undef,$pftype);
   return @$a;
 }

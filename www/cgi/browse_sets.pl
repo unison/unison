@@ -27,7 +27,7 @@ print $p->render("Browse Unison Sets",
 				 $p->popup_menu(-name=>'pset_id',
 								-values => [map {$_->[0]} @psets],
 								-labels => \%psets,
-								-default => "$v->{pset_id}"),
+								-default => $v->{pset_id} || undef ),
 				 $p->submit(-value=>'vroom!'),
 				 $p->end_form(), "\n",
 

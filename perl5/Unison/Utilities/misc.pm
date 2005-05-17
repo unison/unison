@@ -1,16 +1,16 @@
 =head1 NAME
 
-Unison::utilities -- general Unison utilities
+Unison::Utilities::misc -- general Unison utilities
 
-S<$Id: misc.pm,v 1.2 2005/03/25 19:44:44 rkh Exp $>
+S<$Id: misc.pm,v 1.3 2005/05/11 21:53:41 rkh Exp $>
 
 =head1 SYNOPSIS
 
- use Unison::utilities;
+ use Unison::Utilities::misc;
 
 =head1 DESCRIPTION
 
-B<Unison::utilities> is a collection of utility functions intended
+B<Unison::Utilities::misc> is a collection of utility functions intended
 primarily for use within B<Unison::> modules. However, none of these
 routines are called with Unison object references (i.e., they're not
 methods) and may used outside of B<Unison::>.

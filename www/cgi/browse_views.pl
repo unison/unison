@@ -55,7 +55,7 @@ print $p->render('Browse Unison Canned Views',
 				 $p->popup_menu(-name=>'cv_id',
 								-values => \@cv,
 								-labels => \%cvlabels,
-								-default => "$v->{cv_id}"),
+								-default => $v->{cv_id}||undef),
 				 $p->submit(-value=>'vroom!'),
 				 $p->end_form(), "\n",
 
