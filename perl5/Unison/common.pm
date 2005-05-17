@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison -- interface to the Unison database
-S<$Id: Unison.pm,v 1.9 2004/04/27 04:35:49 rkh Exp $>
+S<$Id: Unison.pm,v 1.1 2004/04/30 22:36:50 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -37,7 +37,7 @@ use warnings;
 our ($RELEASE) = q$Name:  $ =~ m/Name: (\S*) /;
 
 
-use Unison::utilities;
+use Unison::Utilities::misc;
 use Unison::DBI;
 use Unison::Exceptions;
 use Unison::pseq;

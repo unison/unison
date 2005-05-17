@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.46.2.1 2005/05/13 18:48:42 rkh Exp $>
+S<$Id: Page.pm,v 1.47 2005/05/13 19:02:05 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -789,7 +789,7 @@ sub _navbar {
 	##   ...
 	## ]
 	(
-	 [ # About menu
+	 [	# About menu
 	  ['About', 		'about Unison'],
 	  ['Unison', 		'about unison', 					'about_unison.pl'],
 	  ['Credits', 		'thanks, ma!',						'about_credits.pl'],
@@ -798,44 +798,44 @@ sub _navbar {
 	  ['Prefs',			'User Prefs', 						'about_prefs.pl'],
 	 ],
 
-	 [ # Sequence menu
-	   ['Sequence Analysis', 'display precomputed analyses for a given sequence'],
-	   ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
-	   ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
-	   ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
-	   ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
-	   ['Structure',	'structural features', 				'pseq_structure.pl', $pseq_id ],
-	   ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	   ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', "$pseq_id"],
-	   ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
-	   ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
-	   ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl', $pseq_id ],
-	   ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
-	   ['Notes',		'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
-	   ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
-	  ],
+	 [	# Sequence menu
+	  ['Protein Analysis', 'display precomputed analyses for a single sequence'],
+	  ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
+	  ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
+	  ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
+	  ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
+	  ['Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
+	  ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
+	  ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', $pseq_id],
+	  ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
+	  ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
+	  ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
+	  ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
+	  ['Notes',			'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
+	  ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
+	 ],
 
-	  [ # Browse menu
-	   ['Browse', 'browse curated sets of sequences (unimplemented)'],
-	   ['Sets', 'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
-	   ['Views', 'browse dynamic queries of protein sequences', 'browse_views.pl'],
+	 [	# Browse menu
+	  ['Browse', 'browse curated sets of sequences (unimplemented)'],
+	  ['Sets', 'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
+	  ['Views', 'browse dynamic queries of protein sequences', 'browse_views.pl'],
 	  # ['SCOP', undef, 'browse_scop.pl'],
 	  # ['Origins', undef, 'browse_origins.pl']
-	  ],
+	 ],
 
-	  [ # Search menu
-	   ['Search', 		'search for sequences which match criteria' ],
-	   ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
-	   ['By Properties','mine for sequences based on properties', 'search_by_properties.pl'],
-	   ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
-	   ['Framework',    'search for sequences matching a set of sequence regions', 'search_framework.pl'],
-	  ],
+	 [	# Search menu
+	  ['Search', 		'search for sequences which match criteria' ],
+	  ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
+	  ['By Properties',	'mine for sequences based on properties', 'search_by_properties.pl'],
+	  ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
+	  ['Framework',    	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
+	 ],
 
-	  [ # Assess menu
-	   ['Assess', 'compare sequence sets and analysis methods (not-implemented)'],
-	   ['Scores', 'compare scoring systems', 'compare_scores.pl'],
-	   ['Methods', 'compare threading methods', 'compare_methods.pl'],
-	  ],
+	 [	# Assess menu
+	  ['Assess', 		'compare sequence sets and analysis methods'],
+	  ['Scores', 		'compare scoring systems',			'compare_scores.pl'],
+	  ['Methods', 		'compare threading methods',		'compare_methods.pl'],
+	 ],
 
 	  # empty list forces right-justification of subsequent menus
 	  #[ [ '' ]  ],
@@ -865,16 +865,19 @@ sub _navbar {
 	);
 
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
-  my $rv = "\n  <table    class=\"nav\" width=\"100%\">"
-	. "\n    <tr>" . _make_navrow($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs) . '</tr>'
-	. "\n    <tr>" 
-	    . ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
-	    . '<td align="center"><img src="../av/v.gif"></td>'
-		. ($navi==$#navs ? '' : sprintf('<td colspan=%d></td>',$#navs-$navi))
-		. '</tr>'
-	. "\n  </table>\n";
-  # second-level "subnav" row:
+  my $rv = '';
+  # MISFEATURE: undefined navi may occur (eg genome_features) and this causes
+  # the navbar to be omitted.
   if (defined $navi) {
+	$rv = "\n  <table    class=\"nav\" width=\"100%\">"
+		  . "\n    <tr>" . _make_navrow($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs) . '</tr>'
+		  . "\n    <tr>" 
+		  . ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
+		  . '<td align="center"><img src="../av/v.gif"></td>'
+		  . ($navi==$#navs ? '' : sprintf('<td colspan=%d></td>',$#navs-$navi))
+		  . '</tr>'
+		  . "\n  </table>\n";
+
 	my @nav = @{$navs[$navi]};
 	shift @nav;				# menu header is first item; menu items remain
 	$rv .= "\n  <table class=\"subnav\" width=\"100%\">" 

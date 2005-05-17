@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################
 # compare_scores.pl -- compare scoring systems for pmodelsets
-# $ID = q$Id: compare_scores.pl,v 1.6 2005/03/21 21:42:13 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pl,v 1.7 2005/04/19 20:19:28 mukhyala Exp $;
 #############################################################
 use strict;
 use warnings;
@@ -150,9 +150,9 @@ sub _render_page {
 		   $p->popup_menu(-name => 'params_id',
 				  -values => [map {$_->[0]} @$params_aref],
 				  -labels => $params_href,
-				  -default => "$v->{params_id}"),
+				  -default => $v->{params_id}||undef),
 		   '</th>',
-		   
+
 		     '<th>', $p->radio_group(-name=>'score',
 					     -values=>['svm','raw'],
 					     -linebreak=>'true',

@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
+S<$Id: blat.pm,v 1.3 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -22,7 +22,7 @@ namespace.
 
 package Unison;
 
-use Unison::utilities qw( warn_deprecated );
+use Unison::Utilities::misc qw( warn_deprecated );
 
 
 

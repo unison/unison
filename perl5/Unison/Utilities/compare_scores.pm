@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.3 2005/04/21 03:37:15 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.4 2005/04/21 18:11:43 mukhyala Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -329,7 +329,7 @@ sub display_table($) {
 
     if($i == 0) {$ret .= '</tr><tr>' x 4;}#seperation between knowns and known-nots
     else {
-      my $link = "<a href=\"pseq_summary.pl?pseq_id=$i\" title=\"".$u->best_annotation($i)."\">$i</a>";
+      my $link = "<a href=\"pseq_summary.pl?pseq_id=$i\" title=\"".($u->best_annotation($i)||'')."\">$i</a>";
       $ret .= '</tr><tr><td height=10 ALIGN=center>'.$link.'</td>';#first col in each row is a pseq link
 
       foreach my $j(keys %$scores) {

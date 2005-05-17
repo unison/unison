@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.6 2005/03/21 21:45:53 mukhyala Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.7 2005/04/19 20:19:53 mukhyala Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -70,8 +70,8 @@ sub main {
     my %cs = map { $_->[0] => "$_->[1] (set $_->[0])" } @controls;
 
     #get params
-    my @params = @{$u->selectall_arrayref(' select params_id,name from params where name like \'Prospect2 default%\'')};
-    my %params = map { $_->[0] => "$_->[1]" } @params;
+    my @params = $u->get_params_info_by_pftype('prospect2');
+    my %params = map { $_->[0] => $_->[1] } @params;
 
     _render_page(\%ms,\@models,\%cs,\@controls,\%params,\@params);
 
@@ -138,7 +138,7 @@ sub _render_page {
 		   $p->popup_menu(-name => 'params_id',
 				  -values => [map {$_->[0]} @$params_aref],
 				  -labels => $params_href,
-				  -default => "$v->{params_id}"),
+				  -default => $v->{params_id} || undef),
 		   '</th>',
 								
 		   '<th>',

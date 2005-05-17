@@ -9,7 +9,7 @@ use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5", "$FindBin::Bin/..
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW;
 use Unison::WWW::Table;
-use Unison::pseq_features;
+use Unison::Utilities::pseq_features;
 use Unison::SQL;
 use Unison::Exceptions;
 
@@ -62,7 +62,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.25 2005/05/13 19:02:05 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.26 2005/05/16 19:05:10 rkh Exp $ ');
 
 
 my @cols;
@@ -114,7 +114,7 @@ try {
 } catch Unison::Exception with {
   $p->die($_[0],"$sql");
 };
-my $feats = $u->Unison::pseq_features::coalesce_scop( \@raw_data );
+my $feats = $u->Unison::Utilities::pseq_features::coalesce_scop( \@raw_data );
 
 
 # build ar array which will store row data

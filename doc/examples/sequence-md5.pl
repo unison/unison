@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 use Unison;
-use Unison::utilities qw(sequence_md5);
+use Unison::Utilities::misc qw(sequence_md5);
 use Bio::SeqIO;
 
 my $u = new Unison();
@@ -22,7 +22,7 @@ while( my $bs = $in->next_seq() ) {
   my $unison_md5 = $u->selectrow_array( $seq_to_md5_sth,undef,$seq );
 
   # Compute the md5 in perl
-  # Please read the caveats in perldoc Unison::utilities
+  # Please read the caveats in perldoc Unison::Utilities::misc
   my $unauthoritative_md5 = sequence_md5( $seq );
 
   printf("%-20s %32s %32s\n",

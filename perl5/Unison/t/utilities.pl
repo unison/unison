@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use Unison;
-use Unison::utilities qw(sequence_md5);
+use Unison::Utilities::misc qw(sequence_md5);
 
 my $printmod = 100;
 

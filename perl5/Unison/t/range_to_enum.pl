@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-use Unison::utilities;
+use Unison::Utilities::misc;
 
 print("This should print 1,2,3,4,5,6,7,8,9,10: \n");
 print("result: ",

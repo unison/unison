@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Unison::utilities;
+use Unison::Utilities::misc;
 
 
 # A: single use, one level deep
