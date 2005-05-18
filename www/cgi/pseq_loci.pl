@@ -19,10 +19,18 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-my $sql = qq/select pstart,pstop,pct_ident,G.name,chr,gstart,gstop
-			from blatloci L  join genasm G on L.genasm_id=G.genasm_id where L.pseq_id=$v->{pseq_id}/;
-
 ## BUG: the genasm_id isn't passed to the Unison or geode views.
+# genasm_id=2 (NHGD 35) because that's all geode supports and I don't want
+# to show incorrect coords. This needs a better solution.
+
+# FEATURE: should add inline frame with <div> and 
+# javascript frame updates. Consider new cgi class for 
+# embeddable features, e.g., embed_genome_features.pl 
+# which returns just the graphic and image map.
+
+my $sql = qq/select pstart,pstop,pct_ident,G.name,chr,gstart,gstop
+			from blatloci L  join genasm G on L.genasm_id=G.genasm_id where G.genasm_id=2 and L.pseq_id=$v->{pseq_id}/;
+
 
 try {
   my $ar = $u->selectall_arrayref($sql);
@@ -61,7 +69,7 @@ sub genome_link {
 
 sub geode_url {
   my ($chr,$gstart,$gstop) = @_;
-  return "/~rkh/csb/unison/bin/chr_view.pl?chr=$chr;gstart=$gstart;gstop=$gstop";
+  return "http://research/geode/browseGenome.do?queryType=chromosome&start=$gstart&end=$gstop&chromosome=$chr";
   }
 
 sub unison_url {
