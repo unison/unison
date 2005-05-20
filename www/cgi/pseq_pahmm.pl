@@ -19,7 +19,7 @@ my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 
 $v->{params_id} = $ps[0]->[0] unless defined $v->{params_id};
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.10.2.1 2005/05/13 18:48:41 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.11 2005/05/13 19:02:05 rkh Exp $ ');
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
 select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
@@ -46,10 +46,6 @@ print $p->render
    $p->submit(-value=>'redisplay'),
    $p->end_form(), "\n",
 
-   '<!-- results -->',
-   (($#$ar==-1 and $v->{params_id}==15)
-    ? $p->warn("No alignments... consider selecting the Pfam_fs 12.0 parameter set and clicking redisplay.")
-    : ''),
 
    '<!-- HMM profile alignment -->',
    $p->start_form(-action=>'hmm_alignment.pl'),
