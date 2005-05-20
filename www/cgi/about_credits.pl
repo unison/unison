@@ -94,11 +94,16 @@ suggestions, bugs, or comments.
 </tr>
 
 <tr>
+	<td align="center"><img src="../av/poweredby_postgresql.gif"></td>
+	<td align="left"><a href="http://www.postgresql.org">PostgreSQL</a>, a full-features OpenSource RDBMDS</td>
+	<td>Freely available [<a href="http://www.postgresql.org/about/licence">License (BSD)</a>]</td>
+</tr>
+
+<tr>
 	<td align="center"></td>
 	<td align="left"><a href="http://www.vladdy.net/webdesign/Tooltips.html">Vladdy.net</a> for tooltips JavaScript</td>
 	<td></td>
 </tr>
-
 
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Other tools from which we've benefitted</font></th></tr>
 <tr>
