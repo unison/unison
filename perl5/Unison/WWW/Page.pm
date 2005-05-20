@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.47 2005/05/13 19:02:05 rkh Exp $>
+S<$Id: Page.pm,v 1.48 2005/05/17 01:22:32 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -30,6 +30,7 @@ push(@ISA, 'CGI');
 
 use Unison;
 use Unison::Exceptions;
+use Unison::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
 use Error qw(:try);
@@ -792,7 +793,9 @@ sub _navbar {
 	 [	# About menu
 	  ['About', 		'about Unison'],
 	  ['Unison', 		'about unison', 					'about_unison.pl'],
-	  ['Credits', 		'thanks, ma!',						'about_credits.pl'],
+	  ['Legal', 		'Unison legal information',			'about_legal.pl'],
+	  ['News', 			'Unison news'	, 					'about_news.pl'],
+	  ['Credits', 		'authors, acknowledgements, references', 'about_credits.pl'],
 	  ['Contents', 		'show unison meta information', 	'about_contents.pl'],
 	  ['Env', 			'Environment info', 				'about_env.pl'],
 	  ['Prefs',			'User Prefs', 						'about_prefs.pl'],
