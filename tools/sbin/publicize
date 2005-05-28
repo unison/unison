@@ -3,10 +3,14 @@
 # make-csb-public -- restrict a COPY-format psql dump to public sequences
 # and methods
 #
+# $Id$
+# Reece Hart <rkh@gene.com> 
+# 
 
 use Unison;
 
-# these are the SPDI pseq_ids
+# these are the SPDI pseq_ids (pset_id=900) as of 2005-05-26
+# arguably, these should come from the database
 my @public_pseq_ids = qw(
 	22 106 109 110 111 112 113 114 115 116 121 122 125 126 127 128 129 130 132
 	134 138 140 141 142 143 144 145 146 147 148 149 150 151 152 153 155 156
