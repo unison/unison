@@ -3,7 +3,7 @@
 # make-csb-public -- restrict a COPY-format psql dump to public sequences
 # and methods
 #
-# $Id$
+# $Id: make-csb-public,v 1.2 2005/05/28 04:04:55 rkh Exp $
 # Reece Hart <rkh@gene.com> 
 # 
 
@@ -90,35 +90,58 @@ my %public_params_ids = map {$_=>1} @public_params_ids;
 printf(STDERR "# %d pseq_ids, %d params_ids will be public\n",
 	   scalar(%public_pseq_ids), scalar(%public_params_ids));
 
-my $pseq_id_col;
-my $params_id_col;
+my @flds;									# in COPY block if defined
+my @pseq_id_col;							# list of pseq_id cols
+my @params_id_col;							# list of params_id cols
+my %warned;									# colnames which have been warned;
 while(<>) {
-  if (not defined $pseq_id_col and not defined $params_id_col) {
+  if (not defined @flds) {					# not currently in COPY block
 	if (my ($flds) = m/^COPY \S+ \(([^\)]+)\)/) {
-	  my @flds = split(/,\s*/,$flds);
-	  my %flds = map {$flds[$_]=>$_} 0..$#flds;
-	  $pseq_id_col = $flds{pseq_id};
-	  $params_id_col = $flds{params_id};
-	  printf(STDERR "> $_   pseq_id_col=%s params_id_col=%s\n",
-			defined $pseq_id_col ? $pseq_id_col : '-',
-			defined $params_id_col ? $params_id_col : '-');
+	  @flds = split(/,\s*/,$flds);
+	  for(my $i=0; $i<=$#flds; $i++) {
+		if ($flds[$i] =~ m/^(?:pseq_id|query|target)$/) {
+		  push(@pseq_id_col, $i);
+		} elsif ($flds[$i] =~ m/^(?:params_id)$/) {
+		  push(@params_id_col, $i);
+		}
+	  }
+	  printf(STDERR "# <$_# pseq_id_col=%s params_id_col=%s\n",
+			 defined @pseq_id_col ? join(',',@pseq_id_col) : '-',
+			 defined @params_id_col ? join(',',@params_id_col) : '-');
 	}
-  } elsif (m/^\\./) {
-	undef $pseq_id_col;
-	undef $params_id_col;
-  } else {
+  } elsif (m/^\\./) {						# in COPY block; leave?
+	undef @pseq_id_col;
+	undef @params_id_col;
+	undef @flds;
+  } else {									# in COPY block; parse columns
 	my @F = split;
-	if (defined $pseq_id_col and not defined $public_pseq_ids{$F[$pseq_id_col]}) {
-	  chomp;
-	  warn("discarded pseq_id=$F[$pseq_id_col] ($_)\n");
-	  next;
+	my $discard = 0;
+
+	if (defined @pseq_id_col) {
+	  foreach my $col (@pseq_id_col) {
+		if (exists $public_pseq_ids{$F[$col]}) {
+		  warn("# pseq_id rejected ($flds[$col]=$F[$col]): $_") unless $warned{$flds[$col]}++;
+		  $discard++;
+		  last;
+		}
+	  }
 	}
-	if (defined $params_id_col and not defined $public_params_ids{$F[$params_id_col]}) {
-	  chomp;
-	  warn("discarded params_id=$F[$params_id_col] ($_)\n");
-	  next;
+
+	if (defined @params_id_col) {
+	  foreach my $col (@params_id_col) {
+		if (exists $public_params_ids{$F[$col]}) {
+		  warn("# params_id rejected ($flds[$col]=$F[$col]): $_") unless $warned{$flds[$col]}++;;
+		  $discard++;
+		  last;
+		}
+	  }
 	}
   }
 
-  print;
+  print unless $discarded;
+}
+
+
+foreach my $fld (sort keys %warned) {
+  printf(STDERR "$fld: %d filtered\n", $warned{$fld});
 }
