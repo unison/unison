@@ -15,6 +15,7 @@ use Unison::Utilities::pseq_features;
 
 
 
+sub protcomp_info ($);
 sub sequence_group ($);
 sub aliases_group ($);
 sub features_group ($);
@@ -25,10 +26,11 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.28 2005/05/13 01:44:39 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.29 2005/05/13 02:45:52 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
+				 '<p>Protcomp Localization: ', protcomp_info($p),
 				 '<p>', sequence_group($p),
 				 '<p>', aliases_group($p),
 				 '<p>', features_group($p),
@@ -38,6 +40,31 @@ print $p->render("Summary of Unison:$v->{pseq_id}",
 exit(0);
 
 
+sub protcomp_info ($) {
+  my $p = shift;
+  my $u = $p->{unison};
+  my $v = $p->Vars();
+  my $rv;
+  my $sql = qq/select pseq_id, params_id, sim_psloc_id, sim_loc,
+		sim_score, nn_psloc_id, nn_loc, nn_score, int_psloc_id, int_loc,
+		int_score from v_psprotcomp where pseq_id=$v->{pseq_id}/;
+  my $hr = $u->selectrow_hashref($sql);
+
+  if (not defined $hr) {
+	return 'no prediction';
+  }
+
+  if ($hr->{sim_psloc_id} != 0) {
+	$rv = $hr->{sim_loc};
+  } elsif ($hr->{int_psloc_id} == $hr->{nn_psloc_id}) {
+	$rv = $hr->{int_loc};
+  } else {
+	$rv = 'ambiguous';
+  }
+  #$rv .= sprintf('<br>Raw data: sim=%s (%d), nn=%s (%d), int=%s (%d)]',
+  #map {$hr->{$_}} qw(sim_loc sim_score nn_loc nn_score int_loc int_score));
+  return $rv;
+}
 
 
 sub sequence_group ($) {
