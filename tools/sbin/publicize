@@ -3,7 +3,7 @@
 # make-csb-public -- restrict a COPY-format psql dump to public sequences
 # and methods
 #
-# $Id: make-csb-public,v 1.3 2005/05/28 23:17:09 rkh Exp $
+# $Id: make-csb-public,v 1.4 2005/05/30 18:46:56 rkh Exp $
 # Reece Hart <rkh@gene.com> 
 # 
 
@@ -94,29 +94,30 @@ my $table;									# table name
 my @cols;									# order and names of cols
 my @pseq_id_cols;						   # list of pseq_id cols indicies
 my @params_id_cols;						 # list of params_id cols indicies
-my %filtered;							# No. rows filtered, by table name
+my $discarded;								# num rows discarded
+my %discarded;							# num rows discarded, by table name
 
-while (<>) {
+while (my $line = <>) {
   my $discard = 0;
-  my %warned;							# colnames which have been warned;
-											# should be col. indicies
+  my $trace = '';
 
   if (defined $table) {
 	# in COPY block
-	if (m/^\\./) {
-	  printf(STDERR "# $table: %d rows filtered\n", $filtered{$table});
+	if ($line =~ m/^\\./) {
+	  printf(STDERR "# $table: %d rows discarded\n", $discarded);
+	  $discarded{$table} = $discarded;
 	  undef @pseq_id_cols;
 	  undef @params_id_cols;
 	  undef @cols;
 	  undef $table;
+	  undef $discarded;
 	} else {
-	  # filter COPY block rows
-	  my @F = split;
-	  my $discard = 0;
+	  # discard COPY block rows
+	  my @F = split(/\t/,$line);
 	  if (defined @pseq_id_cols) {
 		foreach my $col (@pseq_id_cols) {
-		  if (exists $public_pseq_ids{$F[$col]}) {
-			warn("# pseq_id rejected ($cols[$col]=$F[$col]): $_") unless $warned{$cols[$col]}++;
+		  if (not $public_pseq_ids{$F[$col]}) {
+			$trace = "discard F[col]=F[$col]=$F[$col]";
 			$discard++;
 			last;
 		  }
@@ -124,8 +125,8 @@ while (<>) {
 	  }
 	  if (defined @params_id_cols) {
 		foreach my $col (@params_id_cols) {
-		  if (exists $public_params_ids{$F[$col]}) {
-			warn("# params_id rejected ($cols[$col]=$F[$col]): $_") unless $warned{$cols[$col]}++;;
+		  if (not $public_params_ids{$F[$col]}) {
+			$trace = "discard F[col]=F[$col]=$F[$col]";
 			$discard++;
 			last;
 		  }
@@ -134,32 +135,34 @@ while (<>) {
 	}
   }
 
-  if ( my ($cols) = m/^COPY \S+ \(([^\)]+)\)/ ) {
+  if ( my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
 	# enter a COPY block
 	@cols = split(/,\s*/,$cols);
 	for (my $i=0; $i<=$#cols; $i++) {
-	  if ($cols[$i] =~ m/^(?:pseq_id|query|target)$/) {
+	  if ($cols[$i] =~ m/^(?:pseq_id|q_pseq_id|t_pseq_id|query|target)$/) {
 		push(@pseq_id_cols, $i);
 	  } elsif ($cols[$i] =~ m/^(?:params_id)$/) {
 		push(@params_id_cols, $i);
 	  }
 	}
-	printf(STDERR "# <$_# pseq_id_cols=%s params_id_cols=%s\n",
+	$table = $tbl;
+	$discarded = 0;
+	printf(STDERR "# <$line# pseq_id_cols=%s params_id_cols=%s\n",
 		   defined @pseq_id_cols ? join(',',@pseq_id_cols) : '-',
 		   defined @params_id_cols ? join(',',@params_id_cols) : '-');
   }
 
-  if ($discard) {
-	$filtered{$table}++;
-  } else {
-	print
-  }
 
+  if ($discard) {
+	$discarded++;
+  } else {
+	print $line;
+  }
 }
 
 
 
 print(STDERR "Summary:");
-foreach my $table (sort keys %filtered) {
-  printf(STDERR "# $table: %d rows filtered\n", $filtered{$table});
+foreach my $table (sort keys %discarded) {
+  printf(STDERR "# $table: %d rows discarded\n", $discarded{$table});
 }
