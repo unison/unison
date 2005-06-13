@@ -15,11 +15,11 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 
-my %cv = %{ $u->selectall_hashref(
+my %cvs = %{ $u->selectall_hashref(
 	'select cv_id,name,descr,sql from canned_views where cv_id>0',
  	'cv_id') };
-my @cv = sort {$a<=>$b} keys %cv;
-my %cvlabels = map {$_ => sprintf("%s (canned view %d)",$cv{$_}->{name}, $_)} @cv;
+my @cvs = sort {$a<=>$b} keys %cvs;
+my %cvlabels = map {$_ => sprintf("%s (canned view %d)",$cvs{$_}->{name}, $_)} @cvs;
 
 
 # It would be much better to get these descriptions from the database
@@ -53,7 +53,7 @@ print $p->render('Browse Unison Canned Views',
 				 $p->start_form(-method => 'GET'),
 				 "show sequences in view ",
 				 $p->popup_menu(-name=>'cv_id',
-								-values => \@cv,
+								-values => \@cvs,
 								-labels => \%cvlabels,
 								-default => $v->{cv_id}||undef),
 				 $p->submit(-value=>'vroom!'),
@@ -70,11 +70,10 @@ sub do_search {
   my $v = $p->Vars();
   return '' unless (defined $v->{cv_id} and $v->{cv_id} ne '');
 
-  my $sql = $cv{$v->{cv_id}}->{sql};
-  my $sth = $u->prepare( $sql );
+  my $cv = $cvs{$v->{cv_id}};
+  my $sth = $u->prepare( $cv->{sql} );
   my $ar = $u->selectall_arrayref($sth);
   my @f = @{ $sth->{NAME} };
-
 
   for(my $i=0; $i<=$#f; $i++) {
 	if ($f[$i] eq 'pseq_id') {
@@ -92,8 +91,10 @@ sub do_search {
 
   my @colhdrs = map {$p->tooltip($_,$coldescr{$_})} @f;
   return( "<hr>\n",
-		  $p->group(sprintf("%s; %d rows",$cv{$v->{cv_id}}->{name}, $#$ar+1),
+		  "<b>$cv->{name} (view $cv->{cv_id})</b>: <i>$cv->{descr}</i>",
+
+		  $p->group(sprintf("%s; %d rows",$cv->{name}, $#$ar+1),
 					Unison::WWW::Table::render(\@colhdrs,$ar)),
-		  $p->sql($sql)
+		  $p->sql($cv->{sql})
 		);
   }
