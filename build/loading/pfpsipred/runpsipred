@@ -1,0 +1,118 @@
+#!/usr/bin/env perl
+
+#-------------------------------------------------------------------------------
+# NAME runpsipred.pl
+# PURPOSE: run psipred programs for secondary structure prediction
+# USAGE: runpsipred <fasta-file>
+#
+# This script will carry out all of the basic steps
+# required to make a PSIPRED V2 prediction. Note that it assumes that the
+# following programs are in the appropriate directories:
+# blastpgp - PSIBLAST executable (from NCBI toolkit)
+# makemat - IMPALA utility (from NCBI toolkit)
+# psipred - PSIPRED V2 program
+# psipass2 - PSIPRED V2 program
+#-------------------------------------------------------------------------------
+
+use File::Temp qw/tempfile/;
+use File::Basename;
+use Getopt::Long;
+
+my %opts = (
+	    alignments => '0',
+	    iterations => '3',
+	    eval       => '0.001',
+	    database   => 'nr-pfilter',
+	    smooth     => '1',
+	    helix      => '1.0',
+	    strand     => '1.0',
+	    cpus       => '1'
+	   );
+GetOptions(\%opts,
+	   'alignments|b=i',
+	   'iterations|j=i',
+	   'eval|h=f',
+	   'database|d=s',
+	   'smooth|s=i',
+	   'helix|hb=f',
+	   'strand|sb=f',
+	   'cpus|a=i',
+	  )
+  or die("$0: bad usage\n");
+
+# get temp fasta file for input sequence to run psipred
+my ($fa_fh,  $fa_fn)  = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.fa' );
+
+my ($base,$dir) = fileparse($fa_fn,qr{\.fa});
+
+my $fasta = $ARGV[0] || die "Usage: runpsipred.pl <fasta-file>\n";
+
+# The name of the BLAST data bank
+my $dbroot = " /gne/compbio/share/blast/aa";
+
+# Where the NCBI programs have been installed
+my $ncbidir = "/gne/compbio/i686-linux-2.6/opt/blast/bin";
+
+# Where the PSIPRED V2 programs have been installed
+my $execdir = "/gne/compbio/i686-linux-2.6/opt/psipred/bin";
+
+# Where the PSIPRED V2 data files have been installed
+my $datadir = "/gne/compbio/i686-linux-2.6/opt/psipred/data";
+
+my ($basename) = "$dir$base";
+
+run("cp -f $fasta $fa_fn");
+
+#It is important to ensure than the sequence data bank used with PSI-BLAST
+#has been filtered to remove low-complexity regions, transmembrane regions,
+#and coiled-coil segments. If this is not done, then it is essential that
+#the PSI-BLAST output for the target sequence is checked by-eye to ensure
+#that no spurious sequences have been included in the PSI-BLAST alignment.
+#A program called "pfilt" is included with psipred which will filter FASTA
+#files before using the formatdb command to generate the encoded BLAST data
+#bank files.
+print STDERR "Running PSI-BLAST with sequence $ARGV[0] ...\n";
+# btw following are default options recommended by psipred installation
+run("$ncbidir/blastpgp -a $opts{'cpus'} -b $opts{'alignments'} -j $opts{'iterations'} -h $opts{'eval'} -d $dbroot/$opts{'database'} -i $fa_fn -C $basename.chk >& $basename.blast");
+
+print STDERR "Predicting secondary structure...\n";
+
+run("echo $base.chk > $basename.pn");
+run("echo $base.fa > $basename.sn");
+run("$ncbidir/makemat -P $basename");
+
+print STDERR "Pass1 ...\n";
+run("$execdir/psipred $basename.mtx $datadir/weights.dat $datadir/weights.dat2 $datadir/weights.dat3 $datadir/weights.dat4 > $basename.ss");
+
+print STDERR "Pass2 ...\n";
+
+#Arguments 2,3 & 4 for psipass2 are as follows:
+#Argument 2: No of filter iterations
+#This controls the amount of "smoothing" that is carried out on the final
+#prediction. The recommended setting is 1, but it may be worth trying
+#higher values to increase the level of smoothing.
+#
+#Argument 3&4: Helix/Strand Decision constants
+#These options control the bias for helix (Arg3) and strand (Arg4) predictions.
+#The default values are equal to 1.0, but if you know your protein is, for
+#example, mostly comprised of beta strands then you can increase the bias
+#towards beta strand prediction. For example:
+run("$execdir/psipass2 $datadir/weights_p2.dat $opts{'smooth'} $opts{'helix'} $opts{'strand'} $basename.ss2 $basename.ss > $basename.horiz");
+
+run("cp $basename.horiz $fasta.horiz");
+run("cp $basename.ss $fasta.ss");
+# Remove temporary files
+print STDERR "Cleaning up ...$basename.*\n";
+run("rm -f $basename* error.log");
+
+print STDERR "Final output files: $fasta.ss $fasta.horiz\n";
+print STDERR "Finished.\n";
+
+
+###################################################################
+sub run {
+  $cmd = shift;
+  print "$cmd\n" if($ENV{'DEBUG'});
+  system( $cmd );
+  $? && die("FAILED: $cmd: $!\n");
+}
