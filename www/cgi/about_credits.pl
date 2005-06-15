@@ -19,7 +19,9 @@ print $p->render("Unison: Credits", <<EOHTML );
 Hart.<br>Please <a href="mailto:hart.reece\@gene.com">contact Reece</a> with
 suggestions, bugs, or comments.
 
-<p>We gratefully acknowledge the following groups and projects:
+<p>We gratefully acknowledge the following groups and projects for their
+freely-distributable contributions to the community.
+
 <table align="center" width="80%">
 
 <!-- TEMPLATE:
@@ -122,6 +124,12 @@ suggestions, bugs, or comments.
 </tr>
 
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Other tools from which we've benefitted</font></th></tr>
+<tr>
+	<td align="center"><img height=30 src="../av/wilber-icon.png" alt="GIMP"></td>
+	<td align="left"><a href="http://www.gimp.org">theGIMP</a></td>
+	<td>Freely available [<a href="http://www.gnu.org/copyleft/gpl.html">License (GPL)</a></td>
+</tr>
+
 <tr>
 	<td align="center"><img height=30 src="../av/gnome-logo-icon-transparent.png" alt="GNOME"></td>
 	<td align="left"><a href="http://www.gnome.org/">GNOME</a></td>
