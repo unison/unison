@@ -1,0 +1,178 @@
+#!/usr/bin/env perl
+# $Id$
+# load-pdblite -- load pdb data
+
+use warnings;
+use strict;
+use Getopt::Long qw(:config gnu_getopt);
+use FindBin;
+use lib "$FindBin::Bin/../perl5";
+
+use DBI;
+
+use PDBML;
+use File::Temp;
+use File::Copy;
+
+my %opts = (
+	    debug    => 0,
+	    verbose  => 0,
+	    sql      => 0,
+	    format   => 'XML',
+	    ext      => 'xml.gz',
+	    schema   => 'pdb',
+	    host     => ( (exists $ENV{PGHOST}) and ($ENV{PGHOST} =~ m/\w/) ) ? $ENV{PGHOST} : 'csb',
+	    dbname   => $ENV{PGDATABASE} || 'csb-dev',
+	    username => $ENV{PGUSER} || eval {my $tmp = `/usr/bin/id -un`; chomp $tmp; $tmp},
+	    password => $ENV{PGPASSWORD},
+	    attr => {
+			AutoCommit => 0,
+		    }
+	   );
+
+GetOptions(\%opts,
+	   'debug|d',
+	   'format|f=s',
+	   'ext|e=s',
+	   'schema=s',
+	   'sql=s',
+	   'verbose|v',
+	   'host|h',
+	   'dbname|db'
+)  || die("$0: Incorrect Usage\n");
+
+if($opts{format} eq 'PDB') { 
+  defined $ENV{PDB_PATH} || die("$0: Format is $opts{format} therefore PDB_PATH needs to be defined \n");
+}
+
+if($opts{format} eq 'XML') { 
+  defined $ENV{PDBXML_PATH} || die("$0: Format is $opts{format} therefore PDBXML_PATH needs to be defined\n");
+}
+
+my @pdbids;
+push @pdbids, (@ARGV ? map {$_} @ARGV : map { chomp;$_ } <> );
+
+my %to_load;  #pdbids to load
+foreach my $pdbid (@pdbids) {$to_load{ $pdbid }++;}
+
+# exit unless you have pdbids to parse
+if ( scalar(keys %to_load) == 0 ) {
+  warn("no pdbid's to load!\n");
+  exit(0);
+}
+
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
+my $pdbDir = ($opts{format} eq 'XML' ? $ENV{PDBXML_PATH} : $ENV{PDB_PATH});
+
+my $dbh = dbconnect() || die "Cannot get a database handle\n";
+
+foreach my $pdb (@pdbids ) {
+
+  print STDERR "\r Parsing :$pdb" if($opts{verbose});
+  my $fn = getfilename($pdb.".".$opts{ext});
+  if(!-e $fn) {
+    print STDERR "$pdb.$opts{ext} does not exist\n";
+    next;
+  }
+  my $p = new PDBML($fn) || next;
+  my $data;
+
+  $data->{summary} = $p->summary();
+  $data->{chain}   = $p->chain();
+  $data->{ligand}  = $p->ligand();
+  $data->{residue} = $p->residue();
+
+  print STDERR "\r Loading :$pdb" if($opts{verbose});
+  if(insert_data($data)) {
+    delete $to_load{$pdb};
+  }
+  else {
+    $dbh->rollback;
+  }
+}
+
+print "following pdbs could not be parsed:\n" if(scalar keys %to_load > 0);
+foreach my $pdb(keys %to_load) {
+  print "$pdb\n";
+}
+
+$dbh->disconnect;
+
+#all done
+#####################################################################################################
+
+sub insert_data {
+
+  my $data = shift;
+
+  #$db->{AutoCommit}=0;
+  foreach my $table('summary','chain','residue','ligand')  {
+
+    if($opts{sql}) {
+      print $data->{$table},"\n";
+    }
+    else {
+      if(!$dbh->do("COPY $opts{schema}.$table FROM STDIN with null as \'\';")){return 0;}
+      if(!$dbh->func($data->{$table}, 'putline')){return 0;}
+      $dbh->func('endcopy');
+    }
+  }
+  $dbh->commit if(!$opts{sql});
+  return 1;
+}
+
+sub getfilename {
+
+  my $pdb = shift;
+  return "$pdbDir/$pdb" if($opts{format} eq 'XML');
+
+  my ($pdb_fh, $pdb_fn) = File::Temp::tempfile(UNLINK => 1, SUFFIX=>".$$.pdb");
+  copy("$ENV{PDB_PATH}/$pdb",$pdb_fn) or die "Copy failed: $!";
+  chdir("tools");
+  system("./pdb2xml $pdb_fn");
+  $? and die "./pdb2xml $pdb_fn failed $!\n";
+  return "$pdb_fn.cif.xml";
+}
+
+sub dbconnect {
+
+  if (not defined $opts{dbname}) {
+	warn ( "couldn't connect to database:",
+		'dbname undefined' );
+	return undef;
+  }
+  if (not defined $opts{username}) {
+        warn ( "couldn't connect to database:",
+		'username undefined' );
+	return undef;
+  }
+
+  my $dsn = "dbi:Pg:dbname=$opts{dbname}";
+  if (defined $opts{host}) {
+	$dsn .= ";host=$opts{host}" ;
+  }
+  my $dbh = DBI->connect($dsn,
+			 $opts{username},
+			 $opts{password},
+			 $opts{attr}
+			);
+  if (not defined $dbh)	{
+	warn
+	  ( "couldn't connect to $opts{dbname}: ",
+		join("\n", 
+			 'DBI ERROR: '.DBI->errstr(),
+			 "dsn=$dsn",
+			 'host='.(defined $opts{host} ? $opts{host} : '<undef>'),
+			 'username='.(defined $opts{username} ? $opts{username} : '<undef>'),
+			 'password='.(defined $opts{password} ? '<hidden>' : '<undef>')),
+		'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
+	  );
+	return undef;
+  }
+
+  return($dbh);
+}
+
+__END__
