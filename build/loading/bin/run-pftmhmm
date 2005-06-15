@@ -1,0 +1,231 @@
+#!/usr/local/tools/bin/perl -W
+# run-pftmhmm -- run tmhmm and load into unison
+# arguments: 
+#   --params_id|-p <params_id>: params_id for loading (required)
+#   --pseq_id|-Q <pset_id>: pset_id for set of sequences to runand load (optional)
+#   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
+# usage: run-pftmhmm [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
+#
+# $Id$
+#-------------------------------------------------------------------------------
+
+use strict;
+
+use Bio::SeqIO;
+use Unison;
+use Error qw(:try);
+use File::Temp qw/tempfile/;
+use Env qw(@PATH);
+use Getopt::Long;
+use IO::Pipe;
+
+my %opts = 
+  (
+   debug     => 0,
+   params_id => undef,
+   pset_id   => undef,
+   verbose   => 0,
+   sql       => 0,
+   update    => 0,# try update before insert
+   );
+GetOptions( \%opts,
+	    'debug|d+',
+	    'params_id|p=i',
+	    'pset_id|Q=i@',
+	    'sql',
+	    'update',
+	    'verbose!',
+	  )
+  || die("$0: usage\n");
+
+(defined $opts{params_id})
+  || die( "$0: --params_id|-p parameter missing\n" );
+
+unshift(@PATH, '/usr/local/seq/bin');
+
+my $u = new Unison( dbname=>'csb-dev' );
+my $clo = $u->run_commandline_by_params_id($opts{params_id});
+
+my @pseq_ids;
+if (defined $opts{'pset_id'}) {
+  # given pset_id shove list of pseqs in @pseq_ids
+  my $sql = new Unison::SQL;
+  $sql->columns('pseq_id')
+    ->table('pseqset S')
+      ->where('S.pset_id in (' . join(',',@{$opts{pset_id}}) . ')')
+	->order('pseq_id');
+  @pseq_ids = map {@$_} @{$u->selectall_arrayref("$sql")};
+}
+
+push @pseq_ids, (@ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <> );
+
+my %run_me;  #pseqs to sun tmhmm
+
+foreach my $pseq_id (@pseq_ids) {$run_me{ $pseq_id }++;}
+
+# exit unless we have seqs to run tmhmm
+if ( scalar(keys %run_me) == 0 ) {
+  warn("no sequences need to be run\n");
+  exit(0);
+}
+
+
+# get pftype_ids for tmhmm
+my $pftype_id = &get_pftype_id( $u, 'tmhmm' );
+die( "Can't retrieve pftype_id for tmhmm" ) if ( ! defined $pftype_id );
+
+
+# fetch sequences and run tmhmm on each
+PSEQ_ID:
+foreach my $pseq_id (@pseq_ids ) {
+
+  my $leader = "\rUnison:$pseq_id";
+  print(STDERR $leader);
+
+  # get temp fasta files for each sequence to run tmhmm
+  my ($fa_fh,  $fa_fn)  = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.fa' );
+
+  # output FASTA file with pseq
+  my $seqio = new Bio::SeqIO( -fh => $fa_fh, -format => 'Fasta' );
+
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  if (not defined $seq) {
+	warn("Unison:$pseq_id: no such sequence\n");
+	next PSEQ_ID;
+  }
+
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  if (defined $ran_on and not $opts{update}) {
+    if (not $opts{update}) {
+      print(STDERR "$leader: run with these options on $ran_on; skipping\n");
+      next PSEQ_ID;
+    }
+    print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
+  }
+  $seqio->write_seq(new Bio::Seq(-id=>"Unison:$pseq_id", -seq=>$seq));
+  printf(STDERR "Unison:$pseq_id: %dAA sequence written\n", length($seq));
+
+  # build the commmand line
+  my @cmd = (split(' ',$clo),$fa_fn);
+  print(STDERR "# running with @cmd\n");
+
+
+  my $tmhmmpipe = new IO::Pipe;
+  $tmhmmpipe->reader( @cmd )
+	|| die("couldn't do @cmd\n");
+
+#  system(@cmd);
+#  $? && die("FAILED: @cmd: $!\n");
+  print STDERR "command line=@cmd\n" if $opts{verbose};
+
+ # parse the results
+  my ($tm_elements) = parse_tmhmm_results($tmhmmpipe);
+
+  if (not defined $tm_elements) {
+    print(STDERR "$leader: looks like tmhmm failed for $pseq_id\n");
+    $tmhmmpipe->close();
+    next PSEQ_ID;
+  }
+
+  # remaining keys are those with no tmhmm results; see below
+  delete $run_me{ $pseq_id };	
+
+  $u->begin_work();
+  #load results
+  if($opts{update}) {
+    my $dsql = 'delete from pftmhmm where pseq_id=? and params_id=?';
+    my $dsth = $u->prepare($dsql);
+    if($opts{sql}) {print "$dsql\n";}
+    else {$dsth->execute($pseq_id,$opts{params_id});}
+  }
+
+  foreach my $f (@$tm_elements) {
+    my $sql = 'insert into pftmhmm (pseq_id,pftype_id,start,stop,type,params_id) values (?,?,?,?,?,?)';
+    my $sth = $u->prepare( $sql );
+
+    print "$sql\t$pseq_id, $pftype_id, $f->[0], $f->[1], $f->[2],$opts{params_id}\n" if($opts{sql});
+
+    try {
+	$sth->execute( $pseq_id, $pftype_id, $f->[0], $f->[1], $f->[2],$opts{params_id}) if(!$opts{sql});
+    } catch Unison::Exception with {
+      die("\n$_[0] pseq_id=$pseq_id<= sql = :\n$sql\nvalues:\n$pseq_id\n$pftype_id\n$f->[0]\n$f->[1]\n$f->[2]\n$opts{params_id}\n");
+    };
+  }
+
+  if(!$opts{sql}) {
+    my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+    print("Unison:$pseq_id: run_history tickled $z\n");
+  }
+  $u->commit();
+  $seqio->close();
+  #cleanup
+  close($fa_fh);
+  $tmhmmpipe->close();
+}
+
+if(!$opts{sql}) {
+  # keys remaining in %run_me are sequences which didn't have any tmhmm
+  # results... update their run_history (see `delete $run_me{}') above.
+  foreach my $pseq_id ( keys %run_me ) {
+    print("Unison:$pseq_id: no results; run_history tickled ",
+	  $u->upd_run_history($pseq_id,$opts{params_id},undef,undef),
+	  "\n");
+  }
+}
+
+exit(0);
+############################################################################
+## INTERNAL FUNCTIONS
+
+
+#-------------------------------------------------------------------------------
+# NAME: get_pftype_id
+# PURPOSE: retrieve a pftype_id for a given name
+#-------------------------------------------------------------------------------
+
+sub get_pftype_id {
+  my ($u,$name) = @_;
+  my $sql = "select pftype_id from pftype where name='$name'";
+  print STDERR "get_pftype_id(), sql=[$sql]\n" if $opts{verbose};
+  my $ary_ref = $u->selectall_arrayref( $sql );
+  return( $ary_ref->[0][0] );
+}
+
+#-------------------------------------------------------------------------------
+# NAME: parse_tmhmm_results
+# PURPOSE: parse the *.horiz tmhmm output file
+# RETURNS: [start stop tm], prediction string, confidence string
+#-------------------------------------------------------------------------------
+
+sub parse_tmhmm_results {
+
+  my $fh = shift;
+  my ($ret,$pred);
+  while(<$fh>) {
+    my @out = split;
+    my $pseq_id;
+
+    if (/\>/ and (not (($pseq_id) = $out[0] =~ m/^\>Unison:(\d+)$/))) {
+      die("$out[0] : looks like query sequences aren't from Unison!\n");
+    }
+    next if(!/\?0/);
+    $pred .= $out[1];
+  }
+
+  my $i = 0;
+  # {position} => prediction
+  my %omi = map {++$i => $_} (split(//,$pred));
+
+  #get all positions where prediction is different from previous pos.
+  my @pos = grep {$omi{$_+1}='' if(!exists($omi{$_+1})); $omi{$_} ne $omi{$_+1}} sort {$a <=> $b} keys %omi;
+
+  foreach my $i (0 ..$#pos) {
+    #start of each OMI-Element = stop of previous OMI-element + 1
+    my $start = $pos[$i-1]+1;
+    $start = 1 if($i == 0) ; #start of first omi is always 1
+    push @$ret, [($start,$pos[$i],$omi{$pos[$i]})];
+  }
+  return ($ret);
+}
+
+
