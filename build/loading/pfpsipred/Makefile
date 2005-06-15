@@ -3,6 +3,8 @@ include ../defaults.mk
 PARAMS_ID=17
 PSET_ID=62
 
+PATH:=.:${PATH}
+
 default:
 	@echo no $@ target; exit 1
 
