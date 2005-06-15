@@ -1,0 +1,276 @@
+#!/usr/bin/env perl
+# run-pfssp_psipred -- run psipred and load into unison
+# arguments: 
+#   --params_id|-p <params_id>: params_id for loading (required)
+#   --pseq_id|-Q <pset_id>: pset_id for set of sequences to runand load (optional)
+#   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
+# usage: run-pfssp_psipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
+#
+# $Id$
+#-------------------------------------------------------------------------------
+
+use strict;
+use warnings;
+
+use Bio::SeqIO;
+use Unison;
+use Error qw(:try);
+use File::Temp qw/tempfile/;
+use Env qw(@PATH);
+use Getopt::Long;
+
+my $MAXSEQLEN = 10000;
+
+my %opts = 
+  (
+   debug     => 0,
+   params_id => undef,
+   pset_id   => undef,
+   verbose   => 0,
+   sql       => 0,
+   update    => 0,# try update before insert
+   );
+GetOptions( \%opts,
+	    'debug|d+',
+	    'params_id|p=i',
+	    'pset_id|Q=i@',
+	    'sql',
+	    'update',
+	    'verbose!',
+	  )
+  || die("$0: usage\n");
+
+(defined $opts{params_id})
+  || die( "$0: --params_id|-p parameter missing\n" );
+
+unshift(@PATH, '/gne/compbio/i686-linux-2.6/opt/psipred');
+
+my $u = new Unison( dbname=>'csb-dev' );
+my $clo = $u->run_commandline_by_params_id($opts{params_id});
+
+my @pseq_ids;
+if (defined $opts{'pset_id'}) {
+  # given pset_id shove list of pseqs in @pseq_ids
+  my $sql = new Unison::SQL;
+  $sql->columns('pseq_id')
+    ->table('pseqset S')
+      ->where('S.pset_id in (' . join(',',@{$opts{pset_id}}) . ')')
+	->order('pseq_id');
+  @pseq_ids = map {@$_} @{$u->selectall_arrayref("$sql")};
+}
+
+push @pseq_ids, (@ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <> );
+
+my %run_me;  #pseqs to sun psipred
+
+foreach my $pseq_id (@pseq_ids) {$run_me{ $pseq_id }++;}
+
+# exit unless we have seqs to run psipred
+if ( scalar(keys %run_me) == 0 ) {
+  warn("no sequences need to be run\n");
+  exit(0);
+}
+
+
+# get pftype_ids for psipred
+my $pftype_id = &get_pftype_id( $u, 'Psipred' );
+die( "Can't retrieve pftype_id for psipred" ) if ( ! defined $pftype_id );
+
+
+# fetch sequences and run psipred on each
+PSEQ_ID:
+foreach my $pseq_id (@pseq_ids ) {
+
+  my $leader = "\rUnison:$pseq_id";
+  print(STDERR $leader);
+
+  # get temp fasta files for each sequence to run psipred
+  my ($fa_fh,  $fa_fn)  = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.fa' );
+
+  # output FASTA file with pseq
+  my $seqio = new Bio::SeqIO( -fh => $fa_fh, -format => 'Fasta' );
+
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  if (not defined $seq) {
+	warn("Unison:$pseq_id: no such sequence\n");
+	next PSEQ_ID;
+  }
+
+  if (length($seq) > $MAXSEQLEN) {
+    warn("Unison:$pseq_id: sequence longer than $MAXSEQLEN, Psipred will fail, rebuild psipred if needed\n");
+    next PSEQ_ID;
+  }
+
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  if (defined $ran_on and not $opts{update}) {
+    if (not $opts{update}) {
+      print(STDERR "$leader: run with these options on $ran_on; skipping\n");
+      next PSEQ_ID;
+    }
+    print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
+  }
+  $seqio->write_seq(new Bio::Seq(-id=>"Unison:$pseq_id", -seq=>$seq));
+  printf(STDERR "Unison:$pseq_id: %dAA sequence written\n", length($seq));
+
+  my @cmd = (split(' ',$clo),$fa_fn);
+  print(STDERR "# running with @cmd\n");
+
+  # build the commmand line
+  system(@cmd);
+  $? && die("FAILED: @cmd: $!\n");
+  print STDERR "command line=@cmd\n" if $opts{verbose};
+
+ # parse the results
+  my $psipred_output = `cat $fa_fn.horiz`;
+  my $ss_output = `cat $fa_fn.ss`;
+  my ($ss_elements,$pred,$conf) = parse_psipred_results($psipred_output);
+  my ($c_conf,$h_conf,$e_conf) = parse_psipred_ss_results($ss_output);
+  if (not (defined $ss_elements) and (defined $pred) and (defined $conf)) {
+    die("looks like psipred failed for $pseq_id\n");
+  }
+  if(length($seq) != length($c_conf) || length($seq) != length($h_conf) || length($seq) != length($e_conf)) {
+    die("seq=>".length($seq)."\t".length($c_conf)."\t".length($h_conf)."\t".length($e_conf)."\t"."unequal lengths in psipred $fa_fn.ss results for $pseq_id\n$c_conf\n$h_conf\n$e_conf");
+  }
+
+  # remaining keys are those with no psipred results; see below
+  delete $run_me{ $pseq_id };	
+
+  $u->begin_work();
+  #load results
+  if($opts{update}) {
+    my $dsql = 'delete from psipred where pseq_id=? and params_id=?';
+    my $dsth = $u->prepare($dsql);
+    if($opts{sql}) {print "$dsql\n";}
+    else {$dsth->execute($pseq_id,$opts{params_id});}
+
+    my $dsql2 = 'delete from pfssp_psipred where pseq_id=? and params_id=?';
+    my $dsth2 = $u->prepare($dsql2);
+    if($opts{sql}) {print "$dsql2\n";}
+    else {$dsth2->execute($pseq_id,$opts{params_id});}
+  }
+  my $sql1 = 'insert into psipred (pseq_id,prediction,confidence,h_confidence,e_confidence,c_confidence,params_id) values (?,?,?,?,?,?,?)';
+  my $sth1 = $u->prepare( $sql1 );
+  print "$sql1\t$pseq_id, $pred, $conf, $h_conf, $e_conf, $c_conf, $opts{params_id}\n" if($opts{sql});
+
+  try {
+    $sth1->execute( $pseq_id, $pred, $conf, $h_conf, $e_conf, $c_conf, $opts{params_id})  if(!$opts{sql});
+  } catch Unison::Exception with {
+    die("\n$_[0] pseq_id = $pseq_id sql = :\n$sql1\nvalues:\n$pseq_id<=\n$pred<=\n$conf<=\n");
+  };
+
+  foreach my $f (@$ss_elements) {
+    my $sql2 = 'insert into pfssp_psipred (pseq_id,pftype_id,start,stop,type,params_id) values (?,?,?,?,?,?)';
+    my $sth2 = $u->prepare( $sql2 );
+
+    print "$sql2\t$pseq_id, $pftype_id, $f->[0], $f->[1], $f->[2],$opts{params_id}\n" if($opts{sql});
+
+    try {
+	$sth2->execute( $pseq_id, $pftype_id, $f->[0], $f->[1], $f->[2],$opts{params_id}) if(!$opts{sql});
+    } catch Unison::Exception with {
+      die("\n$_[0] pseq_id=$pseq_id<= sql = :\n$sql2\nvalues:\n$pseq_id\n$pftype_id\n$f->[0]\n$f->[1]\n$f->[2]\n$opts{params_id}\n");
+    };
+  }
+
+  if(!$opts{sql}) {
+    my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+    print("Unison:$pseq_id: run_history tickled $z\n");
+  }
+  $u->commit();
+  $seqio->close();
+  #cleanup
+  close($fa_fh);
+  unlink(<$fa_fn.horiz>) unless $ENV{'DEBUG'};
+  unlink(<$fa_fn.ss>) unless $ENV{'DEBUG'};
+}
+
+if(!$opts{sql}) {
+  # keys remaining in %run_me are sequences which didn't have any psipred
+  # results... update their run_history (see `delete $run_me{}') above.
+  foreach my $pseq_id ( keys %run_me ) {
+    print("Unison:$pseq_id: no results; run_history tickled ",
+	  $u->upd_run_history($pseq_id,$opts{params_id},undef,undef),
+	  "\n");
+  }
+}
+
+exit(0);
+############################################################################
+## INTERNAL FUNCTIONS
+
+
+#-------------------------------------------------------------------------------
+# NAME: get_pftype_id
+# PURPOSE: retrieve a pftype_id for a given name
+#-------------------------------------------------------------------------------
+
+sub get_pftype_id {
+  my ($u,$name) = @_;
+  my $sql = "select pftype_id from pftype where name='$name'";
+  print STDERR "get_pftype_id(), sql=[$sql]\n" if $opts{verbose};
+  my $ary_ref = $u->selectall_arrayref( $sql );
+  return( $ary_ref->[0][0] );
+}
+
+#-------------------------------------------------------------------------------
+# NAME: parse_psipred_results
+# PURPOSE: parse the *.horiz psipred output file
+# RETURNS: [start stop ss], prediction string, confidence string
+#-------------------------------------------------------------------------------
+
+sub parse_psipred_results {
+
+  my $psipred_output = shift;
+
+  #return variables
+  my ($pred,$conf,$ret);
+  my $i = 0;
+
+  #split psipred output lines
+  my @ss_pred = split(/\n/,$psipred_output);
+  # concat prediction and confidense lines
+  foreach (@ss_pred) {
+    $pred .= (split(/\s+/,$_))[1] if(/^Pred: /);
+    $conf .= (split(/\s+/,$_))[1] if(/^Conf: /); 
+  }
+
+  # {position} => prediction
+  my %ss = map {++$i => $_} (split(//,$pred));
+
+  #get all positions where prediction is different from previous pos.
+  my @pos = grep {$ss{$_+1}='' if(!exists($ss{$_+1})); $ss{$_} ne $ss{$_+1}} sort {$a <=> $b} keys %ss;
+
+  foreach my $i (0 ..$#pos) {
+    #start of each SSElement = stop of previous SSelement + 1
+    my $start = $pos[$i-1]+1;
+    $start = 1 if($i == 0) ; #start of first sse is always 1
+    push @$ret, [($start,$pos[$i],$ss{$pos[$i]})];
+  }
+  return ($ret,$pred,$conf);
+}
+
+sub parse_psipred_ss_results {
+
+  my $psipred_output = shift;
+
+  #return variables
+  my ($c_conf,$h_conf,$e_conf);
+
+  #split psipred output lines
+  my @ss_pred = split(/\n/,$psipred_output);
+
+  # concat prediction and confidence lines
+  foreach (@ss_pred) {
+    if($_ =~ /(\d+.\d+)\s+(\d+.\d+)\s+(\d+.\d+)$/) {
+      $c_conf .= scale($1);
+      $h_conf .= scale($2);
+      $e_conf .= scale($3);
+    }
+  }
+  return($c_conf,$h_conf,$e_conf);
+}
+
+sub scale {
+    my $number = shift;
+    print STDERR "scale:number not defined\n" if(not defined $number);
+    return int($number*9);
+}
