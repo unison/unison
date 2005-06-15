@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.48 2005/05/17 01:22:32 rkh Exp $>
+S<$Id: Page.pm,v 1.49 2005/05/20 18:03:05 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -96,8 +96,10 @@ sub new {
 
   $self->{userprefs} = $self->{unison}->get_userprefs();
   $self->{readonly} = 1;
-  $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
-					  {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
+
+# vladdy.net's licensing is asinine... these must be dropped for now
+#  $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
+#					  {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
 
   if (not exists $v->{pseq_id} and $infer_pseq_id) {
 	my @st = grep {exists $v->{$_}} qw(q pseq_id seq md5 alias);
@@ -267,9 +269,9 @@ sub start_html {
 				$self->Link({-rel => 'shortcut icon',
 							 -href => '../av/favicon.png'})
 			   ],
-	  -style => { -src => ['../styles/unison.css', '../styles/ToolTips.css'] },
+	  -style => { -src => ['../styles/unison.css'] },
 	  -target => '_top',
-	  -onload => 'javascript:{ initToolTips(); }',
+	  # -onload => 'javascript:{ initToolTips(); }',
 	  -script => $self->{js_tags},
 	);
 }
@@ -493,6 +495,8 @@ C<text>.
 sub tooltip {
   my $self = shift;
   my ($text,$tooltip) = @_;
+  # vladdy.net licensing sucks eggs... tooltips were dropped
+  return $text;
   $tooltip =~ s/\s+/ /g;
   return( '<span class="tipped" tooltip="'
 		  . CGI::escapeHTML($tooltip)
