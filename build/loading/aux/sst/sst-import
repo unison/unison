@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
-# This script writes a file which loads Unison's mirror of the sst
-# unqproform (sic) table
+# This script generates SQL dumps of the sst unqproform, prodna, fam, and
+# unqfamily tables for import into unison
 
 use strict;
 use warnings;
@@ -22,7 +22,7 @@ my @table_defs =
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '$Id: sst-import,v 1.5 2005/04/04 16:44:57 rkh Exp $ ', "\n");
+print(STDERR '$Id: sst-import,v 1.6 2005/05/11 21:53:41 rkh Exp $ ', "\n");
 
 #(defined $ENV{SSTPASS})
 #  || die("$0: SSTPASS not defined\n");

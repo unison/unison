@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.7 2005/05/16 16:44:58 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.8 2005/05/17 01:20:49 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -83,7 +83,7 @@ sub pseq_features_panel($%) {
   }
 
   if(!defined($opts{features})) {
-    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic regexp pssm hmm prospect2);
+    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic bigpi regexp pssm hmm prospect2);
   }
 
   if(defined($opts{track_length})) {
@@ -120,6 +120,7 @@ sub pseq_features_panel($%) {
   add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
   add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
   add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
+  add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
   add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
   add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{hmm});
@@ -128,7 +129,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.7 2005/05/16 16:44:58 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.8 2005/05/17 01:20:49 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -677,6 +678,48 @@ sub add_pfsigcleave {
 									 -end => $r->[1],
 									 -score => $r->[2],
 									 -name => $r->[2]
+								   ) );
+	$nadded++;
+  }
+  return $nadded;
+}
+
+
+
+######################################################################
+## add_pfsigcleave
+
+=pod
+
+=item B<< add_pfbigpi( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pfbigpi features to a panel and return the number of features added.
+
+=cut
+
+sub add_pfbigpi {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 2.5,
+								 -max_score => 9,
+								 -sort_order => 'high_score',
+								 -bgcolor => 'blue',
+								 -key => 'BigPI GPI anchor',
+								 -bump => +1,
+								 -label => 1,
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $sql = "select start,quality from v_bigpi where pseq_id=$q";
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref( $sql );
+  foreach my $r (@$featref) {
+	$track->add_feature
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
+									 -end => $r->[0],
+									 -score => ($r->[1]=='A'?4:$r->[1]=='B'?3:$r->[1]=='C'?2:$r->[1]=='D'?1:0),
+									 -name => 'GPI @ ' . $r->[0]
 								   ) );
 	$nadded++;
   }

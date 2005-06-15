@@ -1,28 +1,40 @@
 =head1 NAME
 
-Unison -- interface to the Unison database
-S<$Id: Unison.pm,v 1.1 2004/04/30 22:36:50 rkh Exp $>
+Unison::Unison -- import commonly used Unison modules
+
+S<$Id: Unison.pm,v 1.2 2005/05/17 01:20:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
-use Unison;
+use Unison::Unison;
 
 =head1 DESCRIPTION
 
-B<> is a
+This module, B<Unison::Unison>, loads the following commonly-used
+submodules in the Unison:: API.  The following are currently loaded:
 
-=head1 ROUTINES & METHODS
+=item use Unison::DBI;
 
-=cut
+=item use Unison::Exceptions;
+
+=item use Unison::palias;
+
+=item use Unison::paprospect2;
+
+=item use Unison::papseq;
+
+=item use Unison::params;
+
+=item use Unison::pmprospect2;
+
+=item use Unison::porigin;
+
+=item use Unison::pseq;
+
+=item use Unison::run_history;
 
 
-=pod
-
-=over
-
-=item
-
-=back
+Please see these submodules for documention.
 
 =cut
 
@@ -34,30 +46,22 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-our ($RELEASE) = q$Name:  $ =~ m/Name: (\S*) /;
+our $RELEASE = '';
+if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
 
-
-use Unison::Utilities::misc;
 use Unison::DBI;
 use Unison::Exceptions;
-use Unison::pseq;
-use Unison::porigin;
-use Unison::paprospect2;
-use Unison::pmprospect2;
 use Unison::palias;
+use Unison::paprospect2;
 use Unison::papseq;
 use Unison::params;
+use Unison::pmprospect2;
+use Unison::porigin;
+use Unison::pseq;
 use Unison::run_history;
-use Unison::userprefs;
-
-
 
 
 =pod
-
-=head1 BUGS
-
-=head1 SEE ALSO
 
 =head1 AUTHOR
 

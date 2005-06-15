@@ -13,7 +13,6 @@ use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-my $v = $p->Vars();
 
 my $sql = qq/select * from meta/;
 my $ar = $u->selectall_arrayref($sql);
