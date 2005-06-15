@@ -1,8 +1,10 @@
 CVS CONVENTIONS AND TIPS
 ========================
 
+These are CVS tips I've culled from the 'net and from The O'Reilly CVS
+book.
 
-The CVS tree follows a "basically unstable" methodology in which the trunk
+Our CVS tree follows a "basically unstable" methodology in which the trunk
 is used for development and branches are used for feature development or
 releases.
 
@@ -20,13 +22,12 @@ exception.)
 We should tag before every branch and after every merge. Tags and branch
 tags should use the following format:
 
-- br-x_y-root: tag just before creating a branch
-- br-x_y: preparation for a new major-minor release branch
-- br-<feature>-root, br-feature: akin to the above but for named features
-- rel-x_y_z: milestone on br-x_y
-- fbt-<feature>: feature branch tag for milestones on br-<feature>
-- merge-rel-x_y_z: tag on br-x_y marking merge of x_y_z to root
-- merge-fbt-<feature>: tag on br-<feature>
+- B_x-y_root: Branch Root tag just before creating a major-minor branch
+- B_x-y: a major-minor release Branch
+- BR_<feature>, B-<feature>: akin to the above but for named features
+- REL_x-y-z: RELease of version x.y.z (on B-x_y, please!)
+- M_REL_x-y-z: tag on br-x_y marking merge of x_y_z to root
+- M-<feature>[-1,2,3,...]: tag on B-<feature>
 
 COMMON OPERATIONS
 WARNINGS: These need to be more carefully vetted. Use caution.
@@ -47,9 +48,11 @@ $ cvs up -r br-0_0
 (ensure your changes are committed)
 $ cvs tag rel-0_0_0
 
-IN PROGRESS: 4. merge branch (release or feature) into trunk
-IN PROGRESS: $ cd /tmp
-IN PROGRESS: $ cvs up unison-web
-IN PROGRESS: $ cvs up -j RT_x_y_z
-IN PROGRESS: $ cvs tag M_RT_x_y_z
+4. merge branch (release or feature) into trunk
+SEE: Essential CVS, p. 84, merging branch-to-trunk
+$ cd /tmp
+$ cvs up unison-web
+$ cvs up -j REL-x_y_z
+$ cvs com -m 'incorporated 
+$ cvs tag M_RT_x_y_z
 
