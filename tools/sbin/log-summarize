@@ -39,6 +39,7 @@ while(<>) {
 
 	next if exists $user_ex{$user};
 
+	$host =~ s/\.gene\.com//;				# drop domain name
 	$host =~ s/^comp\d+/comp*/				# group connections into
 	  or $host =~ s/^(vpn-pc)-\d+/$1-*/	    # comp, vpn-pc, or dhcpNN- bins
 	  or $host =~ s/^(dhcp\d+)-\d+/$1-*/;
@@ -55,7 +56,7 @@ while(<>) {
 
 
 
-print('$Id: log-summarize,v 1.2 2004/11/11 04:16:28 rkh Exp $ ', "\n\n");
+print('$Id: log-summarize,v 1.3 2004/11/11 17:26:41 rkh Exp $ ', "\n\n");
 
 printf("connections by %d user(s):\n", scalar keys %cb_user);
 foreach my $user (sort keys %cb_user) {

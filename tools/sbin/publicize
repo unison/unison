@@ -3,7 +3,7 @@
 # make-csb-public -- restrict a COPY-format psql dump to public sequences
 # and methods
 #
-# $Id: make-csb-public,v 1.4 2005/05/30 18:46:56 rkh Exp $
+# $Id: make-csb-public,v 1.5 2005/05/30 19:12:45 rkh Exp $
 # Reece Hart <rkh@gene.com> 
 # 
 
@@ -82,7 +82,7 @@ my @public_pseq_ids = qw(
 	5221848 5221849 5221850 5221855 5221856 5221860 5221862 5221872 5221873
 	5221888 5320169 );
 
-my @public_params_ids = qw(3 5 6 9 11 12 15 16 17 19);
+my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
 
 my %public_pseq_ids = map {$_=>1} @public_pseq_ids;
 my %public_params_ids = map {$_=>1} @public_params_ids;
@@ -99,9 +99,8 @@ my %discarded;							# num rows discarded, by table name
 
 while (my $line = <>) {
   my $discard = 0;
-  my $trace = '';
 
-  if (defined $table) {
+  if ( defined $table and (@pseq_id_cols or @params_id_cols) ) {
 	# in COPY block
 	if ($line =~ m/^\\./) {
 	  printf(STDERR "# $table: %d rows discarded\n", $discarded);
@@ -117,7 +116,6 @@ while (my $line = <>) {
 	  if (defined @pseq_id_cols) {
 		foreach my $col (@pseq_id_cols) {
 		  if (not $public_pseq_ids{$F[$col]}) {
-			$trace = "discard F[col]=F[$col]=$F[$col]";
 			$discard++;
 			last;
 		  }
@@ -126,7 +124,6 @@ while (my $line = <>) {
 	  if (defined @params_id_cols) {
 		foreach my $col (@params_id_cols) {
 		  if (not $public_params_ids{$F[$col]}) {
-			$trace = "discard F[col]=F[$col]=$F[$col]";
 			$discard++;
 			last;
 		  }
