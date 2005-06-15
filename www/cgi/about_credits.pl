@@ -22,12 +22,21 @@ suggestions, bugs, or comments.
 <p>We gratefully acknowledge the following groups and projects:
 <table align="center" width="80%">
 
+<!-- TEMPLATE:
+<tr>
+	<td align="center"></td>
+	<td align="left"><a href=""></a></td>
+	<td></td>
+</tr>
+-->
+
+
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Data in Unison</font></th></tr>
 
 <tr>
 	<td align="center"><img height=30 src="../av/ncbi.gif" alt="NCBI"></td>
 	<td align="left"><a href="http://www.ncbi.nlm.nih.gov/">NCBI</a> for BLAST, CDD, RefSeq, Taxonomy</td>
-	<td>Public Domain</td>
+	<td>Public domain</td>
 </tr>
 
 <tr>
@@ -39,7 +48,7 @@ suggestions, bugs, or comments.
 <tr>
 	<td align="center"><font face="sans-serif" size="6pt" color="#990000"><strong>Pfam</strong></font></td>
 	<td align="left"><a href="http://pfam.wustl.edu/">Pfam</a></td>
-	<td>Freely Available [<a href="ftp://ftp.genetics.wustl.edu/pub/Pfam/COPYRIGHT">License (GPL)</a>]</td>
+	<td>Freely available [<a href="ftp://ftp.genetics.wustl.edu/pub/Pfam/COPYRIGHT">License (GPL)</a>]</td>
 </tr>
 
 <tr>
@@ -70,7 +79,13 @@ suggestions, bugs, or comments.
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/gnu-head-sm.jpg" alt="GNU/FSF"></td>
+	<td align="center"><img height=30 src="../av/emboss.png"></td>
+	<td align="left"><a href="http://emboss.sourceforge.net/">EMBOSS</a></td>
+	<td>Freely available [<a href="http://emboss.sourceforge.net/licence/">License (GPL and LGPL)</a>]</td>
+</tr>
+
+<tr>
+	<td align="center"><img height=30 src="../av/gnu-head-sm.png" alt="GNU/FSF"></td>
 	<td align="left"><a href="http://www.gnu.org">GNU/Free Software Foundation</a> tools</td>
 	<td>Um, that'd be free</td>
 </tr>
@@ -84,7 +99,7 @@ suggestions, bugs, or comments.
 <tr>
 	<td align="center"><img height=30 src="../av/linux-penguin-sm.gif" alt="Linux"></td>
 	<td align="left"><a href="http://www.linux.org/">Linux</a> (Linus Torvalds and linux-gnu contributors)</td>
-	<td>Freely Available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
+	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
 </tr>
 
 <tr>
@@ -94,15 +109,16 @@ suggestions, bugs, or comments.
 </tr>
 
 <tr>
-	<td align="center"><img src="../av/poweredby_postgresql.gif"></td>
-	<td align="left"><a href="http://www.postgresql.org">PostgreSQL</a>, a full-features OpenSource RDBMDS</td>
-	<td>Freely available [<a href="http://www.postgresql.org/about/licence">License (BSD)</a>]</td>
+	<td align="center"></td>
+	<td align="left"><a href="http://insulin.brunel.ac.uk/psiform.html">PSIPred</a></td>
+	<td>Freely available (Para 8: "...may be made available...if
+	access is granted free of charge...")</td>
 </tr>
 
 <tr>
-	<td align="center"></td>
-	<td align="left"><a href="http://www.vladdy.net/webdesign/Tooltips.html">Vladdy.net</a> for tooltips JavaScript</td>
-	<td></td>
+	<td align="center"><img src="../av/poweredby_postgresql.gif"></td>
+	<td align="left"><a href="http://www.postgresql.org">PostgreSQL</a>, a full-features OpenSource RDBMDS</td>
+	<td>Freely available [<a href="http://www.postgresql.org/about/licence">License (BSD)</a>]</td>
 </tr>
 
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Other tools from which we've benefitted</font></th></tr>
@@ -135,6 +151,11 @@ suggestions, bugs, or comments.
 
 <dl>
 
+<dt><b>Bioperl</b></dt>
+<dd>The Bioperl toolkit: Perl modules for the life sciences.
+<br>Stajich JE, Block D, Boulez K, Brenner SE, Chervitz SA, Dagdigian C, Fuellen G, Gilbert JG, Korf I, Lapp H, Lehvaslaiho H, Matsalla C, Mungall CJ, Osborne BI, Pocock MR, Schattner P, Senger M, Stein LD, Stupka E, Wilkinson MD, Birney E.
+<br>Genome Res. 2002 Oct;12(10):1611-8. [<a href="http://www.genome.org/cgi/content/full/12/10/1611">Journal site</a>]
+
 <dt><b>BLAST</b></dt>
 <dd>Basic local alignment search tool.
 <br>Altschul, S.F., Gish, W., Miller, W., Myers, E.W. & Lipman, D.J.
@@ -155,10 +176,9 @@ suggestions, bugs, or comments.
 <br>Alex Bateman, Lachlan Coin, Richard Durbin, Robert D. Finn, Volker Hollich, Sam Griffiths-Jones, Ajay Khanna, Mhairi Marshall, Simon Moxon, Erik L. L. Sonnhammer, David J. Studholme, Corin Yeats and Sean R. Eddy
 <br>Nucleic Acids Research Database Issue 32:D138-D141 (2004). [<a href="http://nar.oupjournals.org/cgi/content/full/32/suppl_1/D138">Journal Site</a>]
 
-<dt><b>Bioperl</b></dt>
-<dd>The Bioperl toolkit: Perl modules for the life sciences.
-<br>Stajich JE, Block D, Boulez K, Brenner SE, Chervitz SA, Dagdigian C, Fuellen G, Gilbert JG, Korf I, Lapp H, Lehvaslaiho H, Matsalla C, Mungall CJ, Osborne BI, Pocock MR, Schattner P, Senger M, Stein LD, Stupka E, Wilkinson MD, Birney E.
-<br>Genome Res. 2002 Oct;12(10):1611-8. [<a href="http://www.genome.org/cgi/content/full/12/10/1611">Journal site</a>]
+<dt><b>PSIPred</b></dt>
+<dd>Jones, D.T. (1999) Protein secondary structure prediction based on
+position-specific scoring matrices. J. Mol. Biol. 292:195-202.
 
 <dt><b>SCOP</b></dt>
 <dd>Andreeva A., Howorth D., Brenner S.E., Hubbard T.J.P., Chothia C., Murzin A.G. (2004).
