@@ -42,7 +42,7 @@ download. (The Jmol applet doesn't work with Firefox.)
 
 <p>One of the features we added is the ability for users to identify and
 display their own features via a URL. For an example, try: <a
-href="http://csb:8080/unison/cgi/pseq_structure.pl?q=8949;userfeatures=mydomain%4025-50,mysnp%4040">http://csb:8080/unison/cgi/pseq_structure.pl?q=8949;userfeatures=mydomain@25-50,mysnp@40</a>
+href="http://csb:8080/unison/cgi/pseq_structure.pl?q=8949;userfeatures=mydomain%4025-50,mysnp%4040">http://csb:8080/unison/cgi/pseq_structure.pl?q=8949;userfeatures=mydomain\@25-50,mysnp\@40</a>
 Then click on mydomain, then mysnp.
 
 <p>Tip: The q= in the URL can be almost anything sane, like q=PRO123,

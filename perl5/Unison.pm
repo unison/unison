@@ -2,7 +2,7 @@
 
 Unison -- Unison database API for perl
 
-S<$Id: Unison.pm,v 1.15 2005/05/16 22:01:30 rkh Exp $>
+S<$Id: Unison.pm,v 1.16 2005/05/16 22:15:40 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -10,52 +10,10 @@ S<$Id: Unison.pm,v 1.15 2005/05/16 22:01:30 rkh Exp $>
 
 =head1 DESCRIPTION
 
-The B<Unison::> perl modules implement a perl API to the Unison database.
-
-C<use Unison;> really loads Unison::common, which in turn loads the most
-commonly used Unison modules. See Unison::common for more information.
-
-Modules currently available are:
-
-=over
-
-=item Unison::blat
-
-=item Unison::common
-
-=item Unison::DBI
-
-=item Unison::Exceptions
-
-=item Unison::genome_features
-
-=item Unison::palias
-
-=item Unison::paprospect2
-
-=item Unison::papseq
-
-=item Unison::params
-
-=item Unison::pmprospect2
-
-=item Unison::porigin
-
-=item Unison::pseq
-
-=item Unison::pseq_features
-
-=item Unison::run_history
-
-=item Unison::SQL
-
-=item Unison::template
-
-=item Unison::userprefs
-
-=back
-
-d28 1
+C<use Unison;> loads the most commonly used Unison modules into the
+Unison:: namespace.  See `perldoc Unison::common' for information about
+which modules are included, and see `perldoc Unison::intro' for more
+information about the Unison API.
 
 =cut
 
@@ -66,10 +24,6 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use strict;
 use warnings;
-
-use Unison::common;
-our $RELEASE = '';
-if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
 
 use Unison::common;
 

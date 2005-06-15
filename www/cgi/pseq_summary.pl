@@ -26,7 +26,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.29 2005/05/13 02:45:52 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.30 2005/05/29 07:36:39 rkh Exp $ ');
 
 print $p->render("Summary of Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
@@ -61,8 +61,8 @@ sub protcomp_info ($) {
   } else {
 	$rv = 'ambiguous';
   }
-  #$rv .= sprintf('<br>Raw data: sim=%s (%d), nn=%s (%d), int=%s (%d)]',
-  #map {$hr->{$_}} qw(sim_loc sim_score nn_loc nn_score int_loc int_score));
+  $rv .= sprintf('<br>sim=%s (%d), nn=%s (%d), int=%s (%d)]</br>',
+  map {$hr->{$_}} qw(sim_loc sim_score nn_loc nn_score int_loc int_score));
   return $rv;
 }
 

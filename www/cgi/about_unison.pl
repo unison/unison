@@ -12,9 +12,8 @@ use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-my $v = $p->Vars();
 
-print $p->render("About Unison", <<EOT );
+print $p->render("About Unison", <<EOHTML );
 
 <!-- DIV STYLE="overflow: auto; height: 400px; padding:0px; margin: 0px" -->
 
@@ -26,16 +25,20 @@ mission is to enable Genentech to ask and answer proteomic queries for
 target discovery more efficiently, more completely, more reliably, and
 more often, and to enable queries which were previously impractical.
 
+<p>WARNING: The Unison database and web pages are experimental.  If there
+is sufficient interest from users, Unison will become a supported
+resource.
+
+
 <h3>WHAT CAN I DO WITH UNISON?</h3>
 <dl>
-
   <dt><b>Answer complex, integrative queries efficiently.</b> <dd>Because
   precomputed results and auxiliary data are integrated within one
   resource, it is possible construct holistic queries which span multiple
   types and sources of data. For example: Identify distinct sequences
   which contain an extracellular immunoglobulin (ig) domain by Pfam,
   followed by a transmembrane region, followed by an Immunoreceptor
-  Tyrosine Inhibitory Motif (ITIM). Unison answers this in ~18 seconds.
+  Tyrosine Inhibitory Motif (ITIM).
 
   <dt><b>Analyze protein structure models.</b>
   <dd>Unison provides comprehensive sequence-sequence, sequence-profile,
@@ -50,8 +53,8 @@ more often, and to enable queries which were previously impractical.
   questions and the formulation of new hypotheses. For example: What
   Pfam domains occur upstream of a transmembrane domain and an ITIM?
   Unison answers this in 30 seconds.
-
 </dl>
+
 
 <h3>HOW DO I GET STARTED?</h3>
 
@@ -74,7 +77,8 @@ saved search strategies and are good starting points for common searches.
 </ul>
 
 <!-- /DIV -->
-EOT
+EOHTML
+
 
 
 
