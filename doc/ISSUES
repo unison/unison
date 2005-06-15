@@ -1,17 +1,19 @@
 -*-outline-*-
 
-issues / todo:
+* TO-DO AT NEXT BACKUP/RESTORE:
+These are items which can only be dealt with in a backup/restore cycle.
 
-IMPORTANT:
 
-* sequence representatives
+* IMPORTANT:
+
+** sequence representatives
   Currently, all sequences in pseq are equal.  In reality, sequences may
   be usefully related by: 1) subsequences, 2) alternative splicing, 3)
   paralogs, 4) orthologs, 5) homology (not 3 or 4), and probably others as
   well.  Ex: given a good thread to pseq_id 333, how does one determine that
   333 is really a sigcleave'd fragment of 222 (case 1 above).
 
-* deprecate aliases
+** deprecate aliases
 Sequence aliases and identifiers may become obsolete between versions of a
 database (e.g., Swiss-Prot:T13X_HUMAN became TR13B_HUMAN). Although this
 isn't typically significant between two versions, the total accumulated
@@ -20,17 +22,12 @@ load-pseq should provide an option which retires unused aliases. We need
 to consider the case of multi-file loads (e.g., Geneseq) which might only
 load a subset in any single run.
 
-* failed loading in paprospect
-If loads fail, run_history is updated nonetheless. This is bad.  On the
-other hand, we want to tolerate (at least) attempts to insert redundant
-features.
-
-* loading is slow
+** loading is slow
 prospect loading is particularly slow; we should recast these as sql
 delete and COPY statements, including run_history updates, all wrapped in
 a transaction.
 
-* changes to pmodelsets and porigins are not tracked by run_history
+** changes to pmodelsets and porigins are not tracked by run_history
 run_history refers to pmodelsets and porigins. It is possible that the set
 of models (pmodel_ids) implied by using either or both of these criteria
 will change over time, thereby making run_history data incorrect. The
@@ -38,70 +35,45 @@ options are to make such sets immutable (not possible for porigin), or
 better, attach time stamps to pmodelset and porigin rows, or to simply
 remove run_history rows when a pmodelset or porigin set is changed.
 
-* overriding inherited fields
+** overriding inherited fields
 pmpseq (others?) override inherited fields (specifically, porigin_id and
 acc are made not null) and therefore conflicts conceptually with the
 parent and, more pragmatically, upon restore. We should strictly follow
 inheritance of columns AND their attributes.
 
-
-* linking
+** linking
 URLs are stored in the porigin table, but they're not used by the web
 tools.  Solution: cache origin->url mapping, then use this to format. See
 U::WWW::utilities.pm.
 
 
 
-TO-DO AT NEXT BACKUP/RESTORE:
-
-* paprospect2(raw,mut,...) -> smallint
-
 
 
 BACKBURNER:
 
-* HUGO/HUPO terms
+** HUGO/HUPO terms
 http://www.gene.ucl.ac.uk/nomenclature/code/ftpaccess.html
 http://www.gene.ucl.ac.uk/public-files/nomen/searchdata.txt
 
-
-* pmodelsets are should be nested
+** pmodelsets are should be nested
 It would be nice if subsets of models triggered an automatic update of
 run_history for the pmodelset subsets. CAUTION: if deleting from a set is
 permissible (as it is now), and if B is a subset of A, then deleting from
 A may imply that B is no longer a subset of A. Therefore, deletion might
 need to be restricted as well.
 
+** svn migration
 
-* svn migration
+** stage and/or prod building should write intermediate dump
 
-* postgresql superuser permissions
-are currently required. Unison should be cleanly separated so that any
-user (or pseudo-user like 'unison') is sufficient. This entails explictly
-stating assumptions for that user's perms (like plperl use and create
-schema).
+** db release should be dump date (I think)
 
-* separate csb-db/ and unison/.
-move unison doc and code from csb-db (or perhaps make it a subdir of unison/?)
-
-* collect UNQ,DNA -> pseq_id mapping (via PRO, presumably)
-SST sub-schema in unison?
-
-* drop ins,upd,del from all tables upon staging? how?
-
-* stage and/or prod building should write intermediate dump
-
-* db release should be dump date (I think)
-
-* split unison/ from csb-db/; move tax/, scop/, gong/ to unison/ 
-
-* API documentation is abysmal
-
-* delete from palias rule
+** delete from palias rule
   wipes out corresponding paliasorigin & pseqalias rows
   (or, just set not current?)
 
-* params_prospect2
+** params_prospect2
 Simplify inheritance and inherited triggers by folding this back into
 params. If the Unison perl API really needs this (for options like
 global_local), then we should create a view which shadows params and
@@ -109,7 +81,7 @@ augments with the params_prospect2 data. If not, then we can simply drop
 params_prospect2. Either way, params needs to be the /single/ table with
 the params_id primary key.
 
-* pftypes, params, run_history
+** pftypes, params, run_history
 problems:
 - some params map to multiple types (e.g., tmdetect). This happens
   whenever a program returns >1 type of feature (but multiple features of
@@ -119,83 +91,79 @@ problems:
   Pfam models, but that's a deviation from the original intent of
   modelsets: to collect models related by function, not by model type.  
 
-* standardize naming conventions better
+** standardize naming conventions better
 
-* sequences may be "anonymous", meaning not referenced by any alias
+** sequences may be "anonymous", meaning not referenced by any alias
   do we care?
 
-* add current_user to pseq, palias tables?
+** add current_user to pseq, palias tables?
 
-* order in asset aggregate
-
-
+** order in asset aggregate
 
 
 
 
-COMPLETED TASKS
 
-* DONE: It's currently hard to tell which analyses have been run on some sequences.
+
+* COMPLETED TASKS
+
+** DONE: It's currently hard to tell which analyses have been run on some sequences.
   For analyses which may legitimately have no return value (e.g., tmdetect
   returns no S, N, or M region), it's impossible to distinguish sequences
   for which the analysis returned nothing from those which haven't yet been run.
-
-* DONE: Pfam and BLAST evalues
+** DONE: Pfam and BLAST evalues
 Pfam and BLAST evalues depend on the number of models and on the database
 size respectively.  Both programs allow a database size to be entered on
 the command line; perhaps this should be part of the run params so that
 evals are reproducible.  Scores are always reproducible.
-
-* DONE: sequence insertion too slow
+** DONE: sequence insertion too slow
   pseq_si_pseq_id too slow... (len,md5) instead of (md5,len)?
   problem: md5 was indexed but not 'analyzed', so md5 lookups were sluggish
-  
-* DONE: `model' table 
+** DONE: `model' table 
   hmm, p2template, sbprofile (for structure-based p.), etc are all models
   they should inherit from a general models table which contains links
   to GO, etc.
   drag: migrate current p2template to inherited version of p2template 
-
-* DONE: hmm, pfhmm tables 
+** DONE: hmm, pfhmm tables 
   hmm and features based on hmms
-
-* DONE: species 
+** DONE: species 
   add tax table from NCBL (~rkh/tax/).  I'd like to see this as an
   ontology too, but I can't find any reference to such.  Propose to GO?
-
-* DONE: pftype2pftype_id( ) lookup function 
-
-* DONE: Gene Ontology
+** DONE: pftype2pftype_id( ) lookup function 
+** DONE: Gene Ontology
   link models and sequences to GO, with interpro2go, spkw2go
-
-* DONE: p2thread -> pfp2thread
+** DONE: p2thread -> pfp2thread
   rename for conformity (pfeatures have prefix pf)
-
-* DONE: Unison::DBI should wrap DBI to use exceptions.
-
-* DONE: load-fasta
+** DONE: Unison::DBI should wrap DBI to use exceptions.
+** DONE: load-fasta
   option to generate tax_id with alias from tagline
-
-* DONE: dump/restore issues:
-** standardize on timestampe WITHOUT timezone
+** DONE: standardize on timestamp WITHOUT timezone
   no issue, just for consistency
-** w/o oids
+** DONE: w/o oids
   fix 4 tables made by cavs
-** pseq.len: smallint -> int 
-** s/p2/prospect2/
-** porigin_id() needs to be created ahead of dv_*
-
-* DONE: affyannot
-
-* DONE: unq,pro,dnaid import
-
-* DONE: run-blat needed
+** DONE: pseq.len: smallint -> int 
+** DONE: s/p2/prospect2/
+** DONE: porigin_id() needs to be created ahead of dv_*
+** DONE: affyannot
+** DONE: unq,pro,dnaid import
+** DONE: run-blat needed
 include better heuristics re: which alignments to load (e.g.,
 match_criteria Union top10)
-
-* DONE: update_uni_psets
+** DONE: update_uni_psets
 set pset_ids 1,2,3 iin pseqset
 delete from pseqset where pset_id=3;
 insert into pseqset select distinct 3,pseq_id from palias where tax_id=tax_id('Rat') ;
 etc.
 
+**DONE: separate csb-db/ and unison/.
+split unison/ from csb-db/; move tax/, scop/, gong/ to unison/ 
+unison/aux is the new home for 3rd-party schemas
+
+**DONE: collect UNQ,DNA -> pseq_id mapping (via PRO, presumably)
+SST sub-schema in unison
+
+**DONE: drop ins,upd,del from all tables upon staging? how?
+Kiran added make_schema_read_only functions
+
+**DONE: API documentation is abysmal
+It's not great, but there are now perldocs for (nearly) all module functions
