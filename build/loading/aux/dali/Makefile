@@ -1,3 +1,7 @@
+# Makefile for loading dali into a postgresql database
+# $Id$
+
+
 vpath % /gne/compbio/share/dali/
 
 ## load aln_ids <= 100 for testing:
