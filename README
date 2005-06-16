@@ -1,5 +1,10 @@
 This directory contains source code for Unison, a database of protein
-prediction results for mining.  These are the goals:
+prediction results for mining.  
+
+Unison is an Open Source project.
+See http://unison-db.sourceforge.net/
+
+These are the goals for Unison:
 
 immediately:
   - a non-redundant protein database with references to
@@ -30,8 +35,29 @@ outside the cluster; doing so with Oracle is impossible in the current
 setup and onerous in any case.
 
 
+
+
+Many of these subdirectories contain additional README files and tools
+specific to manipulating that data.
+
+csb-db/
+	conf/		configuration files for apache and postgresql
+	doc/		documentation
+	geneseq/	Derwent geneseq utilities
+	go/			Gene Ontology (schema)
+	sbin/		administrative executables for data loading
+	scop/		Structural Classification of Proteins (schema)
+	tax/		species taxonomy (currently from Swiss-Prot) (schema)
+	unison/ 	comprehensive mining database, perl API, and web interface (schema)
+
+
+For questions, see Reece Hart or David Cavanaugh.
+
+
+
 Layout:
 unison/	
+	aux/		auxiliary schemas (scop, tax, etc) 
 	bin/		end-user executables/scripts
 	fixes/		one-time database "fixes"
 	ISSUES		known issues & todo list
@@ -47,4 +73,4 @@ unison/
 
 
 -Reece Hart <rkh@gene.com>
-$Id: README,v 1.3 2004/01/09 19:46:59 rkh Exp $
+$Id: README,v 1.4 2004/06/04 00:09:53 rkh Exp $
