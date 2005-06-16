@@ -19,7 +19,7 @@ my $sql = qq/select target,best_annotation(target),qstart||'-'||qstop,tstart||'-
 			len,ident,sim,gaps,eval,
 			pct_ident::int,pct_hsp_coverage::int,pct_coverage::int
 			from v_papseq where
-			query=$v->{pseq_id}
+			q_pseq_id=$v->{pseq_id}
 			order by pct_ident desc,len desc,eval/;
 
 my $ar = $u->selectall_arrayref($sql) ;
