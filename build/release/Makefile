@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.2 2005/06/15 03:49:04 rkh Exp $
+# $Id: Makefile,v 1.3 2005/06/15 22:18:01 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -15,7 +15,12 @@ unexport PGHOST
 default all:
 	@echo "Ain't no stinking $@ target" 1>&2; exit 1
 
-upload: 
+
+# "stage" the development database to production
+stage.log:
+	export PGHOST=localhost PGUSER=postgres; \
+	dropdb csb-stage; \
+	./sbin/dev2stage csb-stage >$@ 2>&1
 
 .PHONY: unison-%.tgz
 unison-%.tgz:
