@@ -1,0 +1,291 @@
+/* $Id: unison.css,v 1.19 2005/05/29 04:13:24 rkh Exp $     emacs: -*-c-*-  */
+
+/* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
+
+BODY {
+ background: #FFFFEB;
+}
+
+/* page layout */
+TABLE.page {
+ border: #150067 thin dashed;
+}
+TABLE.page TD.logo {
+ border: #150067 thin dashed;
+ text-align: center;
+ vertical-align: middle;
+}
+TABLE.page TD.navbar {
+ border: #150067 thin dashed;
+ padding: 0px;
+}
+TABLE.page TD.cnav {
+ vertical-align: top;
+ background: lightgrey;
+ border: #150067 thin dashed;
+}
+TABLE.page TD.body {
+ vertical-align: top;
+ border: #150067 thin dashed;
+ padding: 5px;
+}
+TABLE.page TD.footer {
+ border: #150067 thin dashed;
+ vertical-align: middle;
+ padding: 0px;
+}
+
+
+/* nav and subnav bars */
+TABLE.nav {
+ border: none;
+ color: black;
+}
+TABLE.nav TR TD.unselected {
+ width: 50px;
+ border: lightgrey thin solid;
+ padding-left: 5px;
+ padding-right: 5px;
+ background: #E2E0F3;
+ /* border-top: #FFFFEB thick solid; */
+}
+TABLE.nav TD.selected {
+ width: 50px;
+ border: lightgrey thin solid;
+ padding-left: 5px;
+ padding-right: 5px;
+ background: #150067;
+ font-weight: bold;
+ color: white;
+ /* border-top: #150067 thick solid; */
+ /* border-left: #150067 thick solid; */
+ /* border-right: #150067 thick solid; */
+}
+TABLE.nav TD.selected:hover {
+ background: lightgrey;
+ cursor:pointer;cursor:hand;
+}
+TABLE.nav TD.unselected:hover {
+ background: lightgrey;
+ border: red thin solid;
+ cursor:pointer;cursor:hand;
+}
+TABLE.nav TD.selected A {
+ color: #ffffff;
+ font-weight: bold;
+ text-decoration: none;
+}
+TABLE.nav TD.unselected A {
+ color: #000000;
+ text-decoration: none;
+}
+
+
+TABLE.subnav {
+ border: #150067 medium solid;
+}
+TABLE.subnav TR TD.unselected {
+ width: 50px;
+ border: lightgrey thin solid;
+ padding-left: 5px;
+ padding-right: 5px;
+ background: #E2E0F3;
+}
+TABLE.subnav TD.selected {
+ width: 50px;
+ border: lightgrey thin solid;
+ padding-left: 5px;
+ padding-right: 5px;
+ background: #150067;
+ font-weight: bold;
+ color: white;
+}
+TABLE.subnav TD.selected:hover {
+ background: lightgrey;
+ cursor:pointer;cursor:hand;
+}
+TABLE.subnav TD.unselected:hover {
+ background: lightgrey;
+ border: red thin solid;
+ cursor:pointer;cursor:hand;
+}
+TABLE.subnav TD.selected A {
+ color: #ffffff;
+ font-weight: bold;
+ text-decoration: none;
+}
+TABLE.subnav TD.unselected A {
+ color: #000000;
+ text-decoration: none;
+}
+
+
+
+
+
+
+/* grouped data */
+TABLE.group {
+ width: 100%;
+}
+
+TABLE.group TH.grouptag {
+ border: black thin solid;
+ background-color: #BDB6F3;
+ width: 20%;
+ font-size: largest;
+ text-decoration: underline;
+}
+
+TABLE.group TD {
+ border: black thin solid;
+ background-color: white;
+}
+
+
+
+
+
+
+TABLE.uwtable {
+ background-color: #BDB6F3;
+}
+TABLE.uwtable TH {
+ border: black thin solid;
+ font-size: 100%;
+ background-color: #BDB6F3;
+}
+TABLE.uwtable TH.highlighted {
+ border: black thin solid;
+ font-size: 100%;
+ background-color: yellow;
+}
+TABLE.uwtable TD {
+ background-color: white;
+}
+TABLE.uwtable TD.highlighted {
+ background-color: yellow;
+}
+
+
+
+TR.tablesep {
+  background-color: orange;
+}
+
+
+
+/* cheap text buttons */
+SPAN.button {
+ background: lightgrey;
+ border: black thin solid;
+}
+SPAN.button:hover {
+ background: darkgrey;
+}
+/* SPAN.button A {
+ color: #ffffff;
+ font-weight: bold;
+ text-decoration: none;
+ } */
+
+
+
+/* miscellany */
+IMG.logo {
+ border: 0;
+}
+SPAN.tipped {
+ color: green;
+ font-weight: bold;
+ text-decoration: underline;
+ /* border: black thin dashed; */
+}
+SPAN.tipped:hover {
+ cursor:pointer;cursor:hand;
+}
+SPAN.error {
+ color: red;
+}
+SPAN.debug {
+  background-color: #FFFFCC;
+}
+div.warning {
+ border: red medium solid;
+ padding: 2px;
+ margin: 5px;
+ color: red;
+}
+div.sql {
+ border: black thin solid;
+ padding: 2px;
+ margin: 20px;
+ color: black;
+ background-color: #55ff55;
+ font-family: monospace;
+ font-size: xx-small;
+}
+div.tip {
+ border: black thin solid;
+ padding: 2px;
+ margin: 20px;
+ background-color: lightgrey;
+}
+
+
+
+
+/* archive */
+/*
+A:hover { background: #66ff66 }
+A.plainlink { border-width: 0; }
+
+
+*/
+
+
+
+/*
+.nav a:visited,.nav a:link,.nav {text-decoration: none; color: #00c;}
+.nav a:active {text-decoration: none; background: #00c; color: #fff;}
+*/
+
+/*
+UL.nav {
+ margin: 0px;
+ padding: 0px;
+ }
+UL.nav LI {
+ display: inline;
+ overflow: hidden;
+ list-style-type: none; }	
+UL.nav LI A {
+ color: black;
+ background:  #FFFFCC;
+
+ border: 1px solid  black;
+ padding: 0px 10px 0px 10px;
+ margin: 0px;
+ text-decoration: none; 
+ font-weight: bold;
+}
+UL.nav LI.selected A {
+ color: green;
+ background:  #FFFFCC;
+
+ border: 1px solid  black;
+ padding: 0px 10px 0px 10px;
+ margin: 0px;
+ font-weight: bold;
+ text-decoration: none; 
+}
+UL.nav LI A:HOVER {
+ color: #FFFFCC;
+ background: #CCCCCC; 
+}
+*/
+
+
+/* #C4C0E2 */
+/* #9e9efa */
+/* #BDB6F3 */
