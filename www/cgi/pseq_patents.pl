@@ -43,15 +43,24 @@ sub do_search {
   my $v = $p->Vars();
   return '' unless (defined $v->{pseq_id} and $v->{pseq_id} ne '');
 
-  my $sql = qq/
-	select X1.*,O.origin,AO.alias,AO.descr from (select target as
-	pseq_id,len,pct_ident from v_papseq where query=$v->{pseq_id} union select
-	pseq_id,len,100 from pseq where pseq_id=$v->{pseq_id}) X1 join
-	pseqalias SA on X1.pseq_id=SA.pseq_id join paliasorigin AO on
-	AO.palias_id=SA.palias_id join porigin O on O.porigin_id=AO.porigin_id
-	where X1.pct_ident>=$v->{ident} and SA.iscurrent=true and
-	AO.porigin_id=10031 order by X1.len desc
-	/;
+  my $sql = <<EOSQL;
+SELECT X1.*,O.origin,AO.alias,AO.descr
+FROM (SELECT t_pseq_id AS pseq_id,len,pct_ident
+	  FROM v_papseq
+	  WHERE q_pseq_id=$v->{pseq_id}
+	  UNION
+	  SELECT pseq_id,len,100
+	  FROM pseq
+	  WHERE pseq_id=$v->{pseq_id}) X1
+JOIN pseqalias SA on X1.pseq_id=SA.pseq_id
+JOIN paliasorigin AO on	AO.palias_id=SA.palias_id
+JOIN porigin O on O.porigin_id=AO.porigin_id
+WHERE X1.pct_ident>=$v->{ident}
+  AND SA.iscurrent=true
+  AND AO.porigin_id=porigin_id('geneseq')
+ORDER BY X1.len desc
+EOSQL
+
   my $ar = $u->selectall_arrayref($sql);
   my @f = qw( pseq_id len %Id origin alias description );
   return( "<hr>\n",
