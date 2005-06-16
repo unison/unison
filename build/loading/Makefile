@@ -13,7 +13,7 @@ DIRS=pseq ${COMPUTE_DIRS}
 
 # UPDATE INTRINSIC SETS AND OTHER DATA
 .PHONY: phase2
-phase2: update_tax_id.log update_psets_intrinsic.log mv_best_annotation.log
+phase2: update_tax_id.log update_psets_intrinsic.log mv_best_annotation.log update_meta_stats.log
 update_tax_id.log: seqs.log
 	${PSQL_VCMD} 'begin; select update_tax_ids(); commit;' >$@.err 2>&1
 	/bin/mv -f $@.err $@
@@ -22,6 +22,9 @@ update_psets_intrinsic.log: update_tax_id.log
 	/bin/mv -f $@.err $@
 mv_best_annotation.log: update_psets_intrinsic.log
 	${PSQL_VCMD} 'begin; truncate mv_best_annotation; insert into mv_best_annotation select * from v_best_annotation; commit' >$@.err 2>&1
+	/bin/mv -f $@.err $@
+update_meta_stats.log:
+	${PSQL_VCMD} 'begin; select meta_stats_update(); commit;' >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
@@ -44,8 +47,9 @@ pcluster.log: blat.log
 .PHONY: phase4
 phase4: update_psets_extrinsic.log
 update_psets_extrinsic.log:
-	${PSQL_VCMD} 'begin; select update_psets_intrinsic(); commit;' >$@.err 2>&1
+	${PSQL_VCMD} 'begin; truncate meta; select update_psets_intrinsic(); commit;' >$@.err 2>&1
 	/bin/mv -f $@.err $@
+
 
 
 # GENERIC DIRECTORY RULE
