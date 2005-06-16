@@ -25,10 +25,6 @@ mission is to enable Genentech to ask and answer proteomic queries for
 target discovery more efficiently, more completely, more reliably, and
 more often, and to enable queries which were previously impractical.
 
-<p>WARNING: The Unison database and web pages are experimental.  If there
-is sufficient interest from users, Unison will become a supported
-resource.
-
 
 <h3>WHAT CAN I DO WITH UNISON?</h3>
 <dl>

@@ -16,10 +16,13 @@ my $u = $p->{unison};
 
 print $p->render('Unison Copyright and License', <<EOHTML );
 
-<br>Unison schema and source code are Copyright 2005, Genentech, Inc.
-<br>The Unison schema and source code released under <a
-href="http://opensource.org/licenses/afl-2.1.php">the Academic Free
+<center><table width="80%" border=1><tr><td>
+Unison Protein Database
+<br>Unison schema, source code, web pages, and data are
+<br>Copyright 2005, Genentech, Inc.
+<br>Licensed under <a target="_blank" href="http://opensource.org/licenses/afl-2.1.php">the Academic Free
 License v. 2.1</a>.  The text of this license is below.
+</td></tr></table></center>
 
 <p>Source data and precomputed results in Unison were derived from both
 freely available and proprietary sources.  Public releases of Unison
