@@ -20,7 +20,10 @@ Hart.<br>Please <a href="mailto:hart.reece\@gene.com">contact Reece</a> with
 suggestions, bugs, or comments.
 
 <p>We gratefully acknowledge the following groups and projects for their
-freely-distributable contributions to the community.
+freely-distributable contributions to the community. Unison is released
+under an Open Source license; please see <a href="about_legal.pl">Unison
+legal information</a> for details.
+
 
 <table align="center" width="80%">
 
@@ -89,13 +92,19 @@ freely-distributable contributions to the community.
 <tr>
 	<td align="center"><img height=30 src="../av/gnu-head-sm.png" alt="GNU/FSF"></td>
 	<td align="left"><a href="http://www.gnu.org">GNU/Free Software Foundation</a> tools</td>
-	<td>Um, that'd be free</td>
+	<td>Um, that'd be free [<a href="ftp://ftp.genetics.wustl.edu/pub/Pfam/COPYRIGHT">License (GPL)</a>]</td>
 </tr>
 
 <tr>
 	<td align="center"><img height=30 src="../av/hammer_sm.gif" alt="HMMER"></td>
 	<td align="left"><a href="http://hmmer.wustl.edu/">HMMER</a></td>
 	<td>Freely available [<a href="ftp://ftp.genetics.wustl.edu/pub/eddy/hmmer/CURRENT/COPYRIGHT">License (GPL)</a>]</td>
+</tr>
+
+<tr>
+	<td align="center"><img height=30 src="http://jmol.sourceforge.net/images/Jmol_smallLogo.jpg"></td>
+	<td align="left"><a href="http://jmol.sourceforge.net/">JMol</a></td>
+	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
 </tr>
 
 <tr>
@@ -107,6 +116,12 @@ freely-distributable contributions to the community.
 <tr>
 	<td align="center"><img height=30 src="../av/camel.png"></td>
 	<td align="left"><a href="http://www.perl.com/">Perl</a> (Larry Wall and perl contributors)</td>
+	<td>Freely available [<a href="http://www.perl.com/pub/a/language/misc/Artistic.html">License (Artistic)</a>]</td>
+</tr>
+
+<tr>
+	<td align="center"></td>
+	<td align="left"><a href="http://pfaat.sourceforge.net/">Pfaat</a></td>
 	<td>Freely available [<a href="http://www.perl.com/pub/a/language/misc/Artistic.html">License (Artistic)</a>]</td>
 </tr>
 
@@ -162,7 +177,7 @@ freely-distributable contributions to the community.
 <dt><b>Bioperl</b></dt>
 <dd>The Bioperl toolkit: Perl modules for the life sciences.
 <br>Stajich JE, Block D, Boulez K, Brenner SE, Chervitz SA, Dagdigian C, Fuellen G, Gilbert JG, Korf I, Lapp H, Lehvaslaiho H, Matsalla C, Mungall CJ, Osborne BI, Pocock MR, Schattner P, Senger M, Stein LD, Stupka E, Wilkinson MD, Birney E.
-<br>Genome Res. 2002 Oct;12(10):1611-8. [<a href="http://www.genome.org/cgi/content/full/12/10/1611">Journal site</a>]
+<br>Genome Res. 2002 Oct;12(10):1611-8. [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=12368254&query_hl=5">PubMed</a>]
 
 <dt><b>BLAST</b></dt>
 <dd>Basic local alignment search tool.
@@ -179,10 +194,15 @@ freely-distributable contributions to the community.
 <br>S. R. Eddy.
 <br>Bioinformatics, 14:755-763, 1998. [<a href="http://selab.wustl.edu/publications/Eddy98/Eddy98-reprint.pdf">PDF</a>]
 
+<dt><b>Pfaat</b></dt>
+<dd>Protein family annotation in a multiple alignment viewer
+<br>Jason M. Johnson, Keith Mason, Ciamac Moallemi, Hualin Xi, Shyamal Somaroo, and Enoch S. Huang
+<br>Bioinformatics 19(4):544-5 (2003) [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=12611813">PubMed</a>]
+
 <dt><b>Pfam</b></dt>
 <dd>The Pfam Protein Families Database
 <br>Alex Bateman, Lachlan Coin, Richard Durbin, Robert D. Finn, Volker Hollich, Sam Griffiths-Jones, Ajay Khanna, Mhairi Marshall, Simon Moxon, Erik L. L. Sonnhammer, David J. Studholme, Corin Yeats and Sean R. Eddy
-<br>Nucleic Acids Research Database Issue 32:D138-D141 (2004). [<a href="http://nar.oupjournals.org/cgi/content/full/32/suppl_1/D138">Journal Site</a>]
+<br>Nucleic Acids Research Database Issue 32:D138-D141 (2004). [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=14681378&query_hl=3">PubMed</a>]
 
 <dt><b>PSIPred</b></dt>
 <dd>Jones, D.T. (1999) Protein secondary structure prediction based on
