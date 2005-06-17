@@ -1,76 +1,34 @@
-This directory contains source code for Unison, a database of protein
-prediction results for mining.  
+UNISON README
+$Id$
+==========================================================
 
-Unison is an Open Source project.
-See http://unison-db.sourceforge.net/
+Unison Protein Database
+Copyright 2005 Genentech, Inc.
+Licensed under the Academic Free License v. 2.1
+Reece Hart <rkh@gene.com>
 
-These are the goals for Unison:
+Unison is a database of precomputed predictions on a non-redundant set of
+protein sequences. The intent is to provided a centralized repository of
+proteomic data which may be readily updated and which enables holistic
+queries across all data.
 
-immediately:
-  - a non-redundant protein database with references to
-    the (perhaps multiple) origins of each sequence
-  - sets of protein sequences, possibly overlapping
-  - prospect2 threading results, including separation
-	of those obtained with various runtime options
-  - miscellaneous sequence features, including sigpeptide, 
-   	transmembrane, gpi, pI, scores
+Unison is three things: a database of precomputed results, a set of tools
+built on this database, and a web interface to the database.  All of these
+are released under the Academic Free License v. 2.1 and are available on
+SourceForge at http://unison-db.sourceforge.net/ .
 
-eventually:
-  - sequence-sequence relationships
-  - other method results, including Pfam,
-    Interpro, Proceryon, BLAST/PSI-BLAST
-  - annotations linked to results (i.e., /interpretations/
-	of results) with qualities, to a small set
-    of normalized domains (e.g., GO categories)
+File layout:
 
-The current implementation is a compromise between the design that I
-wanted and the design that I could actually implement in reasonable time.
-Expect flux.  For example, annotations should really be handled
-equivalently as localized sequence features (i.e., with start/stop) than
-as full-length sequence annotations.
+unison/ 
+    aux/        auxiliary schemas (scop, tax, etc) 
+    bin/        end-user executables/scripts
+    ISSUES      known issues & todo list
+    INSTALL     install instructions
+    loading/    scripts and scratch area for loading
+    misc/       miscellaneous stuff, mostly Genentech-specific
+    perl5/      perl5 API
+    README      this file
+    sbin/       administrative / data-loading scripts
+    src/        database backend source code for sequence "cleansing"
+    t/          test scripts
 
-The database was designed using PostgreSQL (www.us.postgresql.org).
-PostgreSQL was chosen because I wanted the database accissible inside and
-outside the cluster; doing so with Oracle is impossible in the current
-setup and onerous in any case.
-
-
-
-
-Many of these subdirectories contain additional README files and tools
-specific to manipulating that data.
-
-csb-db/
-	conf/		configuration files for apache and postgresql
-	doc/		documentation
-	geneseq/	Derwent geneseq utilities
-	go/			Gene Ontology (schema)
-	sbin/		administrative executables for data loading
-	scop/		Structural Classification of Proteins (schema)
-	tax/		species taxonomy (currently from Swiss-Prot) (schema)
-	unison/ 	comprehensive mining database, perl API, and web interface (schema)
-
-
-For questions, see Reece Hart or David Cavanaugh.
-
-
-
-Layout:
-unison/	
-	aux/		auxiliary schemas (scop, tax, etc) 
-	bin/		end-user executables/scripts
-	fixes/		one-time database "fixes"
-	ISSUES		known issues & todo list
-	loading/	scripts and scratch area for loading
-	logo/		Unison logo (gimp files)
-	perl5/		perl5 API and web objects
-	README		this file
-	sbin/		administrative / data-loading scripts for recurrent use
-	sql/		NON-AUTHORITATIVE sql (read: actual database may differ)
-	src/		non-sql source code
-	t/			test scripts
-	www/		web pages
-
-
--Reece Hart <rkh@gene.com>
-$Id: README,v 1.4 2004/06/04 00:09:53 rkh Exp $
