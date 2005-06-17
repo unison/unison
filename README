@@ -1,5 +1,5 @@
 UNISON README
-$Id$
+$Id: README,v 1.6 2005/06/17 04:11:11 rkh Exp $
 ==========================================================
 
 Unison Protein Database
@@ -16,19 +16,3 @@ Unison is three things: a database of precomputed results, a set of tools
 built on this database, and a web interface to the database.  All of these
 are released under the Academic Free License v. 2.1 and are available on
 SourceForge at http://unison-db.sourceforge.net/ .
-
-File layout:
-
-unison/ 
-    aux/        auxiliary schemas (scop, tax, etc) 
-    bin/        end-user executables/scripts
-    ISSUES      known issues & todo list
-    INSTALL     install instructions
-    loading/    scripts and scratch area for loading
-    misc/       miscellaneous stuff, mostly Genentech-specific
-    perl5/      perl5 API
-    README      this file
-    sbin/       administrative / data-loading scripts
-    src/        database backend source code for sequence "cleansing"
-    t/          test scripts
-
