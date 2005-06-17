@@ -1,10 +1,15 @@
-/* $Id: unison.css,v 1.18 2005/05/13 15:37:27 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.19 2005/05/29 04:13:24 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
 BODY {
  background: #FFFFEB;
 }
+
+A:hover {
+ background: lightgrey;
+}
+
 
 /* page layout */
 TABLE.page {
