@@ -1,8 +1,27 @@
 Unison Loading and Updating				-*-outline-*-
 
-This document describes the Unison loading and updating process. It is
-intended for maintainers of a Unison database.
+This document describes the Unison loading, updating, and release
+processes. It is intended for developers and maintainers of a Unison
+database.
 
+
+* The Big Picture
+csb-dev is the only database which is ever modified. Period.  Other
+versions of the database are read-only (from my point of view).
+
+csb-dev contents (sequences, results, sets, etc) are loaded/updated as
+described extensively below. Once a round of loading is completed, Unison
+is "staged", typically in conjunction with the tools and web
+components. The staged database, tools, and web interface are tested;
+fixes are made to the development code and the components are restaged as
+necessary.  Finally, the database is then renamed to push it into
+production; the code and web pages are committed to CVS, tagged, and tar'd
+up. A backup is made of the csb (production) database. That backup is then
+filtered by a perl script to build a public version database as a
+psql-dump.  That dump is then restored to verify its operation.
+
+
+* General loading 
 Unison loading and updating is mostly achieved through makefiles using
 scripts in unison/sbin. There's is an ongoing effort to unify the
 operation of these, but some tweaking and debugging may still be required.
@@ -18,10 +37,6 @@ Loading occurs in these phases:
 - Computing and loading results.
 - Building sequence sets based on computed results.
 
-Details about these loading phases are elaborated upon below.
-
-
-* General loading 
 Data are always loaded by the 'loader' user. The exact permissions on a
 table for insert, update, or delete depend on the needs for that data
 source.
@@ -142,4 +157,19 @@ typeII
 
 ** load new scop
 scop2pmodel 
+
+
+
+* database flow and backups
+
+web:    8080              8040              80                  8000    
+db:   csb-dev  -------->  stage  -------->  csb                unison
+         |     dev2stage         stage2prd   |                   ^
+         |backup (cron)                      |backup (manual)    |restore
+         v                                   v                   |
+bu:   csb-dev-<ts>                        csb-<ts>  ------->  unison-<ts>
+                                                  make-public-db
+
+bu = backup
+ts = timestamp
 
