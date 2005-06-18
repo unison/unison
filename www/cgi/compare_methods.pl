@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.7 2005/04/19 20:19:53 mukhyala Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.8 2005/05/17 01:22:32 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -18,6 +18,8 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+
 
 #globals, scores: %$scores, %$data for GD::Graph
 my ($scores,$data);

@@ -20,11 +20,12 @@ my (@db_sec) = ( 'Curagen', 'Geneseq', 'Ensembl/Human', , 'FANTOM' );
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Property Mining",
-				   '$Id: search_by_properties.pl,v 1.7 2005/04/08 22:13:04 mukhyala Exp $',
+				   '$Id: search_by_properties.pl,v 1.8 2005/04/21 18:57:52 mukhyala Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
@@ -120,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.7 2005/04/08 22:13:04 mukhyala Exp $',
+				 '$Id: search_by_properties.pl,v 1.8 2005/04/21 18:57:52 mukhyala Exp $',
 				 $results,
 				 $p->sql( $sql ));
 

@@ -18,7 +18,7 @@ my $v = $p->Vars();
 my $sql;
 
 $p->ensure_required_params(qw(pseq_id));
-
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
 
 if ( defined $v->{action} && $v->{action} eq 'submit' ) {
   $sql = "insert into pnote (pseq_id,note) values (?,?)";

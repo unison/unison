@@ -19,6 +19,7 @@ my $v = $p->Vars();
 
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile( SUFFIX => '.png' );
 $p->die("Couldn't create a temporary file: $!\n") unless defined $png_urn;
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
 
 my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 

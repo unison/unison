@@ -13,6 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
 my $v = $p->Vars();
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
 
 print $p->render("Sequence lookup by alias"
 				 . (defined $v->{alias} ? ": $v->{alias}" : ''),
