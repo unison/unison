@@ -138,6 +138,12 @@ legal information</a> for details.
 	<td>Freely available [<a href="http://www.postgresql.org/about/licence">License (BSD)</a>]</td>
 </tr>
 
+<tr>
+	<td align="center"><img height=30 src="http://pymol.sourceforge.net/logo200.jpg"></td>
+	<td align="left"><a href="http://pymol.sourceforge.net/">JMol</a></td>
+	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
+</tr>
+
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Other tools from which we've benefitted</font></th></tr>
 <tr>
 	<td align="center"><img height=30 src="../av/wilber-icon.png" alt="GIMP"></td>
