@@ -8,7 +8,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.5 2005/05/11 21:53:41 rkh Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.6 2005/06/17 17:14:52 mukhyala Exp $;
 
 =head1 SYNOPSIS
 
@@ -142,7 +142,7 @@ sub find_templates {
 
     my $self = shift;
 
-    my $templates_sql = "select B.t_pseq_id,B.pdbc, B.descr,B.q_start,B.q_stop,B.t_start,B.t_stop,B.ident,B.sim,B.gaps,B.eval,B.pct_ident,B.len,B.pct_coverage from v_papseq_pdbcs B where B.pseq_id = $self->{'pseq_id'} and B.pct_ident>50 order by B.pct_coverage desc, B.pct_ident desc";
+    my $templates_sql = "select B.t_pseq_id,B.pdbc, B.descr,B.q_start,B.q_stop,B.t_start,B.t_stop,B.ident,B.sim,B.gaps,B.eval,B.pct_ident,B.len,B.pct_coverage from v_papseq_pdbcs B where B.q_pseq_id = $self->{'pseq_id'} and B.pct_ident>50 order by B.pct_coverage desc, B.pct_ident desc";
 
     my $templates_ar = $self->{'unison'}->selectall_arrayref($templates_sql);
     $self->initialize_templates($templates_ar);
