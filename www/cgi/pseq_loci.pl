@@ -18,6 +18,8 @@ my $margin = 5000;						# margin around gene for geode
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+
 
 ## BUG: the genasm_id isn't passed to the Unison or geode views.
 # genasm_id=2 (NHGD 35) because that's all geode supports and I don't want

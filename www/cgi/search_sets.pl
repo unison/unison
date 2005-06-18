@@ -20,6 +20,8 @@ use Unison::SQL;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+
 
 my %defaults = 
   ( 
@@ -212,7 +214,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.14 2005/02/16 23:06:54 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.15 2005/04/04 18:46:40 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select

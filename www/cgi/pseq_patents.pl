@@ -15,6 +15,8 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 $v->{ident} = 98 unless exists $v->{ident};
 
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+
 
 print $p->render("Patents 'near' Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
