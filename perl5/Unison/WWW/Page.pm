@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.49 2005/05/20 18:03:05 rkh Exp $>
+S<$Id: Page.pm,v 1.50 2005/06/15 02:36:19 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -661,13 +661,19 @@ sub _page_connect ($) {
   my $self = shift;
   my $v = $self->Vars();
 
+  # XXX: The logic here is messy and needs to be overhauled.  The cases:
+  # users: PUBLIC, krb
+  # host: csb
+  # dbname: csb, csb-stage, csb-dev, unison (public)
+
   # If dbname is not explicitly set, set it based on SERVER_PORT
   # SERVER_PORT is always set, except when debugging from the command line
   if (not exists $v->{dbname}) {
-    $v->{dbname} = 'csb';
+    $v->{dbname} = 'unison';
     if (defined $ENV{SERVER_PORT}) {
-      if    ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
-      elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev' }
+      if    ($ENV{SERVER_PORT} ==   80)	 { $v->{dbname} = 'csb'       }
+      elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
+      elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
 	}
   }
 
@@ -675,7 +681,7 @@ sub _page_connect ($) {
   if (exists $ENV{KRB5CCNAME}) {
 	$v->{username} = $ENV{REMOTE_USER} 		# from webserver...
 	                 || `/usr/bin/id -un`;	# ... or running on command line
-	$v->{username} =~ s/@.+//;				# strip domain name
+	$v->{username} =~ s/@.+//;				# strip domain from krb user name
   }
 
   # Attempt a PUBLIC connection unless username is set.
