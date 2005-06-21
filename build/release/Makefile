@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.3 2005/06/15 22:18:01 rkh Exp $
+# $Id: Makefile,v 1.4 2005/06/16 16:53:55 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -22,6 +22,7 @@ stage.log:
 	dropdb csb-stage; \
 	./sbin/dev2stage csb-stage >$@ 2>&1
 
+# build a tarball of a specific release
 .PHONY: unison-%.tgz
 unison-%.tgz:
 	@RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
@@ -30,6 +31,7 @@ unison-%.tgz:
 		&& tar -czf ${PWD}/$@ unison-$*; \
 	rm -fr /tmp/release-$$$$
 
+# build public database dumps
 .PHONY: dump
 dump: unison-${DATE}-schema.psql.gz unison-${DATE}-data.psql.gz
 unison-${DATE}-data.psql.gz:
@@ -61,21 +63,21 @@ upload-%: % %.asc %.md5
 
 
 
-## WARNING: the branch-% and release-% targets are being tested
-branch-%:
-	@BRTAG=`echo "br_$*" | sed -e 's/\./-/g; s/-[0-9][0-9]*$$//;'`; \
-	set -x; \
-	cvs up -A; \
-	cvs tag "$$BRTAG-root"; \
-	cvs rtag -r "$$BRTAG-root" "$$BRTAG"; \
-	cvs up -r "$$BRTAG"
-
-release-%:
-	@BRTAG=`echo "br_$*" | sed -e 's/\./-/g; s/-[0-9][0-9]*$$//;'`; \
-	RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
-	set -x; \
-	cvs up -r "$$BRTAG"; \
-	cvs tag "$$RTAG"
+## ## WARNING: the branch-% and release-% targets are being tested
+## branch-%:
+## 	@BRTAG=`echo "br_$*" | sed -e 's/\./-/g; s/-[0-9][0-9]*$$//;'`; \
+## 	set -x; \
+## 	cvs up -A; \
+## 	cvs tag "$$BRTAG-root"; \
+## 	cvs rtag -r "$$BRTAG-root" "$$BRTAG"; \
+## 	cvs up -r "$$BRTAG"
+## 
+## release-%:
+## 	@BRTAG=`echo "br_$*" | sed -e 's/\./-/g; s/-[0-9][0-9]*$$//;'`; \
+## 	RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
+## 	set -x; \
+## 	cvs up -r "$$BRTAG"; \
+## 	cvs tag "$$RTAG"
 
 
 .PHONY: clean cleaner cleanest
