@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.8 2005/05/17 01:20:49 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.9 2005/06/15 03:49:04 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -129,7 +129,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.8 2005/05/17 01:20:49 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.9 2005/06/15 03:49:04 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -767,7 +767,6 @@ sub add_pfregexp {
 }
 
 sub add_pfsnp {
-
     my ($u, $panel, $q, $view, $pseq_structure) = @_;
 
     my $nadded = 0;
@@ -781,7 +780,7 @@ sub add_pfsnp {
                                                                  -height => 4
 			       );
 
-    my $sql = "select s.start_pos,s.original_aa,s.variant_aa,s.descr from mukhyala.pseq_mim p join mukhyala.sp_snp s on s.sp_id = p.alias where p.pseq_id=$q";
+    my $sql = "select start_pos,original_aa,variant_aa,descr from v_pseq_sp_var where pseq_id=$q";
 
     print(STDERR $sql, ";\n\n") if $opts{verbose};
     my $featref = $u->selectall_arrayref( $sql );
