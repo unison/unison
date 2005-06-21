@@ -6,6 +6,9 @@ These are items which can only be dealt with in a backup/restore cycle.
 
 * IMPORTANT:
 
+** documentation
+need better documentation for installing and describing the code layout
+
 ** sequence representatives
   Currently, all sequences in pseq are equal.  In reality, sequences may
   be usefully related by: 1) subsequences, 2) alternative splicing, 3)

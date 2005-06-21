@@ -24,7 +24,7 @@ $ make install
 $ createuser -i2 -A -D    PUBLIC
 $ createuser -i3 -A -D -P unison
 $ createuser -i4 -A -D -P loader
-$ csb-db/sbin/passwd2sql </etc/passwd -g1279,227,199,136,140,201,202,984,81 \
+$ sbin/passwd2sql </etc/passwd -g1279,227,199,136,140,201,202,984,81 \
   | psql -Upostgres -hcsb -dtemplate1 -qaf-
 
 
