@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$Id$
+#$Id: test.pl,v 1.1 2005/06/20 17:23:17 mukhyala Exp $
 
 use strict;
 use warnings;
@@ -16,7 +16,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id$ ');
+$p->add_footer_lines('$Id: test.pl,v 1.1 2005/06/20 17:23:17 mukhyala Exp $ ');
 
 my ($test_fh, $test_fn) = $p->tempfile(SUFFIX=>'.tst');
 my $cmd = "../t/output_test -q $v->{pseq_id} >> $test_fn";
