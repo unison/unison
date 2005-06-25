@@ -3,10 +3,12 @@
 # make-csb-public -- restrict a COPY-format psql dump to public sequences
 # and methods
 #
-# $Id: make-csb-public,v 1.5 2005/05/30 19:12:45 rkh Exp $
+# $Id: make-csb-public,v 1.6 2005/06/15 20:23:25 rkh Exp $
 # Reece Hart <rkh@gene.com> 
 # 
 
+use strict;
+use warnings;
 use Unison;
 
 # these are the SPDI pseq_ids (pset_id=900) as of 2005-05-26
@@ -88,7 +90,7 @@ my %public_pseq_ids = map {$_=>1} @public_pseq_ids;
 my %public_params_ids = map {$_=>1} @public_params_ids;
 
 printf(STDERR "# %d pseq_ids, %d params_ids will be public\n",
-	   scalar(%public_pseq_ids), scalar(%public_params_ids));
+	   scalar(keys %public_pseq_ids), scalar(keys %public_params_ids));
 
 my $table;									# table name
 my @cols;									# order and names of cols
@@ -96,6 +98,8 @@ my @pseq_id_cols;						   # list of pseq_id cols indicies
 my @params_id_cols;						 # list of params_id cols indicies
 my $discarded;								# num rows discarded
 my %discarded;							# num rows discarded, by table name
+my $nrows;
+my %nrows;
 
 while (my $line = <>) {
   my $discard = 0;
@@ -103,17 +107,20 @@ while (my $line = <>) {
   if ( defined $table and (@pseq_id_cols or @params_id_cols) ) {
 	# in COPY block
 	if ($line =~ m/^\\./) {
-	  printf(STDERR "# $table: %d rows discarded\n", $discarded);
+	  printf(STDERR "# $table: %d/%d rows discarded\n", $discarded, $nrows);
 	  $discarded{$table} = $discarded;
+	  $nrows{$table} = $nrows;
 	  undef @pseq_id_cols;
 	  undef @params_id_cols;
 	  undef @cols;
 	  undef $table;
 	  undef $discarded;
 	} else {
-	  # discard COPY block rows
+	  # perhaps discard COPY block rows
+	  $nrows++;
 	  my @F = split(/\t/,$line);
-	  if (defined @pseq_id_cols) {
+	  chomp $F[$#F];
+	  if (@pseq_id_cols) {
 		foreach my $col (@pseq_id_cols) {
 		  if (not $public_pseq_ids{$F[$col]}) {
 			$discard++;
@@ -121,7 +128,7 @@ while (my $line = <>) {
 		  }
 		}
 	  }
-	  if (defined @params_id_cols) {
+	  if (@params_id_cols) {
 		foreach my $col (@params_id_cols) {
 		  if (not $public_params_ids{$F[$col]}) {
 			$discard++;
@@ -134,19 +141,31 @@ while (my $line = <>) {
 
   if ( my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
 	# enter a COPY block
-	@cols = split(/,\s*/,$cols);
-	for (my $i=0; $i<=$#cols; $i++) {
-	  if ($cols[$i] =~ m/^(?:pseq_id|q_pseq_id|t_pseq_id|query|target)$/) {
-		push(@pseq_id_cols, $i);
-	  } elsif ($cols[$i] =~ m/^(?:params_id)$/) {
-		push(@params_id_cols, $i);
+	if ($tbl eq 'meta') {
+	  my $CVSId = q/$Id$/;
+	  my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
+	  $line .= <<EOT
+publicized by	$CVSId
+publicized on	$TS
+EOT
+	} else {
+	  @cols = split(/,\s*/,$cols);
+	  for (my $i=0; $i<=$#cols; $i++) {
+		if ($cols[$i] =~ m/^(?:pseq_id|q_pseq_id|t_pseq_id|query|target)$/) {
+		  push(@pseq_id_cols, $i);
+		} elsif ($cols[$i] =~ m/^(?:params_id)$/) {
+		  push(@params_id_cols, $i);
+		}
+	  }
+	  if (@pseq_id_cols or @params_id_cols) {
+		$table = $tbl;
+		$discarded = 0;
+		$nrows = 0;
+		printf(STDERR "# <$line# pseq_id_cols=%s params_id_cols=%s\n",
+			   @pseq_id_cols ? join(',',@pseq_id_cols) : '-',
+			   @params_id_cols ? join(',',@params_id_cols) : '-');
 	  }
 	}
-	$table = $tbl;
-	$discarded = 0;
-	printf(STDERR "# <$line# pseq_id_cols=%s params_id_cols=%s\n",
-		   defined @pseq_id_cols ? join(',',@pseq_id_cols) : '-',
-		   defined @params_id_cols ? join(',',@params_id_cols) : '-');
   }
 
 
@@ -161,5 +180,5 @@ while (my $line = <>) {
 
 print(STDERR "Summary:");
 foreach my $table (sort keys %discarded) {
-  printf(STDERR "# $table: %d rows discarded\n", $discarded{$table});
+  printf(STDERR "# $table: %d/%d rows discarded\n", $discarded{$table}, $nrows{$table});
 }
