@@ -1,11 +1,19 @@
 #!/usr/bin/perl
 #
-# make-csb-public -- restrict a COPY-format psql dump to public sequences
-# and methods
+# make-csb-public -- filter out proprietary data from a COPY-formatted
+# psql dump
 #
-# $Id: make-csb-public,v 1.6 2005/06/15 20:23:25 rkh Exp $
+# $Id: make-csb-public,v 1.7 2005/06/25 03:56:52 rkh Exp $
 # Reece Hart <rkh@gene.com> 
 # 
+
+# TODO:
+# - rename
+# - filter entire schemas (e.g., sst)
+# - pseq_ids from a pset
+# - filter origins (esp. geneseq), will require caching palias_ids
+# - refactor into kinder layout
+
 
 use strict;
 use warnings;
@@ -137,12 +145,12 @@ while (my $line = <>) {
 		}
 	  }
 	}
-  }
 
-  if ( my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
+  # start of copy block?
+  } elsif ( my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
 	# enter a COPY block
 	if ($tbl eq 'meta') {
-	  my $CVSId = q/$Id$/;
+	  my $CVSId = q$Id: make-csb-public,v 1.7 2005/06/25 03:56:52 rkh Exp $;
 	  my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
 	  $line .= <<EOT
 publicized by	$CVSId
@@ -166,6 +174,8 @@ EOT
 			   @params_id_cols ? join(',',@params_id_cols) : '-');
 	  }
 	}
+  } elsif ($line =~ m/^(?:GRANT|REVOKE).+(?!PUBLIC|unison|loader)/) {
+	$discard++;
   }
 
 
@@ -182,3 +192,16 @@ print(STDERR "Summary:");
 foreach my $table (sort keys %discarded) {
   printf(STDERR "# $table: %d/%d rows discarded\n", $discarded{$table}, $nrows{$table});
 }
+
+
+__END__
+
+while(<>)
+  enter pseq/params copy
+  in pp copy
+    filter
+  enter palias copy
+  in pa copy
+    filter
+  enter meta copy
+  discard grant to cavs, etc
