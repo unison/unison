@@ -3,37 +3,28 @@
 # make-csb-public -- filter out proprietary data from a COPY-formatted
 # psql dump
 #
-# $Id: make-csb-public,v 1.9 2005/07/10 21:11:47 rkh Exp $
-# Reece Hart <rkh@gene.com> 
-# 
+# $Id: make-csb-public,v 1.10 2005/07/13 06:20:47 rkh Exp $
+# Reece Hart <rkh@gene.com>
+#
 
 # TODO:
 # - rename
 # - filter entire schemas (e.g., sst)
-# - pseq_ids from a pset
-# - filter origins (esp. geneseq), will require caching palias_ids
-# - refactor into kinder layout
 
 
 use strict;
 use warnings;
 use Unison;
 use Unison::pset;
-use Data::Dumper;
+use Storable;
+
+my $testing = 0;
 
 select(STDERR); $|++;						# unbuffer stderr
 select(STDOUT);
 
 
-
-my $pset_name = 'public';
-
-
-# for testing:
-if (0) {
-  $pset_name = 'tnf knowns - human';
-}
-
+my $pset_name = $testing ? 'tnf knowns - human' : 'public';
 
 my $eodata_re = qr/^\\\./;
 my $pseq_id_re = qr/pseq_id|q_pseq_id|t_pseq_id|query|target/;
@@ -43,48 +34,18 @@ my $palias_id_re = qr/palias_id/;
 my $filter_cols_re = qr/$pseq_id_re|$params_id_re|$porigin_id_re/;
 
 sub col_match($$@);
+sub load_public_ids($);
 
 
-
-
-my $u = new Unison;
-
-my @public_pseq_ids = $u->pseq_ids_by_pset($pset_name);
-my @public_porigin_ids = map {$u->porigin_porigin_id_by_origin($_)}
-  qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
-my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
-my $ppis = join(',',@public_porigin_ids);
-my @public_palias_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-  SELECT DISTINCT A.palias_id
-  FROM v_current_annotations_unsorted A
-  JOIN pseqset S ON A.pseq_id=S.pseq_id
-  WHERE S.pset_id=pset_id(?) AND A.porigin_id IN ($ppis)
-EOT
-
-
-# hashes of public ids
-# TODO: Bit::Vector is probably more appropriate than hashes
-my %public_pseq_ids = map {$_=>1} @public_pseq_ids;
-my %public_porigin_ids = map {$_=>1} @public_porigin_ids;
-my %public_params_ids = map {$_=>1} @public_params_ids;
-my %public_palias_ids = map {$_=>1} @public_palias_ids;
-
-# arrays no longer needed
-undef @public_pseq_ids;
-undef @public_params_ids;
-undef @public_porigin_ids;
-undef @public_palias_ids;
-
-
+my %public_ids = load_public_ids($pset_name);
 
 printf(STDERR "# %d pseq_ids, %d porigin_ids, %d params_ids, %d palias_ids will be public\n",
-	   scalar(keys %public_pseq_ids),
-	   scalar(keys %public_porigin_ids),
-	   scalar(keys %public_params_ids),
-	   scalar(keys %public_palias_ids)
+	   scalar(keys %{$public_ids{pseq}}),
+	   scalar(keys %{$public_ids{porigin}}),
+	   scalar(keys %{$public_ids{params}}),
+	   scalar(keys %{$public_ids{palias}})
 	  );
 
-exit;
 
 my $table;
 my @pseq_id_cols;
@@ -103,7 +64,7 @@ while( my $line = <> ) {
 
 
   if ( $line =~ m/^COPY meta/ ) {
-	my $CVSId = q$Id: make-csb-public,v 1.9 2005/07/10 21:11:47 rkh Exp $;
+	my $CVSId = q$Id: make-csb-public,v 1.10 2005/07/13 06:20:47 rkh Exp $;
 	my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
 	$_ .= <<EOT
 publicized by	$CVSId
@@ -129,28 +90,20 @@ EOT
 
 
   } elsif ( defined $table and $line =~ m/^\\\./ ) {
-	if ($table eq 'paliasorigin') {
-	  printf(STDERR "\n# $table: %d public palias_ids defined\n",
-			 scalar keys %public_palias_ids);
-	}
 	undef $table;
 
 
   } elsif ( defined $table ) {
 	my @F = split(/\t/, $line);
 	chomp $F[$#F];
-	next if (@params_id_cols
-			 and not col_match(\%public_params_ids,\@F, @params_id_cols));
-	next if (@porigin_id_cols
-			 and not col_match(\%public_porigin_ids,\@F, @porigin_id_cols));
 	next if (@pseq_id_cols
 			 and not col_match(\%public_pseq_ids,\@F, @pseq_id_cols));
-	if ($table eq 'paliasorigin') {
-	  $public_palias_ids{$F[$palias_id_cols[0]]}++;
-	} elsif (@palias_id_cols
-			 and not col_match(\%public_palias_ids,\@F, @palias_id_cols)) {
-	  next;
-	}
+	next if (@porigin_id_cols
+			 and not col_match(\%public_porigin_ids,\@F, @porigin_id_cols));
+	next if (@params_id_cols
+			 and not col_match(\%public_params_ids,\@F, @params_id_cols));
+	next if (@palias_id_cols
+			 and not col_match(\%public_palias_ids,\@F, @palias_id_cols));
 
 
   }	elsif ($line =~ m/^(?:GRANT|REVOKE).+(?!PUBLIC|unison|loader)/) {
@@ -163,131 +116,56 @@ EOT
 exit(0);
 
 
+sub load_public_ids($) {
+  my $pset_name = shift;
+  my $s_fn = "/tmp/public_ids -- $pset_name.plst";
+  my %ids;
+
+  if ( -f $s_fn ) {
+	(my $ref = retrieve($s_fn))
+	  || die("$0: retrieve failed on $s_fn\n");
+	return %$ref;
+  }
+
+  my $u = new Unison(dbname=>'csb-dev');
+  my @public_pseq_ids = $u->pseq_ids_by_pset($pset_name);
+  my @public_porigin_ids = map {$u->porigin_porigin_id_by_origin($_)}
+	qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
+  my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
+  my $ppis = join(',',@public_porigin_ids);
+  my @public_palias_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
+SELECT DISTINCT A.palias_id
+FROM v_current_annotations_unsorted A
+JOIN pseqset S ON A.pseq_id=S.pseq_id
+WHERE S.pset_id=pset_id(?) AND A.porigin_id IN ($ppis)
+EOT
+
+  %{$ids{pseq}} = map {$_=>1} @public_pseq_ids;
+  %{$ids{porigin}} = map {$_=>1} @public_porigin_ids;
+  %{$ids{params}} = map {$_=>1} @public_params_ids;
+  %{$ids{palias}} = map {$_=>1} @public_palias_ids;
+  $ids{CVSId} = q$Id$ ;
+  $ids{pset_name} = $pset_name;
+
+  if (not store(\%ids, $s_fn)) {
+	warn("! store($s_fn) failed: $!\n");
+  }
+  print(STDERR "# stored public_ids in $s_fn\n");
+
+  return %ids;
+}
+
+
 sub col_match($$@) {
-  my $pub_ids = shift;
+  # given: ids, columns, col indices
+  # return 1 (true) if all columns referenced by indices are in ids hash;
+  # an empty index array is presumed to be vacuously true
+  
+  my $pids = shift;
   my $colr = shift;
   return 1 if $#_==-1;						# vacuously matches
   while( my $i = shift ) {
-	return 1 if (exists $pub_ids->{$colr->[$i]});
+	return 1 if (exists $pids->{$colr->[$i]});
   }
   return 0;
 }
-
-__END__
-
-
-############################################################################
-############################################################################
-
-my @pseq_id_cols;						    # list of pseq_id cols indicies
-my @params_id_cols;						    # list of params_id cols indicies
-
-
-
-## ---------------------------------------------------------
-## parse_COPY_line
-##
-sub parse_COPY_line($) {
-  # in: COPY line
-  # out: scalar (table name) and 3 array refs;
-  # each array is a list of pseq_id, params_id, and porigin_id cols
-  # inserted by this COPY
-  my $line = shift;
-
-  my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/;
-  if (not defined $table) {
-	die("parse_COPY_line called with a non-COPY line\n");
-  }
-  my @pseq_id_cols;
-  my @params_id_cols;
-  my @porigin_id_cols;
-
-  my @cols = split(/,\s*/,$cols);
-  for (my $i=0; $i<=$#cols; $i++) {
-	if ($cols[$i] =~ m/^$pseq_ids_re$/) {
-	  push(@pseq_id_cols, $i);
-	} elsif ($cols[$i] =~ m/^(?:params_id)$/) {
-	  push(@params_id_cols, $i);
-	} elsif ($cols[$i] =~ m/^(?:porigin_id)$/) {
-	  push(@porigin_id_cols, $i);
-	}
-  }
-
-  if (not (@pseq_ids_cols or @params_id_cols or @porigin_id_cols)) {
-	warn("parsed '$line', but no filter cols found\n");
-	undef $tbl;
-  }
-
-  return( $tbl, \@pseq_id_cols, \@params_id_cols, \@porigin_id_cols );
-}
-
-
-
-
-## ---------------------------------------------------------
-## process_meta_table
-##
-sub process_meta_table($) {
-  my $line = shift;
-  print $line;
-  while( $line = <> ) {
-	if ( $line =~ $eodata ) {
-	  my $CVSId = q$Id: make-csb-public,v 1.9 2005/07/10 21:11:47 rkh Exp $;
-	  my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
-	  $line = <<EOT
-publicized by	$CVSId
-publicized on	$TS
-EOT
-  print $line;
-    }
-  }
-}
-
-
-
-  if ( defined $table and (@pseq_id_cols or @params_id_cols) ) {
-	# in COPY block
-	if ($line =~ m/^\\./) {
-	  printf(STDERR "# $table: %d/%d rows discarded\n",
-			 $discarded, $nrows);
-	  $discarded{$table} = $discarded;
-	  $nrows{$table} = $nrows;
-	  undef @pseq_id_cols;
-	  undef @params_id_cols;
-	  undef @cols;
-	  undef $table;
-	  undef $discarded;
-	} else {
-	  # perhaps discard COPY block rows
-	  $nrows++;
-	  my @F = split(/\t/,$line);
-	  chomp $F[$#F];
-	  if (@pseq_id_cols) {
-		foreach my $col (@pseq_id_cols) {
-		  if (not $public_pseq_ids{$F[$col]}) {
-			$discard++;
-			last;
-		  }
-		}
-	  }
-	  if (@params_id_cols) {
-		foreach my $col (@params_id_cols) {
-		  if (not $public_params_ids{$F[$col]}) {
-			$discard++;
-			last;
-		  }
-		}
-	  }
-	}
-  }
-
-
-
-#  if (@pseq_id_cols or @params_id_cols) {
-#	$table = $tbl;
-#	$discarded = 0;
-#	$nrows = 0;
-#	printf(STDERR "# <$line# pseq_id_cols=%s params_id_cols=%s\n",
-#		   @pseq_id_cols ? join(',',@pseq_id_cols) : '-',
-#		   @params_id_cols ? join(',',@params_id_cols) : '-');
-#  }
