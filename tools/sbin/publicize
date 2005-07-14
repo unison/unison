@@ -3,7 +3,7 @@
 # make-csb-public -- filter out proprietary data from a COPY-formatted
 # psql dump
 #
-# $Id: make-csb-public,v 1.12 2005/07/14 00:12:52 rkh Exp $
+# $Id: make-csb-public,v 1.13 2005/07/14 00:25:05 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -71,7 +71,7 @@ while( my $line = <> ) {
 
 
   if ( $line =~ m/^COPY meta/ ) {
-	my $CVSId = q$Id: make-csb-public,v 1.12 2005/07/14 00:12:52 rkh Exp $;
+	my $CVSId = q$Id: make-csb-public,v 1.13 2005/07/14 00:25:05 rkh Exp $;
 	my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
 	$_ .= <<EOT
 publicized by	$CVSId
@@ -89,7 +89,7 @@ EOT
 		or @params_id_cols 
 		or @porigin_id_cols
 		or @palias_id_cols) {
-	  printf(STDERR "\n# $tbl: o(%s), q(%s), a(%s), p(%s)\n#<   $line",
+	  printf(STDERR "\n# $tbl: o(%s), q(%s), a(%s), p(%s)\n",
 			 join(',',@porigin_id_cols), join(',',@pseq_id_cols),
 			 join(',',@palias_id_cols),	 join(',',@params_id_cols) );
 	  $table = $tbl;
@@ -151,8 +151,8 @@ EOT
   $ids{porigin}[$_]++ for @public_porigin_ids;
   $ids{params}[$_]++ for @public_params_ids;
   $ids{palias}[$_]++ for @public_palias_ids;
-  $ids{CVSId} = q$Id: make-csb-public,v 1.12 2005/07/14 00:12:52 rkh Exp $ ;
-  $ids{CVSRevision} = q$Revision: 1.12 $ ;
+  $ids{CVSId} = q$Id: make-csb-public,v 1.13 2005/07/14 00:25:05 rkh Exp $ ;
+  $ids{CVSRevision} = q$Revision: 1.13 $ ;
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = `/bin/date -u +%Y-%m-%d %H:%M:%S`; chomp($ids{timestamp});
 
@@ -172,7 +172,7 @@ sub col_match($$@) {
   my $pids = shift;
   my $colr = shift;
   while( defined (my $i = shift) ) {
-	return 0 unless ($pids->[$colr->[$i]]);
+	return 0 if ($colr->[$i] ne '\\N' and not $pids->[$colr->[$i]]);
   }
   return 1;
 }
