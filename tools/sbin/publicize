@@ -3,7 +3,7 @@
 # make-csb-public -- filter out proprietary data from a COPY-formatted
 # psql dump
 #
-# $Id: make-csb-public,v 1.10 2005/07/13 06:20:47 rkh Exp $
+# $Id: make-csb-public,v 1.11 2005/07/13 23:34:43 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -17,6 +17,8 @@ use warnings;
 use Unison;
 use Unison::pset;
 use Storable;
+use Data::Dumper;
+
 
 my $testing = 0;
 
@@ -25,6 +27,9 @@ select(STDOUT);
 
 
 my $pset_name = $testing ? 'tnf knowns - human' : 'public';
+my @public_porigins = qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
+my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
+
 
 my $eodata_re = qr/^\\\./;
 my $pseq_id_re = qr/pseq_id|q_pseq_id|t_pseq_id|query|target/;
@@ -37,14 +42,85 @@ sub col_match($$@);
 sub load_public_ids($);
 
 
+## it begins...
+
 my %public_ids = load_public_ids($pset_name);
 
 printf(STDERR "# %d pseq_ids, %d porigin_ids, %d params_ids, %d palias_ids will be public\n",
-	   scalar(keys %{$public_ids{pseq}}),
-	   scalar(keys %{$public_ids{porigin}}),
-	   scalar(keys %{$public_ids{params}}),
-	   scalar(keys %{$public_ids{palias}})
+	   scalar(grep {defined $_} @{$public_ids{pseq}}),
+	   scalar(grep {defined $_} @{$public_ids{porigin}}),
+	   scalar(grep {defined $_} @{$public_ids{params}}),
+	   scalar(grep {defined $_} @{$public_ids{palias}}),
 	  );
+
+
+
+
+########################################################################
+########################################################################
+
+sub load_public_ids($) {
+  my $pset_name = shift;
+  my $s_fn = "/tmp/public_ids -- $pset_name.plst";
+  my %ids;
+
+  if ( -f $s_fn ) {
+	print(STDERR "# loading public ids from $s_fn...");
+	(my $ref = retrieve($s_fn))
+	  || die("$0: retrieve failed on $s_fn\n");
+	print(STDERR "done loading.\n");
+	return %$ref;
+  }
+
+  print(STDERR "# building public_ids for set '$pset_name'. This takes 1-15 minutes...\n");
+  my $u = new Unison(dbname=>'csb-dev');
+  my @public_pseq_ids = $u->pseq_ids_by_pset($pset_name);
+  my @public_porigin_ids = map {$u->porigin_porigin_id_by_origin($_)} @public_porigins;
+  my $ppis = join(',',@public_porigin_ids);
+  my @public_palias_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
+SELECT DISTINCT A.palias_id
+FROM v_current_annotations_unsorted A
+JOIN pseqset S ON A.pseq_id=S.pseq_id
+WHERE S.pset_id=pset_id(?) AND A.porigin_id IN ($ppis)
+EOT
+
+  $ids{pseq}[$_]++ for @public_pseq_ids;
+  $ids{porigin}[$_]++ for @public_porigin_ids;
+  $ids{params}[$_]++ for @public_params_ids;
+  $ids{palias}[$_]++ for @public_palias_ids;
+  $ids{CVSId} = q$Id: make-csb-public,v 1.11 2005/07/13 23:34:43 rkh Exp $ ;
+  $ids{CVSRevision} = q$Revision$ ;
+  $ids{pset_name} = $pset_name;
+  $ids{timestamp} = `/bin/date -u +%Y-%m-%d %H:%M:%S`; chomp($ids{timestamp});
+
+  if (not store(\%ids, $s_fn)) {
+	warn("! store($s_fn) failed: $!\n");
+  }
+  print(STDERR "# stored public_ids in $s_fn\n");
+
+  return %ids;
+}
+
+
+sub col_match($$@) {
+  # given: ids, columns, col indices
+  # returns: 0 if any column column referenced by indices is not "in" the ids array (vector)
+  #		Otherwise, returns 1. Therefore, this fx returns 1 when given an empty index array
+  my $pids = shift;
+  my $colr = shift;
+  my @idx = @_;
+  while( my $i = shift(@idx) ) {
+	return 0 unless ($pids->[$colr->[$i]]);
+  }
+  return 1;
+}
+
+
+
+__END__
+
+
+
 
 
 my $table;
@@ -64,7 +140,7 @@ while( my $line = <> ) {
 
 
   if ( $line =~ m/^COPY meta/ ) {
-	my $CVSId = q$Id: make-csb-public,v 1.10 2005/07/13 06:20:47 rkh Exp $;
+	my $CVSId = q$Id: make-csb-public,v 1.11 2005/07/13 23:34:43 rkh Exp $;
 	my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
 	$_ .= <<EOT
 publicized by	$CVSId
@@ -111,61 +187,4 @@ EOT
   }
 
   print $line;
-}
-
-exit(0);
-
-
-sub load_public_ids($) {
-  my $pset_name = shift;
-  my $s_fn = "/tmp/public_ids -- $pset_name.plst";
-  my %ids;
-
-  if ( -f $s_fn ) {
-	(my $ref = retrieve($s_fn))
-	  || die("$0: retrieve failed on $s_fn\n");
-	return %$ref;
-  }
-
-  my $u = new Unison(dbname=>'csb-dev');
-  my @public_pseq_ids = $u->pseq_ids_by_pset($pset_name);
-  my @public_porigin_ids = map {$u->porigin_porigin_id_by_origin($_)}
-	qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
-  my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
-  my $ppis = join(',',@public_porigin_ids);
-  my @public_palias_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-SELECT DISTINCT A.palias_id
-FROM v_current_annotations_unsorted A
-JOIN pseqset S ON A.pseq_id=S.pseq_id
-WHERE S.pset_id=pset_id(?) AND A.porigin_id IN ($ppis)
-EOT
-
-  %{$ids{pseq}} = map {$_=>1} @public_pseq_ids;
-  %{$ids{porigin}} = map {$_=>1} @public_porigin_ids;
-  %{$ids{params}} = map {$_=>1} @public_params_ids;
-  %{$ids{palias}} = map {$_=>1} @public_palias_ids;
-  $ids{CVSId} = q$Id$ ;
-  $ids{pset_name} = $pset_name;
-
-  if (not store(\%ids, $s_fn)) {
-	warn("! store($s_fn) failed: $!\n");
-  }
-  print(STDERR "# stored public_ids in $s_fn\n");
-
-  return %ids;
-}
-
-
-sub col_match($$@) {
-  # given: ids, columns, col indices
-  # return 1 (true) if all columns referenced by indices are in ids hash;
-  # an empty index array is presumed to be vacuously true
-  
-  my $pids = shift;
-  my $colr = shift;
-  return 1 if $#_==-1;						# vacuously matches
-  while( my $i = shift ) {
-	return 1 if (exists $pids->{$colr->[$i]});
-  }
-  return 0;
 }
