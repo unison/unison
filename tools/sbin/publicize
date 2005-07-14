@@ -3,7 +3,7 @@
 # make-csb-public -- filter out proprietary data from a COPY-formatted
 # psql dump
 #
-# $Id: make-csb-public,v 1.16 2005/07/14 00:45:48 rkh Exp $
+# $Id: make-csb-public,v 1.17 2005/07/14 00:54:06 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -33,7 +33,10 @@ my $params_id_re = qr/params_id/;
 my $porigin_id_re = qr/porigin_id/;
 my $palias_id_re = qr/palias_id/;
 my $filter_cols_re = qr/$pseq_id_re|$params_id_re|$porigin_id_re/;
-my $CVSId = q$Id: make-csb-public,v 1.16 2005/07/14 00:45:48 rkh Exp $ ;
+my $CVSId = q$Id: make-csb-public,v 1.17 2005/07/14 00:54:06 rkh Exp $ ;
+
+my $tick_minor = 500000;
+my $tick_major = 20*$tick_minor;
 
 sub col_match($$@);
 sub load_public_ids($);
@@ -63,8 +66,8 @@ while( my $line = <> ) {
   # exceptions are to: 1) skip to next line; 2) insert/append
   # text with current line.
 
-  print(STDERR '.') if ($. % 50000  == 0);
-  print(STDERR "$.\n") if ($. % 500000 == 0);
+  print(STDERR '.') if ($. % $tick_minor  == 0);
+  printf(STDERR "%12d\n",$.) if ($. % $tick_major == 0);
 
 
   if ( $line =~ m/^COPY meta/ ) {
@@ -155,7 +158,7 @@ EOT
   $ids{params}[$_]++ for @public_params_ids;
   $ids{palias}[$_]++ for @public_palias_ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = q$Revision: 1.16 $ ;
+  $ids{CVSRevision} = q$Revision: 1.17 $ ;
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = `/bin/date -u '+%Y-%m-%d %H:%M:%S'`; chomp($ids{timestamp});
 
