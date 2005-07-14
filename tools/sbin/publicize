@@ -3,7 +3,7 @@
 # make-csb-public -- filter out proprietary data from a COPY-formatted
 # psql dump
 #
-# $Id: make-csb-public,v 1.15 2005/07/14 00:43:08 rkh Exp $
+# $Id: make-csb-public,v 1.16 2005/07/14 00:45:48 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -22,8 +22,7 @@ use Data::Dumper;
 select(STDERR); $|++;						# unbuffer stderr
 select(STDOUT);
 
-my $testing = 1;
-my $pset_name = $testing ? 'tnf knowns - human' : 'public';
+my $pset_name = $ENV{PSET} || 'public';
 my @public_porigins = qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
 my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
 
@@ -34,7 +33,7 @@ my $params_id_re = qr/params_id/;
 my $porigin_id_re = qr/porigin_id/;
 my $palias_id_re = qr/palias_id/;
 my $filter_cols_re = qr/$pseq_id_re|$params_id_re|$porigin_id_re/;
-my $CVSId = q$Id: make-csb-public,v 1.15 2005/07/14 00:43:08 rkh Exp $ ;
+my $CVSId = q$Id: make-csb-public,v 1.16 2005/07/14 00:45:48 rkh Exp $ ;
 
 sub col_match($$@);
 sub load_public_ids($);
@@ -156,7 +155,7 @@ EOT
   $ids{params}[$_]++ for @public_params_ids;
   $ids{palias}[$_]++ for @public_palias_ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = q$Revision: 1.15 $ ;
+  $ids{CVSRevision} = q$Revision: 1.16 $ ;
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = `/bin/date -u '+%Y-%m-%d %H:%M:%S'`; chomp($ids{timestamp});
 
