@@ -3,7 +3,7 @@
 # make-csb-public -- filter out proprietary data from a COPY-formatted
 # psql dump
 #
-# $Id: make-csb-public,v 1.11 2005/07/13 23:34:43 rkh Exp $
+# $Id: make-csb-public,v 1.12 2005/07/14 00:12:52 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -20,7 +20,7 @@ use Storable;
 use Data::Dumper;
 
 
-my $testing = 0;
+my $testing = 1;
 
 select(STDERR); $|++;						# unbuffer stderr
 select(STDOUT);
@@ -45,13 +45,76 @@ sub load_public_ids($);
 ## it begins...
 
 my %public_ids = load_public_ids($pset_name);
-
 printf(STDERR "# %d pseq_ids, %d porigin_ids, %d params_ids, %d palias_ids will be public\n",
 	   scalar(grep {defined $_} @{$public_ids{pseq}}),
 	   scalar(grep {defined $_} @{$public_ids{porigin}}),
 	   scalar(grep {defined $_} @{$public_ids{params}}),
 	   scalar(grep {defined $_} @{$public_ids{palias}}),
 	  );
+
+
+
+my $table;									# filtering COPY block if defined
+my @pseq_id_cols;
+my @params_id_cols;
+my @porigin_id_cols;
+my @palias_id_cols;
+
+
+while( my $line = <> ) {
+  # default is to print this line at the end of the loop
+  # exceptions are to: 1) skip to next line; 2) insert/append
+  # text with current line.
+
+  print(STDERR '.') if ($. % 50000  == 0);
+  print(STDERR "$.\n") if ($. % 500000 == 0);
+
+
+  if ( $line =~ m/^COPY meta/ ) {
+	my $CVSId = q$Id: make-csb-public,v 1.12 2005/07/14 00:12:52 rkh Exp $;
+	my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
+	$_ .= <<EOT
+publicized by	$CVSId
+publicized on	$TS
+EOT
+
+
+  } elsif ( my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
+	my @cols = split(/,\s*/,$cols);
+	@pseq_id_cols 	 = grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
+	@params_id_cols	 = grep {$cols[$_]=~$params_id_re } 0..$#cols;
+	@porigin_id_cols = grep {$cols[$_]=~$porigin_id_re} 0..$#cols;
+	@palias_id_cols  = grep {$cols[$_]=~$palias_id_re } 0..$#cols;
+	if (   @pseq_id_cols
+		or @params_id_cols 
+		or @porigin_id_cols
+		or @palias_id_cols) {
+	  printf(STDERR "\n# $tbl: o(%s), q(%s), a(%s), p(%s)\n#<   $line",
+			 join(',',@porigin_id_cols), join(',',@pseq_id_cols),
+			 join(',',@palias_id_cols),	 join(',',@params_id_cols) );
+	  $table = $tbl;
+	}
+
+
+  } elsif ( defined $table and $line =~ m/^\\\./ ) {
+	undef $table;
+
+
+  } elsif ( defined $table ) {
+	my @F = split(/\t/, $line);
+	chomp $F[$#F];
+	next unless col_match(\@{$public_ids{pseq}},    \@F, @pseq_id_cols    );
+	next unless col_match(\@{$public_ids{porigin}}, \@F, @porigin_id_cols );
+	next unless col_match(\@{$public_ids{params}},  \@F, @params_id_cols  );
+	next unless col_match(\@{$public_ids{palias}},  \@F, @palias_id_cols  );
+
+
+  }	elsif ($line =~ m/^(?:GRANT|REVOKE).+(?!PUBLIC|unison|loader)/) {
+	next;
+  }
+
+  print $line;
+}
 
 
 
@@ -65,7 +128,7 @@ sub load_public_ids($) {
   my %ids;
 
   if ( -f $s_fn ) {
-	print(STDERR "# loading public ids from $s_fn...");
+	print(STDERR "# loading public ids from '$s_fn'...");
 	(my $ref = retrieve($s_fn))
 	  || die("$0: retrieve failed on $s_fn\n");
 	print(STDERR "done loading.\n");
@@ -88,8 +151,8 @@ EOT
   $ids{porigin}[$_]++ for @public_porigin_ids;
   $ids{params}[$_]++ for @public_params_ids;
   $ids{palias}[$_]++ for @public_palias_ids;
-  $ids{CVSId} = q$Id: make-csb-public,v 1.11 2005/07/13 23:34:43 rkh Exp $ ;
-  $ids{CVSRevision} = q$Revision$ ;
+  $ids{CVSId} = q$Id: make-csb-public,v 1.12 2005/07/14 00:12:52 rkh Exp $ ;
+  $ids{CVSRevision} = q$Revision: 1.12 $ ;
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = `/bin/date -u +%Y-%m-%d %H:%M:%S`; chomp($ids{timestamp});
 
@@ -108,83 +171,8 @@ sub col_match($$@) {
   #		Otherwise, returns 1. Therefore, this fx returns 1 when given an empty index array
   my $pids = shift;
   my $colr = shift;
-  my @idx = @_;
-  while( my $i = shift(@idx) ) {
+  while( defined (my $i = shift) ) {
 	return 0 unless ($pids->[$colr->[$i]]);
   }
   return 1;
-}
-
-
-
-__END__
-
-
-
-
-
-my $table;
-my @pseq_id_cols;
-my @params_id_cols;
-my @porigin_id_cols;
-my @palias_id_cols;
-
-
-while( my $line = <> ) {
-  # default is to print this line at the end of the loop
-  # exceptions are to: 1) skip to next line; 2) insert/append
-  # text with current line.
-
-  print(STDERR '.') if ($. % 50000  == 0);
-  print(STDERR "$.\n") if ($. % 500000 == 0);
-
-
-  if ( $line =~ m/^COPY meta/ ) {
-	my $CVSId = q$Id: make-csb-public,v 1.11 2005/07/13 23:34:43 rkh Exp $;
-	my $TS = `date -u '+%Y-%m-%d %H:%M:%S'`; chomp $TS;
-	$_ .= <<EOT
-publicized by	$CVSId
-publicized on	$TS
-EOT
-
-
-  } elsif ( my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
-	my @cols = split(/,\s*/,$cols);
-	@pseq_id_cols 	 = grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
-	@params_id_cols  = grep {$cols[$_]=~$params_id_re } 0..$#cols;
-	@porigin_id_cols = grep {$cols[$_]=~$porigin_id_re} 0..$#cols;
-	@palias_id_cols  = grep {$cols[$_]=~$palias_id_re } 0..$#cols;
-	if (   @pseq_id_cols
-		or @params_id_cols 
-		or @porigin_id_cols
-		or @palias_id_cols) {
-	  printf(STDERR "\n# $tbl: o(%s), q(%s), a(%s), p(%s)\n#<   $line",
-			 join(',',@porigin_id_cols), join(',',@pseq_id_cols),
-			 join(',',@palias_id_cols),	 join(',',@params_id_cols) );
-	  $table = $tbl;
-	}
-
-
-  } elsif ( defined $table and $line =~ m/^\\\./ ) {
-	undef $table;
-
-
-  } elsif ( defined $table ) {
-	my @F = split(/\t/, $line);
-	chomp $F[$#F];
-	next if (@pseq_id_cols
-			 and not col_match(\%public_pseq_ids,\@F, @pseq_id_cols));
-	next if (@porigin_id_cols
-			 and not col_match(\%public_porigin_ids,\@F, @porigin_id_cols));
-	next if (@params_id_cols
-			 and not col_match(\%public_params_ids,\@F, @params_id_cols));
-	next if (@palias_id_cols
-			 and not col_match(\%public_palias_ids,\@F, @palias_id_cols));
-
-
-  }	elsif ($line =~ m/^(?:GRANT|REVOKE).+(?!PUBLIC|unison|loader)/) {
-	next;
-  }
-
-  print $line;
 }
