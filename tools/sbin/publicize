@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 #
-# make-csb-public -- filter out proprietary data from a COPY-formatted
-# psql dump
+# publicize -- remove proprietary info from a COPY-formatted
+# psql dump.
 #
-# $Id: publicize,v 1.21 2005/07/17 04:58:33 rkh Exp $
+# $Id: publicize,v 1.22 2005/07/17 21:21:38 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -37,13 +37,14 @@ my $pseq_id_re = qr/pseq_id|q_pseq_id|t_pseq_id|query|target/;
 my $params_id_re = qr/params_id/;
 my $porigin_id_re = qr/porigin_id/;
 my $palias_id_re = qr/palias_id/;
-my $truncate_tables_re = qr/paprospect2/;
+my $truncate_tables_re = qr/paprospect2|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-
-
-my $CVSId = q$Id: publicize,v 1.21 2005/07/17 04:58:33 rkh Exp $ ;
+my $CVSId = q$Id: publicize,v 1.22 2005/07/17 21:21:38 rkh Exp $ ;
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
+
+my %conn_info = (dbname=>'csb-dev',			# evenutally, csb
+				 username=>'PUBLIC');
 
 sub col_match($$@);
 sub load_public_ids($);
@@ -113,7 +114,7 @@ while( my $line = <> ) {
 	  print(STDERR "# inserted meta k/v\n");
 	  $line .= <<EOT
 publicized by	$CVSId
-publicized on	$timestamp
+publicized at	$timestamp
 EOT
 	  # $table not set, see above
     }
@@ -126,6 +127,7 @@ EOT
 	  my $tlines = 0;
 	  my $start = $.;
 	  print(STDERR "# truncating: table $1...");
+	  print $line;
 	  while($line = <>) {
 		last if $line =~ $eodata_re; 
 		$tlines++;
@@ -242,7 +244,7 @@ sub load_public_ids($) {
   }
 
   print(STDERR "# building public_ids for set '$pset_name'. This takes 1-15 minutes...\n");
-  my $u = new Unison(dbname=>'csb-dev');	# will be 'csb' when required sets are in production
+  my $u = new Unison(%conn_info);
   my @public_pseq_ids = $u->pseq_ids_by_pset($pset_name);
   my @public_porigin_ids = map {$u->porigin_porigin_id_by_origin($_)} @public_porigins;
   my $ppis = join(',',@public_porigin_ids);
@@ -258,7 +260,7 @@ EOT
   $ids{params}[$_]++ for @public_params_ids;
   $ids{palias}[$_]++ for @public_palias_ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = q$Revision: 1.21 $ ;
+  $ids{CVSRevision} = q$Revision: 1.22 $ ;
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
