@@ -3,13 +3,12 @@
 # make-csb-public -- filter out proprietary data from a COPY-formatted
 # psql dump
 #
-# $Id: publicize,v 1.20 2005/07/14 15:45:33 rkh Exp $
+# $Id: publicize,v 1.21 2005/07/17 04:58:33 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
 # TODO:
 # - filter entire schemas (e.g., sst)
-# - problem: pmpseq -- need pmodel_ids up-front
 
 
 use strict;
@@ -25,37 +24,56 @@ select(STDOUT);
 my $pset_name = $ENV{PSET} || 'public';
 my @public_porigins = qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
 my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
+my @unfiltered_tables = qw(pmhmm pmodel pmodel2go pmodelset pmprospect2
+						   pmprospect2_scop pmpssm pmregexp pmsm
+						   pmsm_pmhmm pmsm_pmpssm pmsm_prospect2
+						   pmsm_regexp);
 
+my $tick_minor = 100000;
+my $tick_major = 50*$tick_minor;
 
 my $eodata_re = qr/^\\\./;
 my $pseq_id_re = qr/pseq_id|q_pseq_id|t_pseq_id|query|target/;
 my $params_id_re = qr/params_id/;
 my $porigin_id_re = qr/porigin_id/;
 my $palias_id_re = qr/palias_id/;
-my $filter_cols_re = qr/$pseq_id_re|$params_id_re|$porigin_id_re/;
-my $omit_tables_re = qr/paprospect2/;
-my $unfiltered_tables_re = qr/pmhmm|pmprospect2/;
-my $CVSId = q$Id: publicize,v 1.20 2005/07/14 15:45:33 rkh Exp $ ;
-my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
+my $truncate_tables_re = qr/paprospect2/;
+my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my $tick_minor = 100000;
-my $tick_major = 50*$tick_minor;
+
+
+my $CVSId = q$Id: publicize,v 1.21 2005/07/17 04:58:33 rkh Exp $ ;
+my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 sub col_match($$@);
 sub load_public_ids($);
+sub log(@);
+
 
 
 ## it begins...
 
+print(STDERR "# $0\n",
+	  "# $CVSId\n",
+	  "# started at $timestamp\n");
+print("-- $0\n",
+	  "-- $CVSId\n",
+	  "-- started at $timestamp\n");
+
 my %public_ids = load_public_ids($pset_name);
-print(STDERR "# $0 started at $timestamp\n");
+
 printf(STDERR "# %d pseq_ids, %d porigin_ids, %d params_ids, %d palias_ids will be public\n",
 	   scalar(grep {defined $_} @{$public_ids{pseq}}),
 	   scalar(grep {defined $_} @{$public_ids{porigin}}),
 	   scalar(grep {defined $_} @{$public_ids{params}}),
 	   scalar(grep {defined $_} @{$public_ids{palias}}),
 	  );
-
+printf("-- %d pseq_ids, %d porigin_ids, %d params_ids, %d palias_ids will be public\n",
+	   scalar(grep {defined $_} @{$public_ids{pseq}}),
+	   scalar(grep {defined $_} @{$public_ids{porigin}}),
+	   scalar(grep {defined $_} @{$public_ids{params}}),
+	   scalar(grep {defined $_} @{$public_ids{palias}}),
+	  );
 
 
 my $table;									# filtering COPY block if defined
@@ -67,34 +85,32 @@ my @porigin_id_cols;
 my @palias_id_cols;
 
 
-print("-- $0\n",
-	  "-- $CVSId\n",
-	  "-- started at $timestamp\n");
 while( my $line = <> ) {
   # default is to print line as-is at end of loop; exceptions:
   # 1) skip to next line if row is proprietary
   # 2) modify text of current line (and then print it)
 
-  #if 	($. % $tick_major == 0) { printf(STDERR "%12d\n",$.) }
-  #elsif ($. % $tick_minor == 0) { print(STDERR '.')			 }; 
+  if 	($. % $tick_major == 0) { printf(STDERR "%12d\n",$.) }
+  elsif ($. % $tick_minor == 0) { print(STDERR '.')			 }; 
 
 
   if (not defined $table) {					# == "if not filtering"
-	#######################
-	## NOT IN COPY BLOCK ##
-	#######################
-	if ($line =~ m/^(?:GRANT|REVOKE).+(?!PUBLIC|unison|loader)/) {
-	  print("# omitted: $line");
+	# BEGIN extra-COPY parsing
+
+	########
+	# Reject GRANT/REVOKE for any user other than PUBLIC or unison
+	# Those users must exist.
+	# WARNING: the following is broken
+	# '0 and ' is intentionally disabling it
+	if (0 and $line =~ m/^(?:GRANT|REVOKE).+(?!PUBLIC|unison)/) {
+	  print(STDERR "# skipped: $line");
 	  $line =~ s/^/-- /;					# comment it out 
 	}
 
-	elsif ( $line =~ m/^COPY ($unfiltered_tables_re)/ ) {
-	  print(STDERR "# not filtering table $1\n");
-	  # $table not set => won't enter filtering loop and all
-	  # lines will be included as-is
-	}
-
+	########
+	# Insert k/v pairs for publicization (ugh)
 	elsif ( $line =~ m/^COPY meta/ ) {
+	  print(STDERR "# inserted meta k/v\n");
 	  $line .= <<EOT
 publicized by	$CVSId
 publicized on	$timestamp
@@ -102,6 +118,35 @@ EOT
 	  # $table not set, see above
     }
 
+	########
+	# Some tables contain only proprietary data.  These would
+	# be caught by the column-based rules below, but it's faster to
+	# just fast forward across them.
+	elsif ( $line =~ m/^COPY ($truncate_tables_re)/ ) {
+	  my $tlines = 0;
+	  my $start = $.;
+	  print(STDERR "# truncating: table $1...");
+	  while($line = <>) {
+		last if $line =~ $eodata_re; 
+		$tlines++;
+	  }
+	  printf(STDERR "$tlines/%d lines truncated\n", $.-$start-1);
+	}
+
+	########
+	# Tables which shouldn't be filtered, even though
+	# they might match column-based filtering below.
+	elsif ( $line =~ m/^COPY ($unfiltered_tables_re)/ ) {
+	  print(STDERR "# not filtering: table $1\n");
+	  # $table not set => won't enter filtering loop and all
+	  # lines will be included as-is
+	}
+
+	########
+	# Column-based filtering. Tables matching the following COPY regexp
+	# are candidates for filtering based on the column names. 
+    # WARNING: quoted column names (e.g., "start") aren't parsed
+	# correctly, but this isn't currently a problem
 	elsif ( my ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
 	  my @cols = split(/,\s*/,$cols);
 	  @pseq_id_cols 	 = grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
@@ -116,17 +161,25 @@ EOT
 			   join(',',@porigin_id_cols), join(',',@pseq_id_cols),
 			   join(',',@palias_id_cols),	 join(',',@params_id_cols) );
 		$table = $tbl;
+	  } else {
+		print(STDERR "# COPY wo/filter cols: $line");
 	  }
 	}
 
+	########
+	# This is a sanity check. It shouldn't be hit.
 	elsif ( $line =~ m/^COPY (\S+)/ ) {
-	  print(STDERR "# ingoring COPY block for table $1\n# <$line");
+	  die("# fell through to COPY block for table $1\n# <$line");
 	}
+
+	# END extra-COPY parsing
+
   } else {
-	###################
-	## IN COPY BLOCK ##
-	###################
-	if ( $line =~ m/^\\\./ ) {
+
+	# BEGIN intra-COPY parsing
+
+	########
+	if ( $line =~ $eodata_re ) {
 	  undef $table;
 	} else {
 	  my @F = split(/\t/, $line);
@@ -141,6 +194,7 @@ EOT
 		next;
 	  }
 	}
+	# END intra-COPY parsing
   }
   
   # whether inside or outside of a COPY block
@@ -204,7 +258,7 @@ EOT
   $ids{params}[$_]++ for @public_params_ids;
   $ids{palias}[$_]++ for @public_palias_ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = q$Revision: 1.20 $ ;
+  $ids{CVSRevision} = q$Revision: 1.21 $ ;
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
