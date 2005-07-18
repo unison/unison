@@ -7,13 +7,11 @@ use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
 
 use Unison;
-use Unison::WWW;
+use Unison::Exceptions;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 use Unison::Utilities::pseq_features;
-
-
 
 sub protcomp_info ($);
 sub sequence_group ($);
@@ -21,24 +19,39 @@ sub aliases_group ($);
 sub features_group ($);
 sub homologs_group ($);
 
-
 my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.30 2005/05/29 07:36:39 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
 
-print $p->render("Summary of Unison:$v->{pseq_id}",
-				 $p->best_annotation($v->{pseq_id}),
-				 '<p>Protcomp Localization: ', protcomp_info($p),
-				 '<p>', sequence_group($p),
-				 '<p>', aliases_group($p),
-				 '<p>', features_group($p),
-				 '<p>', homologs_group($p),
-				);
+try {
+  $p->is_valid_pseq_id($v->{pseq_id});
+} catch Unison::Exception with {
+  $p->die_with_exception(shift, <<EOT);
+You've provided a bogus pseq_id. Please verify the
+id an try again, or consider <a href="search_by_alias.pl">searching for it by name</a>.
+EOT
+};
+
+try {
+  print $p->render("Summary of Unison:$v->{pseq_id}",
+				   $p->best_annotation($v->{pseq_id}),
+				   '<p>Protcomp Localization: ', protcomp_info($p),
+				   '<p>', sequence_group($p),
+				   '<p>', aliases_group($p),
+				   '<p>', features_group($p),
+				   '<p>', homologs_group($p),
+				  );
+} catch Unison::Exception with {
+  $p->die_with_exception(shift);
+};
+
 
 exit(0);
 
+
+############################################################################
 
 sub protcomp_info ($) {
   my $p = shift;
