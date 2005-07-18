@@ -8,7 +8,7 @@ PROFILES:=$(subst ${SBPTOPDIR}/,,$(wildcard ${SBPDIR}/*.chk))
 TARGETS:=$(PROFILES:.chk=.pbo-load.log)
 
 BLASTPGP:=/apps/compbio/i686-linux-2.4/opt/blast-2.2.6/blastpgp
-LOAD-PAPSSM:=/home/rkh/csb-db/unison/sbin/load-papssm
+LOAD-PAPSSM:=/home/rkh/unison/sbin/load-papssm
 
 BLASTDB=${COMPBIO}/share/blast
 export BLASTDB
