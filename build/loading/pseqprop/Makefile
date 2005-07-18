@@ -1,6 +1,6 @@
 $(error THIS MAKEFILE NEEDS TESTING)
 
-include ../defaults.mk
+include ../common.mk
 
 TARGETS:=${shell cat $(IDFILE)}
 

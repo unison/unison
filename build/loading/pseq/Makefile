@@ -3,7 +3,7 @@
 default all:
 	@echo "no default target" 1>&2; exit 1
 
-include ../defaults.mk
+include ../common.mk
 
 _D:=$(shell mkdir -p data logs)
 
