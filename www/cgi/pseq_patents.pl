@@ -7,16 +7,25 @@ use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
-use Unison::WWW::Page qw(infer_pseq_id);
+use Unison::WWW::Page;
 use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
+
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.12 2005/07/18 20:56:24 rkh Exp $ ');
+
+if ($u->is_public()) {
+  $p->die('Patents not available.', <<EOT);
+Sorry, patents are not part of the public Unison release. We load
+patent data from Derwent Geneseq, and the tools do this yourself are
+part of the Unison source code distribution.
+EOT
+}
+
 $v->{ident} = 98 unless exists $v->{ident};
-
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.11 2005/07/18 20:44:55 rkh Exp $ ');
-
+$v->{pseq_id} = $p->_infer_pseq_id(); # internal function called. Shame on me.
 
 print $p->render("Patents 'near' Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
