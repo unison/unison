@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.24 2005/07/18 02:50:45 rkh Exp $
+# $Id: publicize,v 1.25 2005/07/18 14:39:01 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -40,7 +40,7 @@ my $palias_id_re = qr/palias_id/;
 my $truncate_tables_re = qr/paprospect2|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my $CVSId = q$Id: publicize,v 1.24 2005/07/18 02:50:45 rkh Exp $ ;
+my $CVSId = '$Id: publicize,v 1.25 2005/07/18 14:39:01 rkh Exp $ ';
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 my %conn_info = (dbname=>'csb-dev',			# evenutally, csb
@@ -234,7 +234,7 @@ printf("-- $0 finished at %s\n-- %12d printed / %12d lines total (%5.1f%%)\n",
 	   $timestamp,$printed,$.,$printed/$.*100);
 
 foreach my $tbl (sort keys %skipped) {
-  printf("$tbl: %10d lines skipped\n", $skipped{$tbl})
+  printf("skipped %12d $tbl lines\n", $skipped{$tbl})
 }
 
 exit(0);
@@ -286,7 +286,7 @@ JOIN pseqset SS on H.pseq_id=SS.pseq_id
 WHERE SS.pset_id=pset_id(?)
 EOT
   my @public_p2gblataln_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-SELECT DISTINCT p2gblataln_id
+SELECT DISTINCT A.p2gblataln_id
 FROM p2gblataln A
 JOIN p2gblatalnhsp AH on A.p2gblataln_id=AH.p2gblataln_id
 JOIN p2gblathsp H on AH.p2gblathsp_id=H.p2gblathsp_id
@@ -306,7 +306,7 @@ EOT
   $ids{p2gblataln}[$_]++ for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = q$Revision: 1.24 $ ;
+  $ids{CVSRevision} = '$Revision: 1.25 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
