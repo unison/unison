@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 
 PARAMS_ID:=21
 PORIGIN_ID:=10059

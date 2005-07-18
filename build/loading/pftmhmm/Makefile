@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 
 PARAMS_ID=24
 PSET_ID=62

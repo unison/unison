@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 
 default:
 	@echo no $@ target; exit 1

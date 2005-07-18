@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 
 PARAMS_ID:=3
 BLAST_CMD=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')

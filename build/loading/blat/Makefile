@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 PATH:=/usr/local/tools/bin:${PATH}
 SHELL=bash
 

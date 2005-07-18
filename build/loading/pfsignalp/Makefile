@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 
 PARAMS_ID:=6
 PATH:=/usr/local/seq/bin:${PATH}

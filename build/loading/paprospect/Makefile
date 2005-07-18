@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 
 export PROSPECT_PATH:=/apps/compbio/i686-linux-2.4/opt/prospect
 

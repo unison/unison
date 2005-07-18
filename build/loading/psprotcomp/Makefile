@@ -1,4 +1,4 @@
-include ../defaults.mk
+include ../common.mk
 
 PATH:=${COMPBIO_EPREFIX}/bin:${PATH}
 
