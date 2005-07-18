@@ -49,6 +49,16 @@ my $p = new Unison::WWW::Page;
 my $v = $p->Vars();
 my $u = $p->{unison};
 
+if ($u->is_public()) {
+  $p->die('Prospect threadings not available.', <<EOT);
+Sorry, Prospect threading results are not part of the public Unison
+release. We load these data using scripts which are part of the <a
+href="http://unison-db.sourceforge.net/">Unison source distribution</a> and
+our <a href="http://sourceforge.net/projects/prospect-if">Prospect
+Interface</a> modules for perl.
+EOT
+}
+
 my @ps = $u->get_params_info_by_pftype('prospect2');
 my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 
@@ -62,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.27 2005/05/17 01:22:32 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.28 2005/07/18 20:56:24 rkh Exp $ ');
 
 
 my @cols;
