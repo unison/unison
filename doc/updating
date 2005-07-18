@@ -50,7 +50,7 @@ is to incorporate these with no (or very minor) changes.  These are
 intentially distinct from the Unison schema and not dependent on it in any
 way.
 
-These schemas have same-named subdirectories in csb-db, and typically
+These schemas have same-named subdirectories in unison/aux/, and typically
 Makefiles within which load or update the schemas.
 
 Current auxiliary schemas:
