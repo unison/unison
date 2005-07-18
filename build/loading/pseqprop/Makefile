@@ -18,4 +18,4 @@ load: $(addsuffix .fa.sigpredict.load,$(TARGETS))
 
 # load sigpredict
 %.fa.sigpredict.load: %.fa.sigpredict
-	~/csb-db/unison/bin/load-pseqprop $< >$@ 2>&1
+	~/unison/bin/load-pseqprop $< >$@ 2>&1
