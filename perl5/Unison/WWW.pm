@@ -1,2 +1,2 @@
-use Unison::WWW::common;
+use Unison::WWW::init;
 1;
