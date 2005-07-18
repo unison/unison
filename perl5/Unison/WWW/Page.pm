@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.51 2005/06/21 04:18:08 rkh Exp $>
+S<$Id: Page.pm,v 1.52 2005/07/18 20:35:29 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -367,6 +367,7 @@ sub render {
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
 		  '<a href="about_unison.pl"><img tooltip="Unison home page" width="90%" class="logo" src="../av/unison.gif"></a>',
+		  '<br><a href="http://unison-db.sourceforge.net">@SourceForge</a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
@@ -786,6 +787,8 @@ sub _infer_pseq_id ($) {
 
   my $self = shift;
   my $v = $self->Vars();
+
+  return $v->{pseq_id} if defined $v->{pseq_id};
 
   if ( exists $v->{'q'} ) {
 	my $q = $v->{'q'};
