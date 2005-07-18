@@ -1,6 +1,6 @@
 #!/bin/bash
-# csb-db/sbin/backup -- backup the csb database
-# $Id: backup,v 1.21 2004/12/24 00:10:05 rkh Exp $
+# backup -- backup the csb database
+# $Id: backup,v 1.22 2005/05/13 19:14:23 rkh Exp $
 #
 # you must set PGPASSWORD before running
 # this script any user with write permission in BACKUPDIR (below) should
