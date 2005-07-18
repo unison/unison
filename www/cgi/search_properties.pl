@@ -4,7 +4,7 @@ use warnings;
 use strict;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page;
@@ -20,12 +20,12 @@ my (@db_sec) = ( 'Curagen', 'Geneseq', 'Ensembl/Human', , 'FANTOM' );
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_properties.pl,v 1.9 2005/06/18 00:16:46 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Property Mining",
-				   '$Id: search_by_properties.pl,v 1.8 2005/04/21 18:57:52 mukhyala Exp $',
+				   '$Id: search_by_properties.pl,v 1.9 2005/06/18 00:16:46 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.8 2005/04/21 18:57:52 mukhyala Exp $',
+				 '$Id: search_by_properties.pl,v 1.9 2005/06/18 00:16:46 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 

@@ -4,7 +4,7 @@ use warnings;
 use strict;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page;
@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_alias.pl,v 1.6 2005/06/18 00:16:46 rkh Exp $ ');
 
 print $p->render("Sequence lookup by alias"
 				 . (defined $v->{alias} ? ": $v->{alias}" : ''),

@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
@@ -18,7 +18,7 @@ my $v = $p->Vars();
 my $sql;
 
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_notes.pl,v 1.6 2005/06/18 00:16:45 rkh Exp $ ');
 
 if ( defined $v->{action} && $v->{action} eq 'submit' ) {
   $sql = "insert into pnote (pseq_id,note) values (?,?)";

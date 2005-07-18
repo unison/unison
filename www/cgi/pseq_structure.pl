@@ -1,12 +1,12 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.6 2005/06/18 00:16:45 rkh Exp $;
+#$ID = q$Id: pseq_structure.pl,v 1.7 2005/06/21 23:42:04 rkh Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use CGI( -debug );
 use CGI::Carp qw(fatalsToBrowser);
@@ -44,7 +44,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_structure.pl,v 1.6 2005/06/18 00:16:45 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_structure.pl,v 1.7 2005/06/21 23:42:04 rkh Exp $ ');
 
 # these files are for the image map
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png' );

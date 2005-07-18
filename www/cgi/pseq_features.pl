@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
@@ -19,7 +19,7 @@ my $v = $p->Vars();
 
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile( SUFFIX => '.png' );
 $p->die("Couldn't create a temporary file: $!\n") unless defined $png_urn;
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_features.pl,v 1.17 2005/06/18 00:16:45 rkh Exp $ ');
 
 my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 

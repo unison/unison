@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
@@ -19,7 +19,7 @@ my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 
 $v->{params_id} = $ps[0]->[0] unless defined $v->{params_id};
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.11 2005/05/13 19:02:05 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.12 2005/05/20 17:53:24 rkh Exp $ ');
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
 select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
