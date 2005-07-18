@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.5 2005/06/21 23:46:34 rkh Exp $
+# $Id: Makefile,v 1.6 2005/07/18 03:02:53 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -41,7 +41,7 @@ unison-%.tgz:
 	rm -fr /tmp/release-$$$$
 
 
-# cant use 'cvs export' because I don't tag these
+# cant use 'cvs export' because I don't tag the prerequisites
 .PHONY: perl5-prereq
 perl5-prereq: perl5-prereq-${DATE}.tgz
 perl5-prereq-${DATE}.tgz: %.tgz:

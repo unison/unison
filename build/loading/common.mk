@@ -2,10 +2,11 @@
 .PHONY: FORCE FORCED_BUILD
 .DELETE_ON_ERROR:
 
-include local.mk
+# can be invoked from unison/loading/ or unison/loading/subdir/
+-include local.mk ../local.mk
+
 
 SHELL:=/bin/bash
-SUBDIR:=$(shell basename ${PWD})
 
 PSQL:=psql -Uunison
 PSQL_VCMD:=${PSQL} -c
@@ -129,6 +130,7 @@ NO_DEFAULT_TARGET:
 # e.g., $ make qsub/FOO.log
 # make -n ensures that the target is legit and that make
 # can figure out how to build it
+SUBDIR:=$(shell basename ${PWD})
 qsub/%:
 	@mkdir -p ${@D}
 	@if ! make -C${PWD} -n $* >/dev/null 2>/dev/null; then \

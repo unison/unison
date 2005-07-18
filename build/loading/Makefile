@@ -2,7 +2,7 @@
 ## other schemas are handled by directories in csb-db
 
 
-include defaults.mk
+include common.mk
 COMPUTE_DIRS:=blat pahmm paprospect2 papseq pappsm  pfregexp pfsignalp pfbigpi pftmdetect plocus pmhmm ppintx pseqprop sst
 DIRS=pseq ${COMPUTE_DIRS}
 
