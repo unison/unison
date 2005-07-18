@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.52 2005/07/18 20:35:29 rkh Exp $>
+S<$Id: Page.pm,v 1.53 2005/07/18 21:17:34 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -54,7 +54,7 @@ use strict;
 
 use Unison;
 use Unison::Exceptions;
-use Unison::userprefs;
+use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
 use Error qw(:try);
