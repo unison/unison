@@ -14,10 +14,14 @@ use Unison::WWW::utilities qw(alias_link text_wrap);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.14 2005/05/11 21:53:21 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.15 2005/05/13 01:44:39 rkh Exp $ ');
 
-my $sql = qq/select origin,alias,descr from v_current_annotations
-			where pseq_id=$v->{pseq_id} AND porigin_id!=porigin_id('geneseq')/;
+my $sql = <<EOSQL;
+SELECT	origin,alias,descr
+FROM	v_current_annotations
+WHERE	pseq_id=$v->{pseq_id} AND porigin_id!=porigin_id('geneseq')
+EOSQL
+
 my $ar = $u->selectall_arrayref($sql);
 my @f = qw( origin alias description );
 

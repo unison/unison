@@ -15,7 +15,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 $v->{ident} = 98 unless exists $v->{ident};
 
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.10 2005/06/18 00:16:45 rkh Exp $ ');
 
 
 print $p->render("Patents 'near' Unison:$v->{pseq_id}",
@@ -60,7 +60,7 @@ JOIN porigin O on O.porigin_id=AO.porigin_id
 WHERE X1.pct_ident>=$v->{ident}
   AND SA.iscurrent=true
   AND AO.porigin_id=porigin_id('geneseq')
-ORDER BY X1.len desc
+ORDER BY X1.len desc,AO.alias
 EOSQL
 
   my $ar = $u->selectall_arrayref($sql);
