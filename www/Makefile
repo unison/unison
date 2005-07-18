@@ -4,8 +4,9 @@ default:
 	@echo "user perl libraries (esp. Unison, Unison::WWW, and Prospect2)"
 	@echo "Use `make clean' to revert to using the system default perl5 libs"
 
-perl5/site_perl:
-	cvs
+# eventually:
+# perl5-prereq target
+# packaging targets (akin to md5, pgp signing, etc for unison)
 
 clean:
 	/bin/rm perl5/Unison perl5/Prospect2
