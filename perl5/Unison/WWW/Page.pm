@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.53 2005/07/18 21:17:34 rkh Exp $>
+S<$Id: Page.pm,v 1.54 2005/07/18 21:59:01 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -98,7 +98,7 @@ sub new {
 	_csb_connection_params($self) if ($ENV{SERVER_NAME} eq 'csb');
 	_page_connect($self);
   }	catch Unison::Exception with {
-	__PACKAGE__->die_with_exception($_[0],
+	$self->die_with_exception($_[0],
 									# plus some addition stuff to tack on...
 									'Relevant environment settings:',
 									join('', map( { "<br><code>$_: ".(defined $ENV{$_} ? 
@@ -302,7 +302,7 @@ sub start_html {
 	( @_,
 	  -head => [
 				$self->Link({-rel => 'shortcut icon',
-							 -href => '../av/favicon.png'})
+					     -href => '../av/favicon.png'})
 			   ],
 	  -style => { -src => ['../styles/unison.css'] },
 	  -target => '_top',
@@ -591,7 +591,7 @@ sub die_with_exception {
   $self->die(__FILE__.':'.__LINE__.": die_with_exception called without an exception\n",
 			 '(instead it was called with a '.(ref($ex)||'non-reference').').') 
 	unless (ref $ex and $ex->isa('Unison::Exception'));
-  my $ex_text = ( defined $ex->[0] ? CGI::escapeHTML($ex->[0]) : '(no exception summary)' );
+  my $ex_text = ( defined $ex->{error} ? CGI::escapeHTML($ex->{error}) : '(no exception summary)' );
   $self->die($ex->error(),'<pre>'.$ex.'</pre>', (@_ ? ('<hr>', @_) : '') );
   # no return
 }
