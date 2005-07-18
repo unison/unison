@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
@@ -14,7 +14,7 @@ use Unison::WWW::utilities qw(alias_link text_wrap);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.15 2005/05/13 01:44:39 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.16 2005/07/18 20:44:34 rkh Exp $ ');
 
 my $sql = <<EOSQL;
 SELECT	origin,alias,descr

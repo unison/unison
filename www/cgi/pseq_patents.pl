@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
@@ -15,7 +15,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 $v->{ident} = 98 unless exists $v->{ident};
 
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.10 2005/06/18 00:16:45 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.11 2005/07/18 20:44:55 rkh Exp $ ');
 
 
 print $p->render("Patents 'near' Unison:$v->{pseq_id}",

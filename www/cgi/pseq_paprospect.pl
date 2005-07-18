@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5", "$FindBin::Bin/../../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5", "$FindBin::Bin/../../../perl5";
 
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW;
@@ -62,7 +62,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.26 2005/05/16 19:05:10 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.27 2005/05/17 01:22:32 rkh Exp $ ');
 
 
 my @cols;
