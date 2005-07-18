@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.22 2005/07/17 21:21:38 rkh Exp $
+# $Id: publicize,v 1.23 2005/07/17 23:50:44 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -24,10 +24,10 @@ select(STDOUT);
 my $pset_name = $ENV{PSET} || 'public';
 my @public_porigins = qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
 my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
-my @unfiltered_tables = qw(pmhmm pmodel pmodel2go pmodelset pmprospect2
-						   pmprospect2_scop pmpssm pmregexp pmsm
-						   pmsm_pmhmm pmsm_pmpssm pmsm_prospect2
-						   pmsm_regexp);
+my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
+						   pmprospect2 pmprospect2_scop pmpssm pmregexp
+						   pmsm pmsm_pmhmm pmsm_pmpssm pmsm_prospect2
+						   pmsm_regexp porigin);
 
 my $tick_minor = 100000;
 my $tick_major = 50*$tick_minor;
@@ -40,7 +40,7 @@ my $palias_id_re = qr/palias_id/;
 my $truncate_tables_re = qr/paprospect2|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my $CVSId = q$Id: publicize,v 1.22 2005/07/17 21:21:38 rkh Exp $ ;
+my $CVSId = q$Id: publicize,v 1.23 2005/07/17 23:50:44 rkh Exp $ ;
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 my %conn_info = (dbname=>'csb-dev',			# evenutally, csb
@@ -260,7 +260,7 @@ EOT
   $ids{params}[$_]++ for @public_params_ids;
   $ids{palias}[$_]++ for @public_palias_ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = q$Revision: 1.22 $ ;
+  $ids{CVSRevision} = q$Revision: 1.23 $ ;
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
