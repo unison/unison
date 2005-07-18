@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.19 2005/05/29 04:13:24 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.20 2005/06/17 22:20:40 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -234,7 +234,7 @@ div.tip {
  border: black thin solid;
  padding: 2px;
  margin: 20px;
- background-color: lightgrey;
+ background: lightgrey;
 }
 
 
