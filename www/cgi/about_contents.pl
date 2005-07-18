@@ -14,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 
-my $sql = qq/select * from meta/;
+my $sql = 'select * from meta order by 1';
 my $ar = $u->selectall_arrayref($sql);
 my @f = qw( key value );
 
