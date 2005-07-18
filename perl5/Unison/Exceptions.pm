@@ -2,7 +2,7 @@
 
 Unison::Exceptions -- Unison Exceptions
 
-S<$Id: Exceptions.pm,v 1.7 2004/05/14 20:36:23 rkh Exp $>
+S<$Id: Exceptions.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -63,7 +63,7 @@ use Error qw(:try);
 @EXPORT = @Error::subs::EXPORT_OK;
 
 
-# Define a bunch of standard exceptions
+# Define some standard exceptions
 package Unison::Exception;
 use base 'CBT::Exception';
 
