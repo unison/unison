@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.50 2005/06/15 02:36:19 rkh Exp $>
+S<$Id: Page.pm,v 1.51 2005/06/21 04:18:08 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -17,6 +17,28 @@ web pages. It's simple and not powerful.
 =cut
 
 
+BEGIN {
+  # if this file exists and is writable, then we'll open it for logging.
+  # NOTE: the file must be writable by the web server, which DOES NOT run
+  # as remote user. Typically, do something like:
+  # $ touch /tmp/unison-rkh.log
+  # $ chmod a+w /tmp/unison-rkh.log
+  # to enable logging.
+  # THIS WILL SLOW THINGS DOWN... DON'T FORGET TO DELETE THE LOG!
+  if (exists $ENV{REMOTE_USER}) {
+	my $log_fn = "/tmp/unison-$ENV{REMOTE_USER}.log";
+	if (-f $log_fn and -w $log_fn) {
+	  close(STDERR);
+	  if (not open(STDERR, ">>$log_fn")) {
+		print("$log_fn: $!\n");
+		exit(0);
+	  }
+	  $ENV{DEBUG} = 1;
+	}
+  }
+}
+
+
 package Unison::WWW::Page;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -24,9 +46,11 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use warnings;
 
 use base Exporter;
-use CGI qw( -debug -nosticky -newstyle_urls);
+use CGI qw(-debug -nosticky -newstyle_urls);
 push(@ISA, 'CGI');
 #BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
+
+use strict;
 
 use Unison;
 use Unison::Exceptions;
@@ -35,17 +59,14 @@ use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
 use Error qw(:try);
 
-#XXX: WARNING: strict must be last, unsure why, and this bothers me
-#use strict;
 
-
+sub _csb_connection_params ($);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
 sub _make_temp_dir ();
 sub _cleanup_temp($);
 
 our $infer_pseq_id = 0;
-
 
 
 =pod
@@ -73,24 +94,18 @@ sub new {
   my $v = $self->Vars();
   $v->{debug} = 0 unless defined $v->{debug};
 
-
   try {
+	_csb_connection_params($self) if ($ENV{SERVER_NAME} eq 'csb');
 	_page_connect($self);
   }	catch Unison::Exception with {
-	my $ex_text = ( defined $_[0] ? 
-					CGI::escapeHTML($_[0]) :
-					'no exception information' );
-	my $env = join('', map( { "<br><code>$_: ".(defined $ENV{$_} ? 
-												$ENV{$_}
-												:'<i>undef</i>')."</code>\n" }
-							qw(REMOTE_USER KRB5CCNAME) ));
-
-	__PACKAGE__->die('Unison Connection Failed', 
-					 '<pre>'.$ex_text.'</pre>',
-					 '<p>',
-					 '<hr>Kerberos and user information:',
-					 $env
-					);
+	__PACKAGE__->die_with_exception($_[0],
+									# plus some addition stuff to tack on...
+									'Relevant environment settings:',
+									join('', map( { "<br><code>$_: ".(defined $ENV{$_} ? 
+																	  $ENV{$_}
+																	  :'<i>undef</i>')."</code>\n" }
+												  qw(REMOTE_USER KRB5CCNAME) ))
+								   );
   };
 
 
@@ -101,10 +116,11 @@ sub new {
 #  $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
 #					  {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
 
+  # all pseq_id inference should be moved elsewhere...
   if (not exists $v->{pseq_id} and $infer_pseq_id) {
 	my @st = grep {exists $v->{$_}} qw(q pseq_id seq md5 alias);
 	if (@st > 1) {
-	  $self->die("please don't provide more than one search term",
+	  $self->die("please don't provide more than one search parameter",
 				 sprintf('You provided criteria for %d terms (%s)',
 						 $#st+1, join(',',@st) ));
 	}
@@ -120,7 +136,6 @@ sub new {
 	delete $v->{seq};
   }
 
-  # if we've made it this far, we'll eventually get a page out
   $self->start_html;
 
   return $self;
@@ -215,6 +230,26 @@ sub ensure_required_params {
 
 
 ######################################################################
+## ensure_required_params()
+
+=pod
+
+=item B<< $p->is_valid_pseq_id( C<pseq_id> ) >>
+
+Ensure that the pseq_id is valid and throw an exception if not.
+
+=cut
+
+sub is_valid_pseq_id {
+  my $self = shift;
+  my $q = shift;
+  return 1 unless defined $q;
+  return 1 if $self->{unison}->get_sequence_by_pseq_id($q);
+  throw Unison::Exception("Unison:$q doesn't exist");
+}
+
+
+######################################################################
 ## header()
 
 =pod
@@ -305,13 +340,13 @@ sub render {
 	  $cnav .= '<center><span style="background-color: lightgreen"><b>writable</b></span></center>';
 	}
 	$cnav .= join('<p>',
-				 map( {"<b>$_->[0]:</b><br>&nbsp;&nbsp;$_->[1]"}
-					  # key-value pairs:
-					  (map {[$_ , (defined $self->{unison}->{$_} ? $self->{unison}->{$_} : 'unknown')]}
-					   qw(username host dbname)),
-					  ['db<br>release',
-					   $self->{unison}->selectrow_array
-					   ('select value::date from meta where key=\'release timestamp\'') || ''],
+				 map( {sprintf("<b>%s:</b><br>&nbsp;&nbsp;%s",$_->[0],$_->[1]||'')}
+					  ['www host', 	$ENV{SERVER_NAME}				   ],
+					  ['db host', 	$self->{unison}->{host} || 'local' ],
+					  ['database',	$self->{unison}->{dbname}		   ],
+					  ['username', 	$self->{unison}->{username}		   ],
+					  ['db<br>release',  $self->{unison}->selectrow_array
+					        ('select value::date from meta where key=\'release timestamp\'') || ''],
 					  ['API<br>release', $Unison::RELEASE],
 					  ['WWW<br>release', $Unison::WWW::RELEASE]
 					  ),
@@ -455,6 +490,7 @@ format C<text> as a SQL block on the web page
 
 sub sql {
   my $self = shift;
+  return '';
   return '' unless $self->{userprefs}->{'show_sql'};
   return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
 		  (map {CGI::escapeHTML($_)} text_wrap(@_)),
@@ -540,13 +576,25 @@ exits with status 0 (so that webservers will actually return the page).
 sub die {
   my $self = shift;
   my $t = shift;
-  print $self->render( "Error: $t",
-					'<p><div class="warning">',
-					'<b>Error:</b> ', $t, '<br>',
-					join(' ',@_), 
-					'</div>', "\n" );
+  print $self->render("Error: $t",
+					  '<p><div class="warning">',
+					  '<b>Error:</b> ', $t, '<br>',
+					  join(' ',@_), 
+					  '</div>', "\n" );
   exit(0);
 }
+
+sub die_with_exception {
+  my $self = shift;
+  my $ex = shift;
+  $self->die(__FILE__.':'.__LINE__.": die_with_exception called without an exception\n",
+			 '(instead it was called with a '.(ref($ex)||'non-reference').').') 
+	unless (ref $ex and $ex->isa('Unison::Exception'));
+  my $ex_text = ( defined $ex->[0] ? CGI::escapeHTML($ex->[0]) : '(no exception summary)' );
+  $self->die($ex->error(),'<pre>'.$ex.'</pre>', (@_ ? ('<hr>', @_) : '') );
+  # no return
+}
+
 
 
 ######################################################################
@@ -661,48 +709,60 @@ sub _page_connect ($) {
   my $self = shift;
   my $v = $self->Vars();
 
-  # XXX: The logic here is messy and needs to be overhauled.  The cases:
-  # users: PUBLIC, krb
-  # host: csb
-  # dbname: csb, csb-stage, csb-dev, unison (public)
+  $v->{host}	 = undef	unless defined $v->{host};
+  $v->{dbname} 	 = 'unison'	unless defined $v->{dbname};
+  $v->{username} = 'PUBLIC'	unless defined $v->{username};
+  $v->{password} = undef	unless defined $v->{password};
 
-  # If dbname is not explicitly set, set it based on SERVER_PORT
-  # SERVER_PORT is always set, except when debugging from the command line
-  if (not exists $v->{dbname}) {
-    $v->{dbname} = 'unison';
-    if (defined $ENV{SERVER_PORT}) {
-      if    ($ENV{SERVER_PORT} ==   80)	 { $v->{dbname} = 'csb'       }
-      elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
-      elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
-	}
-  }
-
-  # If KRB5CCNAME is set, we're doing kerberos authentication.
-  if (exists $ENV{KRB5CCNAME}) {
-	$v->{username} = $ENV{REMOTE_USER} 		# from webserver...
-	                 || `/usr/bin/id -un`;	# ... or running on command line
-	$v->{username} =~ s/@.+//;				# strip domain from krb user name
-  }
-
-  # Attempt a PUBLIC connection unless username is set.
-  $v->{username} = 'PUBLIC' unless defined $v->{username};
-
-  # host "csb" is most likely ("csb-dev" may exist)
-  $v->{host} = 'csb' unless defined $v->{host};
+  #printf(STDERR "# ci = (%s,%s,%s,%s,%s)\n",
+  #		 (map {$v->{$_}||'undef'} qw(host dbname username password)),
+  #		 $ENV{KRB5CCNAME} || 'wo/krb');
 
   # NOTE: password=>undef works for PUBLIC and krb auth
-  $self->{unison} = new Unison( username => $v->{username},
-								password => undef,
-								host => $v->{host},
-								dbname => $v->{dbname} );
+  # I got errors when it wasn't explicitly listed
+  $self->{unison} = new Unison( host => $v->{host},
+								dbname => $v->{dbname},
+								username => $v->{username},
+								password => $v->{password} );
+  # Errors are caught by exceptions.
+
 
   # Set PG vars so that spawned apps connect to the same database
   # This will only work for kerberos authentication
-  $ENV{PGHOST} = $v->{host};
-  $ENV{PGUSER} = $v->{username};
-  $ENV{PGDATABASE} = $v->{dbname};
+  if ($v->{host}	) { $ENV{PGHOST}     = $v->{host}	   } else { delete $ENV{PGHOST}     };
+  if ($v->{database}) { $ENV{PGDATABASE} = $v->{database}  } else { delete $ENV{PGDATABASE} };
+  if ($v->{username}) { $ENV{PGUSER}     = $v->{username}  } else { delete $ENV{PGUSER}     };
+  if ($v->{password}) { $ENV{PGPASSWORD}  = $v->{password} } else { delete $ENV{PGPASSWORD} };
 
   return $self->{unison};
+}
+
+
+######################################################################
+## _csb_connection_params
+sub _csb_connection_params ($) {
+  my $self = shift;
+  my $v = $self->Vars();
+
+  if (defined $ENV{SERVER_PORT}) {
+	if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
+	elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
+	elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
+  }
+
+  # If KRB5CCNAME is set, we're doing kerberos authentication.
+  if (defined $ENV{KRB5CCNAME}) {
+	$v->{username} = $ENV{REMOTE_USER} 		# from webserver...
+	                 || `/usr/bin/id -un`;	# ... or debugging on command line
+	$v->{username} =~ s/@.+//;				# strip domain from krb user name
+
+	# pg_hba.conf requires tcp connection for kerberos
+	# (This doesn't work with 'localhost', I think because we've got 2
+	# names for csb.)
+	$v->{host} = 'csb';
+  }
+
+  return;
 }
 
 
@@ -984,7 +1044,7 @@ sub _cleanup_temp ($) {
   my $root = "$ENV{DOCUMENT_ROOT}/tmp";
   my @lt = localtime();
   my $ts = sprintf("%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
-  my @old = grep {m/^\d{4}-\d{2}-\d{2}$/ and $_ lt $ts} map {s%$root/%%;$_} <$root/200*>;
+  my @old = grep {m/^\d{4}-\d{2}-\d{2}$/ and $_ lt $ts} map {s%$root/%%;$_} glob('$root/200*');
   my @tbd = map {"$root/$_"} @old;
   foreach my $dir (@tbd) {
 	print(STDERR "temp file cleanup: removing $dir/\n");
@@ -1040,3 +1100,4 @@ These methods typically begin with two underscores (e.g., __internal_routine).
 
 
 1;
+
