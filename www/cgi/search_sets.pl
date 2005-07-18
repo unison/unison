@@ -20,24 +20,32 @@ use Unison::SQL;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.31 2005/06/15 03:44:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_sets.pl,v 1.16 2005/06/18 00:16:46 rkh Exp $ ');
+
+
+my @hmm_ps = $u->get_params_info_by_pftype('hmm');
+my %hmm_ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @hmm_ps;
+my @pssm_ps = $u->get_params_info_by_pftype('pssm');
+my %pssm_ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @pssm_ps;
+my @p2_ps = $u->get_params_info_by_pftype('prospect2');
+my %p2_ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @p2_ps;
 
 
 my %defaults = 
   ( 
-   pset_id => 5,
+   pset_id => 1001,
    pmodelset_id => 3,
 
    hmm => 0,
-   hmm_params_id => 15,
+   hmm_params_id => $hmm_ps[0]->[0],
    hmm_eval => '1e-10',
 
    pssm => 0,
-   pssm_params_id => 8,
+   pssm_params_id => $pssm_ps[0]->[0],
    pssm_eval => '1e-10',
 
    prospect2 => 0,
-   prospect2_params_id => 1,
+   prospect2_params_id => $p2_ps[0]->[0],
    prospect2_svm => 12,
    prospect2_raw => -500,
   );
@@ -214,7 +222,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.15 2005/04/04 18:46:40 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.16 2005/06/18 00:16:46 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -287,9 +295,10 @@ print $p->render("Sequence Mining Summary",
 				 $p->checkbox(-name => 'hmm',
 							  -label => 'HMM/Pfam ',
 							  -checked => $v->{hmm}),
-				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set:&nbsp',
 				 $p->popup_menu(-name => 'hmm_params_id',
-								-values => [qw(15)],
+								-values => [map {$_->[0]} @hmm_ps],
+								-labels => \%hmm_ps,
 								-default => "$v->{hmm_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with eval <= ',
 				 $p->popup_menu(-name => 'hmm_eval',
@@ -308,9 +317,10 @@ print $p->render("Sequence Mining Summary",
 				 $p->checkbox(-name => 'pssm',
 							  -label => 'PSSM/PSI-BLAST profiles (SBP)',
 							  -checked => $v->{pssm}),
-				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set:&nbsp',
 				 $p->popup_menu(-name => 'pssm_params_id',
-								-values => [qw(8)],
+								-values => [map {$_->[0]} @pssm_ps],
+								-labels => \%pssm_ps,
 								-default => "$v->{pssm_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with eval <= ',
 				 $p->popup_menu(-name => 'pssm_eval',
@@ -330,9 +340,10 @@ print $p->render("Sequence Mining Summary",
 							  -label => 'Prospect2 ',
 							  -checked => $v->{prospect2}),
 
-				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set: ',
+				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set:&nbsp',
 				 $p->popup_menu(-name => 'prospect2_params_id',
-								-values => [qw(1)],
+								-values => [map {$_->[0]} @p2_ps],
+								-labels => \%p2_ps,
 								-default => "$v->{prospect2_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with svm >= ',
 				 $p->popup_menu(-name => 'prospect2_svm',
