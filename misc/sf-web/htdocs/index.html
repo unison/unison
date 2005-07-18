@@ -3,32 +3,126 @@
 <title>Unison Protein Database</title>
 <link rel="shortcut icon" href="favicon.png" />
 <link rel="stylesheet" type="text/css" href="unison.css" />
+<style>
+A:hover {
+ background: lightgrey;
+}
+table.quicklinks {
+	border: #000055 thin solid;
+}
+TD.quicklinks_title {
+	background: #000055;
+	color: white;
+}
+TD.quicklinks {
+	border-top: #000055 thin solid;
+	/* border-bottom: #000055 thin solid; */
+}
+</style>
 </head>
 
 <body>
 
-<img src="logo5.png">
-<br><font size="+2"><b>Unison Protein Database</b></font>
+
+<table width="100%" border=0>
+  <tr>
+	<td width="90%">
+		<img src="logo5.png">
+		<br><font size="+2"><b>Unison Protein Database</b></font>
+	</td>
+	<td>
+	  <table class="quicklinks">
+	  <tr><td class="quicklinks_title"><b>Quick links:</b></td></tr>
+	  <tr><td class="quicklinks">
+		  <a href="http://sourceforge.net/projects/unison-db/">SourceForge&nbsp;Project&nbsp;Summary</a> 
+		  <br><a href="http://sourceforge.net/project/showfiles.php?group_id=140591">Download</a>
+		  <br><a href="http://sourceforge.net/project/screenshots.php?group_id=140591">Screenshots</a>
+		  <br><a href="http://sourceforge.net/tracker/?group_id=140591&atid=746996">Bugs</a>
+		  <br>Demo -- coming soon  <!-- <a
+		  href="http://sourceforge.net/tracker/?group_id=140591&atid=746996">Demo</a> -->
+	  </td></tr></table>
+	</td>
+  </tr>
+</table>
 
 
-<h3>WHAT IS UNISON, IN A NUTSHELL?</h3>
+
+<h3>UNISON IN A NUTSHELL</h3>
 
 Unison is a database of non-redundant protein sequences and extensive
-<i>precomputed</i> predictions for those sequences.  Unison's primary
-mission is to enable Genentech to ask and answer proteomic queries for
-target discovery more efficiently, more completely, more reliably, and
-more often, and to enable queries which were previously impractical.
+precomputed predictions for those sequences.  Unison's primary goal is to
+facilitate feature-based mining of sequence data (i.e., given features, show
+sequences) for therapeutic target discovery.  Unison enables computational biologists to pose complex queries 
+based on diverse features more efficiently, more completely, more reliably, and
+more often, and to enable queries which were previously impractical.   Of
+course, this same data may also be used for sequence analysis (i.e., given a
+sequence, show features).
 
+<p>The Unison SourceForge site provides the Unison schema, a perl API,
+command line tools for loading and accessing data, a web interface, and a
+SQL database dump of non-proprietary sequences and non-proprietary precomputed data.
+
+<p>Unison is licensed under the <a href="http://www.opensource.org/licenses/afl-2.1.php">Academic Free License v2.1</a>.
+
+
+<h3>WHAT'S IN UNISON?</h3>
+The Unison database consists of serveral schemas: "unison", which
+contains the sequences and precomputed data described above, and independent
+schemas for auxiliary databases which are incorporated from other
+groups.  The auxiliary databases provide critical resources for the
+annotation of sequences and interpretation of precomputed data.  These
+auxiliary databases include:
+<ul>
+  <li>NCBI Taxonomy
+  <li>NCBI HomoloGene
+  <li>GO<i>ng</i>, our simplified Gene Ontology schema ("ng" is "next
+  generation", with a nod to the trekkies among us)
+  <li>PDB (summary data, but includes seqres-to-resid mappings akin to those is
+  Astral for all chains)
+  <li>SCOP
+  <li>MINT
+</ul>
+(Full credits and references for these and the precomputed data methods are
+included in the source code.)
 
 <h3>WHAT CAN I DO WITH UNISON?</h3>
 <dl>
-  <dt><b>Answer complex, integrative queries efficiently.</b> <dd>Because
+  <dt><b>Build a reliable and easily updatable database of sequences and precomputed results.</b>
+  <dd>At Unison's core is the infrastructure necessary to cull sequences from
+  many sources into a non-redundant (by exact identity) set of sequences and
+  annotations (accession, taxonomy, description) for those sequences from the
+  source databases.  Database triggers
+  guarantee non redundancy and immutable sequences, which in turn guarantees
+  that precomputed results on a sequence are always valid.  Updating sequences
+  is trivial and fast, and Unison automatically versions accessions whose underlying
+  sequence change between releases of a source database.  Unison provides
+  analysis "bookkeeping", which enables administrators to provide fast
+  incremental updates of precomputed results and users to verify which analyses
+  have been performed.  It's all conceptually
+  simple, but practically challenging to make efficient and robust.
+
+  <dt><b>Answer complex, integrative queries efficiently.</b>
+  <dd>Because
   precomputed results and auxiliary data are integrated within one
   resource, it is possible construct holistic queries which span multiple
-  types and sources of data. For example: Identify distinct sequences
+  types and sources of data. For example, one may:
+  <ul>
+  <li>identify distinct human sequences
   which contain an extracellular immunoglobulin (ig) domain by Pfam,
   followed by a transmembrane region, followed by an Immunoreceptor
-  Tyrosine Inhibitory Motif (ITIM).
+  Tyrosine Inhibitory Motif (ITIM), and which have a mouse or rat ortholog 
+  which meet the same criteria.
+  <li>tabulate sequence- or structurally-aligned residues in kinases which have PDB structures complexed
+  with small-molecule inhibitors
+  <li>create views which embody the logic for repeated mining exercises
+  </ul>
+  
+
+  <dt><b>Generate <i>in silico</i> hypotheses.</b>
+  <dd>Precomputed results also enable rapid responses to "what-if?"
+  questions and the formulation of new hypotheses. For example: What
+  Pfam domains occur upstream of a transmembrane domain and an ITIM?
+
 
   <dt><b>Analyze protein structure models.</b>
   <dd>Unison provides comprehensive sequence-sequence, sequence-profile,
@@ -36,12 +130,6 @@ more often, and to enable queries which were previously impractical.
   mechanisms to, for example, explore the structural effects of sequence
   variants (even on modeled structures) and to study the sequence
   divergence among structurally related proteins. <!--[SNP EXAMPLE]-->
-
-  <dt><b>Generate <i>in silico</i> hypotheses.</b>
-  <dd>Precomputed results also enable rapid responses to "what-if?"
-  questions and the formulation of new hypotheses. For example: What
-  Pfam domains occur upstream of a transmembrane domain and an ITIM?
-  Unison answers this in 30 seconds.
 </dl>
 
 
@@ -50,23 +138,8 @@ more often, and to enable queries which were previously impractical.
 The Unison schema, source code, web pages, and non-proprietary data are
 released under the Academic Free License.  You may download all of these
 from the <a href="http://sourceforge.net/projects/unison-db/">Unison
-SourceForge project pages</a>
-
-<p>Tom Ferrin's group at UCSF has graciously agreed to host a
-non-proprietary version Unison database. This site is being established
-and I expect it to be available by August 1, 2005.
-
-
-<h3>WHY?</h3>
-
-Genentech undertook a large-scale effort to use structure prediction
-methods to identify therapeutic targets in specific protein
-families. Unison was borne of the need to manage and mine this large and
-diverse set of data.
-
-<p>Please contact Reece Hart &lt;<a
-href="mailto:rkh@gene.com?Subject=Unison">rkh@gene.com</a>&gt; for more
-information.
+SourceForge project pages</a>.  A demo site of the non-proprietary data is
+being established -- please check back in August.
 
 
 <h3>ACKNOWLEDGMENTS</h3>
@@ -76,13 +149,17 @@ environment. Thanks also to Kiran Mukhyala and David Cavanaugh for their
 many contributions to Unison, and to Bill Wood and the Bioinformatics
 Department for support.
 
+<p>Please contact Reece Hart &lt;<a href="mailto:rkh@gene.com?Subject=Unison">rkh@gene.com</a>&gt; for more
+information.
+
 <hr>
 
 <table width="100%" border=1><tr>
-<td width="25%" align="center"><a href="http://www.gene.com"><img width=129 height=30 border=0 src="gene_tag_rgb.jpg" alt="Genentech"/></a></td>
-<td width="25%" align="center">Bioinformatics Public Share<br><a href="http://share.gene.com">share.gene.com</a></td>
-<td width="25%" align="center"><A href="http://sourceforge.net/"><IMG src="http://sourceforge.net/sflogo.php?group_id=4546&type=1" border="0" width="88" height="31"></A></td>
-<td width="25%" align="center"><a href="http://www.postgresql.org"><img height="30" border=0 src="http://pgfoundry.org/images/elephantSmall.png"/><br>PostgreSQL</a></td>
+<td width="20%" align="center"><a href="http://www.gene.com"><img width=129 height=30 border=0 src="gene_tag_rgb.jpg" alt="Genentech" /></a></td>
+<td width="20%" align="center">Bioinformatics Public Share<br><a href="http://share.gene.com">share.gene.com</a></td>
+<td width="20%" align="center"><A href="http://sourceforge.net/"><img src="http://sourceforge.net/sflogo.php?group_id=4546&type=1" border="0" width="88" height="31"></A></td>
+<td width="20%" align="center"><a href="http://www.postgresql.org"><img height=30 border=0 src="http://pgfoundry.org/images/elephantSmall.png"/><br>PostgreSQL</a></td>
+<td width="20%" align="center"><a href="http://www.opensource.org/docs/definition.php"><img border=0 width=88 height=31 src="http://opensource.org/trademarks/open_source_button.png"></a>
 </tr>
 </table>
 

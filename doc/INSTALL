@@ -1,32 +1,42 @@
--*-outline-*-
+UNISON INSTALL NOTES							-*-outline-*-
 
-* DO THIS FIRST. I MEAN IT.
+These notes describe how I (Reece) typically prepare to create or restore
+a Unison database.  It's not thorough and you're expected to know
+something about installing postgresql and databases.
+
+
+* Become the db superuser and set a few variables
 $ sudo -H -s -u postgres
 $ unset PGHOST PGPORT
 $ export PGUSER=postgres
 $ export PGDATA=/srv/postgresql
 
-* preparing and starting a database "cluster" (instance of postgresql) for the first time
-$ initdb --locale=C -D $PGDATA
+* Starting a database cluster for the first time
+$ initdb -Upostgres -W -A password --locale=C -D $PGDATA
 $ pg_ctl -D $PGDATA -l $PGDATA/postgresql.log start
 
 * configure the cluster
 $ psql -d template1 -c "alter user $PGUSER password 'thepass'";
-$ cp csb-db/conf/{postgresql.conf,pg_hba.conf} $PGDATA/
+$ GENENTECH: cp conf/{postgresql.conf,pg_hba.conf} $PGDATA/
 $ pg_ctl -l $PGDATA/log -D $PGDATA restart
+  [NOTE: some distributions have other startup wrappers]
 
-* languages and unison C functions
-$ cd csb-db/unison/src
+* add unison C functions
+$ cd unison/src
 $ make unison.so
 $ make install
 
-* creating users
+* create users
+NOTE: the user 'postgres' must exist and will if you initdb as above (or
+have a typical Linux distribution)
 $ createuser -i2 -A -D    PUBLIC
 $ createuser -i3 -A -D -P unison
 $ createuser -i4 -A -D -P loader
-$ sbin/passwd2sql </etc/passwd -g1279,227,199,136,140,201,202,984,81 \
-  | psql -Upostgres -hcsb -dtemplate1 -qaf-
+$ psql -d template1 -c "alter user unison password 'password'";
+$ psql -d template1 -c "alter user loader password 'password'";
 
+$ GENENTECH: sbin/passwd2sql </etc/passwd -g1279,227,199,136,140,201,202,984,81 \
+  | psql -Upostgres -hcsb -dtemplate1 -qaf-
 
 * stopping/starting/restarting the database
 $ pg_ctl -l $PGDATA/postgresql.log stop
@@ -34,7 +44,7 @@ $ pg_ctl -l $PGDATA/postgresql.log start
 $ pg_ctl -l $PGDATA/postgresql.log restart
 
 * backups and restore
-backups are kept in ~rkh/csb-db/backups/csb/.
+backups are kept in ~rkh/csb-db/backups/csb-dev/.
 
 Prior to 2005-02-02, full backups are named <timestamp>.pgdump.gz;
 schema-only backups are named <timestamp>-s.pgdump.gz. 'pgdump-s' files
