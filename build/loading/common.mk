@@ -1,39 +1,19 @@
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
+.DELETE_ON_ERROR:
 
-COMPBIO:=/gne/compbio
-UHOME:=${HOME}/csb-db/unison
+include local.mk
+
 SHELL:=/bin/bash
-
-PSET_ID_A:=60
-PSET_ID_B:=61
-PSET_ID_C:=62
-
-export PGUSER:=loader
-export PGHOST:=csb
-export PGDATABASE:=csb-dev
-export PERL5LIB:=${UHOME}/perl5:${PERL5LIB}
-
-
-
-PATH:=${UHOME}/sbin:${UHOME}/bin:${UHOME}/misc
-PATH:=${PATH}:${COMPBIO_EPREFIX}/bin:${COMPBIO_PREFIX}/bin
-PATH:=${PATH}:/usr/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
-export PATH
-
-RENAME=${HOME}/opt/bin/rerename
+SUBDIR:=$(shell basename ${PWD})
 
 PSQL:=psql -Uunison
 PSQL_VCMD:=${PSQL} -c
 PSQL_DCMD:=${PSQL} -At -c
-
 CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
-
-SUBDIR:=$(shell basename ${PWD})
 
 # %.ids files, relative to subdirs
 vpath %.ids ../ids
-
 
 ids: FORCE
 	mkdir -p $@
@@ -53,9 +33,8 @@ QTIME:=120000:00
 QSUB:=qsub -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
 
 
-
 ifdef DEBUG
-$(warning UHOME=${UHOME} )
+$(warning UNISON_HOME=${UNISON_HOME} )
 $(warning PGUSER=${PGUSER} )
 $(warning PGDATABASE=${PGDATABASE} )
 $(warning PERL5LIB=${PERL5LIB} )
@@ -74,6 +53,7 @@ override FORCE=FORCED_BUILD
 endif
 
 
+
 # Guarantee that including this file (defaults.mk) doesn't
 # create a default target. Ideally, the includer will
 # place a default target above the include defaults.mk line.
@@ -81,58 +61,50 @@ NO_DEFAULT_TARGET:
 	@echo "no default target" 1>&2; exit 1
 
 
-# set handling
-%-todo.ids: %.ids done.ids
-	comm -23 $^ >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv -f $@.tmp $@
+# SEQUENCE SET HANDLING
+# id sets are built in two phases:
+# 1) select sequences into filenames like '.set.ids';
+# 2) sort them in this rule into a file like 'set.ids'
+# (sorted locally to ensure consistent LANG sorting rules)
+%.ids: .%.ids
+	@sort -u -o $@.tmp $<
+	@/bin/mv -f $@.tmp $@
 	@wc -l $@
+
+# generic set-todo.ids is anything which hasn't been done already
+# The top-level makefile which included this one must
+# provide a 'done.ids' target.
+.%-todo.ids: %.ids done.ids
+	comm -23 $^ >$@.tmp
+	/bin/mv -f $@.tmp $@
+
+# 'O-': sequence ids by origin
+.O-%.ids:
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
+	/bin/mv -f $@.tmp $@
 
 # sequences by from unison's psets
-runA.ids runB.ids runC.ids uniA.ids uniB.ids uniC.ids uniD.ids: %.ids:
+.runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: %.ids:
 	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@.tmp
-	sort -u -o $@.tmp $@.tmp
 	/bin/mv $@.tmp $@
-	@wc -l $@
-pset%.ids:
+.pset%.ids:
 	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
 
 # sequence lists by origin
-genengenes.ids sugen.ids pdb.ids: %.ids:
+.genengenes.ids .sugen.ids .pdb.ids: %.ids:
 	psql -Atc "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
-ggi.ids:
+.ggi.ids:
 	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
-ggi1.ids:
+.ggi1.ids:
 	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1/'" >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
-ggi-se1.ids:
+.ggi-se1.ids:
 	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
-ggi-me1.ids:
+.ggi-me1.ids:
 	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
 
 # sequence lists by other info
-fam%.ids:
+.fam%.ids:
 	psql -Atc 'select distinct pseq_id from sst.v_fam_pseq where famid=$*' >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
 
 
 # -Nn rules: split .ids files into N sets, approximately the same number
@@ -203,6 +175,7 @@ PREFIX=?
 
 
 
+# make env -- write env to file `env' for debugging
 env:
 	env | sort >$@ 2>&1
 
@@ -222,3 +195,11 @@ cleanest:: cleaner
 	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
 	/bin/rm -fr          *-l[1-9][0-9] *-l[1-9][0-9][0-9] *-l[1-9][0-9][0-9][0-9]
 #	find . -name pset\* -type d -print0 | xargs -0rt /bin/rm -fr
+
+
+
+## Are these used anymore? Commented to see what breaks.
+#PSET_ID_A:=60
+#PSET_ID_B:=61
+#PSET_ID_C:=62
+
