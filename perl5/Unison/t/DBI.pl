@@ -11,7 +11,9 @@ use Unison::Exceptions;
 use Data::Dumper;
 
 # must provide at least the following connection info
-my $u = new Unison( host=>'csb', dbname=>'csb', username=>'PUBLIC' );
+#   host=>'csb', dbname=>'csb', username=>'PUBLIC'
+# or perhaps through PGHOST, PGDATABASE, and PGUSER
+my $u = new Unison( ) ;
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
@@ -23,6 +25,8 @@ print("* Unison object $u =\n  ",
 	  "\n\n");
 
 try {
+  printf("is_public: %s\n", $u->is_public());
+
   foreach my $sql 
 	(
 	 'select version()',
@@ -43,3 +47,6 @@ try {
 } catch Unison::Exception with {
   warn("======= caught this error:\n", $_[0]);
 };
+
+
+

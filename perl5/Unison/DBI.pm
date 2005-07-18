@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.18 2004/10/14 19:54:34 rkh Exp $>
+S<$Id: DBI.pm,v 1.19 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -264,6 +264,26 @@ EOF
   # Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
   # die("$method...ooops");
   throw Unison::Exception::NotImplemented ("can't find method $method");
+}
+
+
+
+######################################################################
+=pod
+
+=item B<< is_public( ) >>
+
+returns 1 if this is a public database, per meta table
+
+=cut
+
+sub is_public ($) {
+  my $self = shift;
+  if (not defined $self->{is_public}) {
+	$self->{is_public} = $self->selectrow_array(
+      "select case when exists (select * from meta where key='publicized by') then 1 else 0 end;" );
+  }
+  return $self->{is_public};
 }
 
 
