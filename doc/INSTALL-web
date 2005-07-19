@@ -1,0 +1,8 @@
+- nph-pdb-fetch.sh
+Jmol can't fetch structures at URLs which require
+authentication. Therefore, if you're using authentication in the Unison
+cgi directory and you want to view structures, you'll need to copy
+cgi/nph-pdb-fetch.sh to your /cgi-bin/ directory, which must be accessible
+without authentication. unison/perl/Unison/Jmol.pm will detect
+authentication automatically and use ../cgi/nph-pdb-fetch.sh or
+/cgi-bin/nph-pdb-fetch.sh as appropriate.
