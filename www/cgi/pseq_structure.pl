@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.7 2005/06/21 23:42:04 rkh Exp $;
+#$ID = q$Id: pseq_structure.pl,v 1.8 2005/07/18 20:56:24 rkh Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -44,7 +44,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_structure.pl,v 1.7 2005/06/21 23:42:04 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_structure.pl,v 1.8 2005/07/18 20:56:24 rkh Exp $ ');
 
 # these files are for the image map
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png' );
@@ -127,6 +127,7 @@ sub edit_structure_rows {
   foreach my $r (@$ar) {
     shift @$r if($sh);
     my ($pdb_id,$chain) = (substr($r->[0],0,4),substr($r->[0],4,1));
+	# XXX: Kiran- this looks like a bogus call... cSL is supposed to take only 3 args (incl. $self)
     $r->[0] = $jmol->changeStructureLink($jmol->load("pdb$pdb_id.ent",$chain),$r->[0],'link');
     foreach my $i(@$r) {$i = "<center><font size=2>$i</font></center>";}
   }
