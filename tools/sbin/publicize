@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.26 2005/07/18 21:57:11 rkh Exp $
+# $Id: publicize,v 1.27 2005/07/19 04:38:31 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -33,14 +33,14 @@ my $tick_minor = 100000;
 my $tick_major = 50*$tick_minor;
 
 my $eodata_re = qr/^\\\./;
-my $pseq_id_re = qr/pseq_id|q_pseq_id|t_pseq_id|query|target/;
-my $params_id_re = qr/params_id/;
-my $porigin_id_re = qr/porigin_id/;
-my $palias_id_re = qr/palias_id/;
+my $pseq_id_re = qr/^(pseq_id|q_pseq_id|t_pseq_id|query|target)$/;
+my $params_id_re = qr/^params_id$/;
+my $porigin_id_re = qr/^porigin_id$/;
+my $palias_id_re = qr/^palias_id$/;
 my $truncate_tables_re = qr/paprospect2|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my $CVSId = '$Id: publicize,v 1.26 2005/07/18 21:57:11 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.27 2005/07/19 04:38:31 rkh Exp $ ';
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 my %conn_info = (dbname=>'csb-dev',			# evenutally, csb
@@ -245,7 +245,7 @@ exit(0);
 
 sub load_public_ids($) {
   my $pset_name = shift;
-  my $s_fn = "/tmp/public_ids -- $pset_name.plst";
+  my $s_fn = "/tmp/$pset_name public_ids.plst";
   my %ids;
 
   if ( -f $s_fn ) {
@@ -306,7 +306,7 @@ EOT
   $ids{p2gblataln}[$_]++ for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.26 $ ';
+  $ids{CVSRevision} = '$Revision: 1.27 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
