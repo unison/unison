@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.25 2005/07/18 14:39:01 rkh Exp $
+# $Id: publicize,v 1.26 2005/07/18 21:57:11 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -22,7 +22,7 @@ select(STDERR); $|++;						# unbuffer stderr
 select(STDOUT);
 
 my $pset_name = $ENV{PSET} || 'public';
-my @public_porigins = qw(UniProt UniProt/TrEMBL PDB IPI RefSeq);
+my @public_porigins = qw(Swiss-Prot UniProt UniProt/TrEMBL PDB IPI RefSeq MGC/Human MGC/Mouse Sugen);
 my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
 my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
 						   pmprospect2 pmprospect2_scop pmpssm pmregexp
@@ -40,7 +40,7 @@ my $palias_id_re = qr/palias_id/;
 my $truncate_tables_re = qr/paprospect2|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my $CVSId = '$Id: publicize,v 1.25 2005/07/18 14:39:01 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.26 2005/07/18 21:57:11 rkh Exp $ ';
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 my %conn_info = (dbname=>'csb-dev',			# evenutally, csb
@@ -219,12 +219,12 @@ EOT
 	}
 	# END intra-COPY parsing
   }
-  
+
   # whether inside or outside of a COPY block
   print $line;
   $printed++;
 }
-print(STDERR "done.\n");
+print(STDERR "\n# done.\n");
 
 
 $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
@@ -232,9 +232,9 @@ printf(STDERR "# $0 finished at %s\n# %12d printed / %12d lines total (%5.1f%%)\
 	   $timestamp,$printed,$.,$printed/$.*100);
 printf("-- $0 finished at %s\n-- %12d printed / %12d lines total (%5.1f%%)\n",
 	   $timestamp,$printed,$.,$printed/$.*100);
-
 foreach my $tbl (sort keys %skipped) {
-  printf("skipped %12d $tbl lines\n", $skipped{$tbl})
+  printf(STDERR "# skipped %12d $tbl lines\n", $skipped{$tbl});
+  printf("-- skipped %12d $tbl lines\n", $skipped{$tbl});
 }
 
 exit(0);
@@ -306,7 +306,7 @@ EOT
   $ids{p2gblataln}[$_]++ for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.25 $ ';
+  $ids{CVSRevision} = '$Revision: 1.26 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
