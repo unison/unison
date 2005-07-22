@@ -12,6 +12,8 @@ use CGI::Carp qw(fatalsToBrowser);
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
+use Unison::Utilities::pfssp_psipred;
+
 use Bio::Prospect::Options;
 use Bio::Prospect::LocalClient;
 use Bio::Prospect::Align;
@@ -34,6 +36,14 @@ if (not defined $po)
   { $p->die("The params_id parameter ($v->params_id) is invalid."); }
 $po->{templates} = \@templates;
 
+if ($po->{'phd'}) {
+  my $ssp = Unison::Utilities::pfssp_psipred::ssp_phd($po->{'phd'},$v->{pseq_id},$u);
+  if(not defined($ssp)) {
+    $p->die("no psipred with params_id=$v->{params_id}; \n");
+  }
+  $po->{'phd'} = $ssp;
+}
+
 my $pf = new Bio::Prospect::LocalClient( {options=>$po} );
 
 my @threads = $pf->thread( $seq );
@@ -45,4 +55,3 @@ print $p->render("p2threads of unison:$v->{pseq_id}",
 				 $p->group('Prospect2 Threadings',
 						   '<b>', $pa->get_alignment(-format=>'html'), '</b>')
 				);
-
