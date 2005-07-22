@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.9 2005/06/15 03:49:04 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.10 2005/06/21 04:53:07 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -129,7 +129,7 @@ sub pseq_features_panel($%) {
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
   $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.9 2005/06/15 03:49:04 rkh Exp $',
+  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.10 2005/06/21 04:53:07 rkh Exp $',
 					 -key_font => 'gdSmallFont',
 					 -bump => +1,
 				   );
@@ -848,10 +848,8 @@ sub add_pftemplate {
     my ($u, $panel, $q, $view, $pseq_structure) = @_;
     my ($nadded,$topN) = (0,5);
 
-	# BUG: template_ids is undefined when pseq_id=23788
-	# rkh 2005-05-16
-	return unless defined $pseq_structure->{'template_ids'};
-    my @templates = @{$pseq_structure->{'template_ids'}};
+    return unless defined $pseq_structure->{'structure_template_ids'};
+    my @templates = @{$pseq_structure->{'structure_template_ids'}};
 
     my $nfeat = $#templates+1;
     splice(@templates,$topN) if $#templates > $topN;
@@ -866,9 +864,9 @@ sub add_pftemplate {
 
     foreach my $t (@templates) {
 
-      my $start = $pseq_structure->{'templates'}{$t}{'qstart'};
-      my $end   = $pseq_structure->{'templates'}{$t}{'qstop'};
-      my $descr = $pseq_structure->{'templates'}{$t}{'descr'};
+      my $start = $pseq_structure->{'structure_templates'}{$t}{'qstart'};
+      my $end   = $pseq_structure->{'structure_templates'}{$t}{'qstop'};
+      my $descr = $pseq_structure->{'structure_templates'}{$t}{'descr'};
       my $href = ($view ? $pseq_structure->change_structure($t) : "pseq_structure.pl?pseq_id=$q");
 
       $track->add_feature
