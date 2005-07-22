@@ -14,7 +14,7 @@ use Unison::SQL;
 use Unison::Exceptions;
 
 my $pdbDir = (defined($ENV{PDB_PATH}) ? $ENV{PDB_PATH} : '/gne/compbio/share/pdb/all.ent');
-my @statevars = qw(pseq_id params_id offset limit sort pmodelset_id);
+my @statevars = qw(pseq_id params_id offset limit sort pmodelset_id viewer);
 #my $scopURL = 'http://scop.mrc-lmb.cam.ac.uk/scop';
 my $scopURL = 'http://scop.berkeley.edu';
 my $scoplinkfmt = '<A HREF="'.$scopURL.'/search.cgi?sunid=%d" TOOLTIP="%s">%s</A>';
@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.28 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.29 2005/07/18 21:59:36 rkh Exp $ ');
 
 
 my @cols;
@@ -249,8 +249,8 @@ print $p->render
    '&nbsp;&nbsp;',
 
    '<br>viewer: ',$p->radio_group(-name => 'viewer',
-								  -values => ['jmol','pymol', 'rasmol'],
-								  -default => 'jmol'),
+				  -values => ['jmol','pymol', 'rasmol'],
+				  -default => 'jmol'),
    '&nbsp;&nbsp;',
 
    $p->submit(-value=>'redisplay'),
