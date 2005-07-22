@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.54 2005/07/18 21:59:01 rkh Exp $>
+S<$Id: Page.pm,v 1.55 2005/07/18 22:50:35 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -1078,7 +1078,29 @@ sub page_variables {
   return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
 }
 
+######################################################################
+## iframe()
 
+=pod
+
+=item B<< $p->iframe( C<title>, C<body elems, ...> ) >>
+
+Generates a Unison iframe with title given C<title> and with the
+page-specific content provided by an array of C<body elems>.
+
+=cut
+
+
+sub iframe {
+  my $self = shift;
+  my $title = shift;
+  my $src= shift;
+
+  my $cons = "<style type=\"text/css\">
+div.iframe { text-align:center;}
+</style> <div class=\"iframe\"><iframe name = $title src=$src  frameborder=\"0\" height=\"850\" width=\"850\"</iframe></div>";
+  return $cons;
+}
 
 =pod
 
