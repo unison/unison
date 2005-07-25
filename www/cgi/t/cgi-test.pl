@@ -1,6 +1,7 @@
 #! /usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
+# $Id: output_test,v 1.1 2005/06/24 01:03:31 mukhyala Exp $
 
 use warnings;
 use strict;
@@ -18,7 +19,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id$
+# $Id: cgi-test,v 1.1 2005/05/20 17:52:33 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -39,6 +40,11 @@ GetOptions(\%opts,
 )  || die("$0: Incorrect Usage\n");
 
 die "$usage" if ($opts{help});
+
+
+select(STDERR); $|++;
+select(STDOUT); $|++;
+
 
 my $pseq_id = $opts{pseq_id};
 
@@ -80,7 +86,7 @@ my @cgi_scripts =
    ['pseq_structure',"pseq_id=$pseq_id"],
    ['pseq_summary',"pseq_id=$pseq_id"],
    ['search_by_alias',"alias=EGFR_HUMAN"],
-   ['search_by_properties',"o_sel=GenenGenes o_sel=Incyte o_sel=ProAnno+v1 o_sel=Proteome o_sel=RefSeq o_sel=Swiss-Prot r_species=on r_species_sel=9606 r_age_sel=30d r_len=on r_len_min=100 r_len_max=400 r_sigp=on r_sigp_sel=0.6 al_hmm_eval=1e-10 al_pssm_eval=1e-10 al_prospect2=on al_prospect2_svm=9 al_prospect2_params_id=1 al_ms_sel=2 al_go_sel=5164 x_set_sel=5 submit=vroom%21"],
+   ['search_by_properties',"o_sel=GenenGenes o_sel=Incyte o_sel=ProAnno+v1 o_sel=Proteome o_sel=RefSeq o_sel=Swiss-Prot r_species=on r_species_sel=9606 r_age_sel=30d r_len=on r_len_min=100 r_len_max=400 r_sigp=on r_sigp_sel=0.6 al_hmm_eval=1e-10 al_pssm_eval=1e-10 al_prospect2=on al_prospect2_svm=9 al_prospect2_params_id=1 al_ms_sel=2 al_go_sel=5164 x_set_sel=5 submit=vroom"],
    ['search_framework'],
    ['search_sets',"ubmit=vroom pset_id=5 pmodelset_id=3 hmm=on hmm_params_id=15 hmm_eval=1e-10 pssm=on pssm_params_id=8 pssm_eval=1e-10 prospect2=on prospect2_params_id=1 prospect2_svm=12"],
   );
@@ -95,9 +101,9 @@ print "==============================================================\n";
 foreach (@cgi_scripts) {
   my $message = '';
   my $failed = 0;
-  my $cmd = "./$_->[0].pl host=$opts{host} dbname=$opts{dbname}";
+  my $cmd = "../$_->[0].pl host=$opts{host} dbname=$opts{dbname}";
   $cmd .= " $_->[1]" if(defined($_->[1]));
-
+  $cmd .= " 2>&1";
   print "$cmd\n" if($opts{verbose});
 
   print "$_->[0] ", "." x (30-length("$_->[0]"));
