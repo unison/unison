@@ -1,25 +1,25 @@
 #!/usr/bin/env perl
-#$Id: test.pl,v 1.2 2005/06/22 18:15:24 mukhyala Exp $
+#$Id: cgi-test.pl,v 1.3 2005/07/18 20:56:25 rkh Exp $
 
 use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5", "$FindBin::Bin/../../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use Unison;
 use Unison::WWW;
-use Unison::WWW::Page qw(infer_pseq_id);
+use Unison::WWW::Page;
 use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
-$p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: test.pl,v 1.2 2005/06/22 18:15:24 mukhyala Exp $ ');
+$v->{pseq_id} = 76 unless defined $v->{pseq_id};
+$p->add_footer_lines('$Id: cgi-test.pl,v 1.3 2005/07/18 20:56:25 rkh Exp $ ');
 
 my ($test_fh, $test_fn) = $p->tempfile(SUFFIX=>'.tst');
-my $cmd = "../t/output_test -q $v->{pseq_id} >> $test_fn";
+my $cmd = "./cgi-test -q $v->{pseq_id} >> $test_fn";
 
 system( $cmd )
   && $p->die("$cmd: $!\n");
