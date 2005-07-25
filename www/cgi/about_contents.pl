@@ -18,7 +18,7 @@ my $sql = 'select * from meta order by 1';
 my $ar = $u->selectall_arrayref($sql);
 my @f = qw( key value );
 
-print $p->render("Unison contents and Meta Information",
+print $p->render("Contents and Meta Information",
 				 $p->group("Meta",
 						   Unison::WWW::Table::render(\@f,$ar)),
 				 $p->sql($sql)

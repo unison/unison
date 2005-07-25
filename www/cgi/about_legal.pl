@@ -14,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 
-print $p->render('Unison Copyright and License', <<EOHTML );
+print $p->render('Copyright and License', <<EOHTML );
 
 <center><table width="80%" border=1><tr><td>
 Unison Protein Database

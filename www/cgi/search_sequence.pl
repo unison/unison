@@ -33,7 +33,7 @@ if (defined $v->{query} and $v->{query} ne '') {
 }
 
 
-print $p->render("Sequence lookup by subsequence" 
+print $p->render("Search by Subsequence" 
 				   . (defined $v->{query} ? ": $v->{query}" : ''),
 
 				 $p->tip('SQL wildcards (<code>%,_</code>) and regular expressions are ',

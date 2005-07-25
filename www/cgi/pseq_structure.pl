@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.8 2005/07/18 20:56:24 rkh Exp $;
+#$ID = q$Id: pseq_structure.pl,v 1.9 2005/07/19 03:18:15 rkh Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -44,7 +44,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_structure.pl,v 1.8 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_structure.pl,v 1.9 2005/07/19 03:18:15 rkh Exp $ ');
 
 # these files are for the image map
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png' );
@@ -79,7 +79,7 @@ try {
 
     my $imagemap = generate_imagemap();
 
-    print $p->render("Unison:$v->{pseq_id} Structural Features",
+    print $p->render("Structure Features for Unison:$v->{pseq_id}",
 		     $p->best_annotation($v->{pseq_id}),
 		     $jmol->initialize("pdb$pdb_id.ent",$pseq_structure->{'loaded_structure'},$pseq_structure),
 			 (defined $imagemap ? '' : $p->warn("no clickable entities for this sequence")),

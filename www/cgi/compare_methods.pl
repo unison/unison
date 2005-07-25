@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.9 2005/06/18 00:16:44 rkh Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.10 2005/07/18 20:56:23 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -18,7 +18,17 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: compare_methods.pl,v 1.9 2005/06/18 00:16:44 rkh Exp $ ');
+$p->add_footer_lines('$Id: compare_methods.pl,v 1.10 2005/07/18 20:56:23 rkh Exp $ ');
+
+if ($u->is_public()) {
+  $p->die('Prospect threadings not available.', <<EOT);
+Sorry, Prospect threading results are not part of the public Unison
+release. We load these data using scripts which are part of the <a
+href="http://unison-db.sourceforge.net/">Unison source distribution</a> and
+our <a href="http://sourceforge.net/projects/prospect-if">Prospect
+Interface</a> modules for perl.
+EOT
+}
 
 
 #globals, scores: %$scores, %$data for GD::Graph
@@ -90,7 +100,7 @@ sub _render_page {
   my ($models_href,$models_aref,$controls_href,$controls_aref,$params_href,$params_aref) = @_;
 
   #begin page rendering
-  print $p->render("Assessment of Scoring Methods",
+  print $p->render("Scoring Methods Assessment",
 		   '<p>This page allows you to qualitatively asses the scoring methods that are part of the Threading tools we use, using sensitivity and specificity values.
                                  1) Select the Model Set and choose the Scoring methods,
                                  2) click "vroom".',

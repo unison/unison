@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: browse_sets.pl,v 1.5 2005/06/18 00:16:44 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_sets.pl,v 1.6 2005/07/18 20:56:23 rkh Exp $ ');
 
 
 my @psets = @{ $u->selectall_arrayref("select pset_id,name from pset where pset_id>0 order by pset_id") };
@@ -21,7 +21,7 @@ my %psets = map { $_->[0] => "$_->[1] (set $_->[0])" } @psets;
 
 
 
-print $p->render("Browse Unison Sets",
+print $p->render("Browse Sets",
 				 $p->start_form(-method => 'GET'),
 				 "show sequences in set ",
 

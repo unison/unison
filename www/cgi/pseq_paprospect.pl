@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.29 2005/07/18 21:59:36 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.30 2005/07/22 22:10:50 mukhyala Exp $ ');
 
 
 my @cols;
@@ -229,7 +229,7 @@ my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 
 print $p->render
-  ("threading summary for Unison:$v->{pseq_id}",
+  ("Prospect threading summary for Unison:$v->{pseq_id}",
    $p->best_annotation($v->{pseq_id}),
 
    '<!-- pseq_prospect2 parameters -->',
