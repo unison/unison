@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.55 2005/07/18 22:50:35 rkh Exp $>
+S<$Id: Page.pm,v 1.56 2005/07/22 22:55:28 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -40,6 +40,7 @@ BEGIN {
 
 
 package Unison::WWW::Page;
+use Unison::WWW;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
@@ -95,7 +96,9 @@ sub new {
   $v->{debug} = 0 unless defined $v->{debug};
 
   try {
-	_csb_connection_params($self) if ($ENV{SERVER_NAME} eq 'csb');
+	if (not defined $ENV{SERVER_NAME} or $ENV{SERVER_NAME} eq 'csb') {
+	  _csb_connection_params($self) 
+	}
 	_page_connect($self);
   }	catch Unison::Exception with {
 	$self->die_with_exception($_[0],
@@ -391,7 +394,8 @@ sub render {
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
 		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
 		  '  <td class="footer">',
-		  "     Please contact <a href=\"http://gwiz/local-bin/empshow.cgi?empkey=26599\">Reece Hart</a> with suggestions or problems\n",
+		  '     Problems? Feature Requests? Please use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>',
+		  '     or send mail to <a href="mailto:rkh@gene.com?Subject=Unison">Reece Hart &lt;rkh@gene.com&gt;</a>', "\n",
 		  "     <br>$elapsed\n",
 		  (defined $self->{footer} ? map {"     <br>$_\n"} @{$self->{footer}} : ''),
 		  "  </td>\n",
@@ -884,7 +888,7 @@ sub _navbar {
 	  ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
 	  ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', $pseq_id],
 	  ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
-	  ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
+#	  ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	  ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
 	  ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
 	  ['Notes',			'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
