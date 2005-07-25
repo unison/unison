@@ -1,7 +1,7 @@
 #! /usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: output_test,v 1.1 2005/06/24 01:03:31 mukhyala Exp $
+# $Id: cgi-test,v 1.2 2005/07/25 21:49:33 rkh Exp $
 
 use warnings;
 use strict;
@@ -19,7 +19,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test,v 1.1 2005/05/20 17:52:33 rkh Exp $
+# $Id: cgi-test,v 1.2 2005/07/25 21:49:33 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -42,9 +42,21 @@ GetOptions(\%opts,
 die "$usage" if ($opts{help});
 
 
+if (defined $ENV{HTTP_HOST}) {
+  print <<EOT;
+Content-type: text/html
+
+<html><body><pre>
+EOT
+}
+
+
 select(STDERR); $|++;
 select(STDOUT); $|++;
 
+if (defined $ENV{HTTP_HOST}) {
+  printf("Content-type: text/plain\n\n");
+}
 
 my $pseq_id = $opts{pseq_id};
 
@@ -140,3 +152,10 @@ foreach (@cgi_scripts) {
 }
 
 print "Total Passed = $passed / ",$#cgi_scripts+1,"\n";
+
+
+if (defined $ENV{HTTP_HOST}) {
+  print <<EOT;
+</pre></body></html>
+EOT
+}
