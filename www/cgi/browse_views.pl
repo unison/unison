@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: browse_views.pl,v 1.10 2005/06/18 00:16:44 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_views.pl,v 1.11 2005/07/18 20:56:23 rkh Exp $ ');
 
 
 my %cvs = %{ $u->selectall_hashref(
@@ -45,7 +45,7 @@ my %coldescr = (
 			   );
 
 
-print $p->render('Browse Unison Canned Views',
+print $p->render('Canned Views',
 
 				 $p->warn('"Canned" queries on this page may be
 				 computationally expensive and take several minutes to

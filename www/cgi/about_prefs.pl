@@ -14,7 +14,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $P = $p->{userprefs};
 
-print $p->render("Unison User Preferences for $u->{username}",
+print $p->render("User Preferences for $u->{username}",
 				 "<p>(user preferences are currently read-only)\n",
 				 "<pre>\n",
 				 (map { "$_: $P->{$_}\n" } sort keys %$P),

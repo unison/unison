@@ -51,7 +51,7 @@ my $pa = new Bio::Prospect::Align( -debug=>0,-threads => \@threads );
 
 
 
-print $p->render("p2threads of unison:$v->{pseq_id}",
+print $p->render("Prospect Threading for Unison:$v->{pseq_id}",
 				 $p->group('Prospect2 Threadings',
 						   '<b>', $pa->get_alignment(-format=>'html'), '</b>')
 				);

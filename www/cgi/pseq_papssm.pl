@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_papssm.pl,v 1.8 2005/06/18 00:16:45 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_papssm.pl,v 1.9 2005/07/18 20:56:24 rkh Exp $ ');
 
 my $sql = 'select M.acc as "model",A.start,A.stop,A.score,A.eval
 		   from papssm A join pmpssm M on A.pmodel_id=M.pmodel_id
@@ -21,7 +21,7 @@ my $sql = 'select M.acc as "model",A.start,A.stop,A.score,A.eval
 my $ar = edit_rows( $u->selectall_arrayref($sql) );
 my @f = ('model', 'start-stop', 'score', 'eval');
 
-print $p->render("PSSM/SBP alignments to Unison:$v->{pseq_id}",
+print $p->render("PSSM Alignments to Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
 				 $p->group("PSSM/SBP alignments",
 						   Unison::WWW::Table::render(\@f,$ar)),

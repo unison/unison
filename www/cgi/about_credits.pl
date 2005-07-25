@@ -14,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 
-print $p->render("Unison: Credits", <<EOHTML );
+print $p->render("Credits", <<EOHTML );
 <p>Unison was developed by Kiran Mukhyala, David Cavanaugh, and Reece
 Hart.<br>Please <a href="mailto:hart.reece\@gene.com">contact Reece</a> with
 suggestions, bugs, or comments.
@@ -25,7 +25,7 @@ under an Open Source license; please see <a href="about_legal.pl">Unison
 legal information</a> for details.
 
 
-<table align="center" width="80%">
+<table border=1 align="center" style="border: #006699 thin solid;" width="80%">
 
 <!-- TEMPLATE:
 <tr>
@@ -102,7 +102,7 @@ legal information</a> for details.
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="http://jmol.sourceforge.net/images/Jmol_smallLogo.jpg"></td>
+	<td align="center"><img height=30 src="../av/jmol.gif"></td>
 	<td align="left"><a href="http://jmol.sourceforge.net/">JMol</a></td>
 	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
 </tr>
@@ -139,8 +139,8 @@ legal information</a> for details.
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="http://pymol.sourceforge.net/logo200.jpg"></td>
-	<td align="left"><a href="http://pymol.sourceforge.net/">JMol</a></td>
+	<td align="center"><img height=30 src="../av/pymol.gif"></td>
+	<td align="left"><a href="http://pymol.sourceforge.net/">PyMOL</a></td>
 	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
 </tr>
 
@@ -183,7 +183,7 @@ legal information</a> for details.
 <dt><b>Bioperl</b></dt>
 <dd>The Bioperl toolkit: Perl modules for the life sciences.
 <br>Stajich JE, Block D, Boulez K, Brenner SE, Chervitz SA, Dagdigian C, Fuellen G, Gilbert JG, Korf I, Lapp H, Lehvaslaiho H, Matsalla C, Mungall CJ, Osborne BI, Pocock MR, Schattner P, Senger M, Stein LD, Stupka E, Wilkinson MD, Birney E.
-<br>Genome Res. 2002 Oct;12(10):1611-8. [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=12368254&query_hl=5">PubMed</a>]
+<br>Genome Res. Oct;12(10):1611-8 (2002). [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=12368254&query_hl=5">PubMed</a>]
 
 <dt><b>BLAST</b></dt>
 <dd>Basic local alignment search tool.
@@ -192,18 +192,18 @@ legal information</a> for details.
 
 <dt><b>Gene Ontology</b></dt>
 <dd>Gene Ontology: tool for the unification of biology.
-<br>The Gene Ontology Consortium (2000)
-<br>Nature Genet. 25: 25-29. [<a href="http://www.geneontology.org/GO_nature_genetics_2000.pdf">PDF</a>]
+<br>The Gene Ontology Consortium
+<br>Nature Genet. 25: 25-29 (2000). [<a href="http://www.geneontology.org/GO_nature_genetics_2000.pdf">PDF</a>]
 
 <dt><b>HMMER</b></dt>
 <dd>Profile Hidden Markov Models.
 <br>S. R. Eddy.
-<br>Bioinformatics, 14:755-763, 1998. [<a href="http://selab.wustl.edu/publications/Eddy98/Eddy98-reprint.pdf">PDF</a>]
+<br>Bioinformatics, 14:755-763 (1998). [<a href="http://selab.wustl.edu/publications/Eddy98/Eddy98-reprint.pdf">PDF</a>]
 
 <dt><b>Pfaat</b></dt>
 <dd>Protein family annotation in a multiple alignment viewer
 <br>Jason M. Johnson, Keith Mason, Ciamac Moallemi, Hualin Xi, Shyamal Somaroo, and Enoch S. Huang
-<br>Bioinformatics 19(4):544-5 (2003) [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=12611813">PubMed</a>]
+<br>Bioinformatics 19(4):544-5 (2003). [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=12611813">PubMed</a>]
 
 <dt><b>Pfam</b></dt>
 <dd>The Pfam Protein Families Database
@@ -211,18 +211,19 @@ legal information</a> for details.
 <br>Nucleic Acids Research Database Issue 32:D138-D141 (2004). [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=14681378&query_hl=3">PubMed</a>]
 
 <dt><b>PSIPred</b></dt>
-<dd>Jones, D.T. (1999) Protein secondary structure prediction based on
-position-specific scoring matrices. J. Mol. Biol. 292:195-202.
+<dd>Protein secondary structure prediction based on position-specific scoring matrices.
+<br>Jones, D.T.
+<br>J. Mol. Biol. 292:195-202 (1999).
 
 <dt><b>SCOP</b></dt>
-<dd>Andreeva A., Howorth D., Brenner S.E., Hubbard T.J.P., Chothia C., Murzin A.G. (2004).
+<dd>Andreeva A., Howorth D., Brenner S.E., Hubbard T.J.P., Chothia C., Murzin A.G..
 <br>SCOP database in 2004: refinements integrate structure and sequence family data.
-<br>Nucl. Acid Res.  32:D226-D229. [<a href="http://scop.mrc-lmb.cam.ac.uk/scop/ref/nar2004.pdf">PDF</a>]
+<br>Nucl. Acid Res. 32:D226-D229 (2004). [<a href="http://scop.mrc-lmb.cam.ac.uk/scop/ref/nar2004.pdf">PDF</a>]
 
 <dt><b>UniProt</b></dt>
 <dd>The Universal Protein Resource (UniProt)
 <br>Bairoch A, Apweiler R, Wu CH, Barker WC, Boeckmann B, Ferro S, Gasteiger E, Huang H, Lopez R, Magrane M, Martin MJ, Natale DA, O'Donovan C, Redaschi N, Yeh LS
-Nucleic Acids Res. 33: D154-159. (2005) [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=15608167">PubMed</a>]
+Nucleic Acids Res. 33: D154-159 (2005). [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=15608167">PubMed</a>]
 
 </dl>
 

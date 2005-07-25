@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 
-print $p->render("About Unison", <<EOHTML );
+print $p->render("About", <<EOHTML );
 
 <!-- DIV STYLE="overflow: auto; height: 400px; padding:0px; margin: 0px" -->
 

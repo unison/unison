@@ -14,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_blast.pl,v 1.12 2005/06/18 00:16:45 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_blast.pl,v 1.13 2005/07/18 20:56:23 rkh Exp $ ');
 
 my $sql = <<EOSQL;
 SELECT t_pseq_id,best_annotation(t_pseq_id),
@@ -33,7 +33,7 @@ my @f = ( 'target',"Unison:$v->{pseq_id}<br>qstart-qstop",'target<br>stop-start'
 		  'ident','sim','gaps','eval','identity (%)',
 		  'HSP coverage (%)','coverage (%)' );
 
-print $p->render("Near-identity BLASTs of Unison:$v->{pseq_id}",
+print $p->render("Near-identity BLASTs for Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
 				 $p->tip('hover over entries in the target column to see annotations'),
 				 $p->group("BLASTS Unison:$v->{pseq_id}",

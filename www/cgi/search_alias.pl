@@ -13,9 +13,9 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_alias.pl,v 1.6 2005/06/18 00:16:46 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_alias.pl,v 1.7 2005/07/18 20:56:24 rkh Exp $ ');
 
-print $p->render("Sequence lookup by alias"
+print $p->render("Search by Alias"
 				 . (defined $v->{alias} ? ": $v->{alias}" : ''),
 
 				 $p->tip("use % for wildcard (but it's slower)"),

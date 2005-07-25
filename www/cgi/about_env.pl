@@ -18,13 +18,13 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 print $p->render
-  ("Unison Environment",
+  ("Environment",
 
    '<hr><u>Unison host information:</u>',
    '<br>platform: <code>', `uname -a`, '</code>',
    '<br>uptime: <code>', `uptime`, '</code>',
-   '<br>running jobs:<br><pre>', 
-      `ps --sort=-pcpu r -wopid,ppid,stime,etime,cputime,pcpu,pmem,cmd -ucompbio 2>&1`,
+#   '<br>running jobs:<br><pre>', 
+#      `ps --sort=-pcpu r -wopid,ppid,stime,etime,cputime,pcpu,pmem,cmd 2>&1`,
    '</pre>',
 
 

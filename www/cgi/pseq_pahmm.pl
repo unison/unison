@@ -19,7 +19,7 @@ my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 
 $v->{params_id} = $ps[0]->[0] unless defined $v->{params_id};
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.12 2005/05/20 17:53:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.13 2005/07/18 20:56:24 rkh Exp $ ');
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
 select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
@@ -31,9 +31,8 @@ my @f = ('aln?', 'name', 'start-stop', 'mstart-mstop', '[]', 'score', 'eval');
 
 
 
-print $p->render
-  (
-   "HMM alignments to Unison:$v->{pseq_id}",
+print $p->render (
+   "HMM alignments for Unison:$v->{pseq_id}",
    $p->best_annotation($v->{pseq_id}),
 
    '<!-- parameters -->',
