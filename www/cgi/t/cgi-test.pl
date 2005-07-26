@@ -1,7 +1,7 @@
 #! /usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test,v 1.2 2005/07/25 21:49:33 rkh Exp $
+# $Id: cgi-test.pl,v 1.3 2005/07/25 22:13:33 rkh Exp $
 
 use warnings;
 use strict;
@@ -19,7 +19,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test,v 1.2 2005/07/25 21:49:33 rkh Exp $
+# $Id: cgi-test.pl,v 1.3 2005/07/25 22:13:33 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -82,7 +82,7 @@ my @cgi_scripts =
    ['genome_features',"genasm_id=1 chr=15 gstart=39562512 gstop=39591527"],
    ['get_fasta',"pseq_id=$pseq_id"],
    ['hmm_alignment',"pseq_id=$pseq_id profiles=TNF params_id=15"],
-   ['p2alignment',"pseq_id=$pseq_id params_id=1 templates=1jtzx"],
+   ['p2alignment',"pseq_id=76 params_id=1 templates=1jtzx"],
    ['p2cm',"pseq_id=$pseq_id viewer=rasmol params_id=1 templates=1jtzx"],
    ['pseq_blast',"pseq_id=$pseq_id"],
    ['pseq_features',"pseq_id=$pseq_id"],
@@ -129,7 +129,7 @@ foreach (@cgi_scripts) {
 	$failed++;
   } else {
 	foreach (@badwords) {
-	  if ($output =~ /$_/i and $output !~ /$_.pm/) {
+	  if ($output =~ /\b$_\b/i and $output !~ /$_.pm/) {
 		$message = $_;
 		$failed++;
 		last;
