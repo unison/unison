@@ -12,6 +12,7 @@ use CGI::Carp qw(fatalsToBrowser);
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
+use Unison::Exceptions;
 
 use Bio::SeqIO;
 use Bio::SearchIO;
@@ -27,8 +28,7 @@ my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id params_id profiles));
 
-
-my $modelfile = '/gne/compbio/share/pfam-14.0/Pfam_fs.hmm';
+my $modelfile = _get_model_file();
 my ($hmmfh, $hmmfn) = $p->tempfile(SUFFIX=>'.hmm');
 my ($seqfh, $seqfn) = $p->tempfile(SUFFIX=>'.fasta');
 my ($htmlfh, $htmlfn) = $p->tempfile(SUFFIX=>'.html');
@@ -40,7 +40,7 @@ if (not defined $seq)
 
 my $so = new Bio::SeqIO( -format => 'fasta',
 			 -file => ">$seqfn" )
-  || die("! couldn't open $seqfn for writing\n");
+  || $p->die("! couldn't open $seqfn for writing\n");
 $so->write_seq( new Bio::PrimarySeq( -seq => $seq,
 				     -id => "Unison:$v->{pseq_id}" ) );
 $so->close();
@@ -50,14 +50,14 @@ my @profiles = split(/[\0,]/,$v->{profiles});
 foreach (@profiles) {
   my $cmd = "hmmfetch $modelfile $_ >> $hmmfn";
   system( $cmd )
-	&& die("$cmd: $!\n");
+	&& $p->die("$cmd: $!\n");
 }
 my $clo = $u->run_commandline_by_params_id($v->{params_id});
 my @cl = (split(' ',$clo), '--acc', $hmmfn, $seqfn);
 
 my $hmmerpipe = new IO::Pipe;
 $hmmerpipe->reader( @cl )
-  || die("couldn't do @cl\n");
+  || $p->die("couldn't do @cl\n");
 
 my $in = new Bio::SearchIO(-format => 'hmmer',-fh => $hmmerpipe);
 
@@ -94,3 +94,15 @@ close($htmlfh);
 
 sub dummy_sub { return "";}
 
+sub _get_model_file {
+
+  my $data_url;
+  my $sql = "select o.data_url from porigin o,run_history h where o.porigin_id=h.porigin_id and h.params_id=".$v->{params_id}." limit 1";
+  try {
+    $data_url = $u->selectrow_array($sql);
+  } catch Unison::Exception with {
+    $p->die($_[0],"$sql");
+  };
+  $p->die("Could not get data_url for params_id = ".$v->{params_id}) if(!$data_url);
+  return $data_url;
+}
