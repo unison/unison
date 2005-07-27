@@ -27,6 +27,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id params_id profiles));
+$p->add_footer_lines('$Id$');
 
 my $modelfile = _get_model_file();
 my ($hmmfh, $hmmfn) = $p->tempfile(SUFFIX=>'.hmm');
