@@ -1,12 +1,13 @@
 #! /usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.4 2005/07/26 23:34:05 mukhyala Exp $
+# $Id: cgi-test.pl,v 1.5 2005/07/27 16:52:36 rkh Exp $
 
 use warnings;
 use strict;
 use Getopt::Long;
 use Benchmark ':hireswallclock';
+use Term::ANSIScreen qw/:color/;
 
 
 my $usage = <<'EOU';
@@ -19,9 +20,8 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.4 2005/07/26 23:34:05 mukhyala Exp $
+# $Id: cgi-test.pl,v 1.5 2005/07/27 16:52:36 rkh Exp $
 #------------------------------------------------------------------------------
-
 EOU
 
 my %opts = (
@@ -40,7 +40,11 @@ GetOptions(\%opts,
 	   'help'
 )  || die("$0: Incorrect Usage\n");
 
-die "$usage" if ($opts{help});
+die "$usage" if ($opts{help});				# should use Pod::Usage
+
+
+my $PASS = $opts{html} ? '<font color="green">PASSED</font>' : colored('PASSED','green');
+my $FAIL = $opts{html} ? '<font color="red">FAILED</font>' : colored('FAILED','red');
 
 
 select(STDERR); $|++;
@@ -58,11 +62,13 @@ my $pseq_id = $opts{pseq_id};
 
 my @cgi_scripts =
   (
+   ['control test'],
    ['about_contents.pl'],
    ['about_credits.pl'],
    ['about_env.pl'],
    ['about_prefs.pl'],
    ['about_unison.pl'],
+   ['browse_sets.pl',"pset_id=-1234"],
    ['browse_sets.pl',"pset_id=1047"],
    ['browse_views.pl',"cv_id=4"],
    ['chr_view.pl',"chr=3 gstart=173540198 gstop=173567087"],
@@ -97,19 +103,26 @@ my @cgi_scripts =
    ['search_sets.pl',"ubmit=vroom pset_id=5 pmodelset_id=3 hmm=on hmm_params_id=15 hmm_eval=1e-10 pssm=on pssm_params_id=8 pssm_eval=1e-10 prospect2=on prospect2_params_id=1 prospect2_svm=12"],
   );
 
+my %dir_scripts = map {$_=>1} grep {not m/^(?:CVS|t)$/} map {s%^\Q../\E%%;$_} glob('../*');
+
+
 my @badwords = ('Server Error', 'Object not found', 'DBIError', 'Exception');
 my @goodwords = ('html');
-my $passed =  0;
+my $npassed =  0;
 
-print "script\t\t\t\t\tpassed\tfailed\ttime\n";
+print('$Id$ ', "\n\n");
 
-print "==============================================================\n";
-foreach (@cgi_scripts) {
+printf("%-30.30s\tstatus\t%7s\tmessage\n",'script','time');
+print('='x76,"\n");
+foreach my $cgi (@cgi_scripts) {
   my $message = '';
   my $failed = 0;
-  my $cmd = "../$_->[0] host=$opts{host} dbname=$opts{dbname}";
-  $cmd .= " $_->[1]" if(defined($_->[1]));
-  print "$_->[0] ", "." x (30-length("$_->[0]"));
+  my $cmd = "../$cgi->[0] host=$opts{host} dbname=$opts{dbname}";
+  $cmd .= " $cgi->[1]" if(defined($cgi->[1]));
+
+  delete $dir_scripts{$cgi->[0]};
+
+  printf( '%-30.30s', $cgi->[0] . ' ' . '.' x 30 );
 
   my $t0 = new Benchmark;
   my $output = `$cmd 2>&1`;
@@ -118,17 +131,19 @@ foreach (@cgi_scripts) {
 	$message = $!;
 	$failed++;
   } else {
-	foreach (@badwords) {
-	  if ($output =~ /\b$_\b/i and $output !~ /$_.pm/) {
-		$message = $_;
+	my $word;
+	foreach $word (@badwords) {
+	  if ($output =~ /\b$word\b/i and $output !~ /$word.pm/) {
+		$message = $&;
+		$message = $& if ($word eq 'Exception' and $output =~ m/^Detail.+/m);
 		$failed++;
 		last;
 	  }
 	}
-	foreach (@goodwords) {
-	  if (not $output =~ /$_/i) {
+	foreach $word (@goodwords) {
+	  if (not $output =~ /$word/i) {
 		$failed++;
-		$message = "missing $_";
+		$message = "missing required word '$word'";
 	  }
 	}
   }
@@ -136,15 +151,19 @@ foreach (@cgi_scripts) {
   my $t1 = new Benchmark;
   my $time = @{timediff($t1, $t0)}[0];
 
-  if ($failed) {
-	print " :\t\tFAILED ($message)\n";
-  } else {
-    $passed++;
-    printf( " :\tPASSED\t\t%5.2fs\n",$time);
-  }
+  printf("\t%s\t%6.1fs\t$message\n", ($failed ? $FAIL : $PASS), $time);
+  $npassed++ unless $failed; 				# seems so simple
+
 }
 
-print "Total Passed = $passed / ",$#cgi_scripts+1,"\n";
+print("Total Passed = $npassed / ",$#cgi_scripts+1,"\n");
+
+if (scalar keys %dir_scripts) {
+  print("\n");
+  printf("WARNING: %d scripts in ../ were not tested:\n",
+		 scalar keys %dir_scripts);
+  print("  $_\n") for sort keys %dir_scripts;
+}
 
 
 if ($opts{html}) {
