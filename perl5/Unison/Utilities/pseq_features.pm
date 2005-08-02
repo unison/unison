@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.10 2005/06/21 04:53:07 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.11 2005/07/22 22:24:32 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -28,7 +28,7 @@ our @EXPORT_OK = qw( pseq_features_panel %opts );
 
 use Bio::Graphics;
 use Bio::Graphics::Feature;
-use Unison::Utilities::misc qw( warn_deprecated );
+use Unison::Utilities::misc qw( warn_deprecated unison_logo );
 use Unison::Utilities::pseq_structure;
 
 our %opts = 
@@ -95,13 +95,13 @@ sub pseq_features_panel($%) {
   }
 
   my $panel = Bio::Graphics::Panel->new( -length => $opts{track_length},
-					 -width => $opts{width},
-					 -pad_top => $opts{pad},
-					 -pad_left => $opts{pad},
-					 -pad_right => $opts{pad},
-					 -pad_bottom => $opts{pad},
-					 -key_style => 'between'
-				       );
+										 -width => $opts{width},
+										 -pad_top => $opts{pad},
+										 -pad_left => $opts{pad},
+										 -pad_right => $opts{pad},
+										 -pad_bottom => $opts{pad},
+										 -key_style => 'between'
+									   );
 
   $panel->add_track( Bio::Graphics::Feature->new
 					 (-start => 1, -end => $len,
@@ -128,24 +128,21 @@ sub pseq_features_panel($%) {
   add_pfsnp        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{snp});
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
-  $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( -key => '$Id: pseq_features.pm,v 1.10 2005/06/21 04:53:07 rkh Exp $',
-					 -key_font => 'gdSmallFont',
-					 -bump => +1,
-				   );
+  $panel->add_track( ) for 1..3;			# spacing
 
   my $gd = $panel->gd();
-  # this icon needs to be moved elsewhere... but where?
-  my $unison_fn = '/home/rkh/www/csb/unison/av/unison.xpm';
-  if ( -f $unison_fn ) {
-	my $ugd = GD::Image->newFromXpm($unison_fn);
-	if (defined $ugd) {
-	  my ($sw,$sh) = $ugd->getBounds();
-	  my ($dw,$dh) = $gd->getBounds();
-	  $gd->copy($ugd,
-				$dw-$sw-$opts{logo_margin},$dh-$sh-$opts{logo_margin},
-				0,0,$sw,$sh);
-	}
+  my ($dw,$dh) = $gd->getBounds();
+  my $black = $gd->colorAllocate(0,0,0);
+  my $IdFont = GD::Font->MediumBold;
+  $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
+			  '$Id: pseq_features.pm,v 1.11 2005/07/22 22:24:32 rkh Exp $',
+			  $black);
+  my $ugd = unison_logo();
+  if (defined $ugd) {
+	my ($sw,$sh) = $ugd->getBounds();
+	$gd->copy($ugd,
+			  $dw-$sw-$opts{logo_margin},$dh-$sh-$opts{logo_margin},
+			  0,0,$sw,$sh);
   }
   return $panel;
 }
@@ -908,8 +905,14 @@ sub avg_confidence {
   return $avg;
 }
 
+
+sub unison_graphic {
+  
+}
+
+
+
 package Unison;
-#use Unison::Utilities::misc qw( warn_deprecated );
 sub features_graphic($$;$) {
  warn_deprecated();
  my %opts = %Unison::pseq_features::opts;
