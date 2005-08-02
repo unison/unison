@@ -2,7 +2,7 @@
 
 Unison::Utilities::misc -- general Unison utilities
 
-S<$Id: misc.pm,v 1.3 2005/05/11 21:53:41 rkh Exp $>
+S<$Id: misc.pm,v 1.4 2005/05/17 01:20:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -24,7 +24,7 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use base Exporter;
 @EXPORT = ();
 @EXPORT_OK = qw/ warn_deprecated range_to_enum clean_sequence
-				 sequence_md5 wrap /;
+				 sequence_md5 wrap unison_logo /;
 
 use strict;
 use warnings;
@@ -179,6 +179,27 @@ sub true_or_false ($) {
   return 'true' if (defined $_[0] and $_[0] ne '0');
   return 'false';
 }
+
+
+
+
+######################################################################
+=pod
+
+=item B<< unison_logo( value ) >>
+
+returns a Unison logo as a GD::Image;
+
+=cut
+
+sub unison_logo () {
+  my ($unison_fn) = __FILE__ =~ m%^(.+)/[^/]+%;
+  $unison_fn .= '/../data/unison.gif';
+  return GD::Image->new($unison_fn) if ( -f $unison_fn );
+  return undef;
+}
+
+
 
 
 
