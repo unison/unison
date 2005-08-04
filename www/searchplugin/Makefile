@@ -2,10 +2,18 @@
 .PHONY: FORCE
 
 DIRS:=${HOME}/.mozilla/firefox/*/searchplugins
+DEV_BASE:=http://csb:8080/~rkh/csb/unison/
 
-install:
+unison-dev.src: unison.src Makefile
+	perl -pe 's%http://unison-db.org/%${DEV_BASE}%; s/unison.(src|png)/unison-dev.$$1/g;' $< >$@
+
+# warning: gratuitous use of ImageMagick ahead...
+unison-dev.png: unison.png Makefile
+	convert -font helvetica-oblique -pointsize 12 -fill blue -draw "text 8,16 d" $< $@
+
+install: unison.src unison.png unison-dev.src unison-dev.png
 	for d in ${DIRS}; do \
-		/bin/cp -auv unison.src unison.png "$$d"; \
+		/bin/cp -auv $^ "$$d"; \
 	done
 
 uninstall:

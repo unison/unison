@@ -1,5 +1,5 @@
 # Unison (http://unison-db.org/) protein database search plugin
-# $Id$
+# $Id: unison.src,v 1.1 2005/08/04 17:31:35 rkh Exp $
 # Reece Hart <reece@harts.net>
 
 # Since I knew squat about search plugins 3 minutes ago, this
@@ -16,13 +16,12 @@
 >
 
 <input name="q" user>
-<input name="plugin_id" value="$Id$">
+<input name="plugin_id" value="$Revision$">
 
 </search>
 
-
 <browser
 	update="http://unison-db.org/searchplugin/unison.src"
-	updateIcon="http://unison-db.org/searchplugin/unison.src"
-	updateCheckDays=1   
+	updateIcon="http://unison-db.org/searchplugin/unison.png"
+	updateCheckDays=7
 >
