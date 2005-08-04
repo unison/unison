@@ -23,7 +23,13 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.32 2005/07/18 20:47:19 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.33 2005/07/18 20:56:24 rkh Exp $ ');
+if (defined $v->{plugin_id}) {
+  $p->add_footer_lines('Thanks for using the plugin!');
+  print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
+}
+
+
 
 try {
   $p->is_valid_pseq_id($v->{pseq_id});
@@ -37,7 +43,8 @@ EOT
 try {
   print $p->render("Summary of Unison:$v->{pseq_id}",
 				   $p->best_annotation($v->{pseq_id}),
-				   '<p>Protcomp Localization: ', protcomp_info($p),
+				   '<p>Protcomp Localization: ',
+				       ($p->{unison}->is_public() ? '' : protcomp_info($p)),
 				   '<p>', sequence_group($p),
 				   '<p>', aliases_group($p),
 				   '<p>', features_group($p),
