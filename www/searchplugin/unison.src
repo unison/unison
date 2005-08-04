@@ -1,0 +1,28 @@
+# Unison (http://unison-db.org/) protein database search plugin
+# $Id$
+# Reece Hart <reece@harts.net>
+
+# Since I knew squat about search plugins 3 minutes ago, this
+# helped tremendously:
+#   http://mycroft.mozdev.org/deepdocs/quickstart.html#firstplugin
+
+
+<search 
+	name="Unison"
+	version="7.1"
+	description="Unison (http://unison-db.org/) protein database search plugin"
+	action="http://unison-db.org/cgi/pseq_summary.pl"
+	method="GET"
+>
+
+<input name="q" user>
+<input name="plugin_id" value="$Id$">
+
+</search>
+
+
+<browser
+	update="http://unison-db.org/searchplugin/unison.src"
+	updateIcon="http://unison-db.org/searchplugin/unison.src"
+	updateCheckDays=1   
+>
