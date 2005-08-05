@@ -57,7 +57,7 @@ legal information</a> for details.
 </tr>
 
 <tr>
-	<td align="center"></td>
+	<td align="center"><img height=30 src="../av/scop.gif" alt="SCOP"></td>
 	<td align="left"><a href="http://scop.berkeley.edu/">SCOP - Structural Classifcation of Proteins</a></td>
 	<td>Freely available without license after July 1, 2004 [<a href="http://scop.mrc-lmb.cam.ac.uk/scoplic/licence.html">License</a>]</td>
 </tr>
@@ -66,6 +66,18 @@ legal information</a> for details.
 	<td align="center"><img height=30 src="../av/UNIPROT.jpg"></td>
 	<td align="left"><a href="http://www.uniprot.org/">UniProt</a></td>
 	<td>Freely distributable after Jan 1, 2005 [<a href="http://www.pir.uniprot.org/start/faq.shtml#redistribution">License</a>]</td>
+</tr>
+
+<tr>
+	<td align="center"><img height=30 src="../av/pdb.gif"></td>
+	<td align="left"><a href="http://www.rcsb.org/pdb">PDB</a></td>
+	<td>Public domain</td>
+</tr>
+
+<tr>
+	<td align="center"><img height=30 src="../av/mint.gif"></td>
+	<td align="left"><a href="http://mint.bio.uniroma2.it/mint/index.php">MINT</a></td>
+	<td>Freely available for research [<a href="http://mint.bio.uniroma2.it/mint/release/main.php">License</a>]</td>
 </tr>
 
 
@@ -116,12 +128,6 @@ legal information</a> for details.
 <tr>
 	<td align="center"><img height=30 src="../av/camel.png"></td>
 	<td align="left"><a href="http://www.perl.com/">Perl</a> (Larry Wall and perl contributors)</td>
-	<td>Freely available [<a href="http://www.perl.com/pub/a/language/misc/Artistic.html">License (Artistic)</a>]</td>
-</tr>
-
-<tr>
-	<td align="center"></td>
-	<td align="left"><a href="http://pfaat.sourceforge.net/">Pfaat</a></td>
 	<td>Freely available [<a href="http://www.perl.com/pub/a/language/misc/Artistic.html">License (Artistic)</a>]</td>
 </tr>
 
@@ -216,7 +222,7 @@ legal information</a> for details.
 <br>J. Mol. Biol. 292:195-202 (1999).
 
 <dt><b>SCOP</b></dt>
-<dd>Andreeva A., Howorth D., Brenner S.E., Hubbard T.J.P., Chothia C., Murzin A.G..
+<dd>Andreeva A., Howorth D., Brenner S.E., Hubbard T.J.P., Chothia C., Murzin A.G.
 <br>SCOP database in 2004: refinements integrate structure and sequence family data.
 <br>Nucl. Acid Res. 32:D226-D229 (2004). [<a href="http://scop.mrc-lmb.cam.ac.uk/scop/ref/nar2004.pdf">PDF</a>]
 
@@ -225,6 +231,15 @@ legal information</a> for details.
 <br>Bairoch A, Apweiler R, Wu CH, Barker WC, Boeckmann B, Ferro S, Gasteiger E, Huang H, Lopez R, Magrane M, Martin MJ, Natale DA, O'Donovan C, Redaschi N, Yeh LS
 Nucleic Acids Res. 33: D154-159 (2005). [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=15608167">PubMed</a>]
 
+<dt><b>PDB</b></dt>
+<dd>The Protein Data Bank (PDB)
+<br>H.M.Berman, J.Westbrook, Z.Feng, G.Gilliland, T.N.Bhat, H.Weissig, I.N.Shindyalov, P.E.Bourne
+<br>Nucleic Acids Res. 28: 235-242 (2000) [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=10592235">PubMed</a>]
+
+<dt><b>MINT</b></dt>
+<dd>MINT: a Molecular INTeraction database
+<br>Zanzoni A, Montecchi-Palazzi L, Quondam M, Ausiello G, Helmer-Citterich M, Cesareni G 
+<br>FEBS Lett. 513: 135-140 (2002) [<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=PubMed&list_uids=11911893">PubMed</a>]
 </dl>
 
 EOHTML
