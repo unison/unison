@@ -35,17 +35,28 @@ legal information</a> for details.
 </tr>
 -->
 
+<!-- note about images:
+Images are included with the Unison web pages because I've had trouble
+with changing image urls, ugly rescaling, and variable server
+responsiveness.  I often add transparency to images.  If anyone's
+particularly offended by this, please send the image link you'd like used
+to me (Reece).
+
+All images are rescaled to no larger than 100x30, preserving the aspect ratio.
+command used: convert -geometry 100x30 imagein imageout
+-->
+
 
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Data in Unison</font></th></tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/ncbi.gif" alt="NCBI"></td>
+	<td align="center"><img width=87 height=30 src="../av/ncbi.gif" alt="NCBI"></td>
 	<td align="left"><a href="http://www.ncbi.nlm.nih.gov/">NCBI</a> for BLAST, CDD, RefSeq, Taxonomy</td>
 	<td>Public domain</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/GOthumbnail.gif" alt="GO"></td>
+	<td align="center"><img width=32 height=30 src="../av/GOthumbnail.gif" alt="GO"></td>
 	<td align="left"><a href="http://www.geneontology.org/">GeneOntology.org</a></td>
 	<td>Freely available [<a href="http://www.geneontology.org/GO.cite.shtml">License</a>]
 </tr>
@@ -57,25 +68,25 @@ legal information</a> for details.
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/scop.gif" alt="SCOP"></td>
+	<td align="center"><img width=94 height=30 src="../av/scop.gif" alt="SCOP"></td>
 	<td align="left"><a href="http://scop.berkeley.edu/">SCOP - Structural Classifcation of Proteins</a></td>
 	<td>Freely available without license after July 1, 2004 [<a href="http://scop.mrc-lmb.cam.ac.uk/scoplic/licence.html">License</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/UNIPROT.jpg"></td>
+	<td align="center"><img width=100 height=25 src="../av/UNIPROT.jpg"></td>
 	<td align="left"><a href="http://www.uniprot.org/">UniProt</a></td>
 	<td>Freely distributable after Jan 1, 2005 [<a href="http://www.pir.uniprot.org/start/faq.shtml#redistribution">License</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/pdb.gif"></td>
+	<td align="center"><img width=78 height=30 src="../av/pdb.gif"></td>
 	<td align="left"><a href="http://www.rcsb.org/pdb">PDB</a></td>
 	<td>Public domain</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/mint.gif"></td>
+	<td align="center"><img width=84 height=30 src="../av/mint.gif"></td>
 	<td align="left"><a href="http://mint.bio.uniroma2.it/mint/index.php">MINT</a></td>
 	<td>Freely available for research [<a href="http://mint.bio.uniroma2.it/mint/release/main.php">License</a>]</td>
 </tr>
@@ -84,7 +95,7 @@ legal information</a> for details.
 
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Software used by Unison</font></th></tr>
 <tr>
-	<td align="center"><img height=20 src="../av/feather.gif"></td>
+	<td align="center"><img width=100 height=28 src="../av/feather.gif"></td>
 	<td align="left"><a href="http://www.apache.org/">Apache web server</a></td>
 	<td>Freely available [<a href="http://www.apache.org/licenses/LICENSE-2.0">License (Apache)</a>]</td>
 </tr>
@@ -96,37 +107,37 @@ legal information</a> for details.
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/emboss.png"></td>
+	<td align="center"><img width=93 height=30 src="../av/emboss.png"></td>
 	<td align="left"><a href="http://emboss.sourceforge.net/">EMBOSS</a></td>
 	<td>Freely available [<a href="http://emboss.sourceforge.net/licence/">License (GPL and LGPL)</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/gnu-head-sm.png" alt="GNU/FSF"></td>
+	<td align="center"><img width=32 height=30 src="../av/gnu-head-sm.png" alt="GNU/FSF"></td>
 	<td align="left"><a href="http://www.gnu.org">GNU/Free Software Foundation</a> tools</td>
 	<td>Um, that'd be free [<a href="ftp://ftp.genetics.wustl.edu/pub/Pfam/COPYRIGHT">License (GPL)</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/hammer_sm.gif" alt="HMMER"></td>
+	<td align="center"><img width=34 height=30 src="../av/hammer_sm.gif" alt="HMMER"></td>
 	<td align="left"><a href="http://hmmer.wustl.edu/">HMMER</a></td>
 	<td>Freely available [<a href="ftp://ftp.genetics.wustl.edu/pub/eddy/hmmer/CURRENT/COPYRIGHT">License (GPL)</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/jmol.gif"></td>
+	<td align="center"><img width=64 height=30 src="../av/jmol.gif"></td>
 	<td align="left"><a href="http://jmol.sourceforge.net/">JMol</a></td>
 	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/linux-penguin-sm.gif" alt="Linux"></td>
+	<td align="center"><img width=26 height=30 src="../av/linux-penguin-sm.gif" alt="Linux"></td>
 	<td align="left"><a href="http://www.linux.org/">Linux</a> (Linus Torvalds and linux-gnu contributors)</td>
 	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/camel.png"></td>
+	<td align="center"><img width=30 height=30 src="../av/camel.png"></td>
 	<td align="left"><a href="http://www.perl.com/">Perl</a> (Larry Wall and perl contributors)</td>
 	<td>Freely available [<a href="http://www.perl.com/pub/a/language/misc/Artistic.html">License (Artistic)</a>]</td>
 </tr>
@@ -139,32 +150,32 @@ legal information</a> for details.
 </tr>
 
 <tr>
-	<td align="center"><img src="../av/poweredby_postgresql.gif"></td>
+	<td align="center"><img width=90 height=30 src="../av/poweredby_postgresql.gif"></td>
 	<td align="left"><a href="http://www.postgresql.org">PostgreSQL</a>, a full-features OpenSource RDBMDS</td>
 	<td>Freely available [<a href="http://www.postgresql.org/about/licence">License (BSD)</a>]</td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/pymol.gif"></td>
+	<td align="center"><img width=54 height=30 src="../av/pymol.gif"></td>
 	<td align="left"><a href="http://pymol.sourceforge.net/">PyMOL</a></td>
 	<td>Freely available [<a href="http://www.kernel.org/pub/linux/kernel/COPYING">License (GPL)</a>]</td>
 </tr>
 
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Other tools from which we've benefitted</font></th></tr>
 <tr>
-	<td align="center"><img height=30 src="../av/wilber-icon.png" alt="GIMP"></td>
+	<td align="center"><img width=30 height=30 src="../av/wilber-icon.png" alt="GIMP"></td>
 	<td align="left"><a href="http://www.gimp.org">theGIMP</a></td>
 	<td>Freely available [<a href="http://www.gnu.org/copyleft/gpl.html">License (GPL)</a></td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/gnome-logo-icon-transparent.png" alt="GNOME"></td>
+	<td align="center"><img width=30 height=30 src="../av/gnome-logo-icon-transparent.png" alt="GNOME"></td>
 	<td align="left"><a href="http://www.gnome.org/">GNOME</a></td>
 	<td>Freely available [<a href="http://www.gnu.org/copyleft/gpl.html">License (GPL)</a></td>
 </tr>
 
 <tr>
-	<td align="center"><img height=30 src="../av/oo-logonew.gif" alt="OpenOffice"></td>
+	<td align="center"><img width=100 height=29 src="../av/oo-logonew.gif" alt="OpenOffice"></td>
 	<td align="left"><a href="http://www.openoffice.org">OpenOffice</a></td>
 	<td>Varies [<a href="http://www.openoffice.org/license.html">License</a>]</td>
 </tr>
@@ -173,7 +184,7 @@ legal information</a> for details.
 
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Support</span></th></tr>
 <tr>
-	<td align="center"><img src="../av/genentech.gif"></td>
+	<td align="center"><img width=116 height=27 src="../av/genentech.gif"></td>
 	<td colspan=2 align="left"><a href="http://www.gene.com">Genentech Corporate site</a>
 			<br><a href="http://share.gene.com/">Genentech Bioinformatics public web pages</a></td>
 </tr>
