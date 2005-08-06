@@ -50,15 +50,27 @@ command used: convert -geometry 100x30 imagein imageout
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Data in Unison</font></th></tr>
 
 <tr>
+	<td align="center"><img width=32 height=30 src="../av/GOthumbnail.gif" alt="GO"></td>
+	<td align="left"><a href="http://www.geneontology.org/">GeneOntology.org</a></td>
+	<td>Freely available [<a href="http://www.geneontology.org/GO.cite.shtml">License</a>]
+</tr>
+
+<tr>
+	<td align="center"><img width=84 height=30 src="../av/mint.gif"></td>
+	<td align="left"><a href="http://mint.bio.uniroma2.it/mint/index.php">MINT</a></td>
+	<td>Freely available for research [<a href="http://mint.bio.uniroma2.it/mint/release/main.php">License</a>]</td>
+</tr>
+
+<tr>
 	<td align="center"><img width=87 height=30 src="../av/ncbi.gif" alt="NCBI"></td>
 	<td align="left"><a href="http://www.ncbi.nlm.nih.gov/">NCBI</a> for BLAST, CDD, RefSeq, Taxonomy</td>
 	<td>Public domain</td>
 </tr>
 
 <tr>
-	<td align="center"><img width=32 height=30 src="../av/GOthumbnail.gif" alt="GO"></td>
-	<td align="left"><a href="http://www.geneontology.org/">GeneOntology.org</a></td>
-	<td>Freely available [<a href="http://www.geneontology.org/GO.cite.shtml">License</a>]
+	<td align="center"><img width=78 height=30 src="../av/pdb.gif"></td>
+	<td align="left"><a href="http://www.rcsb.org/pdb">PDB</a></td>
+	<td>Public domain</td>
 </tr>
 
 <tr>
@@ -77,18 +89,6 @@ command used: convert -geometry 100x30 imagein imageout
 	<td align="center"><img width=100 height=25 src="../av/UNIPROT.jpg"></td>
 	<td align="left"><a href="http://www.uniprot.org/">UniProt</a></td>
 	<td>Freely distributable after Jan 1, 2005 [<a href="http://www.pir.uniprot.org/start/faq.shtml#redistribution">License</a>]</td>
-</tr>
-
-<tr>
-	<td align="center"><img width=78 height=30 src="../av/pdb.gif"></td>
-	<td align="left"><a href="http://www.rcsb.org/pdb">PDB</a></td>
-	<td>Public domain</td>
-</tr>
-
-<tr>
-	<td align="center"><img width=84 height=30 src="../av/mint.gif"></td>
-	<td align="left"><a href="http://mint.bio.uniroma2.it/mint/index.php">MINT</a></td>
-	<td>Freely available for research [<a href="http://mint.bio.uniroma2.it/mint/release/main.php">License</a>]</td>
 </tr>
 
 
@@ -115,7 +115,7 @@ command used: convert -geometry 100x30 imagein imageout
 <tr>
 	<td align="center"><img width=32 height=30 src="../av/gnu-head-sm.png" alt="GNU/FSF"></td>
 	<td align="left"><a href="http://www.gnu.org">GNU/Free Software Foundation</a> tools</td>
-	<td>Um, that'd be free [<a href="ftp://ftp.genetics.wustl.edu/pub/Pfam/COPYRIGHT">License (GPL)</a>]</td>
+	<td>Um, those'd be free [<a href="ftp://ftp.genetics.wustl.edu/pub/Pfam/COPYRIGHT">License (GPL)</a>]</td>
 </tr>
 
 <tr>
@@ -143,16 +143,16 @@ command used: convert -geometry 100x30 imagein imageout
 </tr>
 
 <tr>
+	<td align="center"><img width=90 height=30 src="../av/poweredby_postgresql.gif"></td>
+	<td align="left"><a href="http://www.postgresql.org">PostgreSQL</a>, a full-features OpenSource RDBMDS</td>
+	<td>Freely available [<a href="http://www.postgresql.org/about/licence">License (BSD)</a>]</td>
+</tr>
+
+<tr>
 	<td align="center"></td>
 	<td align="left"><a href="http://insulin.brunel.ac.uk/psiform.html">PSIPred</a></td>
 	<td>Freely available (Para 8: "...may be made available...if
 	access is granted free of charge...")</td>
-</tr>
-
-<tr>
-	<td align="center"><img width=90 height=30 src="../av/poweredby_postgresql.gif"></td>
-	<td align="left"><a href="http://www.postgresql.org">PostgreSQL</a>, a full-features OpenSource RDBMDS</td>
-	<td>Freely available [<a href="http://www.postgresql.org/about/licence">License (BSD)</a>]</td>
 </tr>
 
 <tr>
@@ -164,7 +164,7 @@ command used: convert -geometry 100x30 imagein imageout
 <tr><th colspan=3 bgcolor="#006699"><font color="white">Other tools from which we've benefitted</font></th></tr>
 <tr>
 	<td align="center"><img width=30 height=30 src="../av/wilber-icon.png" alt="GIMP"></td>
-	<td align="left"><a href="http://www.gimp.org">theGIMP</a></td>
+	<td align="left"><a href="http://www.gimp.org">GIMP</a></td>
 	<td>Freely available [<a href="http://www.gnu.org/copyleft/gpl.html">License (GPL)</a></td>
 </tr>
 
