@@ -2,7 +2,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.8 2005/07/22 22:50:18 mukhyala Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.9 2005/08/08 21:41:12 rkh Exp $;
 
 =head1 SYNOPSIS
 
@@ -177,15 +177,15 @@ sub set_js_vars {
 }
 
 sub region_script {
-  my ($self,$start,$end,$label,$colour) = @_;
+  my ($self,$start,$end,$label,$color) = @_;
   my $jmol = $self->{'jmol'};
-  return "javascript:".$jmol->selectRegion($start,$end,$label,$colour);
+  return "javascript:".$jmol->selectRegion($start,$end,$label,$color);
 }
 
 sub pos_script {
-  my ($self,$pos,$label,$colour) = @_;
+  my ($self,$pos,$label,$color) = @_;
   my $jmol = $self->{'jmol'};
-  return "javascript:".$jmol->selectPosition($pos,$label,$colour);
+  return "javascript:".$jmol->selectPosition($pos,$label,$color);
 }
 
 sub change_structure {
