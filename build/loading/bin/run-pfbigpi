@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.8 2004/12/24 00:09:46 rkh Exp $
+# $Id: run-pfbigpi,v 1.1 2005/03/22 05:49:54 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 use warnings;
@@ -72,7 +72,7 @@ $so->close();
 
 
 # prepare the insert statement
-my @fields = qw(pseq_id params_id site_no quality start score confidence);
+my @fields = qw(pseq_id params_id site_no quality start score pvalue);
 my $sth = $u->prepare_cached(sprintf("insert into pfbigpi (%s) values (%s)",
 									 join(',',@fields), join(',',map {'?'} @fields)));
 
@@ -97,11 +97,11 @@ while( my $line = <$pipe> ) {
 	die("Couldn't parse Unison pseq_id:\n$_");
   }
 
-  if (my ($siten,$quality,$start,$score,$confidence) = $line =~ m/(1):$data_re/) {
-	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$confidence);
+  if (my ($siten,$quality,$start,$score,$pvalue) = $line =~ m/(1):$data_re/) {
+	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$pvalue);
   }
-  if (my ($siten,$quality,$start,$score,$confidence) = $line =~ m/(2):$data_re/) {
-	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$confidence);
+  if (my ($siten,$quality,$start,$score,$pvalue) = $line =~ m/(2):$data_re/) {
+	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$pvalue);
   }
 
   my $z = $u->upd_run_histories($pseq_id,$opts{params_id},undef,undef);

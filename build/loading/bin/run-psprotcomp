@@ -2,6 +2,7 @@
 # run-psprotcomp -- run protcomp results
 
 use strict;
+use warnings;
 use Unison;
 use Unison::Exceptions;
 use Getopt::Long qw(:config gnu_getopt);
@@ -154,7 +155,7 @@ while( @Q ) {
 	
 	try {
 	  $ins_sth->execute($pseq_id, $opts{params_id},
-						$sim_pslocid,$pb->{sim_score},$pb->{sim_db},$pb->{sim_target},
+						$sim_pslocid,$pb->{sim_score},$pb->{sim_db},$pb->{sim_target_ac}
 						$nn_pslocid, $pb->{nn_score},
 						$int_pslocid, $pb->{int_score},($pb->{int_membrane} eq 'yes' ? 'TRUE' : 'FALSE'),
 						@weights,

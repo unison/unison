@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.11 2005/07/22 22:24:32 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.12 2005/08/02 22:53:55 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -135,7 +135,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.11 2005/07/22 22:24:32 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.12 2005/08/02 22:53:55 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -165,17 +165,15 @@ sub add_pfssp_psipred {
   my $num_tracks = ($len/$track_length);
   my $href = ($track_length < $len ? '' : "pseq_features.pl?pseq_id=$q&track_length=$opts{def_track_length}");
 
- # get the ssp confidense string
-  $sql = "select confidence
-           from psipred where pseq_id=$q";
+  # get the ssp confidence string
+  $sql = "select confidence from psipred where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   $featref = $u->selectall_arrayref($sql);
 
   my $confidence_string = $$featref[0]->[0];
 
   # add pfssp_psipred feature
-  $sql = "select start,stop,type
-           from pfssp_psipred where pseq_id=$q";
+  $sql = "select start,stop,type from pfssp_psipred where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   $featref = $u->selectall_arrayref($sql); 
 
@@ -193,7 +191,7 @@ sub add_pfssp_psipred {
 										  -type => $r->[2],
 										  -name => $r->[2],
 										  -score => $score,
-										  -attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
+										  -attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], average confidence=".sprintf("%.2f",$score),
 														   href => $href }
 										));
 		$start = 1;
@@ -206,7 +204,7 @@ sub add_pfssp_psipred {
 										-type => $r->[2],
 										-name => $r->[2],
 										-score => $score,
-										-attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], avgerage confidence=".sprintf("%.2f",$score),
+										-attributes => { tooltip => "$r->[2]: $r->[0] - $r->[1], average confidence=".sprintf("%.2f",$score),
 														 href => $href }
 									  ));
 	}
@@ -267,7 +265,7 @@ sub add_pfsignalp {
 								-height => 4,
 							   );
   # add pfsignalpnn feature
-  $sql = "select start,stop,pftype.name,confidence
+  $sql = "select start,stop,pftype.name,s_mean
            from pfsignalpnn natural join pftype where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   $featref = $u->selectall_arrayref($sql);
@@ -282,7 +280,7 @@ sub add_pfsignalp {
   }
                                                                                                                                                                           
   # add pfsignalphmm feature
-  $sql = "select start,stop,pftype.name,confidence
+  $sql = "select start,stop,pftype.name,sig_peptide_prob
            from pfsignalphmm natural join pftype where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   $featref = $u->selectall_arrayref($sql);
@@ -328,7 +326,7 @@ sub add_pftmdetect {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,stop,pftype.name,confidence 
+  my $sql = "select start,stop,pftype.name,prob 
            from pftmdetect natural join pftype where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref($sql);
@@ -784,7 +782,9 @@ sub add_pfsnp {
 
     foreach my $r (@$featref) {
 
-      my $href = ($view ? $pseq_structure->pos_script($r->[0],$r->[1]) : "pseq_structure.pl?pseq_id=$q");
+      my $href = ($view 
+				  ? $pseq_structure->pos_script($r->[0],$r->[1])
+				  : "pseq_structure.pl?pseq_id=$q");
 
       $track->add_feature
           ( Bio::Graphics::Feature->new( -start => $r->[0],
@@ -905,22 +905,6 @@ sub avg_confidence {
   return $avg;
 }
 
-
-sub unison_graphic {
-  
-}
-
-
-
-package Unison;
-sub features_graphic($$;$) {
- warn_deprecated();
- my %opts = %Unison::pseq_features::opts;
- $opts{pseq_id} = $_[1];
- $opts{width} = $_[2] if defined $_[2];
- my $panel = Unison::pseq_features::pseq_features_panel($_[0], %opts);
- return $panel->gd->png();
-}
 
 
 =pod
