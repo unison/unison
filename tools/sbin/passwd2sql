@@ -16,8 +16,8 @@ GetOptions(\%opts,
 		  )
   || die("usage\n");
 
-my %wanted_logins;
 
+my %wanted_logins;
 if (@ARGV) {
   if ($opts{groups}) {
 	die("can't specify group and logins\n");
@@ -33,6 +33,7 @@ if ($opts{groups}) {
   %wanted_groups = map {$_=>1} @{$opts{groups}};
 }
 
+
 my %omit = map {$_=>1} 
   qw(Bioinfo gx2000-1 compbio postgres pgsql maint Molbio);
 
@@ -43,8 +44,8 @@ while(<>) {
   next if (exists $omit{$F[0]});			# skip login
   next if ($F[2]<=100);						# skip low-numbered uids
 
-  if ( (%wanted_groups and exists $wanted_groups{$F[3]})
-	   or (exists $wanted_logins{$F[0]}) ) {
+  if ( (not %wanted_groups or exists $wanted_groups{$F[3]})
+	   or (not %wanted_logins or exists $wanted_logins{$F[0]}) ) {
 	printf("create user $F[0] with sysid $F[2] nocreatedb nocreateuser;\n");
 	delete $wanted_logins{$F[0]};
   }
