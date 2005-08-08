@@ -23,9 +23,9 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.33 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.34 2005/08/04 18:03:24 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
-  $p->add_footer_lines('Thanks for using the plugin!');
+  #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
 }
 
@@ -43,7 +43,7 @@ EOT
 try {
   print $p->render("Summary of Unison:$v->{pseq_id}",
 				   $p->best_annotation($v->{pseq_id}),
-				   '<p>Protcomp Localization: ',
+				   '<p><b>Protcomp Localization:</b> ',
 				       ($p->{unison}->is_public() ? '' : protcomp_info($p)),
 				   '<p>', sequence_group($p),
 				   '<p>', aliases_group($p),
@@ -64,26 +64,10 @@ sub protcomp_info ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
-  my $rv;
-  my $sql = qq/select pseq_id, params_id, sim_psloc_id, sim_loc,
-		sim_score, nn_psloc_id, nn_loc, nn_score, int_psloc_id, int_loc,
-		int_score from v_psprotcomp where pseq_id=$v->{pseq_id}/;
+  my $sql = qq/select loc,method from v_psprotcomp_reliable where pseq_id=$v->{pseq_id}/;
   my $hr = $u->selectrow_hashref($sql);
-
-  if (not defined $hr) {
-	return 'no prediction';
-  }
-
-  if ($hr->{sim_psloc_id} != 0) {
-	$rv = $hr->{sim_loc};
-  } elsif ($hr->{int_psloc_id} == $hr->{nn_psloc_id}) {
-	$rv = $hr->{int_loc};
-  } else {
-	$rv = 'ambiguous';
-  }
-  $rv .= sprintf('<br>sim=%s (%d), nn=%s (%d), int=%s (%d)]</br>',
-  map {$hr->{$_}} qw(sim_loc sim_score nn_loc nn_score int_loc int_score));
-  return $rv;
+  return 'no prediction' unless defined $hr;
+  return "$hr->{loc} by $hr->{method}";
 }
 
 
@@ -97,11 +81,11 @@ sub sequence_group ($) {
   $wrapped_seq =~ s/.{60}/$&\n/g;
 
   $p->group(sprintf("Sequence (%d&nbsp;AA)", length($seq)),
+			"<br><a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format",
 			'<pre>', 
 			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}), "\n",
 			$wrapped_seq,
 			'</pre>',
-			"<br>You may also <a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download</a> this sequence in FASTA format",
 			)
 }
 
