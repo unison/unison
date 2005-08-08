@@ -12,20 +12,20 @@ use Unison::WWW::Table;
 use Unison::SQL;
 use Data::Dumper;
 
-my (@db_pri) = ('GenenGenes', sort( 'Swiss-Prot', 'ProAnno v1', 'Incyte',
-						  'Proteome', 'RefSeq') );
-my (@db_sec) = ( 'Curagen', 'Geneseq', 'Ensembl/Human', , 'FANTOM' );
+my (@db_pri) = sort qw( GenenGenes UniProt UniProt/TrEMBL Incyte Proteome RefSeq 
+			Curagen Geneseq Ensembl/Human FANTOM MGC/Human MGC/Mouse );
+my (@db_sec) = (); 
 
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_properties.pl,v 1.10 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_properties.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_by_properties.pl,v 1.10 2005/07/18 20:56:24 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.10 2005/07/18 20:56:24 rkh Exp $',
+				 '$Id: search_by_properties.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
@@ -241,17 +241,17 @@ sub spit_form {
 					  -labels => \%ms,
 					  -default => 2),
 	   ' models',
-	   '<br>  COMING SOON!...<br>',
-	   $p->checkbox(-name => 'al_go',
-					-label => 'to models associated with ',
-					-checked => 0),
-	   $p->popup_menu(-name => 'al_go_sel',
-					  -values => [sort keys %go],
-					  -labels => \%go,
-					  -default => 5164),
-	   ' in GeneOntology',
-	   '</td></tr>',
 
+#	   '<br>  COMING SOON!...<br>',
+#	   $p->checkbox(-name => 'al_go',
+#					-label => 'to models associated with ',
+#					-checked => 0),
+#	   $p->popup_menu(-name => 'al_go_sel',
+#					  -values => [sort keys %go],
+#					  -labels => \%go,
+#					  -default => 5164),
+#	   ' in GeneOntology',
+#	   '</td></tr>',
 
 	   '<!-- EXCEPTIONS -->',
 	   '<tr class="tablesep"><td colspan=2>EXCEPT sequences:</td></tr>',
