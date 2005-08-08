@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-pftmdetect,v 1.8 2004/12/24 00:09:46 rkh Exp $
+# $Id: run-pftmdetect,v 1.9 2005/05/11 21:53:41 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -37,7 +37,7 @@ my %opts = (
 		   );
 
 
-print(STDERR '$Id: run-pftmdetect,v 1.8 2004/12/24 00:09:46 rkh Exp $ ', "\n");
+print(STDERR '$Id: run-pftmdetect,v 1.9 2005/05/11 21:53:41 rkh Exp $ ', "\n");
 
 GetOptions(\%opts,
        'debug+',
@@ -138,7 +138,7 @@ $pipe->reader( @cl )
 # we should do this in a pipe without the temp file...
 #Unison:291 1 (S) 7 0 17 0.999933
 my %tickled;								# pseq_ids which have been r_h tickled
-my $sql = 'insert into pftmdetect (pseq_id,pftype_id,start,stop,confidence,params_id) '.
+my $sql = 'insert into pftmdetect (pseq_id,pftype_id,start,stop,prob,params_id) '.
   'values (?,?,?,?,?,?)';
 my $sth = $u->prepare( $sql );
 open(FP,$out_fn)

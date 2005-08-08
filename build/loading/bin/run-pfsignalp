@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.6 2004/03/08 21:18:13 cavs Exp $
+# $Id: run-pfsignalp,v 1.7 2005/05/11 21:53:41 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -53,8 +53,8 @@ my $u = new Unison;
 
 my $cmd = $u->run_commandline_by_params_id( $opts{params_id} ) . " $temp_in_fn 1>$temp_out_fn";
 my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
-my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,confidence,params_id) values (?,?,?,?,?)' );
-my $sthhmm = $u->prepare( 'insert into pfsignalphmm(pseq_id,start,stop,confidence,siganchor_prob,max_cleavage_prob,params_id) values (?,?,?,?,?,?,?)' );
+my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,mean_s,params_id) values (?,?,?,?,?)' );
+my $sthhmm = $u->prepare( 'insert into pfsignalphmm(pseq_id,start,stop,sig_peptide_prob,sig_anchor_prob,max_cleavage_prob,params_id) values (?,?,?,?,?,?,?)' );
 my %run_me;  # track pseqs to run
 
 #my @list = Unison::utils::range_to_enum(@ARGV);
