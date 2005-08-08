@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.5 2005/05/17 01:20:48 rkh Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.6 2005/06/21 22:00:16 mukhyala Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -296,7 +296,7 @@ sub _print_graph {
 ##
 ## Print clustered scores
 ## in a table form (models on X axis and pseqs on Y axis)
-## with approp. bg colours
+## with approp. bg colors
 ##
 
 sub display_table($) {

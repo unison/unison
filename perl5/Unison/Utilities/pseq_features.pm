@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.12 2005/08/02 22:53:55 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.13 2005/08/08 21:41:12 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -135,7 +135,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.12 2005/08/02 22:53:55 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.13 2005/08/08 21:41:12 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -215,8 +215,8 @@ sub add_pfssp_psipred {
 				  -glyph => \&glyph_type,
 				  -key => $key,
 				  -bump => 0,
-				  -bgcolor => \&glyph_colour,
-				  -fgcolor => \&glyph_colour,
+				  -bgcolor => \&glyph_color,
+				  -fgcolor => \&glyph_color,
 				  -east => 1,
  				  #-arrowstyle => "filled",
 				  -fontcolor => 'black',
@@ -821,8 +821,8 @@ sub add_pfuser {
       my $end = $user_feats->{$r}{end};
 
       my $href = ($view ? (defined ($end) ?
-			   $pseq_structure->region_script($user_feats->{$r}{start},$user_feats->{$r}{end},$r,$user_feats->{$r}{colour}) :
-			   $pseq_structure->pos_script($user_feats->{$r}{start},$r,$user_feats->{$r}{colour})) :
+			   $pseq_structure->region_script($user_feats->{$r}{start},$user_feats->{$r}{end},$r,$user_feats->{$r}{color}) :
+			   $pseq_structure->pos_script($user_feats->{$r}{start},$r,$user_feats->{$r}{color})) :
 		  "pseq_structure.pl?pseq_id=$q");
 
       $end =  ( $end ? $end : $user_feats->{$r}{start});
@@ -887,7 +887,7 @@ sub glyph_type {
     return 'sec_str::coil' if $feat->type eq 'C';
 }
 
-sub glyph_colour{
+sub glyph_color{
   my $feat = shift @_;
   return 'red' if $feat->type eq 'H';
   return 'blue' if $feat->type eq 'E';
