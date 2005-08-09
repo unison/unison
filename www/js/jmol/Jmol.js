@@ -1,7 +1,7 @@
 /* $RCSfile: Jmol.js,v $
- * $Author: mukhyala $
- * $Date: 2005/03/21 18:11:44 $
- * $Revision: 1.2 $
+ * $Author: rkh $
+ * $Date: 2005/05/11 21:53:21 $
+ * $Revision: 1.3 $
  *
  * Copyright (C) 2004  The Jmol Development Team
  *
@@ -202,24 +202,29 @@ function jmolChangeStructureLoad(script, text, id) {
 //gets pdb position from seq_str.pdbid.seq_pos global object
 // and then calls jmolScript
 function jmolSelectPosition(pos, labe, colour, targetSuffix) {
-
-     if(seq_str[pdbid][pos] == '   B ' || seq_str[pdbid][pos] == '   M ' || seq_str[pdbid][pos] == '   E ') 
-       alert("Missing Residue")  ;
-
-    var chain = pdbid.substr(4,1);
+  
+  var selPos = Number(seq_str[pdbid][pos]);
+  if ( selPos == '') {
+    alert("This amino acid is not defined in the structure, this could either mean i) the amino acid is missing in the structure or ii) we did not map the sequence position to structure")  ;
+    return;
+  }
+  var chain = (pdbid == 'Model' ? '' : pdbid.substr(4,1));
 
     chain = (chain == '' ? '' : ":"+chain);
+    colour = (colour == '' ? (pdbid == 'Model' ? 'white' : 'cpk') : colour);
 
-    colour = (colour == '' ? 'cpk' : colour);
-
-    var re = new RegExp ('\:', 'g') ;
+    var re = new RegExp ('\-', 'g') ;
     if(colour.match(re)) {
       var rgb = colour.replace(re, ',') ;
       colour = "["+rgb+"]";
     }
-    var script = "spacefill off;select within(10.0, "+seq_str[pdbid][pos]+chain+"); hbonds 0.1; ssbonds on; select "+seq_str[pdbid][pos]+chain+"; wireframe 0.5;colour  "+colour+";select "+seq_str[pdbid][pos]+chain+" and *.CA; label "+labe+":"+seq_str[pdbid][pos]+"; colour label white; center "+seq_str[pdbid][pos]+chain+";zoom 400;";
+    var script = "select within(10.0, "+selPos+chain+"); hbonds 0.1; ssbonds on; select "+selPos+chain+"; wireframe 0.5;colour  "+colour+";select "+selPos+chain+" and *.CA; label "+labe+":"+selPos+"; colour label white; center "+selPos+chain+";zoom 400;";
 
-    //alert("spacefill off;hbonds 0.1; ssbonds on; select "+seq_str[pdbid][pos]+chain+"; wireframe 0.5;colour "+colour+";select "+seq_str[pdbid][pos]+chain+" and *.CA; label "+labe+":"+seq_str[pdbid][pos]+"; colour label white; center "+seq_str[pdbid][pos]+chain+";zoom 400;");
+    if(pdbid == 'Model') {
+      script = script+" spacefill on";
+    }
+
+    //alert("spacefill off;hbonds 0.1; ssbonds on; select "+selPos+chain+"; wireframe 0.5;colour "+colour+";select "+selPos+chain+" and *.CA; label "+labe+":"+selPos+"; colour label white; center "+selPos+chain+";zoom 400;");
     jmolScript(script);
 }
 
@@ -228,11 +233,16 @@ function jmolSelectPosition(pos, labe, colour, targetSuffix) {
 function jmolSelectRegion(posone, postwo, labe, colour, targetSuffix) {
 
 
-  while(seq_str[pdbid][posone] == '   B ' || seq_str[pdbid][posone] == '   M ' || seq_str[pdbid][posone] == '   E ') {
+  while(seq_str[pdbid][posone] == '') {
     posone++;
   } 
-  while(seq_str[pdbid][postwo] == '   B ' || seq_str[pdbid][postwo] == '   M ' || seq_str[pdbid][postwo] == '   E ') {
+  while(seq_str[pdbid][postwo] == '') {
     postwo--;
+  }
+  
+ if(postwo - posone < 0) {
+    alert("These amino acids are not defined in the structure, this could either mean i) the amino acids are missing in the structure or ii) we did not map the sequence positions to structure")  ;
+    return;
   }
     var start = Number(seq_str[pdbid][posone]);
     var end = Number(seq_str[pdbid][postwo]);
@@ -242,14 +252,14 @@ function jmolSelectRegion(posone, postwo, labe, colour, targetSuffix) {
 
     colour = (colour == '' ? 'red' : colour);
 
-    var re = new RegExp ('\:', 'g') ;
+    var re = new RegExp ('\-', 'g') ;
     if(colour.match(re)) {
       var rgb = colour.replace(re, ',') ;
       colour = "["+rgb+"]";
     }
 
     var label_pos = start + parseInt((end-start)/2);
-    var script = "select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label white";
+    var script = "select all; label off; colour cartoon yellow; select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label white";
 
     //alert("select "+start+"-"+end+chain+"-"+pdbid+"; colour cartoon "+colour+"; select "+ label_pos +chain+" and *.CA; label "+labe+"; colour label white");
     jmolScript(script);
