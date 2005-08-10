@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.15 2005/03/22 05:48:20 rkh Exp $
+# $Id: load-pseq,v 1.16 2005/05/17 01:20:49 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -271,7 +271,7 @@ sub process_seq ($$$$) {
 	$rv->{naliases}++;
   }
 
-  printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@aliases}, descr=%s\n",
+  printf(STDERR "## processed pseq_id=$pseq_id$frommd5, len=%d, aliases={@aliases}, descr=%s\n",
 		 length($seq), $descr) if $opts{verbose};
 
   return;
