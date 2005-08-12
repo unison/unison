@@ -9,6 +9,7 @@ use Getopt::Long qw(:config gnu_getopt);
 use File::Temp qw(tempfile);
 use IO::Pipe;
 use Bio::SeqIO;
+use Data::Dumper;
 
 
 sub _parseBlock( $ );
@@ -84,6 +85,7 @@ my (@Q) = @ARGV ? (map {eval "$_"} @ARGV) : (map { chomp;$_ } <>);
 while( @Q ) {
   my @q = splice( @Q, 0, $opts{'seqs-per-run'} );
   for(my $i=$#q; $i>=0; $i--) {
+	next;
 	if ($u->already_ran($q[$i],$opts{params_id},$opts{porigin_id},$opts{pmodelset_id})) {
 	  warn("Unison:$q[$i] already run with these parameters\n");
 	  splice(@q,$i,1);
@@ -92,7 +94,7 @@ while( @Q ) {
   next unless @q;							# all have been run 
 
   my $nseq = _fetch_sequences($u,$seqfn,@q);
-  print(STDERR "fetched $nseq / ", $#q+1, " sequences (@q)\n");
+  print(STDERR "fetched $nseq todo / ", $#q+1, " specified sequences\n");
 
   next if ($nseq == 0);						# ids must've been bogus
 
@@ -152,12 +154,12 @@ while( @Q ) {
 	}
 
 	my @weights = map { $pb->{locweights}{$_}{Integral} } @loc_rows;
-	
+
 	try {
 	  $ins_sth->execute($pseq_id, $opts{params_id},
-						$sim_pslocid,$pb->{sim_score},$pb->{sim_db},$pb->{sim_target_ac}
+						$sim_pslocid,$pb->{sim_score},$pb->{sim_db},$pb->{sim_target_ac},
 						$nn_pslocid, $pb->{nn_score},
-						$int_pslocid, $pb->{int_score},($pb->{int_membrane} eq 'yes' ? 'TRUE' : 'FALSE'),
+						$int_pslocid, $pb->{int_score},($pb->{int_membrane} ? 'TRUE' : 'FALSE'),
 						@weights,
 						$pb->{features},
 						$blk);
@@ -239,7 +241,7 @@ sub _parseBlock($) {
 
   # integral
   if ($blk =~ m/^Integral Prediction of protein location:\s+(?:(Membrane bound) )?(.+)\s+with score\s*(\S+)/m) {
-	$rv{int_membrane} = $1 && 'yes';
+	$rv{int_membrane} = (defined $1 ? 1 : 0);
 	$rv{int_loc} = $2;
 	$rv{int_score} = $3;
 	$rv{int_loc} =~ s/\s+$//;				# some have trailing spaces
