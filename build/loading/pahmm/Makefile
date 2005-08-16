@@ -5,12 +5,10 @@ PORIGIN_ID:=10059
 #PARAMS_ID:=22
 #PORIGIN_ID:=10060
 
-CMDLINE=$(shell ${PSQL_DCMD} -t 'select commandline from params where params_id=${PARAMS_ID}')
-HMMB=$(shell ${PSQL_DCMD} -t 'select data_url from porigin where porigin_id=${PORIGIN_ID}')
-
 # Use LDHMMER by uncommenting the following line
 # PATH:=${COMPBIO_EPREFIX}/opt/ldhmmer:${PATH}
 
+HMMB=$(shell ${PSQL_DCMD} -t 'select data_url from porigin where porigin_id=${PORIGIN_ID}')
 
 default:
 	@echo no $@ target; exit 1

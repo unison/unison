@@ -1,8 +1,12 @@
+## unison/loading/common.mk -- common rules used by the Unison loading mechanism
+## $Id$
+
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
 .DELETE_ON_ERROR:
 
-# can be invoked from unison/loading/ or unison/loading/subdir/
+# This file may be included from unison/loading/ or unison/loading/subdir/
+# therefore we don't know exactly where local.mk is.
 -include local.mk ../local.mk
 
 
@@ -13,12 +17,11 @@ PSQL_VCMD:=${PSQL} -c
 PSQL_DCMD:=${PSQL} -At -c
 CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
 
-# %.ids files, relative to subdirs
-vpath %.ids ../ids
 
-ids: FORCE
-	mkdir -p $@
-	make -C ids -f ../defaults.mk runA.ids runB.ids runC.ids
+# Calling Makefiles are expected to define a 'default' rule This rule
+# guarantees that the rule called 'default' is invoked even when common.mk
+# is included before defining other rules.
+commonmk_default: default
 
 
 ### QSUB arguments and command
@@ -55,13 +58,6 @@ endif
 
 
 
-# Guarantee that including this file (defaults.mk) doesn't
-# create a default target. Ideally, the includer will
-# place a default target above the include defaults.mk line.
-NO_DEFAULT_TARGET:
-	@echo "no default target" 1>&2; exit 1
-
-
 # SEQUENCE SET HANDLING
 # id sets are built in two phases:
 # 1) select sequences into filenames like '.set.ids';
@@ -71,6 +67,17 @@ NO_DEFAULT_TARGET:
 	@sort -u -o $@.tmp $<
 	@/bin/mv -f $@.tmp $@
 	@wc -l $@
+
+# sequences by from unison's psets
+vpath %.ids .:..
+.PHONY: ids
+ids: runA.ids runB.ids runC.ids
+.runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
+	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@.tmp
+	/bin/mv -f $@.tmp $@
+.pset%.ids:
+	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@.tmp
+	/bin/mv -f $@.tmp $@
 
 # generic set-todo.ids is anything which hasn't been done already
 # The top-level makefile which included this one must
@@ -83,13 +90,6 @@ NO_DEFAULT_TARGET:
 .O-%.ids:
 	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
 	/bin/mv -f $@.tmp $@
-
-# sequences by from unison's psets
-.runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: %.ids:
-	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@.tmp
-	/bin/mv $@.tmp $@
-.pset%.ids:
-	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@.tmp
 
 # sequence lists by origin
 .genengenes.ids .sugen.ids .pdb.ids: %.ids:
@@ -130,7 +130,7 @@ NO_DEFAULT_TARGET:
 # e.g., $ make qsub/FOO.log
 # make -n ensures that the target is legit and that make
 # can figure out how to build it
-SUBDIR:=$(shell basename ${PWD})
+SUBDIR:=$(shell basename ${PWD} | tr -d _)
 qsub/%:
 	@mkdir -p ${@D}
 	@if ! make -C${PWD} -n $* >/dev/null 2>/dev/null; then \
@@ -138,11 +138,9 @@ qsub/%:
 		exit 1; \
 	fi
 	@mkdir -p "${@D}"
-#	@N=`expr '$*' : '\(.*\)\.[a-z]*'`; 
 	@N="${SUBDIR}/`basename '$(basename $*)'`"; \
-	set -x; \
 	echo "make -C${PWD} $*" | ${QSUB} -N$$N >$@.tmp
-	/bin/mv -f $@.tmp $@
+	@/bin/mv -f $@.tmp $@
 
 #qdel:
 #	qstat -urkh | grep '^[0-9]' | cut -f1 -d. | xargs -t qdel
@@ -151,11 +149,11 @@ qsub/%:
 # %-load -- make the .load targets for a set of .id files, run locally
 # %-qload -- same, but submit each job to qsub
 # e.g., make pset42-todo-l500-qload
-PREFIX=?
+PATTERN=*
 %-load: %
-	@for f in $*/${PREFIX}?.ids; do echo "$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
+	@for f in $*/${PATTERN}.ids; do echo "$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
 %-qload: %
-	@for f in $*/${PREFIX}?.ids; do echo "qsub/$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
+	@for f in $*/${PATTERN}.ids; do echo "qsub/$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
 
 
 # gzip
@@ -166,7 +164,7 @@ PREFIX=?
 
 # get sequences for a set of ids
 %.fa: %.ids
-	get-seq <$< >$@.tmp \
+	get-seq -v <$< >$@.tmp \
 	&& /bin/mv $@.tmp $@
 
 # get a sequence
@@ -189,14 +187,14 @@ clean::
 	/bin/rm -f *.tmp
 	/bin/rm -fr *.err
 cleaner:: clean
+	/bin/rm -f .*.ids *.ids
 	/bin/rm -f *.load *.log
 	/bin/rm -f *.[eo][0-9][0-9]*[0-9]
 	/bin/rm -fr qsub todo
 cleanest:: cleaner
-	/bin/rm -f *.ids *.load *.log
+	/bin/rm -f *.load *.log
 	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
 	/bin/rm -fr          *-l[1-9][0-9] *-l[1-9][0-9][0-9] *-l[1-9][0-9][0-9][0-9]
-#	find . -name pset\* -type d -print0 | xargs -0rt /bin/rm -fr
 
 
 
