@@ -1,16 +1,14 @@
 include ../common.mk
-
-PATH:=${COMPBIO_EPREFIX}/bin:${PATH}
-
 PARAMS_ID:=20
-SEQS_PER_RUN:=10
+SEQS_PER_RUN:=25
 
 
-default:
-	@echo no $@ target; exit 1
+default: runC.ids done.ids runC-todo.ids runC-todo.load
+
 
 ifeq '$(shell uname -s)' 'OSF1'
-# uname -s == OSF1 is a surrogate for whether we're on geneland
+# uname -s == OSF1 is a surrogate for whether we're on a geneland node
+PATH:=${COMPBIO_EPREFIX}/bin:${PATH}
 %.load: %.ids
 	(time -p run-psprotcomp -N${SEQS_PER_RUN} <$<) >$@.err 2>&1
 	/bin/mv -f $@.err $@
@@ -20,8 +18,6 @@ else
 endif
 
 
-done.ids:
+.done.ids:
 	psql -Atc 'select pseq_id from run_history where params_id=20' >$@.tmp
-	sort -u -o $@.tmp $@.tmp
 	/bin/mv -f $@.tmp $@
-	@wc -l $@

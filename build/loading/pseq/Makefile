@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id$
+# $Id: Makefile,v 1.9 2005/08/12 04:10:07 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -14,7 +14,7 @@ default all: $(addsuffix .load,${ORIGINS})
 
 include ../common.mk
 
-_D:=$(shell mkdir -p data logs)
+_D:=$(shell mkdir -p data geneseq)
 vpath %.fa .
 
 
@@ -62,8 +62,8 @@ refseq/%.load: ${REFSEQ_DIR}/%.protein.gpff.gz
 ## DERWENT/GENESEQ
 GENESEQ_DIR:=/gne/compbio/share/geneseq
 GENESEQs:=$(notdir $(wildcard ${GENESEQ_DIR}/GENESEQP*.tar.gz) $(wildcard ${GENESEQ_DIR}/AA-GENESEQ*))
-.PHONY: geneseq
-geneseq: $(addprefix geneseq/, $(addsuffix .load,${GENESEQs}))
+.PHONY: geneseq.load
+geneseq.load: $(addprefix geneseq/, $(addsuffix .load,${GENESEQs}))
 geneseq/%.load: ${GENESEQ_DIR}/%
 	(time -p tar -Oxzf- <$< | geneseq2fa - | load-pseq -ffasta -oGeneseq -v -) >$@.err 2>&1
 	/bin/mv -f $@.err $@
@@ -76,6 +76,8 @@ geneseq/AA-GENESEQ.update.gz.load: ${GENESEQ_DIR}/AA-GENESEQ.update.gz
 
 
 ## SST/GENENGENES LOADING
+## All Genentech-specific stuff will be moved out of common
+## Unison areas soon. 
 GenenGenes.load : data/GenenGenes.fa
 	grep -v ^ERROR: $< | load-pseq --verbose -oGenenGenes -ffasta - >$@.err 2>&1
 	/bin/mv -f $@.err $@

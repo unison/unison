@@ -1,49 +1,81 @@
-## unison/loading Makefile -- choreographs unison schema loading
-## other schemas are handled by directories in csb-db
+## unison/loading/Makefile -- choreographs Unison loading
+## $Id$
+
+## most subdirectories of ./ correspond to table names
+## auxiliary schemas are handled in ../aux/
 
 
 include common.mk
-COMPUTE_DIRS:=blat pahmm paprospect2 papseq pappsm  pfregexp pfsignalp pfbigpi pftmdetect plocus pmhmm ppintx pseqprop sst
-DIRS=pseq ${COMPUTE_DIRS}
 
-# LOAD SEQUENCES
-#seqs.log: 
-# handled by generic directory rule
+CLEANUP_DIRS=
 
 
-# UPDATE INTRINSIC SETS AND OTHER DATA
+######################################################################
+# 0. "AUXILIARY" DATABASES
+# The following rule merely tests whether one table
+# from each schema may be selected from.  Errors are
+# reported to stderr.  The existence of aux.log 
+# signifies that these schemas exist.
+.PHONY: phase0
+phase0: aux.log
+aux.log:
+	${PSQL} -c 'select version()' >/dev/null
+	${PSQL} -c 'select * from go.association limit 1' >/dev/null
+	${PSQL} -c 'select * from gong.alias limit 1' >/dev/null
+	${PSQL} -c 'select * from pdb.chain limit 1' >/dev/null
+	${PSQL} -c 'select * from scop.cla limit 1' >/dev/null
+	${PSQL} -c 'select * from tax.spspec limit 1' >/dev/null
+	@echo 'aux schemas exist' >aux.log
+
+
+######################################################################
+# 1. LOAD SEQUENCES
+CLEANUP_DIRS+=pseq
+.PHONY: phase1
+phase1: pseq.log
+
+# pseq.log handled by generic directory rule below
+pseq.log: aux.log
+
+
+######################################################################
+# 2. UPDATE INTRINSIC SETS AND OTHER DATA
 .PHONY: phase2
-phase2: update_tax_id.log update_psets_intrinsic.log mv_best_annotation.log update_meta_stats.log
-update_tax_id.log: seqs.log
-	${PSQL_VCMD} 'begin; select update_tax_ids(); commit;' >$@.err 2>&1
+phase2: update_tax_id.log update_psets_intrinsic.log mv_best_annotation.log #update_meta_stats.log
+update_tax_id.log: pseq.log
+	time -p ${PSQL_VCMD} 'begin; select update_tax_ids(); commit;' >$@.err 2>&1
 	/bin/mv -f $@.err $@
 update_psets_intrinsic.log: update_tax_id.log
-	${PSQL_VCMD} 'begin; select update_psets_intrinsic(); commit;' >$@.err 2>&1
+	time -p ${PSQL_VCMD} 'begin; select update_psets_intrinsic(); commit;' >$@.err 2>&1
 	/bin/mv -f $@.err $@
 mv_best_annotation.log: update_psets_intrinsic.log
-	${PSQL_VCMD} 'begin; truncate mv_best_annotation; insert into mv_best_annotation select * from v_best_annotation; commit' >$@.err 2>&1
+	time -p ${PSQL_VCMD} 'begin; truncate mv_best_annotation; insert into mv_best_annotation select * from v_best_annotation; commit' >$@.err 2>&1
 	/bin/mv -f $@.err $@
-update_meta_stats.log:
-	${PSQL_VCMD} 'begin; select meta_stats_update(); commit;' >$@.err 2>&1
-	/bin/mv -f $@.err $@
+# m_s_u is broken, I think because of temp tables within plpgsql (unverified)
+# in any case, the following doesn't work.
+#update_meta_stats.log:
+#	time -p ${PSQL_VCMD} 'begin; select meta_stats_update(); commit;' >$@.err 2>&1
+#	/bin/mv -f $@.err $@
 
 
-# RUN SETS
-.PHONY: ids
-ids: ids/runA.ids ids/runB.ids ids/runC.ids
-ids/runA.ids ids/runB.ids ids/runC.ids: ids/run%.ids: 
-	@mkdir -p ${@D}
-	make -C ids -f ../defaults.mk ${@F}
-
-
-# COMPUTE
+######################################################################
+# 3. COMPUTE
+COMPUTE_DIRS:=
+COMPUTE_DIRS+=pahmm paprospect2 papseq #papssm
+COMPUTE_DIRS+=pfbigpi pfregexp pfsignalp pfssp_psipred pftmdetect pftmhmm
+COMPUTE_DIRS+=psprotcomp
+COMPUTE_DIRS+=blat plocus pmhmm
+CLEANUP_DIRS+=${COMPUTE_DIRS}
 .PHONY: phase3
 phase3: $(addsuffix .log,${COMPUTE_DIRS})
 
+paprospect2.log: pmprospect2.log
+pahmm.log: pmhmm.log
 pcluster.log: blat.log
 
 
-# UPDATE TABLES BASED ON PRECOMPUTED RESULTS
+######################################################################
+# 4. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
 .PHONY: phase4
 phase4: update_psets_extrinsic.log
 update_psets_extrinsic.log:
@@ -51,11 +83,23 @@ update_psets_extrinsic.log:
 	/bin/mv -f $@.err $@
 
 
+######################################################################
+# 5. HOUSEKEEPING
+.PHONY: phase5
+phase5: cleanup.log
+cleanup.log:
+	(set -x; time -p ${PSQL_VCMD} 'cluster'; time -p ${PSQL_VCMD} 'vacuum analyze') >$@.err 2>&1
+	/bin/mv -f $@.err $@
 
+
+######################################################################
 # GENERIC DIRECTORY RULE
+# make foo.log makes the default target within the directory foo
+# and logs parent make stdout and stderr to foo.log
 %.log: %
 	make -C $* >$@.err 2>&1
 	/bin/mv $@.err $@
+
 
 
 clean cleaner cleanest::

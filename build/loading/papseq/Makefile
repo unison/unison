@@ -1,16 +1,14 @@
 include ../common.mk
-
 PARAMS_ID:=3
-BLAST_CMD=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
-DB:=unison
+DB:=uniblast
 
-default:
-	@echo no $@ target; exit 1
+default: runC-todo-${DB}.load;
+
 
 .PHONY: setup
 setup: ${DB}.phr
 
-unison.ids:
+${DB}.ids:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('BLAST DB')" >$@.tmp
 	/bin/mv -f $@.tmp $@
 
@@ -20,7 +18,7 @@ unison.ids:
 	for f in $*.phr $*.pin $*.psq; do /bin/mv -f "tmp-$$f" "$$f" || /bin/true; done
 
 %-${DB}.bo: %.fa ${DB}.phr
-	${BLAST_CMD} -i $< -d ./${DB} >$@.tmp
+	${CMDLINE} -i $< -d ./${DB} >$@.tmp
 	/bin/mv -f $@.tmp $@
 
 .PRECIOUS: %-${DB}.load
@@ -31,6 +29,9 @@ unison.ids:
 %.load: %-${DB}.load; 
 
 
+.done.ids:
+	psql -Atc 'select pseq_id from run_history where params_id=${PARAMS_ID}' >$@.tmp
+	/bin/mv -f $@.tmp $@
 
 clean::
 cleaner::
