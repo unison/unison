@@ -1,0 +1,86 @@
+#!/usr/bin/env perl
+# annotate-from-fasta -- fetch Unison results for sequences in a fasta file
+# eg$ annotate-from-fasta <my.fasta
+
+use strict;
+use warnings;
+use Unison;
+use Unison::run_history;
+use Bio::SeqIO;
+
+
+# connect with defaults. See Unison::DBI. Typically, the connection is made
+# to the csb production host ('csb'), csb production database (also 'csb'),
+# as the calling user id, authenticated by kerberos.
+my $u = new Unison( );
+
+# Unison stores multiple versions of all results 
+# params must be listed in the
+# unison.params table.
+my @table_defs =
+  (
+   ['v_pahmm',[qw(start stop ends score eval acc name descr)], 'Pfam_fs 17.0', 'eval <= 1e-5'],
+   ['pfsignalpnn', [qw(start stop confidence)], 'SignalP-2.0'],
+   ['pftmhmm', [qw(start stop)], 'tmhmm default', 'type = \'M\''],
+   ['pfssp_psipred', [qw(start stop type)],'Psipred v2.45']
+  );
+
+print "# ".'$Id$'."\n";
+  my $in = new Bio::SeqIO( -fh => \*STDIN,
+			   -format => 'fasta' );
+my $sno = 0;
+
+while ( my $bs = $in->next_seq() ) {
+  $sno++;
+  my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
+
+  if (not defined $pseq_id) {
+    warn( "! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
+    next;
+  }
+
+  printf("* %s (Unison:%d; %s);\n",
+	 $bs->display_id(), $pseq_id, 
+	 $u->best_alias($pseq_id) || '<no alias>');
+
+  foreach (@table_defs) {
+
+    # get the numeric params_id corresponding to the desired $params
+    my $params_id = $u->params_id_by_name($_->[2]);
+    (defined $params_id)
+      || die($_->[2].": No such parameter set name\n");
+
+    my $table=$_->[0];
+    my $cols = join(',',@{$_->[1]});
+    my $cond = ($_->[3] ? $_->[3] : '');
+    my $sql = "select $cols from $table where pseq_id=? and params_id=?";
+    $sql .= " and $cond" if($_->[3]);
+    $ sql .= " order by start";
+
+    # prepare the lookup
+    my $sth = $u->prepare($sql);
+
+    my @results = @{ $u->selectall_arrayref($sth,undef,
+					    $pseq_id, $params_id) };
+
+
+    printf(STDERR "\n# params = $_->[2] (params_id = $params_id : %d result(s)\n",$#results+1);
+
+    if (not @results) {
+      # !!! no results => either 1) never run or 2) no results given criteria
+      # distinguish these cases by checking the run_history table.
+      my $z = $u->get_run_timestamp($pseq_id,$params_id,undef,undef);
+      if (defined $z) {
+	print("  run on $z; no hits with $cond\n");
+      } else {
+	print("  not run using parameters '$_->[2]\n");
+      }
+      next;
+    }
+
+    printf(join "\t",@{$_->[1]},"\n");
+    foreach my $a (@results) {
+      printf(join "\t", @{$a},"\n");
+    }
+  }
+}
