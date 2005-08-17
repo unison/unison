@@ -1,3 +1,201 @@
-<html><head>
-<meta HTTP-EQUIV="Refresh" CONTENT="0;url=cgi/about_unison.pl">
-</head></html>
+<html>
+<head>
+<title>Unison Protein Database</title>
+<link rel="shortcut icon" href="av/favicon.png" />
+<link rel="stylesheet" type="text/css" href="styles/unison.css" />
+<style>
+A:hover {
+ background: lightgrey;
+}
+table.quicklinks {
+	/* border: #000055 thin solid; */
+}
+TD.quicklinks_title {
+	background: #000055;
+	color: white;
+}
+TD.quicklinks {
+	border: #000055 thin solid;
+	/* border-bottom: #000055 thin solid; */
+}
+TD TABLE.quicklinks {
+	white-space: nowrap;
+}
+
+</style>
+</head>
+
+<body>
+
+<script type="text/javascript">
+<!--
+/* stolen directly from Firefox Central: */
+function errorMsg(name,ext,cat)
+{
+  // alert("Netscape 6 or Mozilla is needed to install a sherlock plugin");
+  f=document.createElement("form");
+  f.setAttribute("name","installform");
+  f.setAttribute("method","post");
+  f.setAttribute("action","http://mycroft.mozdev.org/error.html");
+  fe=document.createElement("input");
+  fe.setAttribute("type","hidden");
+  fe.setAttribute("name","name");
+  fe.setAttribute("value",name);
+  f.appendChild(fe);
+  fe=document.createElement("input");
+  fe.setAttribute("type","hidden");
+  fe.setAttribute("name","ext");
+  fe.setAttribute("value",ext);
+  f.appendChild(fe);
+  fe=document.createElement("input");
+  fe.setAttribute("type","hidden");
+  fe.setAttribute("name","cat");
+  fe.setAttribute("value",cat);
+  f.appendChild(fe);
+  document.getElementsByTagName("body")[0].appendChild(f);
+  if (document.installform) { 
+    document.installform.submit();
+  } else {
+    location.href="http://mycroft.mozdev.org/error.html"; //hack for DOM-incompatible browsers
+  }
+}
+function addEngine(name,ext,cat)
+{
+  if ((typeof window.sidebar == "object") && (typeof
+  window.sidebar.addSearchEngine == "function"))
+  {
+    base="http://unison-db.org/searchplugin/"
+    //cat="Web";
+    //cat=prompt("In what category should this engine be installed?","Web")
+    window.sidebar.addSearchEngine(
+      base+name+".src",
+      base+name+"."+ext,
+      name,
+      cat );
+  }
+  else
+  {
+    errorMsg(name,ext,cat);
+  }
+}
+//-->
+</script>
+
+<table width="100%" border=0>
+  <tr>
+	<td valign="top" width="90%">
+	  <font size="+2"><b>Welcome to</b></font>
+	  <br><img src="av/logo5.png">
+	  <!--
+	  <br><i>making simple queries simple
+	  <br>and complex queries possible.</i>
+	  -->
+	</td>
+
+	<td valign="top">
+	 <table class=quicklinks width="30%">
+	  <tr><td colspan=2 class="quicklinks_title" align=center><b>quick
+		 links</b></td></tr>
+
+	  <tr>
+	   <td class="quicklinks_title">info</td>
+	   <td class=quicklinks>
+	     <a href="http://unison-db.org/">home</a> | <a href="tour/">tour</a> | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
+	     | <a href="LICENSE">license</a> | <a href="cgi/about_credits.pl">credits</a>
+<!-- | <a href="intro.html">introduction</a> -->
+<!-- | <a href="answers.html">FAQ</a> -->
+<!-- | <a href="refs.html">references</a> -->
+	   </td>
+	  </tr>
+
+	  <tr>
+	   <td class="quicklinks_title">contacts</td>
+	   <td class=quicklinks><a href="http://sourceforge.net/tracker/?atid=759616&group_id=140591&func=browse">issue tracker</a> | <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
+	  </tr>
+
+	  <tr>
+	   <td class="quicklinks_title">develop</td>
+	   <td class=quicklinks><a href="http://sourceforge.net/projects/unison-db/">SourceForge</a> | <a href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
+	  </tr>
+
+	  <tr>
+	   <td class="quicklinks_title">groovy</td>
+	   <td class=quicklinks><a href="javascript:addEngine('unison','png','General')">Firefox search engine</a></td>
+	  </tr>
+
+	 </table>
+	</td>
+  </tr>
+</table>
+
+<hr>
+
+<p>
+Unison integrate numerous types of protein predictions to enable mining of
+sequences based on holistic protein feature criteria, synthesis of
+preictions for the analysis of individual sequences, and refinement of
+hypotheses regarding the composition of protein families.  Unison enables
+scientists to pose complex queries based on diverse features more
+efficiently, more completely, more reliably, and more often, and to enable
+queries which were previously impractical.
+
+<p>The Unison schema, source code, web interface, and public data are <a href="LICENSE">released
+under the Academic Free License</a>.
+
+
+<p><b><u>Kick the tires</u></b>
+<br>There are two primary ways to use the Unison web interface:
+<dl>
+<dt><b>1. Specify a sequence, show me features.</b>
+<dd><form method="get" action="cgi/pseq_summary.pl" enctype="application/x-www-form-urlencoded">
+Enter a sequence, sequence alias, md5 checksum: <input type="text" name="q" size="20" maxlength="2000"/><input type="submit" value="go"/>
+<br><i>An alias may be an accession or identifer from any database contained in Unison.</i>
+</form>
+
+<dt><b>2. Specify features, show me matching sequences.</b>
+<dd>Unison was designed for feature-based mining.  Please try:
+<ul>
+<li><a href="cgi/search_by_properties.pl">searching by sequence properties</a>
+<li><a href="cgi/search_sets.pl">exploring curated models and sequence sets</a>
+<li><a href="cgi/browse_views.pl">browsing predefined, dynamic queries</a>
+</ul>
+</dl>
+
+
+<p><b><u>Take the Tour</u></b>
+<br>Please see the <a href="tour/">Unison tour</a> for examples of
+accessing Unison via a command-line SQL interface, the perl API, and the
+web interface.
+
+
+<hr>
+
+Please contact Reece Hart &lt;<a href="mailto:rkh@gene.com?Subject=Unison">rkh@gene.com</a>&gt; for more
+information.
+
+<hr>
+
+<table width="100%" border=1>
+<tr>
+	<td width="20%" align=center><a href="http://www.gene.com">
+	  <img width=116 height=27 border=0 src="av/genentech.gif"
+		   alt=Genentech>
+	 </a></td>
+	<td width="20%" align=center>Bioinformatics Public Share<br>
+	  <a href="http://share.gene.com">share.gene.com</a></td>
+	<td width="20%" align=center><a href="http://sourceforge.net/">
+	  <img src="http://sourceforge.net/sflogo.php?group_id=4546&type=1"
+		   border=0 width=88 height=31>
+	 </a></td>
+	<td width="20%" align=center><a href="http://www.postgresql.org">
+	  <img width=90 height=30 border=0 src="av/poweredby_postgresql.png">
+	 </a></td>
+	<td width="20%" align=center><a href="http://www.opensource.org/docs/definition.php">
+	  <img border=0 width=88 height=31
+		   src="http://opensource.org/trademarks/open_source_button.png">
+	 </a>
+</tr></table>
+
+</body>
+
+</html>
