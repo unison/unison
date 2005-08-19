@@ -78,7 +78,8 @@ sub load{
     my $stringio = IO::String->new($retval);
     my $select_chain = ":".uc($chain).".*";
     my $name = substr($fn,3,4);
-    $stringio->print("load ../js/Jmol/pdb/all.ent/$fn; set frank off;spacefill off; wireframe off; cartoon on; color cartoon structure;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;");
+	# set frank off;
+    $stringio->print("load ../js/Jmol/pdb/all.ent/$fn; spacefill off; wireframe off; cartoon on; color cartoon structure;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;");
     return( $retval );
 }
 

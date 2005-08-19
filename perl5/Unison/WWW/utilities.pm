@@ -78,7 +78,7 @@ sub alias_enslink {
   }
 
 sub alias_mint_link {
-  "<a tooltip=\"link to Mint:$_[0]\" href=\"http://160.80.34.4/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
+  "<a tooltip=\"link to Mint:$_[0]\" href=\"http://mint.bio.uniroma2.it/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
 }
 
 sub alias_pubmed_link {

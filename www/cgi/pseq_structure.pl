@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.10 2005/07/25 22:15:33 rkh Exp $;
+#$ID = q$Id: pseq_structure.pl,v 1.11 2005/07/26 22:48:53 mukhyala Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -34,7 +34,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_structure.pl,v 1.10 2005/07/25 22:15:33 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_structure.pl,v 1.11 2005/07/26 22:48:53 mukhyala Exp $ ');
 
 # these files are for the image map
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png' );
@@ -64,7 +64,7 @@ try {
     $iframe_url .= "&userfeatures=$v->{userfeatures}" if($v->{userfeatures});
     $iframe_url .= "&highlight=$v->{highlight}" if($v->{highlight});
 
-    print $p->render("Unison:$v->{pseq_id}",
+    print $p->render("Unison:$v->{pseq_id} Structural Features",
 		     $pseq_structure->set_js_vars(),
 		     "<script>jmolInitialize(\"../js/jmol/\");</script>",
 		     $p->best_annotation($v->{pseq_id}),
