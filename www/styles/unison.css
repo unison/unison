@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.20 2005/06/17 22:20:40 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.21 2005/07/18 20:35:57 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
@@ -22,6 +22,7 @@ TABLE.page TD.logo {
 }
 TABLE.page TD.navbar {
  border: #150067 thin dashed;
+ font-size: small;
  padding: 0px;
 }
 TABLE.page TD.cnav {
@@ -200,13 +201,13 @@ SPAN.button:hover {
 IMG.logo {
  border: 0;
 }
-SPAN.tipped {
+SPAN.tooltip {
  color: green;
  font-weight: bold;
- text-decoration: underline;
- /* border: black thin dashed; */
+ /* text-decoration: underline; */
+ /*border: green thin solid;*/
 }
-SPAN.tipped:hover {
+SPAN.tootip:hover {
  cursor:pointer;cursor:hand;
 }
 SPAN.error {
@@ -230,67 +231,36 @@ div.sql {
  font-family: monospace;
  font-size: xx-small;
 }
-div.tip {
- border: black thin solid;
- padding: 2px;
- margin: 20px;
- background: lightgrey;
+#div.tip {
+# border: black thin solid;
+# padding: 2px;
+# margin: 20px;
+# background: lightgrey;
+#}
+
+
+
+
+/* domTT Classic Style, from domTT examples.css */
+div.domTTClassic {
+	border: 1px solid black;
+	background-color: yellow;
+ width: 50%;
+}
+div.domTTClassic .caption {
+	font-family: serif;
+	font-size: 13px;
+	_font-size: 12px;
+	font-weight: bold;
+	font-style: italic;
+	padding: 1px 2px;
+}
+div.domTTClassic .contents {
+	color: InfoText;
+	font-size: 13px;
+	_font-size: 12px;
+	font-family: Arial, sans-serif;
+	padding: 1px 2px;
+	_padding-bottom: 0;
 }
 
-
-
-
-/* archive */
-/*
-A:hover { background: #66ff66 }
-A.plainlink { border-width: 0; }
-
-
-*/
-
-
-
-/*
-.nav a:visited,.nav a:link,.nav {text-decoration: none; color: #00c;}
-.nav a:active {text-decoration: none; background: #00c; color: #fff;}
-*/
-
-/*
-UL.nav {
- margin: 0px;
- padding: 0px;
- }
-UL.nav LI {
- display: inline;
- overflow: hidden;
- list-style-type: none; }	
-UL.nav LI A {
- color: black;
- background:  #FFFFCC;
-
- border: 1px solid  black;
- padding: 0px 10px 0px 10px;
- margin: 0px;
- text-decoration: none; 
- font-weight: bold;
-}
-UL.nav LI.selected A {
- color: green;
- background:  #FFFFCC;
-
- border: 1px solid  black;
- padding: 0px 10px 0px 10px;
- margin: 0px;
- font-weight: bold;
- text-decoration: none; 
-}
-UL.nav LI A:HOVER {
- color: #FFFFCC;
- background: #CCCCCC; 
-}
-*/
-
-
-/* #C4C0E2 */
-/* #9e9efa */
-/* #BDB6F3 */

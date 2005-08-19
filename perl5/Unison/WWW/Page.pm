@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.56 2005/07/22 22:55:28 mukhyala Exp $>
+S<$Id: Page.pm,v 1.57 2005/07/25 22:18:53 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -114,10 +114,9 @@ sub new {
 
   $self->{userprefs} = $self->{unison}->get_userprefs();
   $self->{readonly} = 1;
-
-# vladdy.net's licensing is asinine... these must be dropped for now
-#  $self->{js_tags} = [{-languange => 'JAVASCRIPT', -src => '../js/ToolTips.js'},
-#					  {-languange => 'JAVASCRIPT', -src => '../js/DOM_Fixes.js'}];
+  $self->{js_tags} = [ {-language => 'JAVASCRIPT', -src => '../js/domTT/domLib.js'},
+					   {-language => 'JAVASCRIPT', -src => '../js/domTT/domTT.js'},
+					   {-language => 'JAVASCRIPT', -code => "var domTT_styleClass = 'domTTClassic';"} ];
 
   # all pseq_id inference should be moved elsewhere...
   if (not exists $v->{pseq_id} and $infer_pseq_id) {
@@ -309,7 +308,7 @@ sub start_html {
 			   ],
 	  -style => { -src => ['../styles/unison.css'] },
 	  -target => '_top',
-	  # -onload => 'javascript:{ initToolTips(); }',
+	  -onload => 'javascript:{ domTT_replaceTitles(); }',
 	  -script => $self->{js_tags},
 	);
 }
@@ -369,7 +368,7 @@ sub render {
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-		  '<a href="about_unison.pl"><img tooltip="Unison home page" width="90%" class="logo" src="../av/unison.gif"></a>',
+		  '<a href="about_unison.pl">', $self->tooltip('<img class="logo" src="../av/unison.gif">','Unison Home Page'), '</a>',
 		  '<br><a href="http://unison-db.sourceforge.net">@SourceForge</a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
@@ -382,7 +381,7 @@ sub render {
 		  "\n<!-- ========== end subnav content ========== -->\n",
 
 		  "\n<!-- ========== begin page content ========== -->\n",
-		  '  <td class="body">', "\n",
+		  '  <td colspan=2 class="body">', "\n",
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
 		  '  </td>', "\n",
@@ -495,8 +494,7 @@ format C<text> as a SQL block on the web page
 
 sub sql {
   my $self = shift;
-  return '';
-  return '' unless $self->{userprefs}->{'show_sql'};
+  #return '' unless $self->{userprefs}->{'show_sql'};
   return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
 		  (map {CGI::escapeHTML($_)} text_wrap(@_)),
 		  '</div>', "\n" );
@@ -528,22 +526,19 @@ sub tip {
 
 =item B<< $p->tooltip( C<text>, C<tip> ) >>
 
+=item B<< tooltip( C<text>, C<tip> ) >> (without object reference)
+
 Format C<tip> as a "tooltip" which will appear when the mouse is over
 C<text>.
 
 =cut
 
 sub tooltip {
-  my $self = shift;
+  shift if ref $_[0];
   my ($text,$tooltip) = @_;
-  # vladdy.net licensing sucks eggs... tooltips were dropped
-  return $text;
+  return $text unless defined $tooltip;
   $tooltip =~ s/\s+/ /g;
-  return( '<span class="tipped" tooltip="'
-		  . CGI::escapeHTML($tooltip)
-		  . '">'
-		  . CGI::escapeHTML($text)
-		  . '</span>' );
+  return( "<span class=\"tooltip\" title=\"$tooltip\">$text</span>" );
 }
 
 
@@ -618,7 +613,7 @@ sub best_annotation {
   my $self = shift;
   my $pseq_id = shift;
 
-  return( $self->tooltip( '"best" annotation', 'Best annotations are
+  return( $self->tooltip( '"best" annotation', 'A best annotation is
 					   a guess about the most informative and reliable
 					   annotation for this sequence from all source
 					   databases. Click the Aliases tab to see all
@@ -685,6 +680,7 @@ being served by a user development directory
 =cut
 sub dev_instance {
   my $self = shift;
+  return 0;
   return ( (exists $ENV{SERVER_PORT} and $ENV{SERVER_PORT}!=80)
 		   or (exists $ENV{REQUEST_URI} and $ENV{REQUEST_URI} =~ m%/~%) );
 }
@@ -792,20 +788,24 @@ sub _infer_pseq_id ($) {
   my $self = shift;
   my $v = $self->Vars();
 
-  return $v->{pseq_id} if defined $v->{pseq_id};
-
+  # if q is defined, quess what type it is and assign it to
+  # an appropriate query term
   if ( exists $v->{'q'} ) {
 	my $q = $v->{'q'};
-
-	if ($q !~ m/\D/)				{ return $q; };
-
-	if (length($q)==32 and $q!~m/[^0-9a-f]/i) {
+	if ($q !~ m/\D/) {						# only numbers
+	  $v->{pseq_id} = $q;
+	} elsif (length($q)==32 and $q!~m/[^0-9a-f]/i) { # md5
 	  $v->{md5} = $q;
+	} elsif (length($q)>20 and $q!~m/[^A-Z]/) {
+	  $v->{seq} = $q;
 	} else {
 	  $v->{alias} = $q;
 	}
   }
 
+  if (defined $v->{pseq_id}) {
+	return $v->{pseq_id}
+  }
 
   if (exists $v->{seq}) {
 	my $pseq_id = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
@@ -815,7 +815,6 @@ sub _infer_pseq_id ($) {
 	}
 	return $pseq_id;
   }
-
 
   if (exists $v->{md5}) {
 	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
@@ -1001,7 +1000,7 @@ sub _make_navrow {
 	}
 
 	$text =~ s/ /&nbsp;/g;					# make tab headings non-breaking
-	$tooltip = defined $tooltip ? ' tooltip="'.$tooltip.'"' : '';
+	$tooltip = defined $tooltip ? ' title="'.$tooltip.'"' : '';
 	$url .= "?$params" if defined $params;
 	my $cl = 'unselected';
 	if (defined $sel and $sel == $i) {
@@ -1100,10 +1099,12 @@ sub iframe {
   my $title = shift;
   my $src= shift;
 
-  my $cons = "<style type=\"text/css\">
+  return <<EOHTML;
+<style type="text/css">
 div.iframe { text-align:center;}
-</style> <div class=\"iframe\"><iframe name = $title src=$src  frameborder=\"0\" height=\"850\" width=\"850\"</iframe></div>";
-  return $cons;
+</style>
+<div class="iframe"><iframe name="$title" src="$src" frameborder="0" width=750 height=750/></div>
+EOHTML
 }
 
 =pod

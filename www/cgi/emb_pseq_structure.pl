@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id$:
+#$ID = q$Id: emb_pseq_structure.pl,v 1.1 2005/07/26 22:50:10 mukhyala Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -44,7 +44,6 @@ my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 
 get_user_specs($jmol);
 try {
-
     my $structure_templates_ar=$pseq_structure->find_structure_templates();
     $p->die("Sorry no structures/templates found\n") if($pseq_structure->{'num_structure_templates'} == 0);
 

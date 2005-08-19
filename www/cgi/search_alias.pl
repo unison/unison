@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_alias.pl,v 1.7 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_alias.pl,v 1.8 2005/07/25 22:15:33 rkh Exp $ ');
 
 print $p->render("Search by Alias"
 				 . (defined $v->{alias} ? ": $v->{alias}" : ''),
@@ -27,7 +27,7 @@ print $p->render("Search by Alias"
                                -size=>50,
                                -maxlength=>50),
 				 $p->submit(-value=>'vroom!'),
-				 '<br><i>e.g.,</i> <code>UNQ615</code>, <code>NP_000506.2</code>, or <code>^TNFA</code>',
+				 '<br><i>e.g.,</i>, <code>NP_000506.2</code>, or <code>^TNFA</code>',
 				 $p->end_form(), "\n",
 
 				 (defined $v->{alias} ? do_search($v->{alias}) : '')
