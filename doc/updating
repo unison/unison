@@ -35,6 +35,7 @@ Loading occurs in these phases:
   or associated data (origin, tax_id). This includes building sets of
   sequences for which results should be precomputed.
 - Computing and loading results.
+- Computing statistics.
 - Building sequence sets based on computed results.
 
 Data are always loaded by the 'loader' user. The exact permissions on a

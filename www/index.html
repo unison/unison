@@ -3,85 +3,11 @@
 <title>Unison Protein Database</title>
 <link rel="shortcut icon" href="av/favicon.png" />
 <link rel="stylesheet" type="text/css" href="styles/unison.css" />
-<style>
-P {
-	font-family: sans-serif;
-}
-A:hover {
- background: lightgrey;
-}
-table.quicklinks {
-	/* border: #000055 thin solid; */
-}
-TD.quicklinks_title {
-	background: #000055;
-	color: white;
-}
-TD.quicklinks {
-	border: #000055 thin solid;
-	/* border-bottom: #000055 thin solid; */
-}
-TD TABLE.quicklinks {
-	white-space: nowrap;
-}
-</style>
 </head>
 
 <body>
 
-<script type="text/javascript">
-<!--
-/* stolen directly from Firefox Central: */
-function errorMsg(name,ext,cat)
-{
-  // alert("Netscape 6 or Mozilla is needed to install a sherlock plugin");
-  f=document.createElement("form");
-  f.setAttribute("name","installform");
-  f.setAttribute("method","post");
-  f.setAttribute("action","http://mycroft.mozdev.org/error.html");
-  fe=document.createElement("input");
-  fe.setAttribute("type","hidden");
-  fe.setAttribute("name","name");
-  fe.setAttribute("value",name);
-  f.appendChild(fe);
-  fe=document.createElement("input");
-  fe.setAttribute("type","hidden");
-  fe.setAttribute("name","ext");
-  fe.setAttribute("value",ext);
-  f.appendChild(fe);
-  fe=document.createElement("input");
-  fe.setAttribute("type","hidden");
-  fe.setAttribute("name","cat");
-  fe.setAttribute("value",cat);
-  f.appendChild(fe);
-  document.getElementsByTagName("body")[0].appendChild(f);
-  if (document.installform) { 
-    document.installform.submit();
-  } else {
-    location.href="http://mycroft.mozdev.org/error.html"; //hack for DOM-incompatible browsers
-  }
-}
-function addEngine(name,ext,cat)
-{
-  if ((typeof window.sidebar == "object") && (typeof
-  window.sidebar.addSearchEngine == "function"))
-  {
-    base="http://unison-db.org/searchplugin/"
-    //cat="Web";
-    //cat=prompt("In what category should this engine be installed?","Web")
-    window.sidebar.addSearchEngine(
-      base+name+".src",
-      base+name+"."+ext,
-      name,
-      cat );
-  }
-  else
-  {
-    errorMsg(name,ext,cat);
-  }
-}
-//-->
-</script>
+<SCRIPT LANGUAGE="JavaScript" SRC="searchplugin/webinstall.js"/>
 
 <table width="100%" border=0>
   <tr>
@@ -120,7 +46,7 @@ function addEngine(name,ext,cat)
 
 	  <tr>
 	   <td class="quicklinks_title">tools</td>
-	   <td class=quicklinks><a href="javascript:addEngine('unison','png','General')">Firefox search engine</a></td>
+	   <td class=quicklinks><a href="javascript:addUnisonEngine()">Firefox search engine</a></td>
 	  </tr>
 
 	 </table>
@@ -146,7 +72,7 @@ href="LICENSE">released under the Academic Free License</a>.
 <dd><form method="get" action="cgi/pseq_summary.pl" enctype="application/x-www-form-urlencoded">
 Enter a sequence, sequence alias, md5 checksum: <input type="text" name="q" size="20" maxlength="2000"/><input type="submit" value="go"/>
 <br><i>An alias may be an accession or identifer from any database contained in Unison.</i>
-<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>
+<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, <!-- , ENSP00000229681 --> NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>
 <br>Be sure to click the Protein Analysis tabs to explore prediction details.
 </form>
 
@@ -194,7 +120,7 @@ demonstration of some of Unison's features.
 
 Please contact Reece Hart &lt;<a href="mailto:rkh@gene.com?Subject=Unison">rkh@gene.com</a>&gt; for more
 information.
-<br>$Id$
+<br>$Id: index.html,v 1.8 2005/08/19 00:08:29 rkh Exp $
 
 </body>
 

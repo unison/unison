@@ -1,9 +1,18 @@
 include ../common.mk
 
+
+## WARNING: PARAMS_ID AND PORIGIN_ID MUST BOTH CORRESPOND TO LS OR FS
+if 1
+# Pfam fs parameters
 PARAMS_ID:=21
 PORIGIN_ID:=10059
-#PARAMS_ID:=22
-#PORIGIN_ID:=10060
+else
+# Pfam ls parameters
+PARAMS_ID:=22
+PORIGIN_ID:=10060
+endif
+
+
 
 # Use LDHMMER by uncommenting the following line
 # PATH:=${COMPBIO_EPREFIX}/opt/ldhmmer:${PATH}

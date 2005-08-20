@@ -5,7 +5,7 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.7 2005/05/11 21:53:41 rkh Exp $
+# $Id: run-pfsignalp,v 1.8 2005/08/08 21:40:54 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use Unison;
@@ -53,7 +53,7 @@ my $u = new Unison;
 
 my $cmd = $u->run_commandline_by_params_id( $opts{params_id} ) . " $temp_in_fn 1>$temp_out_fn";
 my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
-my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,mean_s,params_id) values (?,?,?,?,?)' );
+my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,s_mean,params_id) values (?,?,?,?,?)' );
 my $sthhmm = $u->prepare( 'insert into pfsignalphmm(pseq_id,start,stop,sig_peptide_prob,sig_anchor_prob,max_cleavage_prob,params_id) values (?,?,?,?,?,?,?)' );
 my %run_me;  # track pseqs to run
 
@@ -97,10 +97,6 @@ if ( scalar(keys %run_me) > 0 ) {
       $id =~ m/^Unison:(\d+)/;
       my $pseq_id = $1;
       my ($nn_start,$nn_end) = split/-/,$spos,2;
-      printf(STDERR "loading Unison:%-8s (NN:  sig_pep_prob: %.2f, cleavage_site: %d)\n",
-             $pseq_id,$sprob,$nn_end);
-      printf(STDERR "loading Unison:%-8s (HMM: sig_pep_prob: %.2f, sig_anchor_prob: %.2f, cleavage_site: %d, max_cleavage_prob: %.2f)\n",
-             $pseq_id,$spp,$sap,$hmme,$mcsp);
       $sthnn->execute($pseq_id,$nn_start,$nn_end,$sprob,$opts{params_id});
       $sthhmm->execute($pseq_id,'1',$hmme,$spp,$sap,$mcsp,$opts{params_id});
 
@@ -110,6 +106,13 @@ if ( scalar(keys %run_me) > 0 ) {
       # the run_history table below for those fellas.
       delete $run_me{ $pseq_id };
       $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+	  printf(STDERR "loaded signalp results for Unison:$pseq_id\n");
+	  if ($opts{verbose}) {
+		printf(STDERR "   NN:  sig_pep_prob: %.2f, cleavage_site: %d\n",
+			   $pseq_id,$sprob,$nn_end);
+		printf(STDERR "  HMM: sig_pep_prob: %.2f, sig_anchor_prob: %.2f, cleavage_site: %d, max_cleavage_prob: %.2f\n",
+			   $pseq_id,$spp,$sap,$hmme,$mcsp);
+	  }
     } else {
       die("missed $_");
     }

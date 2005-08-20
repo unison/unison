@@ -35,7 +35,7 @@ $ createuser -i4 -A -D -P loader
 $ psql -d template1 -c "alter user unison password 'password'";
 $ psql -d template1 -c "alter user loader password 'password'";
 
-$ GENENTECH: sbin/passwd2sql </etc/passwd -g1279,227,199,136,140,201,202,984,81 \
+$ GENENTECH: sbin/passwd2sql </etc/passwd -g1279,100,227,199,136,140,201,202,984,81 \
   | psql -Upostgres -hcsb -dtemplate1 -qaf-
 
 * stopping/starting/restarting the database

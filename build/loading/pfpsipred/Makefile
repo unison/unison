@@ -6,7 +6,7 @@ PATH:=.:${PATH}
 default: runC.ids done.ids runC-todo.ids runC-todo.load
 
 %.load: %.ids
-	(time -p run-pfssp_psipred --update -p ${PARAMS_ID} < $<) >$@.err 2>&1;
+	(time -p run-pfssp_psipred -p ${PARAMS_ID} < $<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
 .done.ids:

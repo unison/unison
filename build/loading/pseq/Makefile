@@ -1,12 +1,12 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.9 2005/08/12 04:10:07 rkh Exp $
+# $Id: Makefile,v 1.10 2005/08/16 20:11:47 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
 # Genentech's internal GenenGenes/SST.
 
 
-ORIGINS:=uniprot_sprot uniprot_trembl PDB refseq geneseq
+ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq geneseq
 
 default all: $(addsuffix .load,${ORIGINS})
 # 'make GenenGenes.load' manually on geneland
@@ -22,18 +22,34 @@ vpath %.fa .
 all.load: uniprot.load PDB.load GenenGenes.load refseq.load
 
 
+## ENSEMBL
+ENSEMBL_DIR:=/gne/compbio/share/ensembl
+ENSEMBL_SPECIES:=chimp fly human mouse rat zebrafish
+.PHONY: ensembl
+ensembl: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load)
+ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_chimp/data/fasta/pep/*.pep.fa.gz)
+ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_fly/data/fasta/pep/*.pep.fa.gz)
+ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_human/data/fasta/pep/*.pep.fa.gz)
+ensembl-mouse.load: $(wildcard ${ENSEMBL_DIR}/current_mouse/data/fasta/pep/*.pep.fa.gz)
+ensembl-rat.load: $(wildcard ${ENSEMBL_DIR}/current_rat/data/fasta/pep/*.pep.fa.gz)
+ensembl-zebrafish.load: $(wildcard ${ENSEMBL_DIR}/current_zebrafish/data/fasta/pep/*.pep.fa.gz)
+ensembl-%.load:
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/$* -ffasta - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+
+
 ## UNIPROT LOADING
-UNIPROT_URL:=ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete
-uniprot.load: uniprot_sprot.load uniprot_trembl.load 
-uniprot_sprot.load: data/uniprot_sprot.dat.gz
+uniprot: uniprot_sprot.load uniprot_trembl.load 
+uniprot.load: data/uniprot_sprot.dat.gz
 	gzip -cdq $< | time -p load-pseq --verbose -oUniprot -fswiss - >$@.err 2>&1
-	/bin/mv -f $@.err $@; touch $@
+	/bin/mv -f $@.err $@
 uniprot_trembl.load: data/uniprot_trembl.dat.gz
 	gzip -cdq $< | time -p load-pseq --verbose -oUniprot/TrEMBL -fswiss - >$@.err 2>&1
-	/bin/mv -f $@.err $@; touch $@
-data/uniprot_sprot.dat.gz data/uniprot_trembl.dat.gz:
-	wget -O"$@.tmp" ${UNIPROT_URL}/${@F}
-	/bin/mv "$@.tmp" "$@"
+	/bin/mv -f $@.err $@
+#UNIPROT_URL:=ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete
+#data/uniprot_sprot.dat.gz data/uniprot_trembl.dat.gz:
+#	wget -O"$@.tmp" ${UNIPROT_URL}/${@F}
+#	/bin/mv "$@.tmp" "$@"
 
 
 ## PDB
@@ -56,7 +72,6 @@ refseq/%.load: ${REFSEQ_DIR}/%.protein.gpff.gz
 	/bin/mkdir -p ${@D}
 	time -p load-pseq --verbose -oRefSeq -fgenbank $< >$@.err 2>&1
 	/bin/mv -f $@.err $@
-
 
 
 ## DERWENT/GENESEQ
@@ -96,9 +111,11 @@ cleaner:: clean
 	/bin/rm -f *.0
 cleanest:: cleaner
 	/bin/rm -f *.load
-	/bin/rm -fr data logs
+	/bin/rm -fr data
 
 
+
+########################################################################## 
 ######################## ABANDONED AND INCOMPLETE ######################## 
 
 ## UNIGENE
@@ -120,7 +137,4 @@ sugen.load: /home/skelly/geneland/seq/kinase/sugen/sugen_kinase_all.fasta
 # swiss-prot is subsumed by uniprot and I no longer load this
 sprot%.load : ${COMPBIO}/share/swiss-prot/sprot%.dat
 	load-pseq --verbose -oSwiss-Prot -fswiss $< >$@.err 2>&1
-	/bin/mv -f $@.err $@.log; touch $@
-
-
-
+	/bin/mv -f $@.err $@
