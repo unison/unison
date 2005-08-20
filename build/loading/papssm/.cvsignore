@@ -1,5 +1,11 @@
-2003
-error.log
 2002
+2003
+*.[eo][0-9][0-9][0-9]*
+*.err
+error.log
+*.ids
+*.log
+qsub
+run*
 u36*
 wf

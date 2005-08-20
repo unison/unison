@@ -1,5 +1,7 @@
 -*-outline-*-
 
+http://www.geneontology.org/external2go/
+
 * TO-DO AT NEXT BACKUP/RESTORE:
 These are items which can only be dealt with in a backup/restore cycle.
 
@@ -10,23 +12,25 @@ These are items which can only be dealt with in a backup/restore cycle.
 need better documentation for installing and describing the code layout
 
 ** sequence representatives
-  Currently, all sequences in pseq are equal.  In reality, sequences may
-  be usefully related by: 1) subsequences, 2) alternative splicing, 3)
-  paralogs, 4) orthologs, 5) homology (not 3 or 4), and probably others as
-  well.  Ex: given a good thread to pseq_id 333, how does one determine that
-  333 is really a sigcleave'd fragment of 222 (case 1 above).
+Currently, all sequences in pseq are equal.  In reality, sequences may
+be usefully related by: 1) subsequences, 2) alternative splicing, 3)
+paralogs, 4) orthologs, 5) homology (not 3 or 4), and probably others as
+well.  Ex: given a good thread to pseq_id 333, how does one determine that
+333 is really a sigcleave'd fragment of 222 (case 1 above).
 
 ** deprecate aliases
+
 Sequence aliases and identifiers may become obsolete between versions of a
 database (e.g., Swiss-Prot:T13X_HUMAN became TR13B_HUMAN). Although this
 isn't typically significant between two versions, the total accumulated
-number of obsolete aliases is steadily growing. Possible solution:
-load-pseq should provide an option which retires unused aliases. We need
-to consider the case of multi-file loads (e.g., Geneseq) which might only
-load a subset in any single run.
+number of obsolete aliases is steadily growing.  The upside of this is
+that historical names are preserved.  Possible solution: load-pseq should
+provide an option which retires unused aliases. We need to consider the
+case of multi-file loads (e.g., Geneseq) which might only load a subset in
+any single run.
 
 ** loading is slow
-prospect loading is particularly slow; we should recast these as sql
+paprospect2 loading is particularly slow; we should recast these as sql
 delete and COPY statements, including run_history updates, all wrapped in
 a transaction.
 
@@ -76,14 +80,6 @@ need to be restricted as well.
   wipes out corresponding paliasorigin & pseqalias rows
   (or, just set not current?)
 
-** params_prospect2
-Simplify inheritance and inherited triggers by folding this back into
-params. If the Unison perl API really needs this (for options like
-global_local), then we should create a view which shadows params and
-augments with the params_prospect2 data. If not, then we can simply drop
-params_prospect2. Either way, params needs to be the /single/ table with
-the params_id primary key.
-
 ** pftypes, params, run_history
 problems:
 - some params map to multiple types (e.g., tmdetect). This happens
@@ -93,18 +89,21 @@ problems:
   Pfam has been run on a sequence. One solution is to have a modelset of
   Pfam models, but that's a deviation from the original intent of
   modelsets: to collect models related by function, not by model type.  
+- params mixes several ideas: HOW to run a program, and WHAT models were run
+  against by origin, and WHAT models were run against by modelset. 
 
 ** standardize naming conventions better
 
-** sequences may be "anonymous", meaning not referenced by any alias
-  do we care?
+** "anonymous" sequences
+When a sequence alias is reused for a new version of a sequence, it's
+possible that the previous sequence no longer has a current alias and is
+therefore unnamed. This is reality.  The current alias views will hide
+that alias and give the impression that the sequence came from nowhere.
+Do we care?
 
 ** add current_user to pseq, palias tables?
 
 ** order in asset aggregate
-
-
-
 
 
 
@@ -170,3 +169,12 @@ Kiran added make_schema_read_only functions
 
 **DONE: API documentation is abysmal
 It's not great, but there are now perldocs for (nearly) all module functions
+
+**DONE: params_prospect2
+Simplify inheritance and inherited triggers by folding this back into
+params. If the Unison perl API really needs this (for options like
+global_local), then we should create a view which shadows params and
+augments with the params_prospect2 data. If not, then we can simply drop
+params_prospect2. Either way, params needs to be the /single/ table with
+the params_id primary key.
+

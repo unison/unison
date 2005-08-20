@@ -1,13 +1,18 @@
-/* $Id: unison.css,v 1.21 2005/07/18 20:35:57 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.22 2005/08/19 00:08:30 rkh Exp $     emacs: -*-c-*-  */
 
 /* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
 
 BODY {
  background: #FFFFEB;
+ font-family: sans-serif;
 }
 
 A:hover {
  background: lightgrey;
+}
+
+IMG {
+ border: 0;
 }
 
 
@@ -26,12 +31,12 @@ TABLE.page TD.navbar {
  padding: 0px;
 }
 TABLE.page TD.cnav {
- vertical-align: top;
+  vertical-align: top;
  background: lightgrey;
  border: #150067 thin dashed;
 }
 TABLE.page TD.body {
- vertical-align: top;
+  vertical-align: top;
  border: #150067 thin dashed;
  padding: 5px;
 }
@@ -150,11 +155,40 @@ TABLE.group TD {
 
 
 
+/* Quick Links */
+table.quicklinks {
+  /* border: #000055 thin solid; */
+}
+TD.quicklinks_title {
+ background: #000055;
+ color: white;
+}
+TD.quicklinks {
+ border: #000055 thin solid;
+ /* border-bottom: #000055 thin solid; */
+}
+TD TABLE.quicklinks {
+  white-space: nowrap;
+}
+
+
+/* credits */
+TABLE.credits {
+ border: #006699 thin solid;
+}
+TABLE.credits TH {
+ border: #006699 thin solid;
+ background: #006699;
+ color: white;
+}
+TABLE.credits TD {
+ border: #006699 thin solid;
+}
 
 
 
 TABLE.uwtable {
- background-color: #BDB6F3;
+  background-color: #BDB6F3;
 }
 TABLE.uwtable TH {
  border: black thin solid;
@@ -167,10 +201,10 @@ TABLE.uwtable TH.highlighted {
  background-color: yellow;
 }
 TABLE.uwtable TD {
- background-color: white;
+  background-color: white;
 }
 TABLE.uwtable TD.highlighted {
- background-color: yellow;
+  background-color: yellow;
 }
 
 
@@ -190,10 +224,10 @@ SPAN.button:hover {
  background: darkgrey;
 }
 /* SPAN.button A {
- color: #ffffff;
- font-weight: bold;
- text-decoration: none;
- } */
+   color: #ffffff;
+   font-weight: bold;
+   text-decoration: none;
+   } */
 
 
 
@@ -243,24 +277,24 @@ div.sql {
 
 /* domTT Classic Style, from domTT examples.css */
 div.domTTClassic {
-	border: 1px solid black;
-	background-color: yellow;
+ border: 1px solid black;
+ background-color: yellow;
  width: 50%;
 }
 div.domTTClassic .caption {
-	font-family: serif;
-	font-size: 13px;
-	_font-size: 12px;
-	font-weight: bold;
-	font-style: italic;
-	padding: 1px 2px;
+  font-family: serif;
+  font-size: 13px;
+  _font-size: 12px;
+  font-weight: bold;
+  font-style: italic;
+ padding: 1px 2px;
 }
 div.domTTClassic .contents {
-	color: InfoText;
-	font-size: 13px;
-	_font-size: 12px;
-	font-family: Arial, sans-serif;
-	padding: 1px 2px;
-	_padding-bottom: 0;
+ color: InfoText;
+ font-size: 13px;
+ _font-size: 12px;
+ font-family: Arial, sans-serif;
+ padding: 1px 2px;
+ _padding-bottom: 0;
 }
 

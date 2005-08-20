@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.16 2005/05/17 01:20:49 rkh Exp $
+# $Id: load-pseq,v 1.17 2005/08/10 23:17:14 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -27,6 +27,7 @@ use Unison::Exceptions;
 use Unison::Utilities::misc qw(clean_sequence sequence_md5);
 use IO::Zlib;
 use IO::File;
+use Benchmark ':hireswallclock';
 
 
 sub tally ($%);
@@ -74,6 +75,7 @@ $opts{porigin_id} = $u->porigin_si_porigin_id($opts{origin});
 
 
 my %totals = map { $_=>0 } qw(nseen nadded nskipped nfailed naliases);
+my $tts = new Benchmark;
 
 foreach my $fn ( @ARGV ) {
   my $fh;
@@ -93,14 +95,20 @@ foreach my $fn ( @ARGV ) {
 
   my $stream = Bio::SeqIO->new(-fh => $fh, 
 							   -format => $opts{format});
+  my $tis = new Benchmark;
   my $stats = process_stream($u,$stream);
-  print(STDERR tally($fn,%$stats), "\n");
+  my $tie = new Benchmark;
+  my $tidelta = @{timediff($tie, $tis)}[0];
+  print(STDERR tally($fn,$tidelta,%$stats), "\n");
 
   $totals{$_} += $stats->{$_} for keys %$stats;
   $fh->close();
 }
 
-print(STDERR tally('totals',%totals), "\n");
+my $tte = new Benchmark;
+my $ttdelta = @{timediff($tte, $tts)}[0];
+print(STDERR tally('totals',$ttdelta,%totals), "\n");
+
 
 if ($totals{nfailed} > 0) {
   die("! WARNING: Some sequence and/or aliases failed; origin.last_updated NOT tickled\n");
@@ -121,10 +129,13 @@ if ($totals{nadded} > 0) {
 ## INTERNALS
 
 sub tally ($%) {
-  my ($src,%stats) = @_;
-  sprintf('%-30s %7d seen, %7d added, %7d skipped, %7d failed, %7d aliases',
+  my ($src,$delta,%stats) = @_;
+  sprintf('%-30s %7d seen, %7d added, %7d skipped, %7d failed, %7d aliases, %8ds, %5.1f seen/s',
 		  (length($src)>29 ? '...'.substr($src,-26) : $src).':',
-		  @stats{qw(nseen nadded nskipped nfailed naliases)});
+		  @stats{qw(nseen nadded nskipped nfailed naliases)},
+		  $delta,
+		  $stats{nseen} / $delta
+		 );
 }
 
 

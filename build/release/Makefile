@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.6 2005/07/18 03:02:53 rkh Exp $
+# $Id: Makefile,v 1.7 2005/07/18 22:10:38 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -76,10 +76,12 @@ unison-%-restore.log: unison-%-data.psql.gz
 	gzip -cdq $< | time psql -dunison -qaf- >$@.err 2>&1
 	/bin/mv $@.err $@
 
+.PRECIOUS: %.md5
 %.md5: %
 	md5sum $< >$@.tmp
 	/bin/mv -f $@.tmp $@
 
+.PRECIOUS: %.asc
 %.asc: %
 	gpg -abs -o $@ $<
 
@@ -89,7 +91,7 @@ verify-%: %.md5 %.asc
 	gpg --verify $(word 2,$^)
 
 .PHONY: upload-%
-upload-%: % %.md5 # %.asc
+upload-%: % %.md5 %.asc
 	(echo cd incoming; echo prompt; echo mput $^) | /usr/bin/ftp -A ftp://ftp:reece-at-sf.net@upload.sf.net
 
 

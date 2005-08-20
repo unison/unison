@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id$
+## $Id: Makefile,v 1.9 2005/08/16 20:11:46 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
@@ -34,8 +34,8 @@ CLEANUP_DIRS+=pseq
 .PHONY: phase1
 phase1: pseq.log
 
-# pseq.log handled by generic directory rule below
 pseq.log: aux.log
+# see generic directory rule below
 
 
 ######################################################################
@@ -43,13 +43,13 @@ pseq.log: aux.log
 .PHONY: phase2
 phase2: update_tax_id.log update_psets_intrinsic.log mv_best_annotation.log #update_meta_stats.log
 update_tax_id.log: pseq.log
-	time -p ${PSQL_VCMD} 'begin; select update_tax_ids(); commit;' >$@.err 2>&1
+	(time -p ${PSQL_VCMD} 'begin; select update_tax_ids(); commit;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 update_psets_intrinsic.log: update_tax_id.log
-	time -p ${PSQL_VCMD} 'begin; select update_psets_intrinsic(); commit;' >$@.err 2>&1
+	(time -p ${PSQL_VCMD} 'begin; select update_psets_intrinsic(); commit;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 mv_best_annotation.log: update_psets_intrinsic.log
-	time -p ${PSQL_VCMD} 'begin; truncate mv_best_annotation; insert into mv_best_annotation select * from v_best_annotation; commit' >$@.err 2>&1
+	(time -p ${PSQL_VCMD} 'begin; truncate mv_best_annotation; insert into mv_best_annotation select * from v_best_annotation; commit') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 # m_s_u is broken, I think because of temp tables within plpgsql (unverified)
 # in any case, the following doesn't work.
@@ -100,6 +100,12 @@ cleanup.log:
 	make -C $* >$@.err 2>&1
 	/bin/mv $@.err $@
 
+
+
+# a silly rule to push .cvsignore patterns into the subdirectories
+.PHONY: push-cvsignore
+push-cvsignore:
+	@for f in */.cvsignore; do (set -x; sort -u -o "$$f" .cvsignore "$$f"); done
 
 
 clean cleaner cleanest::
