@@ -11,15 +11,18 @@ my $usage = <<'EOU';
 #   --global      |-g:   global alignment mode (default)
 #   --global_local|-gl:  global-local alignment mode
 #   --psiblast    |-b:   use profile information in threading
-#   --db          |-d:   blast database to run psipred
-#   --psipred     |-p: use Psired secondary structure in threading
+#   --psipred     |-p:   use Psired secondary structure in threading
+#   --db          |-d:   blast database (psiblast)
+#   --iter        |-j:   iterations (psiblast)
+#   --eval        |-h:   eval cutoff (psiblast)
+#   --cpus        |-a:   cpus (psiblast)
 #   --verbose     |-v:   output more processing information
-#   --3d:                create backbone coordinates of sequences
 #   --tfile       |-t <file_name>: file containing list of templates (default is FSSP)
-#   --sort        |-s <n>: sort top n templates. Creates .raw and .svm files
+#   --sort        |-s <n>: sort and output top n templates. Creates .raw and .svm files
 #   --save        |-x:   output in XML format. Creates a .xml file
-#   --help        |-h:   this output
-# $Id$
+#   --3d                 create backbone coordinates of sequences
+#   --help               this output
+# $Id: gne_prospect,v 1.1 2005/09/08 19:32:53 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -45,6 +48,9 @@ my %opts = (
 	    psipred       => 0,
 	    psiblast      => 0,
 	    '3d'          => 0,
+	    iter          => 3,
+            eval          => 0.001,
+            cpus          => 2,
 	    tfile         => 0,
 	    sort          => 0,
 	    save          => 0,
@@ -57,12 +63,15 @@ GetOptions( \%opts,
 	    'psiblast|b',
 	    '3d',
 	    'db|d=s',
+	    'iter|j=i',
+	    'eval|h=f',
+	    'cpus|a=i',
 	    'tfile|t=s',
 	    'sort|s=i',
 	    'save|x',
 	    'global',
 	    'global_local',
-	    'help|h' => 0,
+	    'help' => 0,
 	    'version' => 0
 	  )
   || die("$0: bad usage:\n$usage\n");
@@ -175,7 +184,7 @@ sub parse_options {
 
   if($opts->{verbose}) {
     while( my ($k, $v) = each %$opts ) {
-      print "$k : $v\n";
+      print "$k\t: $v\n";
     }
   }
 
@@ -202,7 +211,7 @@ sub ssp_phd {
   my ($fa_fn) = @_;
 
   $ENV{'DEUBG'}++;
-  run("runpsipred -d ".$opts->{db}." $fa_fn >/dev/null 2>&1");
+  run("runpsipred -j ".$opts->{iter}." -h ".$opts->{eval}." -a ".$opts->{cpus}." -s 1 -hb 1 -sb 1 -d ".$opts->{db}." $fa_fn >/dev/null 2>&1");
 
   # parse the results
   my $psipred_output = `cat $fa_fn.horiz`;
