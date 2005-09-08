@@ -4,9 +4,7 @@ my $usage = <<'EOU';
 #-------------------------------------------------------------------------------
 # NAME: gne_prospect
 # PURPOSE: run propsect with various options
-# USAGE: gne_prospect ARGUMENTS OPTIONS <seq file>
-# ARGUMENTS (required):
-# none
+# USAGE: gne_prospect OPTIONS <seq file>
 # OPTIONS:
 #   --global      |-g:   global alignment mode (default)
 #   --global_local|-gl:  global-local alignment mode
@@ -22,7 +20,7 @@ my $usage = <<'EOU';
 #   --save        |-x:   output in XML format. Creates a .xml file
 #   --3d                 create backbone coordinates of sequences
 #   --help               this output
-# $Id: gne_prospect,v 1.1 2005/09/08 19:32:53 mukhyala Exp $
+# $Id: gne_prospect,v 1.2 2005/09/08 20:11:12 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
