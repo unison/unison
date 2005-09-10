@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.8 2005/03/29 03:27:05 rkh Exp $
+# $Id: load-pmhmm,v 1.9 2005/04/11 18:29:36 rkh Exp $
 # load pfam HMM into unison
 # eg$ load-pmhmm /path/to/pfam-14.0/Pfam_fs
 
@@ -9,52 +9,57 @@ use warnings;
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
-use IO::File;
 use IO::Pipe;
 
 
 my $fn;
-($fn = shift)
-  || die("$0: I need that Pfam file name, homey\n");
-
-my ($pfam_version,$fl) = $fn =~ m%pfam-([\.\d]+)/Pfam_([lf]s)%;
-(defined $fl)
-  || die("$0: couldn't parse origin (pfam-<version>/Pfam_([fl]s) from $fn\n");
-my $origin = "Pfam_$fl $pfam_version";		# e.g., Pfam_fs 12.0
+($fn = shift and $fn =~ m%^/%)
+  || die("$0: please privide the full path to the Pfam models\n");
 
 my $in;
 if ($fn =~ m/.gz/) {
   $in = new IO::Pipe;
-  $in->reader( 'gzip', '-cd', $fn );
+  $in->reader( 'gzip', '-cdq', $fn );
 } else {
-  $in = new IO::File;
-  $in->open($fn,'rb')
-	|| die("$fn: $!\n");
+  die("$0: I expected the gzip-compressed HMM file\n");
 }
 
+my $hmmb_path = $fn;
+$hmmb_path =~ s/.gz$//;
+$hmmb_path .= '.hmmb';
+(-e $hmmb_path)
+  || die("$0: You must make `$hmmb_path' before proceeding\n");
 
-my $u = new Unison( dbname=>'csb-dev', username=>'unison' );
+my ($pfam_version,$fl) = $fn =~ m%pfam-([\.\d]+)/Pfam_([lf]s)%;
+(defined $fl)
+  || die("$0: couldn't parse origin (pfam-<version>/Pfam_([fl]s) from $fn\n");
+
+my $origin = "Pfam $pfam_version $fl";
+
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+
 my $porigin_id = $u->porigin_si_porigin_id($origin);
 (defined $porigin_id)
   || die("$0: origin $origin: $@\n");
-my $sth = $u->prepare('update porigin set url=?,descr=? where porigin_id=?');
+my $sth = $u->prepare('update porigin set url=?,descr=?,data_url=? where porigin_id=?');
 $sth->execute('http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s',
 			  "Pfam_$fl version $pfam_version",
+			  $hmmb_path,
 			  $porigin_id)
   || die("$0: update porigin: $@\n");
 printf(STDERR "# loading models into $origin (porigin_id=$porigin_id)\n");
 
 
-my @insert_fields = q(porigin_id name acc descr len nseq cksum
-					ga_seq ga_dom tc_seq tc_dom nc_seq nc_dom);
-my $sth_insert_pmhmm = $u->prepare(sprintf('insert into pmhmm (%s) values (%s)',
-										   join(',',@insert_fields),
-										   join(',',map {'?'} @insert_fields)
-										  )
-								  );
 
-#my $sth_update_pmhmm = $u->prepare('update pmhmm set ga_seq=?,ga_dom=?,tc_seq=?,tc_dom=?,nc_seq=?,nc_dom=?
-#									where porigin_id=? and acc=?');
+my @insert_fields = qw(porigin_id name acc descr len nseq cksum
+					ga_seq ga_dom tc_seq tc_dom nc_seq nc_dom);
+my $insert_stmt = sprintf('insert into pmhmm (%s) values (%s)',
+						  join(',',@insert_fields),
+						  join(',',map {'?'} @insert_fields) );
+my $sth_insert_pmhmm = $u->prepare($insert_stmt);
+
+warn($insert_stmt);
+
 
 $/ = "\n//\n";
 $u->begin_work();
@@ -65,10 +70,6 @@ while(my $blk = <$in>) {
   my ($gas,$gad) = split(' ',$ga);
   my ($tcs,$tcd) = split(' ',$tc);
   my ($ncs,$ncd) = split(' ',$nc);
-  #my $hmm = $blk . $/;
-
-  #$sth_update_pmhmm->execute($gas,$gad,$tcs,$tcd,$ncs,$ncd,$porigin_id,$acc);
-
   $sth_insert_pmhmm->execute($porigin_id,$name,$acc,$descr,$len,$nseq,$cksum,
 							 $gas,$gad, $tcs,$tcd, $ncs,$ncd);
 
