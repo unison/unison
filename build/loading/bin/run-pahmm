@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.14 2005/05/11 21:53:41 rkh Exp $
+# $Id: run-pahmm,v 1.15 2005/09/10 16:37:07 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -174,6 +174,7 @@ sub run_and_load ($$) {
 	my $nhits = 0;
 	my $nhsps = 0;
 
+  RETRY:
 	try {
 	  $u->begin_work();
 	  while( my $hit = $result->next_hit ) {
@@ -201,7 +202,11 @@ sub run_and_load ($$) {
 	  $tothsps += $nhsps;
 	} catch Unison::Exception with {
 	  my $e = $_[0];
-	  if ("$e" =~ m/duplicate key/ or "$e" =~ m/(?:over|under)flow/) {
+	  if ("$e" =~ m/deadlock detected/) {
+		$u->rollback();
+		warn("$e; retrying.\n");
+		goto RETRY;
+	  } elsif ("$e" =~ m/duplicate key/ or "$e" =~ m/(?:over|under)flow/) {
 		warn("\n$e\nUnison:$pseq_id load failed; rolling back.\n",);
 		$u->rollback();
 		$toterrs++;
