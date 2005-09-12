@@ -157,14 +157,21 @@ TABLE.group TD {
 
 /* Quick Links */
 table.quicklinks {
+  white-space: nowrap;
   /* border: #000055 thin solid; */
 }
 TD.quicklinks_title {
  background: #000055;
  color: white;
+ padding-left: 2px;
+ padding-right: 2px;
+ white-space: nowrap;
 }
 TD.quicklinks {
  border: #000055 thin solid;
+ padding-left: 2px;
+ padding-right: 2px;
+ white-space: nowrap;
  /* border-bottom: #000055 thin solid; */
 }
 TD TABLE.quicklinks {
