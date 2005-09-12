@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.57 2005/07/25 22:18:53 rkh Exp $>
+S<$Id: Page.pm,v 1.58 2005/08/19 00:08:30 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -30,7 +30,8 @@ BEGIN {
 	if (-f $log_fn and -w $log_fn) {
 	  close(STDERR);
 	  if (not open(STDERR, ">>$log_fn")) {
-		print("$log_fn: $!\n");
+		# this error will end up on the web server error log
+		print(STDERR __PACKAGE__ . ':' . __LINE__ . ": $log_fn: $!\n");
 		exit(0);
 	  }
 	  $ENV{DEBUG} = 1;
@@ -65,7 +66,7 @@ sub _csb_connection_params ($);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
 sub _make_temp_dir ();
-sub _cleanup_temp($);
+sub _cleanup_temp($$);
 
 our $infer_pseq_id = 0;
 
@@ -190,7 +191,6 @@ yet.
 
 sub tempfile {
   my $self = shift;
-  $self->_cleanup_temp() if rand(0)<=0.20;	# try cleanup 20% of the time
   $self->_make_temp_dir(); 					# no return if failure
   my %opts = (								# order is important:
 			  UNLINK=>0, 					# - items before @_ are defaults
@@ -394,9 +394,11 @@ sub render {
 		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
 		  '  <td class="footer">',
 		  '     Problems? Feature Requests? Please use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>',
-		  '     or send mail to <a href="mailto:rkh@gene.com?Subject=Unison">Reece Hart &lt;rkh@gene.com&gt;</a>', "\n",
+		  '     or send mail to <a href="mailto:rkh@gene.com?Subject=Unison page">Reece Hart &lt;rkh@gene.com&gt;</a>', "\n",
 		  "     <br>$elapsed\n",
 		  (defined $self->{footer} ? map {"     <br>$_\n"} @{$self->{footer}} : ''),
+		  sprintf("<br> <a href=\"http://validator.w3.org/check?uri=%s\">Validate this page at the W3C</a>\n",
+				  $self->escapeHTML($self->url())),
 		  "  </td>\n",
 		  "</tr>\n",
 		  "\n<!-- ========== end footer ========== -->\n",
@@ -884,9 +886,12 @@ sub _navbar {
 	  ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
 	  ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
 	  ['Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
-	  ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
+# BLAST results are incomplete. This will be replaced by PSI-BLAST in the
+# near future.
+#	  ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
 	  ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', $pseq_id],
 	  ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
+# PSSM alignments are not maintained. To reappear, perhaps.
 #	  ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	  ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
 	  ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
@@ -1030,33 +1035,33 @@ sub _make_temp_dir () {
   return if exists $self->{tmpdir};			# been here before
 
   my @lt = localtime();
-  $self->{tmpuri} = sprintf("/tmp/%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
-  $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '';
+  my $date = sprintf("%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
+  $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '/';
+  $self->{tmpuri} = "tmp/$date";
   $self->{tmpdir} = "$self->{tmproot}/$self->{tmpuri}";
 
   if ( not -d $self->{tmpdir} ) {
 	mkdir($self->{tmpdir})
 	  || $self->die("mkdir($self->{tmpdir}: $!\n");
+	$self->_cleanup_temp($date);			# cleanup dirs before date
   }
 
   return $self->{tmpdir};
 }
 
 
-sub _cleanup_temp ($) {
+sub _cleanup_temp ($$) {
   # This is intended to provide self-cleaning for Unison web page temp files
   my $self = shift;
-  return unless defined $ENV{DOCUMENT_ROOT};
-  my $root = "$ENV{DOCUMENT_ROOT}/tmp";
-  my @lt = localtime();
-  my $ts = sprintf("%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
-  my @old = grep {m/^\d{4}-\d{2}-\d{2}$/ and $_ lt $ts} map {s%$root/%%;$_} glob('$root/200*');
-  my @tbd = map {"$root/$_"} @old;
-  foreach my $dir (@tbd) {
-	print(STDERR "temp file cleanup: removing $dir/\n");
+  my $date = shift;
+  my $root = "$self->{tmproot}/tmp";
+  my @old = grep {m%^$root/\d{4}-\d{2}-\d{2}$% and $_ lt "$root/$date"} 
+	glob("$root/*");
+  foreach my $dir (@old) {
 	if (system("/bin/rm -fr $dir")) {
 	  print(STDERR "FAILED: $dir: $!\n");
 	}
+	print(STDERR "temp dir cleanup: removed $dir/\n");
   }
 }
 
