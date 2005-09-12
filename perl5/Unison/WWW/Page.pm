@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.58 2005/08/19 00:08:30 rkh Exp $>
+S<$Id: Page.pm,v 1.59 2005/09/12 04:00:01 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -331,31 +331,27 @@ sub render {
   my $self = shift;
   my $title = shift;
 
-  my $cnav = '';
+  my $conn_info = '';
   my $elapsed = '';
 
   if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
-	if (dev_instance()) {
-	  $cnav .= '<center><span style="background-color: red"><b>development</b></span></center>';
-	}
-	if (not $self->{readonly}) {
-	  $cnav .= '<center><span style="background-color: lightgreen"><b>writable</b></span></center>';
-	}
-	$cnav .= join('<p>',
-				 map( {sprintf("<b>%s:</b><br>&nbsp;&nbsp;%s",$_->[0],$_->[1]||'')}
-					  ['www host', 	$ENV{SERVER_NAME}				   ],
-					  ['db host', 	$self->{unison}->{host} || 'local' ],
-					  ['database',	$self->{unison}->{dbname}		   ],
-					  ['username', 	$self->{unison}->{username}		   ],
-					  ['db<br>release',  $self->{unison}->selectrow_array
-					        ('select value::date from meta where key=\'release timestamp\'') || ''],
-					  ['API<br>release', $Unison::RELEASE],
-					  ['WWW<br>release', $Unison::WWW::RELEASE]
-					  ),
-				 ( dev_instance() ? $self->warn('This is a development
-		    		version of Unison. Pages may be unstable and features may change.
-		    		Do not bookmark this page.') : ''),
-				);
+	# conn_info isn't currently used... it takes up too much space to display
+	# I think it would be better in a mouseover popup
+	#$conn_info .= sprintf("release: Unison %s; API %s; www %s  %s\n",
+	#					  ( $self->{unison}->selectrow_array
+	#						('select value::date from meta where key=\'release timestamp\'') || 'N/A' ),
+	#					  $Unison::RELEASE,
+	#					  $Unison::WWW::RELEASE,
+	#					  ( dev_instance() ? '<span style="background-color: red">DEVELOPMENT</span>' : '' )
+	#					 );
+	#$conn_info .= sprintf("<br>web connection: host %s\n",
+	#					  $ENV{SERVER_NAME});
+	#$conn_info .= sprintf("<br>db connection: %s @ %s/%s\n",
+	#				  ['db host', 	$self->{unison}->{host} || 'local' ],
+	#				  ['database',	$self->{unison}->{dbname}		   ],
+	#				  ['username', 	$self->{unison}->{username}		   ],
+	#					 );
+
 	$elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
   }
 
@@ -376,10 +372,6 @@ sub render {
 		  "<!-- ========== end banner bar ========== -->\n",
 
 		  '<tr>', "\n",
-		  "\n<!-- ========== begin subnav content ========== -->\n",
-		  '  <td class="cnav">', $cnav, '</td>', "\n",
-		  "\n<!-- ========== end subnav content ========== -->\n",
-
 		  "\n<!-- ========== begin page content ========== -->\n",
 		  '  <td colspan=2 class="body">', "\n",
 		  "  <b>$title</b><br>", "\n", 
@@ -393,12 +385,13 @@ sub render {
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
 		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
 		  '  <td class="footer">',
-		  '     Problems? Feature Requests? Please use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>',
-		  '     or send mail to <a href="mailto:rkh@gene.com?Subject=Unison page">Reece Hart &lt;rkh@gene.com&gt;</a>', "\n",
+		  (defined $self->{footer} ? join('     <br>',@{$self->{footer}}) : ''),
 		  "     <br>$elapsed\n",
-		  (defined $self->{footer} ? map {"     <br>$_\n"} @{$self->{footer}} : ''),
-		  sprintf("<br> <a href=\"http://validator.w3.org/check?uri=%s\">Validate this page at the W3C</a>\n",
-				  $self->escapeHTML($self->url())),
+		  '     <br>Please submit bugs and requests to the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
+# XXX: connection info might go here...
+#		  "     <br>$conn_info\n",
+#		  sprintf("<br> <a href=\"http://validator.w3.org/check?uri=%s\">Validate this page at the W3C</a>\n",
+#				  $self->escapeHTML($self->url())),
 		  "  </td>\n",
 		  "</tr>\n",
 		  "\n<!-- ========== end footer ========== -->\n",
