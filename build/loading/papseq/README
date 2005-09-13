@@ -1,0 +1,34 @@
+The papseq loading needs attention. There are several current problems:
+
+1) differential updates is not supported
+I intended to implement this as follows:
+
+At time 1, query set Q1 is run against blast db sequences M1 (treated as
+Models).  See section A below.
+
+At time 2, query set (Q2-Q1) would be run against M2 ("B"), and set (M2-M1)
+would be run against Q1 ("C").
+
+	       -------- M2 ------
+	            M1        
+	      +-------------+----+
+	  |   |AAAAAAAAAAAAA|CCCC|
+	  |   |AAAAAAAAAAAAA|CCCC|
+	  | Q1|AAAAAAAAAAAAA|CCCC|
+	 Q2   |AAAAAAAAAAAAA|CCCC|
+	  |   +-------------+----+
+	  |   |BBBBBBBBBBBBBBBBBB|
+	      +-------------+----+
+
+This is only an approximation, since technically the statistics depend on
+the database, which is changing between time 1 and time 2. This can be
+largely ignored for such a large database and with the use of the blast -z
+option.
+
+If we assume that M1=Qi, then it suffices to just run Qi against Mi at
+time 2, effectively rolling "B" and "C" into the same run.
+
+
+2) The current layout through pmpseq in order to achieve the model-level
+abstraction for sequences is not worth the join cost or the programming
+effort.
