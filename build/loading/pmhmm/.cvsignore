@@ -1,14 +1,8 @@
-data
 *.[eo][0-9][0-9][0-9]*
 *.err
 *.fa
-ftp.uniprot.org
-geneseq
 *.ids
 *.load
-log
 *.log
-logs
 qsub
-refseq
 run*
