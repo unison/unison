@@ -1,7 +1,7 @@
 =head1 NAME
 
  Unison::porigin -- Unison porigin table utilities
- $Id: porigin.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $
+ $Id: porigin.pm,v 1.9 2005/02/16 22:50:52 rkh Exp $
 
 =head1 SYNOPSIS
 
@@ -109,6 +109,27 @@ sub get_porigin_id_by_origin {
   goto &porigin_porigin_id_by_origin;
 }
 
+
+
+######################################################################
+## get_porigin_name_by_porigin_id()
+
+=pod
+
+=item B<< $u->get_porigin_name_by_porigin_id( C<porigin_id> ) >>
+
+Returns name for the given porigin_id.
+
+=cut
+
+sub get_porigin_name_by_porigin_id($$) {
+  my ($self,$porigin_id) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my (@rv) = $self->selectrow_array('select origin from porigin where porigin_id=?',
+									undef,$porigin_id);
+  return @rv ? $rv[0] : undef;
+}
 
 
 
