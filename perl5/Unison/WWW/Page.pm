@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.59 2005/09/12 04:00:01 rkh Exp $>
+S<$Id: Page.pm,v 1.60 2005/09/12 20:21:28 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -360,7 +360,6 @@ sub render {
 		  $self->start_html(-title=>"Unison: $title"), "\n\n\n",
 
 		  '<table class="page">', "\n",
-
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
@@ -370,17 +369,18 @@ sub render {
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
 		  "<!-- ========== end banner bar ========== -->\n",
+		  '</table>', "\n",
 
-		  '<tr>', "\n",
-		  "\n<!-- ========== begin page content ========== -->\n",
+		  "<hr>\n",
+
 		  '  <td colspan=2 class="body">', "\n",
 		  "  <b>$title</b><br>", "\n", 
 		  '  ', @_, "\n",
-		  '  </td>', "\n",
-		  "\n<!-- ========== end page content ========== -->\n",
-		  '</tr>', "\n",
+
+		  "<hr>\n",
 
 		  "\n<!-- ========== begin footer ========== -->\n",
+		  '<table class="page">', "\n",
 		  '<tr>', "\n",
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
 		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
@@ -394,9 +394,8 @@ sub render {
 #				  $self->escapeHTML($self->url())),
 		  "  </td>\n",
 		  "</tr>\n",
+		  "</table>\n",
 		  "\n<!-- ========== end footer ========== -->\n",
-
-		  '</table>', "\n",
 
 		  "\n", $self->end_html(),"\n"
 		 );
@@ -862,8 +861,8 @@ sub _navbar {
 	## ]
 	(
 	 [	# About menu
-	  ['About', 		'about Unison'],
-	  ['Unison', 		'about unison', 					'about_unison.pl'],
+	  ['Unison', 		'more information about Unison'],
+	  ['About', 		'Unison overview', 					'about_unison.pl'],
 	  ['Legal', 		'Unison legal information',			'about_legal.pl'],
 	  ['News', 			'Unison news'	, 					'about_news.pl'],
 	  ['Credits', 		'authors, acknowledgements, references', 'about_credits.pl'],
