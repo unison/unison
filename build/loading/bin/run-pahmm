@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.15 2005/09/10 16:37:07 rkh Exp $
+# $Id: run-pahmm,v 1.16 2005/09/11 00:29:55 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -28,6 +28,7 @@ sub fetch_sequences ($$@);
 sub get_pmodel_id ($);
 sub run_and_load ($$);
 
+my $min_double_prec = 1e-307;				# eval underflow if less
 
 my %opts = 
   (
@@ -100,6 +101,7 @@ my $totseqs = 0;
 my $tothits = 0;
 my $tothsps = 0;
 my $toterrs = 0;
+my $totretr = 0;
 
 while( @pseq_ids ) {
   my (@ids) = splice(@pseq_ids,0,$opts{'seqs-per-run'});
@@ -109,14 +111,15 @@ while( @pseq_ids ) {
 
   print(STDERR "fetched $nseq sequences; running...\n");
 
-  my ($seqs,$hits,$hsps,$errs) = run_and_load($u,$seqfn);
+  my ($seqs,$hits,$hsps,$errs,$retr) = run_and_load($u,$seqfn);
   $totseqs += $seqs;
   $tothits += $hits;
   $tothsps += $hsps;
   $toterrs += $errs;
+  $totretr += $retr;
 
   my $Ncomp = $N - ($#pseq_ids+1);
-  printf(STDERR "run-pahmm: $Ncomp/$N (%5.1f%% complete); $totseqs seqs; $tothits hits; $tothsps HSPs; $toterrs errors\n",
+  printf(STDERR "run-pahmm: $Ncomp/$N (%5.1f%% complete); $totseqs seqs; $tothits hits; $tothsps HSPs; $toterrs errors; $totretr retries\n",
 		 $Ncomp / $N * 100);
 }
 
@@ -155,10 +158,11 @@ sub fetch_sequences ($$@) {
 sub run_and_load ($$) {
   my $u = shift;
   my $seqfn = shift;
-  my $totseqs = 0;
-  my $tothits = 0;
-  my $tothsps = 0;
-  my $toterrs = 0;
+  my $rl_seqs = 0;
+  my $rl_hits = 0;
+  my $rl_hsps = 0;
+  my $rl_errs = 0;
+  my $rl_retr = 0;
 
   my $hmmerpipe = new IO::Pipe;
   $hmmerpipe->reader( @cl )
@@ -167,12 +171,15 @@ sub run_and_load ($$) {
 							 -fh => $hmmerpipe);
 
   while( my $result = $in->next_result ) {	# "result" is a query sequence
-	$totseqs++;
+	my $nhits = 0;
+	my $nhsps = 0;
+	my $nretr = 0;
+
 	my ($pseq_id) = $result->query_name() =~ m/Unison:(\d+)/;
 	(defined $pseq_id)
 	  || die("couldn't parse pseq_id from hmmer results\n");
-	my $nhits = 0;
-	my $nhsps = 0;
+
+	$rl_seqs++;
 
   RETRY:
 	try {
@@ -191,33 +198,41 @@ sub run_and_load ($$) {
 					  $pseq_id, $hsp->start('query'), $hsp->end('query'),
 					  $pmodel_id, $hsp->start('hit'), $hsp->end('hit'),
 					  $hsp->gaps('total'), $hsp->gaps('query'), $hsp->gaps('hit'),
-					  int($hsp->score()), $hsp->evalue());
+					  int($hsp->score()), 
+					  ( $hsp->evalue() < $min_double_prec ? 0 : $hsp->evalue() )
+					 );
 		  $pahmm_sth->execute(@data);
 		}
 	  }
 	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{model_porigin_id},$opts{pmodelset_id});
 	  $u->commit();
+
 	  printf(STDERR "Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed $z\n");
-	  $tothits += $nhits;
-	  $tothsps += $nhsps;
+	  $rl_hits += $nhits;
+	  $rl_hsps += $nhsps;
+	  $rl_retr += $nretr;
+
 	} catch Unison::Exception with {
+
 	  my $e = $_[0];
 	  if ("$e" =~ m/deadlock detected/) {
 		$u->rollback();
-		warn("$e; retrying.\n");
+		$nretr++;
+		warn("\n$e\n# Unison:$pseq_id load failed; retrying ($nretr)...\n");
 		goto RETRY;
 	  } elsif ("$e" =~ m/duplicate key/ or "$e" =~ m/(?:over|under)flow/) {
-		warn("\n$e\nUnison:$pseq_id load failed; rolling back.\n",);
 		$u->rollback();
-		$toterrs++;
+		$rl_errs++;
+		warn("\n$e\n! Unison:$pseq_id load failed; rolling back.\n");
 	  } else {
 		die("$e");
 	  }
+
 	};
-  }
+  }											# end sequence loop
 
   $hmmerpipe->close();
-  return( $totseqs, $tothits, $tothsps, $toterrs );
+  return( $rl_seqs, $rl_hits, $rl_hsps, $rl_errs, $rl_retr );
 }
 
 
