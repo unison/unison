@@ -6,13 +6,18 @@ use warnings;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 
+
 my %opts =
   (
    groups => undef,
+   min_uid => undef,
+   min_default_uid => 1000,
+   min_sysid => 1000,
   );
 
 GetOptions(\%opts,
-		   'groups|group|g=s@'				# string, for comma-sep lists
+		   'groups|group|g=s@',				# string, for comma-sep lists
+		   'min_uid|u=i'
 		  )
   || die("usage\n");
 
@@ -26,31 +31,32 @@ if (@ARGV) {
   undef @ARGV;
 }
 
-
 my %wanted_groups;
 if ($opts{groups}) {
   @{$opts{groups}} = map { split /,/ } @{$opts{groups}};
   %wanted_groups = map {$_=>1} @{$opts{groups}};
 }
 
-
-my %omit = map {$_=>1} 
+my %omit_logins = map {$_=>1} 
   qw(Bioinfo gx2000-1 compbio postgres pgsql maint Molbio);
+
+printf(STDERR "# wanted_logins? %s (%s); wanted_groups? %s (%s)\n",
+	   ( %wanted_logins ? ('Y',scalar keys %wanted_logins) : ('N','') ),
+	   ( %wanted_groups ? ('Y',scalar keys %wanted_groups) : ('N','') )
+	  );
 
 while(<>) {
   my @F = split(/:/);
-  
-  # don't print these under any circumstances:
-  next if (exists $omit{$F[0]});			# skip login
-  next if ($F[2]<=100);						# skip low-numbered uids
-
-  if ( (not %wanted_groups or exists $wanted_groups{$F[3]})
-	   or (not %wanted_logins or exists $wanted_logins{$F[0]}) ) {
+  next if (exists $omit_logins{$F[0]});
+  next if (defined $opts{min_uid} and $F[2]<$opts{min_uid});
+  if (    (%wanted_logins and exists $wanted_logins{$F[0]})
+	   or (%wanted_groups and exists $wanted_groups{$F[3]})
+	   or (not %wanted_groups and not %wanted_logins and $F[2]>=$opts{min_default_uid}) ) {
+	$F[2] += 1000000  if $F[2] < $opts{min_sysid};	# avoid low-numbered uids
 	printf("create user $F[0] with sysid $F[2] nocreatedb nocreateuser;\n");
 	delete $wanted_logins{$F[0]};
   }
 }
-
 
 
 my @remaining = sort keys %wanted_logins;
