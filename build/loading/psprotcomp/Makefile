@@ -1,4 +1,6 @@
 include ../common.mk
+include ../local.mk
+include ../params.mk
 PARAMS_ID:=20
 SEQS_PER_RUN:=25
 

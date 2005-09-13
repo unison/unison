@@ -1,14 +1,9 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id$
+## $Id: common.mk,v 1.13 2005/08/16 20:11:46 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
 .DELETE_ON_ERROR:
-
-# This file may be included from unison/loading/ or unison/loading/subdir/
-# therefore we don't know exactly where local.mk is.
--include local.mk ../local.mk
-
 
 SHELL:=/bin/bash
 
@@ -64,53 +59,47 @@ endif
 # 2) sort them in this rule into a file like 'set.ids'
 # (sorted locally to ensure consistent LANG sorting rules)
 %.ids: .%.ids
-	@sort -u -o $@.tmp $<
-	@/bin/mv -f $@.tmp $@
-	@wc -l $@
+	@sort -u -o $@ $<; wc -l $@
 
 # sequences by from unison's psets
 vpath %.ids .:..
 .PHONY: ids
 ids: runA.ids runB.ids runC.ids
 .runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
-	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@.tmp
-	/bin/mv -f $@.tmp $@
+	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
 .pset%.ids:
-	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@.tmp
-	/bin/mv -f $@.tmp $@
+	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@
 
 # generic set-todo.ids is anything which hasn't been done already
 # The top-level makefile which included this one must
 # provide a 'done.ids' target.
 .%-todo.ids: %.ids done.ids
-	comm -23 $^ >$@.tmp
-	/bin/mv -f $@.tmp $@
+	comm -23 $^ >$@
 
 # 'O-': sequence ids by origin
 .O-%.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
-	/bin/mv -f $@.tmp $@
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@
 
 # sequence lists by origin
 .genengenes.ids .sugen.ids .pdb.ids: %.ids:
-	psql -Atc "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@.tmp
+	psql -Atc "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@
 .ggi.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@.tmp
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@
 .ggi1.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1/'" >$@.tmp
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1/'" >$@
 .ggi-se1.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@.tmp
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@
 .ggi-me1.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@.tmp
+	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@
 
 # sequence lists by other info
 .fam%.ids:
-	psql -Atc 'select distinct pseq_id from sst.v_fam_pseq where famid=$*' >$@.tmp
+	psql -Atc 'select distinct pseq_id from sst.v_fam_pseq where famid=$*' >$@
 
 
-# -Nn rules: split .ids files into N sets, approximately the same number
-# of ids in each set
-%-N2 %-N3 %-N5 %-N10 %-N25 %-N50 %-N100 %-N250 %-N500: %.ids
+# -Nn rules: split .ids files into N sets, w/ approximately the same number
+# of ids in each set (+/-1)
+%-N2 %-N3 %-N4 %-N5 %-N10 %-N15 %-N20 %-N25 %-N50 %-N100: %.ids
 	@mkdir "$@"
 	@N=`expr "$@" : '.*-N\([0-9][0-9]*\)$$'`; \
 	wcl=`wc -l <$< `; L=`expr $$wcl / $$N + 1`; \
@@ -141,6 +130,7 @@ qsub/%:
 	@N="${SUBDIR}/`basename '$(basename $*)'`"; \
 	echo "make -C${PWD} $*" | ${QSUB} -N$$N >$@.tmp
 	@/bin/mv -f $@.tmp $@
+	@echo "make -C${PWD} $*": `cat $@`
 
 #qdel:
 #	qstat -urkh | grep '^[0-9]' | cut -f1 -d. | xargs -t qdel
@@ -164,13 +154,11 @@ PATTERN=*
 
 # get sequences for a set of ids
 %.fa: %.ids
-	get-seq -v <$< >$@.tmp \
-	&& /bin/mv $@.tmp $@
+	get-seq -v <$< >$@
 
 # get a sequence
 %.fa:
-	get-seq $* >$@.tmp \
-	&& /bin/mv $@.tmp $@
+	get-seq $* >$@
 
 
 

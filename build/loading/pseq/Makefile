@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.10 2005/08/16 20:11:47 rkh Exp $
+# $Id: Makefile,v 1.11 2005/08/20 00:00:26 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -11,22 +11,19 @@ ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq geneseq
 default all: $(addsuffix .load,${ORIGINS})
 # 'make GenenGenes.load' manually on geneland
 
-
 include ../common.mk
+include ../local.mk
+include ../params.mk
 
 _D:=$(shell mkdir -p data geneseq)
 vpath %.fa .
 
 
-.PHONY: all.load
-all.load: uniprot.load PDB.load GenenGenes.load refseq.load
-
-
 ## ENSEMBL
 ENSEMBL_DIR:=/gne/compbio/share/ensembl
 ENSEMBL_SPECIES:=chimp fly human mouse rat zebrafish
-.PHONY: ensembl
-ensembl: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load)
+.PHONY: ensembl.load
+ensembl.load: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load)
 ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_chimp/data/fasta/pep/*.pep.fa.gz)
 ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_fly/data/fasta/pep/*.pep.fa.gz)
 ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_human/data/fasta/pep/*.pep.fa.gz)
@@ -40,10 +37,10 @@ ensembl-%.load:
 
 ## UNIPROT LOADING
 uniprot: uniprot_sprot.load uniprot_trembl.load 
-uniprot.load: data/uniprot_sprot.dat.gz
+uniprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
 	gzip -cdq $< | time -p load-pseq --verbose -oUniprot -fswiss - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-uniprot_trembl.load: data/uniprot_trembl.dat.gz
+uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
 	gzip -cdq $< | time -p load-pseq --verbose -oUniprot/TrEMBL -fswiss - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 #UNIPROT_URL:=ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete

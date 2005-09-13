@@ -1,12 +1,11 @@
 include ../common.mk
+include ../local.mk
+include ../params.mk
 
-vpath % ${COMPBIO}/share
+export PGUSER:=unison
 
-default:
-	@echo no $@ target -- e.g., make pfam-14.0/Pfam_fs.load ; exit 1
+default: Pfam_fs.load Pfam_ls.load
 
-%.load: %.gz
-	@mkdir -p "${@D}"
+Pfam_ls.load Pfam_fs.load: %.load: ${PFAM_DIR}/%.gz
 	load-pmhmm $< >$@.err 2>&1
-	/bin/mv -f $@.err $@.log; touch $@
-
+	/bin/mv -f $@.err $@

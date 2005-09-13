@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.9 2005/08/16 20:11:46 rkh Exp $
+## $Id: Makefile,v 1.10 2005/08/20 00:00:25 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
@@ -85,6 +85,10 @@ update_psets_extrinsic.log:
 
 ######################################################################
 # 5. HOUSEKEEPING
+# cluster tables which have cluster indices defined, then vacuum
+# and analyze everything. Vacuuming the clustered tables
+# is pointless, but it's easier that keeping track of those which
+# need it.
 .PHONY: phase5
 phase5: cleanup.log
 cleanup.log:
