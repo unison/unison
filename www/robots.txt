@@ -1,0 +1,8 @@
+# NOTE: this only works when placed at the document root
+
+User-agent: *
+Disallow: /unison/cgi/
+Disallow: /unison/CVS/
+Disallow: /unison/av/
+Disallow: /unison/js/
+Disallow: /unison/styles/
