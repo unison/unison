@@ -1,25 +1,26 @@
-<html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
 <head>
 <title>Unison Protein Database</title>
-<link rel="shortcut icon" href="av/favicon.png" />
-<link rel="stylesheet" type="text/css" href="styles/unison.css" />
+<link rel="shortcut icon" href="av/favicon.png">
+<link rel="stylesheet" type="text/css" href="styles/unison.css">
 </head>
 
 <body>
 
-<SCRIPT LANGUAGE="JavaScript" SRC="searchplugin/webinstall.js"/>
+<SCRIPT TYPE="text/javascript" SRC="searchplugin/webinstall.js"></script>
 
 <table width="100%" border=0>
   <tr>
-	<td valign="top" width="90%">
-	  <font size="+2"><b>Welcome to</b></font>
-	  <br><img src="av/logo5.png">
+	<td valign="top">
+	  <span style="font-size: 150%; font-weight: bold;">Welcome to</span>
+	  <br><img src="av/logo5.png" alt="[Unison Logo]">
 	  <br><i>integrated, precomputed proteomic predictions for rapid
-	  <br>feature-based mining, sequence analysis, and hypothesis generation</i>
+	  feature-based mining, sequence analysis, and hypothesis generation</i>
 	</td>
 
-	<td valign="top">
-	 <table class=quicklinks width="30%">
+	<td valign="top" align="right">
+	 <table class=quicklinks>
 	  <tr><td colspan=2 class="quicklinks_title" align=center><b>quick
 		 links</b></td></tr>
 
@@ -36,7 +37,7 @@
 
 	  <tr>
 	   <td class="quicklinks_title">contacts</td>
-	   <td class=quicklinks><a href="http://sourceforge.net/tracker/?atid=759616&group_id=140591&func=browse">issue tracker</a> | <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
+	   <td class=quicklinks><a href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a> | <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
 	  </tr>
 
 	  <tr>
@@ -70,7 +71,7 @@ href="LICENSE">released under the Academic Free License</a>.
 <dl>
 <dt><b>1. Individual Sequence Analysis: Specify a sequence, retrieve features.</b>
 <dd><form method="get" action="cgi/pseq_summary.pl" enctype="application/x-www-form-urlencoded">
-Enter a sequence, sequence alias, md5 checksum: <input type="text" name="q" size="20" maxlength="2000"/><input type="submit" value="go"/>
+<p>Enter a sequence, sequence alias, md5 checksum: <input type="text" name="q" size="20" maxlength="2000"/><input type="submit" value="go"/>
 <br><i>An alias may be an accession or identifer from any database contained in Unison.</i>
 <br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, <!-- , ENSP00000229681 --> NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>
 <br>Be sure to click the Protein Analysis tabs to explore prediction details.
@@ -97,28 +98,29 @@ demonstration of some of Unison's features.
 
 <table width="100%" border=1>
 <tr>
-	<td width="20%" align=center><a href="http://www.gene.com">
-	  <img width=116 height=27 border=0 src="av/genentech.gif"
-		   alt=Genentech>
+	<td align=center><a href="http://www.gene.com">
+	  <img width=116 height=27 src="av/genentech.gif" alt=Genentech>
 	 </a></td>
-	<td width="20%" align=center>Bioinformatics Public Share<br>
+	<td align=center>Bioinformatics Public Share<br>
 	  <a href="http://share.gene.com">share.gene.com</a></td>
-	<td width="20%" align=center><a href="http://sourceforge.net/">
-	  <img src="http://sourceforge.net/sflogo.php?group_id=4546&type=1"
-		   border=0 width=88 height=31>
+	<td align=center><a href="http://sourceforge.net/">
+	  <img width=88 height=31
+	      src="http://sourceforge.net/sflogo.php?group_id=4546&amp;type=1"
+	      alt="[sourceforge]">
 	 </a></td>
-	<td width="20%" align=center><a href="http://www.postgresql.org">
-	  <img width=90 height=30 border=0 src="av/poweredby_postgresql.png">
+	<td align=center><a href="http://www.postgresql.org">
+	  <img width=90 height=30 src="av/poweredby_postgresql.png" alt="[postgresql]">
 	 </a></td>
-	<td width="20%" align=center><a href="http://www.opensource.org/docs/definition.php">
-	  <img border=0 width=88 height=31
-		   src="http://opensource.org/trademarks/open_source_button.png">
+	<td align=center><a href="http://www.opensource.org/docs/definition.php">
+	  <img width=88 height=31
+		   src="http://opensource.org/trademarks/open_source_button.png"
+		   alt="[OpenSource]">
 	 </a>
 </tr></table>
 
 <hr>
 
-Please contact Reece Hart &lt;<a href="mailto:rkh@gene.com?Subject=Unison">rkh@gene.com</a>&gt; for more
+<p>Please contact Reece Hart &lt;<a href="mailto:rkh@gene.com?Subject=Unison">rkh@gene.com</a>&gt; for more
 information.
 <br>$Id: index.html,v 1.8 2005/08/19 00:08:29 rkh Exp $
 
