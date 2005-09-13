@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.17 2005/08/10 23:17:14 rkh Exp $
+# $Id: load-pseq,v 1.18 2005/08/20 00:00:26 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -218,6 +218,8 @@ sub process_seq ($$$$) {
   $descr =~ s/^\s+//;
   $descr =~ s/\s+$//;
   $descr =~ s/\.$//;
+  $descr =~ s/(\S)\n(\S)/$1$2/;				# newline amid non-whitespace
+  $descr =~ s/\s*\n\s*/ /;					# \s on either side
 
   # see if there's species info and make sure that the tax_id is in the set of allowable
   # tax_ids (see description of process_stream method for more info).  if so, get the 
