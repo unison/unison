@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.19 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: DBI.pm,v 1.20 2005/07/18 21:54:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -154,7 +154,8 @@ sub connect {
 			 'host='.(defined $self->{host} ? $self->{host} : '<undef>'),
 			 'username='.(defined $self->{username} ? $self->{username} : '<undef>'),
 			 'password='.(defined $self->{password} ? '<hidden>' : '<undef>')),
-		'Check your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE (-d)'
+		('Please ensure that you have a valid Kerberos ticket, or check your settings of '
+		 .'PGHOST (-h), PGUSER (-U), and PGDATABASE (-d).')
 	  );
   }
 
