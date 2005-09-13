@@ -1,0 +1,16 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+use Bio::SeqIO;
+
+my $in  = new Bio::SeqIO( -format => 'fasta', -fh => *STDIN );
+my $out = new Bio::SeqIO( -format => 'fasta', -fh => *STDOUT );
+
+while( my $s = $in->next_seq() ) {
+  $s->display_id( $s->display_id() . '-REV' );
+  $s->desc( 'REVERSED ' . (defined $s->desc() ? $s->desc() : '') );
+  $s->seq( scalar reverse $s->seq() );
+  $out->write_seq( $s );
+}
+
