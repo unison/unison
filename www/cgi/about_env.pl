@@ -33,33 +33,34 @@ print $p->render
 
 
    '<hr><u>Unison connection information:</u>',
-   (map { "<br><code>$_: "
-			. ((defined $p->{unison} and defined $p->{unison}->{$_}) ? $p->{unison}->{$_} : '<i>undef</i>')
-			  . "</code>\n" }
+   '<br><pre>', 
+   (map { "$_: " . ((defined $p->{unison} and defined $p->{unison}->{$_})
+					? $p->{unison}->{$_} : '<i>undef</i>') . "\n" }
 	qw(username host dbname)),
-
+   "</pre>\n",
 
    '<hr><u>Kerberos and user information:</u>',
    '<br><pre>', `klist -5`, '</pre>',
+
+   '<hr><u>Environment variables:</u>',
+   '<br><pre>', (map { "$_=$ENV{$_}\n"} qw(PATH PERL5LIB LD_LIBRARY_PATH)) ,'</pre>',
 
 
    "<hr><u>Perl:</u>\n",
    "<br>perl binary: <code>$^X</code>\n",
    join("\n&nbsp;&nbsp;", '<pre>@INC = (', @INC, ");</pre>\n\n"),
 
-   '<ul>',
-   "<li>Unison modules found in:\n",
+   "- Unison modules found in:\n",
    '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
 			sort grep {/^Unison/} keys %INC), '</pre>',
 
-   "<li>Bioperl modules found in:\n",
+   "- Bioperl modules found in:\n",
    '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
 			sort grep {/^Bio/} keys %INC), '</pre>',
 
-   "<li>Other modules found in:\n<pre>",
+   "- Other modules found in:\n<pre>",
    '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
 			sort grep {not (/^Unison/ or /^Bio/)} keys %INC), '</pre>',
-   '</ul>',
 
   );
 
