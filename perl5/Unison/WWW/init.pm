@@ -2,7 +2,7 @@
 
 Unison::template -- Unison:: module template
 
-S<$Id: WWW.pm,v 1.12 2005/05/17 01:22:32 rkh Exp $>
+S<$Id: init.pm,v 1.1 2005/07/18 20:32:57 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -25,5 +25,7 @@ use warnings;
 
 our $RELEASE = '';
 if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
+
+use Unison::WWW::Config;
 
 1;
