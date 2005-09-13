@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.19 2005/03/17 01:15:37 rkh Exp $
+# $Id: get-seq,v 1.20 2005/05/11 21:53:40 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.19 2005/03/17 01:15:37 rkh Exp $>
+S<$Id: get-seq,v 1.20 2005/05/11 21:53:40 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ sub map_args_to_pseq_ids($@);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.19 2005/03/17 01:15:37 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.20 2005/05/11 21:53:40 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -64,8 +64,10 @@ my $u = new Unison();
 my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
 @args = map_args_to_pseq_ids( \%opts, @args );
 for(my $i=0; $i<=$#args; $i++) {
-  printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
-		 $i+1,$#args+1, ($i+1)/($#args+1)*100, $args[$i]) if $opts{verbose};
+  if ( $opts{verbose} and (0 == $i % $opts{verbose_frequency}) ) {
+	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
+		   $i+1,$#args+1, ($i+1)/($#args+1)*100, $args[$i]);
+  }
   process1($args[$i]);
 }
 printf(STDERR "\n") if $opts{verbose};
@@ -94,6 +96,7 @@ sub parse_options() {
 
 	 # generic options
 	 'verbose' => 0,
+	 'verbose_frequency' => 10,
 	 'help' => 0,
 	 'version' => 0,
 	);
@@ -131,7 +134,7 @@ sub parse_options() {
   @opts = qw(best-alias best-annotation all-aliases);
   $optsum = eval join('+', map {$opts{$_}} @opts);
   if ($optsum == 0) {
-	$opts{'unison-id'}++;
+ 	$opts{'unison-id'}++;
   } elsif ($optsum > 1) {
 	die("$0: may only specifiy one of {", join(',',@opts), "}.\n");
   }
@@ -190,7 +193,7 @@ sub map_args_to_pseq_ids($@) {
 	  printf(STDERR "# %d sequence ids in set '$pset_name' ($pset_id)\n", $#Q+1) if $opts{verbose};
 	  push(@pseq_ids, @Q);
 	}
-	printf(STDERR "# %d sequences selected by set\n", $#pseq_ids+1) if $opts{verbose};
+	printf(STDERR "# %d sequences in selected sets\n", $#pseq_ids+1) if $opts{verbose};
   }
 
   elsif ($or->{'select-by-porigin'}) {
@@ -258,21 +261,26 @@ sub process1 {
 
 sub get1 {
   my $pseq_id = shift;
-  my @descr = ();
   my $seq = $u->get_sequence_by_pseq_id($pseq_id);
+  my $alan;
+  my @descr;
 
   if (not defined $seq)
 	{ warn("! pseq $pseq_id doesn't exist\n"); return; }
 
-  if ($opts{'unison-id'}) {
-	push( @descr, "Unison:$pseq_id" );
+  if (    ($opts{'best-alias'} 
+		   and defined ($alan = $u->best_alias($pseq_id)))
+	   or ($opts{'best-annotation'}
+		   and defined ($alan = $u->best_annotation($pseq_id)))
+	   or ($opts{'all-aliases'}
+		   and defined ($alan = $u->pseq_get_aliases($pseq_id))) ) {
+	push(@descr, $alan);
   }
-  if ($opts{'best-alias'})
-	{ push( @descr, $u->best_alias($pseq_id)        ) }
-  elsif ($opts{'best-annotation'})
-	{ push( @descr, $u->best_annotation($pseq_id)   ) }
-  elsif ($opts{'all-aliases'})
-	{ push( @descr, $u->pseq_get_aliases($pseq_id)    ) }
+
+  if (not $opts{'unison-id'} or not @descr) {
+	unshift( @descr, "Unison:$pseq_id" );
+  }
+
 
   my $rv = '>' . join(' ',@descr) . "\n";
   while( length($seq) )
