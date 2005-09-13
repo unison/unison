@@ -1,0 +1,13 @@
+DIV.navsection {
+	background: lightgrey;
+}
+
+DIV.navsection BR {
+	background: white;
+}
+
+
+DIV.code {
+	border: black thin dashed;
+	background: lightgrey;
+}
