@@ -1,4 +1,6 @@
 include ../common.mk
+include ../local.mk
+include ../params.mk
 PARAMS_ID:=3
 DB:=uniblast
 

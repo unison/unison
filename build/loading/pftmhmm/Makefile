@@ -1,4 +1,6 @@
 include ../common.mk
+include ../local.mk
+include ../params.mk
 
 PARAMS_ID=24
 PSET_ID=62

@@ -1,4 +1,6 @@
 include ../common.mk
+include ../local.mk
+include ../params.mk
 PARAMS_ID:=6
 SEQS_PER_RUN:=100
 PATH:=/usr/local/seq/bin:${PATH}

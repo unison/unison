@@ -1,6 +1,8 @@
 default: runC-todo.load
 
 include ../common.mk
+include ../local.mk
+include ../params.mk
 PARAMS_ID:=19
 
 

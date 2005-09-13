@@ -1,4 +1,6 @@
 include ../common.mk
+include ../local.mk
+include ../params.mk
 PATH:=/usr/local/tools/bin:${PATH}
 SHELL=bash
 
