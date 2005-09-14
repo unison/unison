@@ -14,7 +14,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.12 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.13 2005/07/18 21:10:01 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Patents not available.', <<EOT);
@@ -24,7 +24,8 @@ part of the Unison source code distribution.
 EOT
 }
 
-$v->{ident} = 98 unless exists $v->{ident};
+$v->{pct_ident} = 98 unless exists $v->{pct_ident};
+$v->{pct_coverage} = 98 unless exists $v->{pct_coverage};
 $v->{pseq_id} = $p->_infer_pseq_id(); # internal function called. Shame on me.
 
 print $p->render("Patents 'near' Unison:$v->{pseq_id}",
@@ -34,10 +35,14 @@ print $p->render("Patents 'near' Unison:$v->{pseq_id}",
 #								-action => $p->make_url()),
 
 				 "show patents within ",
-				 $p->popup_menu(-name=>'ident',
-								-values => [qw(100 99 98 97 96 95 90 85)],
-								-default => 100),
-				 " % identity of Unison:",
+				 $p->popup_menu(-name=>'pct_ident',
+								-values => [qw(100 99 98 97 96 95 90)],
+								-default => $v->{pct_ident}),
+				 " % identity and ",
+				 $p->popup_menu(-name=>'pct_coverage',
+								-values => [qw(100 99 98 97 96 95 90)],
+								-default => $v->{pct_coverage}),
+				 " % coverage of Unison:",
 				 $p->textfield(-name => 'pseq_id',
 							   -size => 8,
 							   -value => $v->{pseq_id}),
@@ -54,26 +59,36 @@ sub do_search {
   my $v = $p->Vars();
   return '' unless (defined $v->{pseq_id} and $v->{pseq_id} ne '');
 
+  # substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([^\\\\s\\\\]]+)') as patent_authority,
   my $sql = <<EOSQL;
-SELECT X1.*,O.origin,AO.alias,AO.descr
-FROM (SELECT t_pseq_id AS pseq_id,len,pct_ident
+SELECT
+	X1.*,
+	origin_alias_fmt(O.origin,AO.alias),
+	T.latin as species,
+	substring(AO.descr,'\\\\[DT: (\\\\S+)')::date as patent_date,
+	substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([\\\\w\\\\d\\\\s\\\\.]+)') as patent_authority,
+	AO.descr
+FROM (SELECT t_pseq_id AS pseq_id,len,pct_ident::smallint,pct_coverage::smallint
 	  FROM v_papseq
 	  WHERE q_pseq_id=$v->{pseq_id}
+		AND pct_ident>=$v->{pct_ident}
+		AND pct_coverage>=$v->{pct_coverage}
 	  UNION
-	  SELECT pseq_id,len,100
+	  SELECT pseq_id,len,100,100
 	  FROM pseq
-	  WHERE pseq_id=$v->{pseq_id}) X1
+	  WHERE pseq_id=$v->{pseq_id}
+  	) X1
 JOIN pseqalias SA on X1.pseq_id=SA.pseq_id
 JOIN paliasorigin AO on	AO.palias_id=SA.palias_id
 JOIN porigin O on O.porigin_id=AO.porigin_id
-WHERE X1.pct_ident>=$v->{ident}
-  AND SA.iscurrent=true
-  AND AO.porigin_id=porigin_id('geneseq')
-ORDER BY X1.len desc,AO.alias
+JOIN spspec T on AO.tax_id=T.tax_id
+WHERE SA.iscurrent=true
+  AND AO.porigin_id=porigin_id('Geneseq')
+ORDER BY pct_coverage desc,pct_ident desc,patent_date,patent_authority,alias
 EOSQL
 
   my $ar = $u->selectall_arrayref($sql);
-  my @f = qw( pseq_id len %Id origin alias description );
+  my @f = qw( pseq_id len %IDE %COV alias species date authority description );
   return( "<hr>\n",
 		  $p->group("Patent Results",
 					Unison::WWW::Table::render(\@f,$ar)),
