@@ -14,12 +14,17 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
+$p->ensure_required_params(qw(pseq_id));
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.15 2005/09/13 17:27:38 rkh Exp $ ');
+
 my @ps = $u->get_params_info_by_pftype('hmm');
 my %ps = map { $_->[0] => "$_->[1] (params $_->[0])" } @ps;
 
-$v->{params_id} = $ps[0]->[0] unless defined $v->{params_id};
-$p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.14 2005/07/25 22:15:33 rkh Exp $ ');
+if (not defined $v->{params_id}) {
+  $v->{params_id} = 
+	$u->get_current_params_id_by_pftype($v->{pseq_id},'hmm')
+	|| $ps[0]->[0];
+}
 
 my $sql = sprintf(<<EOSQL,$v->{pseq_id},$v->{params_id});
 select M.name as "model",A.start,A.stop,A.mstart,A.mstop,M.len,A.score,A.eval,M.acc
