@@ -2,7 +2,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: run_history.pm,v 1.7 2005/04/04 16:42:31 rkh Exp $>
+S<$Id: run_history.pm,v 1.8 2005/05/11 21:53:41 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -118,6 +118,31 @@ sub get_run_timestamp(@) {
 }
 
 
+######################################################################
+##  get_current_params_id_by_pftype
+
+=pod
+
+=item B<< $u->get_current_params_id_by_pftype( C<pseq_id>, C<pftype> ) >>
+
+Identifies the most current params_id by pftype (NOT pftype_id!) based
+on the run history for the specified sequence.
+
+=cut
+
+sub get_current_params_id_by_pftype(@) {
+  my $u = shift;
+  my $a = $u->selectrow_array(<<EOSQL,undef,@_);
+SELECT	RH.params_id
+  FROM	run_history RH
+  JOIN	params P  ON rh.params_id=P.params_id
+ WHERE	RH.pseq_id=?
+   AND  P.pftype_id=pftype_id(?)
+ ORDER	BY params_id DESC
+ LIMIT  1;
+EOSQL
+  return $a;
+}
 
 
 
