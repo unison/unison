@@ -1,15 +1,10 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.11 2005/08/20 00:00:26 rkh Exp $
+# $Id: Makefile,v 1.12 2005/09/13 15:05:16 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
 # Genentech's internal GenenGenes/SST.
 
-
-ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq geneseq
-
-default all: $(addsuffix .load,${ORIGINS})
-# 'make GenenGenes.load' manually on geneland
 
 include ../common.mk
 include ../local.mk
@@ -19,8 +14,18 @@ _D:=$(shell mkdir -p data geneseq)
 vpath %.fa .
 
 
+ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq geneseq
+
+default all: $(addsuffix .load,${ORIGINS})
+	########################################################################
+	##   REMINDER: you must make GenenGenes.load manually on geneland     ##
+	##   (if you're Reece, that is)                                       ##
+	########################################################################
+
+
+
+
 ## ENSEMBL
-ENSEMBL_DIR:=/gne/compbio/share/ensembl
 ENSEMBL_SPECIES:=chimp fly human mouse rat zebrafish
 .PHONY: ensembl.load
 ensembl.load: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load)
@@ -35,33 +40,25 @@ ensembl-%.load:
 	/bin/mv -f $@.err $@
 
 
-## UNIPROT LOADING
-uniprot: uniprot_sprot.load uniprot_trembl.load 
-uniprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
-	gzip -cdq $< | time -p load-pseq --verbose -oUniprot -fswiss - >$@.err 2>&1
+## HUGE & ROUGE
+huge.load: %.load: ${HUGE_DIR}/peplib.kiaa2038.tfa
+	time -p load-pseq -t9606 --verbose -oHUGE -ffasta $< >$@.err 2>&1
 	/bin/mv -f $@.err $@
-uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
-	gzip -cdq $< | time -p load-pseq --verbose -oUniprot/TrEMBL -fswiss - >$@.err 2>&1
+rouge.load: %.load: ${ROUGE_DIR}/peplib_050401
+	time -p load-pseq -t10090 --verbose -oROUGE -ffasta $< >$@.err 2>&1
 	/bin/mv -f $@.err $@
-#UNIPROT_URL:=ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete
-#data/uniprot_sprot.dat.gz data/uniprot_trembl.dat.gz:
-#	wget -O"$@.tmp" ${UNIPROT_URL}/${@F}
-#	/bin/mv "$@.tmp" "$@"
 
 
 ## PDB
-PDBDIR=/gne/compbio/share/pdb/divided.pdb
 PDB.load:
-	(time -p find ${PDBDIR} -type f -name \*.pdb \
+	(time -p find ${PDB_DIR} -type f -name \*.pdb \
 	| pdb2fa 2>/dev/null \
 	| load-pseq --verbose -oPDB -ffasta - ) >$@.err 2>&1 2>&1 
 	/bin/mv -f $@.err $@
 
 
 ## REFSEQ
-REFSEQ_DIR:=/gne/compbio/share/refseq
-#refseq.load: $(foreach N,$(shell perl -le 'print $$_ for 1..59' | grep -v ^40),refseq/complete$N.log)
-RCPs:=$(wildcard /gne/compbio/share/refseq/complete[0-9]*gpff.gz)
+RCPs:=$(wildcard ${REFSEQ_DIR}/complete[0-9]*gpff.gz)
 RCPs:=$(subst ${REFSEQ_DIR}/,refseq/,${RCPs})
 RCPs:=$(subst .protein.gpff.gz,.load,${RCPs})
 refseq.load: ${RCPs}
@@ -71,8 +68,24 @@ refseq/%.load: ${REFSEQ_DIR}/%.protein.gpff.gz
 	/bin/mv -f $@.err $@
 
 
+## UNIPROT LOADING
+uniprot: uniprot_sprot.load uniprot_trembl.load 
+uniprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
+	gzip -cdq $< | time -p load-pseq --verbose -oUniprot -fswiss - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
+	gzip -cdq $< | time -p load-pseq --verbose -oUniprot/TrEMBL -fswiss - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+
+
+
+
+########################################################################
+## PROPRIETARY SOURCES FOLLOW
+########################################################################
+
+
 ## DERWENT/GENESEQ
-GENESEQ_DIR:=/gne/compbio/share/geneseq
 GENESEQs:=$(notdir $(wildcard ${GENESEQ_DIR}/GENESEQP*.tar.gz) $(wildcard ${GENESEQ_DIR}/AA-GENESEQ*))
 .PHONY: geneseq.load
 geneseq.load: $(addprefix geneseq/, $(addsuffix .load,${GENESEQs}))
