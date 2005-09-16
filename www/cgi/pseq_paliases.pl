@@ -14,16 +14,17 @@ use Unison::WWW::utilities qw(alias_link text_wrap);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.16 2005/07/18 20:44:34 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.17 2005/07/18 20:56:24 rkh Exp $ ');
 
 my $sql = <<EOSQL;
-SELECT	origin,alias,descr
-FROM	v_current_annotations
-WHERE	pseq_id=$v->{pseq_id} AND porigin_id!=porigin_id('geneseq')
+SELECT	origin,alias,latin as species,descr
+ FROM	v_current_annotations A
+ JOIN	tax.spspec T on A.tax_id=T.tax_id
+WHERE	pseq_id=$v->{pseq_id} AND porigin_id!=porigin_id('Geneseq')
 EOSQL
 
 my $ar = $u->selectall_arrayref($sql);
-my @f = qw( origin alias description );
+my @f = qw( origin alias species description );
 
 do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
 
