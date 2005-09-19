@@ -6,8 +6,8 @@ my $usage = <<'EOU';
 # PURPOSE: run propsect with various options
 # USAGE: gne_prospect OPTIONS <seq file>
 # OPTIONS:
-#   --global      |-g:   global alignment mode (default)
-#   --global_local|-gl:  global-local alignment mode
+#   --global      |  :   global alignment mode (default)
+#   --global_local|  :   global-local alignment mode
 #   --psiblast    |-b:   use profile information in threading
 #   --psipred     |-p:   use Psired secondary structure in threading
 #   --db          |-d:   blast database (psiblast)
@@ -20,7 +20,7 @@ my $usage = <<'EOU';
 #   --save        |-x:   output in XML format. Creates a .xml file
 #   --3d                 create backbone coordinates of sequences
 #   --help               this output
-# $Id: gne_prospect,v 1.2 2005/09/08 20:11:12 mukhyala Exp $
+# $Id: gne_prospect,v 1.3 2005/09/08 20:18:12 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -77,13 +77,17 @@ GetOptions( \%opts,
 my $opts=\%opts;
 die("\n$usage\n") if ($opts{help});
 
+$opts->{db} = 'nr' unless(defined($opts->{db}));
 
-foreach my $e('BLASTPGP_EXE', 'BLASTPGP_DB', 'PSIPRED_PATH') {
-  unless (defined($ENV{$e}) and (defined($opts{psiblast}) or defined($opts{psipred}))) {
+$ENV{BLASTPGP_DB} = $opts->{db} if (not defined $ENV{BLASTPGP_DB});
+$ENV{BLASTPGP_EXE} = '/gne/compbio/i686-linux-2.6/opt/blast/bin/blastpgp'  if (not defined $ENV{BLASTPGP_DB});
+
+foreach my $e('PSIPRED_PATH') {
+  if (($opts{psiblast} or $opts{psipred}) and not defined($ENV{$e})) {
     die("$0: $e not defined\n");
   }
 }
-$opts->{db} = 'nr' unless(defined($opts->{db}));
+
 
 my $temproot = $ENV{TMPDIR} || '/tmp/';
 unshift(@PATH, $ENV{PSIPRED_PATH});
