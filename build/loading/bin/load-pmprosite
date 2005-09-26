@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use CBT::Prosite::DB;
+
+my $dbfn = shift;
+defined $dbfn
+  || die("usage: $0 <prosite.dat>\n");
+my $db = new CBT::Prosite::DB;
+$db->open("$dbfn")
+  || die("$dbfn: $!\n");
+
+my $n = 0;
+foreach my $ac (sort $db->keys()) {
+  my($r);
+  (defined ($r = $db->read_parse_record($ac)) )
+    || die("$ac: couldn't read record\n");
+  print("$ac: $r->{PA}\n");
+exit if ++$n == 10;
+}
