@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.13 2005/08/16 20:11:46 rkh Exp $
+## $Id: common.mk,v 1.14 2005/09/13 15:05:14 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -7,10 +7,15 @@
 
 SHELL:=/bin/bash
 
-PSQL:=psql -Uunison
+PSQL:=psql
 PSQL_VCMD:=${PSQL} -c
 PSQL_DCMD:=${PSQL} -At -c
-CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
+
+# default PGUSER; overridden by -U in places
+PGUSER:=unison
+export PGUSER
+
+#CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
 
 
 # Calling Makefiles are expected to define a 'default' rule This rule
@@ -128,7 +133,8 @@ qsub/%:
 	fi
 	@mkdir -p "${@D}"
 	@N="${SUBDIR}/`basename '$(basename $*)'`"; \
-	echo "make -C${PWD} $*" | ${QSUB} -N$$N >$@.tmp
+	if [ "$${#N}" -gt "15" ]; then N=$${N:$${#N}-15:15}; fi; \
+	echo "make -C${PWD} $*" | ${QSUB} -N"$$N" >$@.tmp
 	@/bin/mv -f $@.tmp $@
 	@echo "make -C${PWD} $*": `cat $@`
 
