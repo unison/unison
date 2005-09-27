@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.16 2005/09/11 00:29:55 rkh Exp $
+# $Id: run-pahmm,v 1.17 2005/09/13 17:09:17 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -184,6 +184,7 @@ sub run_and_load ($$) {
   RETRY:
 	try {
 	  $u->begin_work();
+	  $result->rewind if($nretr > 0);
 	  while( my $hit = $result->next_hit ) {
 		$nhits++;
 		my $acc = $hit->name();
@@ -192,6 +193,7 @@ sub run_and_load ($$) {
 		  die("\n! couldn't look up a pmodel_id for $acc in origin $opts{model_porigin_id}!\n");
 		}
 
+		$hit->rewind if($nretr > 0);
 		while( my $hsp = $hit->next_hsp ) {
 		  $nhsps++;
 		  my @data = ($opts{params_id}, 
