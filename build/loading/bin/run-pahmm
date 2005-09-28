@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.17 2005/09/13 17:09:17 rkh Exp $
+# $Id: run-pahmm,v 1.18 2005/09/27 17:39:56 mukhyala Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -171,17 +171,17 @@ sub run_and_load ($$) {
 							 -fh => $hmmerpipe);
 
   while( my $result = $in->next_result ) {	# "result" is a query sequence
-	my $nhits = 0;
-	my $nhsps = 0;
-	my $nretr = 0;
-
 	my ($pseq_id) = $result->query_name() =~ m/Unison:(\d+)/;
 	(defined $pseq_id)
 	  || die("couldn't parse pseq_id from hmmer results\n");
 
 	$rl_seqs++;
 
+	my $nretr = 0;
+
   RETRY:
+	my $nhits = 0;
+	my $nhsps = 0;
 	try {
 	  $u->begin_work();
 	  $result->rewind if($nretr > 0);
@@ -206,10 +206,13 @@ sub run_and_load ($$) {
 		  $pahmm_sth->execute(@data);
 		}
 	  }
-	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{model_porigin_id},$opts{pmodelset_id});
+	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},
+									$opts{model_porigin_id},$opts{pmodelset_id});
 	  $u->commit();
 
-	  printf(STDERR "Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed $z\n");
+	  print(STDERR "# Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed $z",
+			($nretr>0 ? '; deadlock resolved' : ''),
+			"\n");
 	  $rl_hits += $nhits;
 	  $rl_hsps += $nhsps;
 	  $rl_retr += $nretr;
@@ -220,7 +223,7 @@ sub run_and_load ($$) {
 	  if ("$e" =~ m/deadlock detected/) {
 		$u->rollback();
 		$nretr++;
-		warn("\n$e\n# Unison:$pseq_id load failed; retrying ($nretr)...\n");
+		warn("\n$e! Unison:$pseq_id loading deadlocked on HSP $nhsps; retrying ($nretr)...\n");
 		goto RETRY;
 	  } elsif ("$e" =~ m/duplicate key/ or "$e" =~ m/(?:over|under)flow/) {
 		$u->rollback();
