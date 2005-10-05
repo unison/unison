@@ -58,9 +58,14 @@ Datum pg_clean_sequence(PG_FUNCTION_ARGS)
    in: char*, length
    out: char*, |out|<=length, NULL-TERMINATED
    out is palloc'd memory; caller must free
+
+   allow chars from IUPAC std 20
+   + selenocysteine (U) + ambiguity (BZX) + gap (-) + stop (*)
 */
 
-#define isseq(c) ( ((c)>='A' && (c)<='Z') || ((c)=='-') || ((c)=='?') )
+#define isseq(c) ( ((c)>='A' && (c)<='Z' && (c)!='J' && (c)!='O') \
+				   || ((c)=='-') \
+				   || ((c)=='*') )
 
 char* clean_sequence(const char* in, int32 n) {
   char* out;
