@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.20 2005/05/11 21:53:40 rkh Exp $
+# $Id: get-seq,v 1.21 2005/09/13 15:04:11 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.20 2005/05/11 21:53:40 rkh Exp $>
+S<$Id: get-seq,v 1.21 2005/09/13 15:04:11 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ sub map_args_to_pseq_ids($@);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.20 2005/05/11 21:53:40 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.21 2005/09/13 15:04:11 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -58,6 +58,14 @@ if ( $opts{help} ) {
 my $u = new Unison();
 (defined $u)
   || die( "! couldn't open a connection to unison\n" );
+
+
+if ($opts{'select-all'}) {
+  my ($e) = $u->selectrow_array('select max(pseq_id) from pseq');
+  for (my $q=1; $q<=$e; $q++) {
+	process1($q);
+  }
+}
 
 
 # args from command line or stdin, but not both
@@ -82,6 +90,7 @@ sub parse_options() {
   my %opts = 
 	(
 	 # how to select sequences
+	 'all' => 0,
 	 'select-by-alias' => 0,
 	 'select-by-alias-fuzzy' => 0,
 	 'select-by-porigin' => 0,
@@ -104,6 +113,7 @@ sub parse_options() {
   my @opts;
 
   GetOptions( \%opts,
+			  'select-all|all',
 			  'select-by-alias|A+',
 			  'select-by-alias-fuzzy|F+',
 			  'select-by-porigin|porigin|origin|O+',
@@ -122,7 +132,7 @@ sub parse_options() {
 	|| die("$0: you got usage issues, homey\n");
 
 
-  @opts = qw(select-by-alias select-by-alias-fuzzy
+  @opts = qw(select-all select-by-alias select-by-alias-fuzzy
 			 select-by-pset select-by-porigin select-by-unison-id);
   $optsum = eval join('+', map {$opts{$_}} @opts);
   if ($optsum == 0) {
@@ -149,12 +159,12 @@ sub map_args_to_pseq_ids($@) {
   # args may be origins, porigin_ids, set names, pset_ids, aliases, or
   # unison_ids, or unison_id ranges. 
   # These all need to be reduced to enumerated unison_ids.  Although this
-  # is mild wasteful space-wise, it's not so bad in practice.
+  # is terribly inelegant, it's not so bad in practice.
 
   my $or = shift;
   my @pseq_ids;
 
-  if ($or->{'select-by-unison-id'}) {
+if ($or->{'select-by-unison-id'}) {
 	# expand ranges like 1..5 to (1,2,3,4,5)
 	if (my @bad = grep {not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/} @_) {
 	  die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");

@@ -59,7 +59,7 @@ Interface</a> modules for perl.
 EOT
 }
 
-my @ps = $u->get_params_info_by_pftype('prospect2');
+my @ps = $u->get_params_info_by_pftype('prospect');
 my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 
 $v->{params_id} = 1 unless defined $v->{params_id};
@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect2.pl,v 1.30 2005/07/22 22:10:50 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.31 2005/07/25 22:15:33 rkh Exp $ ');
 
 
 my @cols;
@@ -92,12 +92,12 @@ my $sc = $sort_col{$v->{sort}};
 # construct query
 $sql->columns('*')
   ->distinct($sc,($sc eq 'acc'?'':'acc,').'clid,cfid,sfid,dmid')
-  ->table('v_paprospect2_scop')
+  ->table('v_paprospect_scop')
   ->where("pseq_id=$v->{pseq_id} AND params_id=$v->{params_id}")
   ->order($ob,($sc eq 'acc'?'':'acc,').'clid,cfid,sfid,dmid');
 if (defined $v->{pmodelset_id}
 	and $v->{pmodelset_id} !~ m/\D/) {
-  $sql->where("pmodel_id in (select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{pmodelset_id})");
+  $sql->where("pmodel_id in (select pmodel_id from pmsm_prospect where pmodelset_id=$v->{pmodelset_id})");
 }
 
 # count number of rows from query
@@ -232,7 +232,7 @@ print $p->render
   ("Prospect threading summary for Unison:$v->{pseq_id}",
    $p->best_annotation($v->{pseq_id}),
 
-   '<!-- pseq_prospect2 parameters -->',
+   '<!-- pseq_prospect parameters -->',
    $p->start_form(-method=>'GET'),
    $p->hidden('pseq_id',$v->{pseq_id}),
 

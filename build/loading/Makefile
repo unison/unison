@@ -1,11 +1,14 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.10 2005/08/20 00:00:25 rkh Exp $
+## $Id: Makefile,v 1.11 2005/09/13 15:05:14 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
 
 
 include common.mk
+include local.mk
+include params.mk
+
 
 CLEANUP_DIRS=
 

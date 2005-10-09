@@ -1,16 +1,17 @@
 include ../common.mk
 include ../local.mk
 include ../params.mk
-PARAMS_ID=17
-PSET_ID=62
-PATH:=.:${PATH}
 
 default: runC.ids done.ids runC-todo.ids runC-todo.load
 
+run:
+	make cleanest
+	make runC-todo.ids runC-todo-N20
+	make runC-todo-N20-qload
+
 %.load: %.ids
-	(time -p run-pfssp_psipred -p ${PARAMS_ID} < $<) >$@.err 2>&1;
-	/bin/mv -f $@.err $@.log; touch $@
+	(PATH=.:${PATH} time -p run-pfssp_psipred -p ${PFSSP_PSIPRED_PARAMS_ID} < $<) >$@.err 2>&1
+	/bin/mv -f $@.err $@
 
 .done.ids:
-	psql -Atc 'select pseq_id from run_history where params_id=${PARAMS_ID}' >$@.tmp
-	/bin/mv -f $@.tmp $@
+	psql -Atc 'select pseq_id from run_history where params_id=${PFSSP_PSIPRED_PARAMS_ID}' >$@

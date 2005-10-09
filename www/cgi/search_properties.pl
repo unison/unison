@@ -20,12 +20,12 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_properties.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_properties.pl,v 1.12 2005/08/08 21:48:06 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_by_properties.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.12 2005/08/08 21:48:06 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Gnarly searches may take several minutes!'),
 				   spit_form($p));
@@ -82,17 +82,17 @@ if (exists $v->{al_papssm}) {
 	->where("PM.pmodelset_id=$v->{al_ms_sel}");
 }
 
-if (exists $v->{al_prospect2}) {
-  my @models = map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect2 where pmodelset_id=$v->{al_ms_sel}" ) };
+if (exists $v->{al_prospect}) {
+  my @models = map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect where pmodelset_id=$v->{al_ms_sel}" ) };
   @models = sort { $a<=>$b } @models;
-  $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
-	->where("T.svm>=$v->{al_prospect2_svm}::real")
-	->where("T.params_id=$v->{al_prospect2_params_id}")
+  $s_sql->join('paprospect T on A.pseq_id=T.pseq_id')
+	->where("T.svm>=$v->{al_prospect_svm}::real")
+	->where("T.params_id=$v->{al_prospect_params_id}")
 	->where('T.pmodel_id in (' . join(',',@models) . ')');
 
-#  $s_sql->join('paprospect2 T on A.pseq_id=T.pseq_id')
-#	->where("T.svm>=$v->{al_prospect2_svm}::real")
-#	->join('pmsm_prospect2 PT on T.pmodel_id=PT.pmodel_id')
+#  $s_sql->join('paprospect T on A.pseq_id=T.pseq_id')
+#	->where("T.svm>=$v->{al_prospect_svm}::real")
+#	->join('pmsm_prospect PT on T.pmodel_id=PT.pmodel_id')
 #	->where("PT.pmodelset_id=$v->{al_ms_sel}");
 }
 
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $',
+				 '$Id: search_by_properties.pl,v 1.12 2005/08/08 21:48:06 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
@@ -221,15 +221,15 @@ sub spit_form {
 					  -values => [qw(1e-40 1e-30 1e-20 1e-10 1 5 10)],
 					  -default => '1e-10'),
 	   '<br>',
-	   $p->checkbox(-name => 'al_prospect2',
-					-label => 'by Prospect2 Profile-Profile/Threading ',
+	   $p->checkbox(-name => 'al_prospect',
+					-label => 'by Prospect Profile-Profile/Threading ',
 					-checked => 1),
 	   ' with svm >= ',
-	   $p->popup_menu(-name => 'al_prospect2_svm',
+	   $p->popup_menu(-name => 'al_prospect_svm',
 					  -values => [qw(13 12 11 10 9 8 7 6 5)],
 					  -default => '9'),
 	   ' using parameter set ',
-	   $p->popup_menu(-name => 'al_prospect2_params_id',
+	   $p->popup_menu(-name => 'al_prospect_params_id',
 					  -values => [qw(1)],
 					  -default => '1'),
 	   '<hr>',

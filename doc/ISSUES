@@ -3,7 +3,12 @@
 http://www.geneontology.org/external2go/
 
 * TO-DO AT NEXT BACKUP/RESTORE:
-These are items which can only be dealt with in a backup/restore cycle.
+These are items which can only/best be dealt with in a backup/restore cycle.
+
+** prospect2/prospect
+
+** reorder cols in porigin, others?
+
 
 
 * IMPORTANT:
@@ -53,8 +58,10 @@ URLs are stored in the porigin table, but they're not used by the web
 tools.  Solution: cache origin->url mapping, then use this to format. See
 U::WWW::utilities.pm.
 
-
-
+** params selection per pseq_id
+instead of selecting the most recent params by pftype_id, we should join
+this with a pseq_id's run_history so that we don't select a params_id
+which hasn't been run against.  Oops.
 
 
 BACKBURNER:

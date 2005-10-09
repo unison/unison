@@ -1,6 +1,6 @@
 #! /usr/bin/env perl
 # load-homologene -- load NCBI homologene data into Unison
-# $Id: load-homologene,v 1.2 2004/04/22 22:42:15 rkh Exp $
+# $Id: load-homologene,v 1.3 2005/10/09 09:39:30 rkh Exp $
 
 
 use warnings;
@@ -8,8 +8,6 @@ use strict;
 use Unison;
 use Unison::Exceptions;
 use Error qw(:try);
-
-my $origin = 'HomoloGene';
 
 
 ($#ARGV == 0)

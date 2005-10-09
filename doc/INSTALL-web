@@ -1,8 +1,28 @@
+postgresql:
+PUBLIC localhost okay
+
+perl deps:
+Algorithm::Cluster
+Statistics::Basic
+GD::Graph::Map
+Bioperl
+5.8.x
+
+apache:
+add hander for .pl, .sh
+allow, deny
+
+mkdir -p /srv/www/htdocs/unison/tmp
+
+
 - nph-pdb-fetch.sh
-Jmol can't fetch structures at URLs which require
-authentication. Therefore, if you're using authentication in the Unison
-cgi directory and you want to view structures, you'll need to copy
-cgi/nph-pdb-fetch.sh to your /cgi-bin/ directory, which must be accessible
-without authentication. unison/perl/Unison/Jmol.pm will detect
-authentication automatically and use ../cgi/nph-pdb-fetch.sh or
-/cgi-bin/nph-pdb-fetch.sh as appropriate.
+Jmol can't fetch structures at URLs which require authentication.
+Therefore, if you're using authentication in the cgi/ directory
+and you want to view structures, you'll need to copy
+cgi/nph-pdb-fetch.sh to your /cgi-bin/ directory, which must be
+accessible without authentication.  unison/perl/Unison/Jmol.pm will
+detect authentication automatically and use
+../cgi/nph-pdb-fetch.sh or /cgi-bin/nph-pdb-fetch.sh as
+appropriate.
+
+
