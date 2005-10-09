@@ -9,6 +9,8 @@ use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bi
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
+use Unison::SQL;
+
 
 sub meta_group($);
 sub params_group($);
@@ -40,7 +42,7 @@ sub meta_group($) {
 sub params_group($) {
   my $p = shift;
   my $u = $p->{unison};
-  my $sql = 'select name,descr,commandline from params order by name';
+  my $sql = 'select name||(case is_public when false THEN \'*\' else \'\' end) as name,descr,commandline from params order by name';
   my $sth = $u->prepare( $sql );
   my $ar = $u->selectall_arrayref($sth);
   my @cols = @{ $sth->{NAME} };
@@ -52,10 +54,21 @@ sub params_group($) {
 sub porigin_group($) {
   my $p = shift;
   my $u = $p->{unison};
-  my $sql = 'select origin,descr,ann_pref,url from porigin where ann_pref is not null order by ann_pref,origin';
-  my $sth = $u->prepare( $sql );
+  my $sql = new Unison::SQL;
+  $sql->columns('origin||(case is_public when false THEN \'*\' else \'\' end) as origin',
+				'to_char(last_updated,\'YYYY-MM-DD\') as "last updated"',
+				'descr', 'url')
+    ->table('porigin')
+	->where('ann_pref is not null')
+	->order('origin');
+  $sql->where('is_public=TRUE') if $u->is_public();
+
+  my $sth = $u->prepare( "$sql" );
   my $ar = $u->selectall_arrayref($sth);
   my @cols = @{ $sth->{NAME} };
+  for (my $i=0; $i<=$#$ar; $i++) {
+	$ar->[$i][3] = "<a href=\"$ar->[$i][3]\">$ar->[$i][3]</a>" if defined $ar->[$i][3];
+  }
   return $p->group("Data Sources",
 				   Unison::WWW::Table::render(\@cols,$ar));
 }

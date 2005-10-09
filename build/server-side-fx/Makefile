@@ -2,9 +2,9 @@
 
 I=-I$(shell pg_config --includedir)/server
 
-DEST_DIR=$(shell pg_config --pkglibdir)
-#PGDATA=/srv/postgresql
-#DEST_DIR=${PGDATA}/lib
+#DEST_DIR=$(shell pg_config --pkglibdir)
+PGDATA=/srv/postgresql
+DEST_DIR=${PGDATA}/lib
 
 unison.so: unison.c
 	gcc -shared -Wall  ${I} -o $@ -O2 -fpic $<

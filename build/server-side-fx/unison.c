@@ -54,7 +54,10 @@ Datum pg_clean_sequence(PG_FUNCTION_ARGS)
   }
 
 
-/* clean_sequence -- strip whitespace
+/* clean_sequence -- strip non-IUPAC symbols
+   The intent is to strip whitespace and numbers which might result from
+   copy-pasting a fasta file, or some such.
+
    in: char*, length
    out: char*, |out|<=length, NULL-TERMINATED
    out is palloc'd memory; caller must free

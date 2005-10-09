@@ -1,17 +1,23 @@
 ## params.mk -- Unison loading configuration and options
-## $Id$
+## $Id: params.mk,v 1.1 2005/09/13 17:15:03 rkh Exp $
+
 
 
 ############################################################################
 #### PSEQ
-UNIPROT_DIR=${COMPBIO_PREFIX}/share/uniprot
+ENSEMBL_DIR:=${COMPBIO_PREFIX}/share/ensembl
+PDB_DIR=${COMPBIO_PREFIX}/share/pdb/divided.pdb
+REFSEQ_DIR:=${COMPBIO_PREFIX}/share/refseq
+GENESEQ_DIR:=${COMPBIO_PREFIX}/share/geneseq
+KAZUSA_DIR:=${COMPBIO_PREFIX}/share/mirrors/zearth.kazusa.or.jp/pub
+HUGE_DIR:=${KAZUSA_DIR}/huge
+ROUGE_DIR:=${KAZUSA_DIR}/rouge
 
 
 ############################################################################
 #### PMHMM/PAHMM
-PFAM_DIR=${COMPBIO_PREFIX}/share/pfam-18.0
 PAHMM_PARAMS_ID:=26
-
+PAHMM_PORIGIN_ID:=$(shell ${PSQL} -UPUBLIC -Atc 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
 
 ############################################################################
 #### PFREGEXP
@@ -24,3 +30,18 @@ ITxM_PMODELSET_ID:=11
 PSPROTCOMP_PARAMS_ID:=20
 PSPROTCOMP_SEQS_PER_RUN:=25
 
+
+############################################################################
+#### PAPROSPECT
+PAPROSPECT_PARAMS_ID:=1
+PAPROSPECT_PMODELSET_ID:=10
+
+
+############################################################################
+#### PFSSP_PSIPRED
+PFSSP_PSIPRED_PARAMS_ID=17
+
+
+############################################################################
+#### PFBIGPI
+PFBIGPI_PARAMS_ID:=19

@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.10 2005/07/18 20:56:23 rkh Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -18,7 +18,7 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: compare_methods.pl,v 1.10 2005/07/18 20:56:23 rkh Exp $ ');
+$p->add_footer_lines('$Id: compare_methods.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Prospect threadings not available.', <<EOT);
@@ -82,7 +82,7 @@ sub main {
     my %cs = map { $_->[0] => "$_->[1] (set $_->[0])" } @controls;
 
     #get params
-    my @params = $u->get_params_info_by_pftype('prospect2');
+    my @params = $u->get_params_info_by_pftype('prospect');
     my %params = map { $_->[0] => $_->[1] } @params;
 
     _render_page(\%ms,\@models,\%cs,\@controls,\%params,\@params);

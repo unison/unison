@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.14 2005/09/13 15:05:14 rkh Exp $
+## $Id: common.mk,v 1.15 2005/09/27 23:39:13 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -125,6 +125,7 @@ ids: runA.ids runB.ids runC.ids
 # make -n ensures that the target is legit and that make
 # can figure out how to build it
 SUBDIR:=$(shell basename ${PWD} | tr -d _)
+QNAME:=${SUBDIR}
 qsub/%:
 	@mkdir -p ${@D}
 	@if ! make -C${PWD} -n $* >/dev/null 2>/dev/null; then \
@@ -132,7 +133,7 @@ qsub/%:
 		exit 1; \
 	fi
 	@mkdir -p "${@D}"
-	@N="${SUBDIR}/`basename '$(basename $*)'`"; \
+	@N="${QNAME}/`basename '$(basename $*)'`"; \
 	if [ "$${#N}" -gt "15" ]; then N=$${N:$${#N}-15:15}; fi; \
 	echo "make -C${PWD} $*" | ${QSUB} -N"$$N" >$@.tmp
 	@/bin/mv -f $@.tmp $@

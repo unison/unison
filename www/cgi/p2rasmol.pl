@@ -19,7 +19,7 @@ use Bio::Prospect::Exceptions;
 
 
 
-my $pdbDir = '/apps/compbio/share/prospect2/pdb';
+my $pdbDir = '/apps/compbio/share/prospect/pdb';
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};

@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.7 2005/07/28 04:34:45 rkh Exp $
+# $Id: cgi-test.pl,v 1.8 2005/07/28 18:29:59 mukhyala Exp $
 
 use warnings;
 use strict;
@@ -20,7 +20,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.7 2005/07/28 04:34:45 rkh Exp $
+# $Id: cgi-test.pl,v 1.8 2005/07/28 18:29:59 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -98,16 +98,16 @@ my @cgi_scripts =
    ['../pseq_notes.pl',"pseq_id=231"],
    ['../pseq_pahmm.pl',"pseq_id=$pseq_id"],
    ['../pseq_paliases.pl',"pseq_id=$pseq_id"],
-   ['../pseq_paprospect2.pl',"pseq_id=$pseq_id"],
+   ['../pseq_paprospect.pl',"pseq_id=$pseq_id"],
    ['../pseq_papssm.pl',"pseq_id=$pseq_id"],
    ['../pseq_patents.pl',"pseq_id=$pseq_id"],
    ['../pseq_structure.pl',"pseq_id=870 userfeatures=mysnp\@931 highlight=user:mysnp:cyan,HMM:Furin-like:blue"],
    ['../emb_pseq_structure.pl',"pseq_id=98 userfeatures=Estrand\@164-174,mysnp\@170 highlight=user:Estrand:green,user:mysnp:cyan,HMM:TNF:blue"],
    ['../pseq_summary.pl',"pseq_id=$pseq_id"],
    ['../search_by_alias.pl',"alias=EGFR_HUMAN"],
-   ['../search_by_properties.pl',"o_sel=RefSeq r_species=on r_species_sel=9606 r_age_sel=30d r_len=on r_len_min=100 r_len_max=400 r_sigp=on r_sigp_sel=0.6 al_hmm_eval=1e-10 al_pssm_eval=1e-10 al_prospect2=on al_prospect2_svm=9 al_prospect2_params_id=1 al_ms_sel=2 al_go_sel=5164 x_set_sel=5 submit=vroom"],
+   ['../search_by_properties.pl',"o_sel=RefSeq r_species=on r_species_sel=9606 r_age_sel=30d r_len=on r_len_min=100 r_len_max=400 r_sigp=on r_sigp_sel=0.6 al_hmm_eval=1e-10 al_pssm_eval=1e-10 al_prospect=on al_prospect_svm=9 al_prospect_params_id=1 al_ms_sel=2 al_go_sel=5164 x_set_sel=5 submit=vroom"],
    ['../search_framework.pl'],
-   ['../search_sets.pl',"ubmit=vroom pset_id=5 pmodelset_id=3 hmm=on hmm_params_id=15 hmm_eval=1e-10 pssm=on pssm_params_id=8 pssm_eval=1e-10 prospect2=on prospect2_params_id=1 prospect2_svm=12"],
+   ['../search_sets.pl',"ubmit=vroom pset_id=5 pmodelset_id=3 hmm=on hmm_params_id=15 hmm_eval=1e-10 pssm=on pssm_params_id=8 pssm_eval=1e-10 prospect=on prospect_params_id=1 prospect_svm=12"],
   );
 
 # testing
@@ -123,7 +123,7 @@ my %dir_scripts = map {$_=>1} grep {not m%(?:CVS|t|~)$%} glob('./* ../*');
 my @badwords = ('Server Error', 'Object not found', 'DBIError', 'Exception', 'Error');
 my $npassed =  0;
 
-print('$Id: cgi-test.pl,v 1.7 2005/07/28 04:34:45 rkh Exp $ ', "\n\n");
+print('$Id: cgi-test.pl,v 1.8 2005/07/28 18:29:59 mukhyala Exp $ ', "\n\n");
 
 printf("%-30.30s\tstatus\t%7s\tmessage\n",'script','time');
 print('='x76,"\n");

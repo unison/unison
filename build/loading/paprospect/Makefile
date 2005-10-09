@@ -1,19 +1,18 @@
 include ../common.mk
 include ../local.mk
 include ../params.mk
-PARAMS_ID:=1
-PMODELSET_ID:=10
-export PROSPECT_PATH:=/gne/compbio/i686-linux-2.6/opt/prospect
 
 default: runA.ids done.ids runA-todo.ids runA-todo.load
 
-%.load: %-M${PMODELSET_ID}.load;
-%-M${PMODELSET_ID}.load: %.ids
-	(time -p xargs -n10 <$< run-paprospect2 -p${PARAMS_ID} -M${PMODELSET_ID}) >$@.err 2>&1 \
-	&& /bin/mv -f $@.err $@.log && touch $@
+run:
+	make cleanest
+	make done.ids runA-todo.ids runA-todo-N5
+	make runA-todo-N5-qload
+
+%.load: %-M${PAPROSPECT_PMODELSET_ID}.load;
+%-M${PAPROSPECT_PMODELSET_ID}.load: %.ids
+	(time -p xargs -n10 <$< run-paprospect2 -p${PAPROSPECT_PARAMS_ID} -M${PAPROSPECT_PMODELSET_ID}) >$@.err 2>&1
+	/bin/mv -f $@.err $@
 
 .done.ids:
-	psql -Atc 'select pseq_id from run_history where params_id=1 and pmodelset_id=10' >$@.tmp
-	/bin/mv -f $@.tmp $@
-
-
+	psql -Atc 'select pseq_id from run_history where params_id=${PAPROSPECT_PARAMS_ID} and pmodelset_id=${PAPROSPECT_PMODELSET_ID}' >$@

@@ -1,8 +1,21 @@
--- $Id: best_annotation.sql,v 1.7 2003/09/30 22:50:02 cavs Exp $
+-- $Id: best_annotation-2.sql,v 1.1 2005/04/04 18:18:09 rkh Exp $
 
 -- NOTE: the sort by strpos(alias,...) bits below guarantee that
 -- Swiss-Prot/UniProt ids (TNFA_HUMAN) sort before the accessions
 -- (P01234), which have the same ann_pref.
+
+
+-- goals
+-- * A -> q, O:A->q, 
+
+
+
+
+
+
+
+
+
 
 
 create or replace view unison.v_all_annotations as 

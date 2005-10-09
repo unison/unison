@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.61 2005/09/13 17:25:44 rkh Exp $>
+S<$Id: Page.pm,v 1.62 2005/09/22 00:06:29 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -871,19 +871,37 @@ sub _navbar {
 	  ['Prefs',			'User Prefs', 						'about_prefs.pl'],
 	 ],
 
-	 [	# Sequence menu
-	  ['Protein Analysis', 'display precomputed analyses for a single sequence'],
+	 [	# Search menu
+	  ['Search', 		'search for sequences which match criteria' ],
+	  ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
+	  ['By Properties',	'mine for sequences based on properties', 'search_by_properties.pl'],
+	  ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
+# XXX: @GNE only:
+#	  ['Framework',    	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
+	 ],
+
+	 [	# Browse menu
+	  ['Browse', 		'browse curated sets of sequences (unimplemented)'],
+	  ['Sets', 			'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
+	  ['Views', 		'browse dynamic queries of protein sequences', 'browse_views.pl'],
+	  # ['SCOP', undef, 'browse_scop.pl'],
+	  # ['Origins', undef, 'browse_origins.pl']
+	 ],
+
+	 [	# Analyze menu
+	  ['Analyze', 		'display precomputed analyses for a single sequence'],
 	  ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	  ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	  ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
 	  ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
 	  ['Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
+# XXX: RETIRED
 # BLAST results are incomplete. This will be replaced by PSI-BLAST in the
 # near future.
 #	  ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	  ['Prospect2', 	'Prospect2 threadings', 			'pseq_paprospect2.pl', $pseq_id],
+	  ['Prospect',	 	'Prospect2 threadings', 			'pseq_paprospect.pl', $pseq_id],
 	  ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
-# PSSM alignments are not maintained. To reappear, perhaps.
+# XXX: PSSM alignments are not maintained. To reappear, perhaps.
 #	  ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	  ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
 	  ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
@@ -891,35 +909,15 @@ sub _navbar {
 	  ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	 ],
 
-	 [	# Browse menu
-	  ['Browse', 'browse curated sets of sequences (unimplemented)'],
-	  ['Sets', 'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
-	  ['Views', 'browse dynamic queries of protein sequences', 'browse_views.pl'],
-	  # ['SCOP', undef, 'browse_scop.pl'],
-	  # ['Origins', undef, 'browse_origins.pl']
-	 ],
-
-	 [	# Search menu
-	  ['Search', 		'search for sequences which match criteria' ],
-	  ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
-	  ['By Properties',	'mine for sequences based on properties', 'search_by_properties.pl'],
-	  ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
-	  ['Framework',    	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
-	 ],
-
-	 [	# Assess menu
-	  ['Assess', 		'compare sequence sets and analysis methods'],
-	  ['Scores', 		'compare scoring systems',			'compare_scores.pl'],
-	  ['Methods', 		'compare threading methods',		'compare_methods.pl'],
-	 ],
+# XXX: not maintained
+#	 [	# Assess menu
+#	  ['Assess', 		'compare sequence sets and analysis methods'],
+#	  ['Scores', 		'compare scoring systems',			'compare_scores.pl'],
+#	  ['Methods', 		'compare threading methods',		'compare_methods.pl'],
+#	 ],
 
 	  # empty list forces right-justification of subsequent menus
 	  #[ [ '' ]  ],
-
-	  #[
-	  # ['Help', 		'Help using Unison'],
-	  # ['Tips',			'Tips', 						'about_prefs.pl'],
-	  #],
 
 	  #[ # run menu
 	  # ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
