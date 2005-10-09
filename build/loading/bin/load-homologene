@@ -1,11 +1,7 @@
 #! /usr/bin/env perl
+# load-homologene -- load NCBI homologene data into Unison
+# $Id: load-homologene,v 1.2 2004/04/22 22:42:15 rkh Exp $
 
-#-------------------------------------------------------------------------------
-# NAME: load-homologene
-# PURPOSE: script to parse homologene data files and load the homologene table
-#
-# $Id: load-homologene,v 1.1 2004/04/13 23:21:51 cavs Exp $
-#-------------------------------------------------------------------------------
 
 use warnings;
 use strict;
@@ -13,15 +9,23 @@ use Unison;
 use Unison::Exceptions;
 use Error qw(:try);
 
+my $origin = 'HomoloGene';
+
+
+($#ARGV == 0)
+  || die( "USAGE: load-homologene homologene.data\n" );
+
+my @cols = qw(hid tax_id gene_id gene_symbol gi acc pseq_id);
+
 my $u = new Unison();
-my $sql = 'insert into homologene (hid,tax_id,gene_id,gene_symbol,gi,acc,pseq_id) ' .
-	'values (?,?,?,?,?,?,?)';
-(my $sqlf = $sql) =~ s/\?/%s/g;
-$sqlf .= "\n";
-my $sth = $u->prepare( 'insert into homologene ' .
-	'(hid,tax_id,gene_id,gene_symbol,gi,acc,pseq_id) values ' .
-	'(?,?,?,?,?,?,?)' );
-die( "USAGE: load-homologene homologene.data\n" ) if $#ARGV!=0;
+my $sql = sprintf('insert into homologene (%s) values (%s)',
+				  join(',', @cols),
+				  join(',', map {'?'} 0..$#cols));
+my $sth = $u->prepare( $sql );
+
+
+$u->begin();
+$u->do('truncate unison.homologene');
 
 my ($seen,$skipped,$loaded) = (0,0,0);
 open(FP,$ARGV[0])
@@ -29,28 +33,26 @@ open(FP,$ARGV[0])
 while(<FP>) {
   $seen++;
 
-  my @fld = split;
+  my @data = split;
 
-  my @pseq_id = $u->get_pseq_id_from_alias_exact($fld[5], 'RefSeq');
+  my @pseq_id = $u->get_pseq_id_from_alias_exact($data[5], 'RefSeq');
   if ( $#pseq_id < 0 ) {
 	# no match - skip
-	warn("! get_pseq_id_from_alias_exact($fld[5]) returned NULL; skipping\n");
+	warn("! get_pseq_id_from_alias_exact($data[5]) returned NULL; skipping\n");
 	$skipped++;
 	next;
-  } elsif ( $#pseq_id > 0 ) {
-	die("Eek! Multiple distinct pseq_ids for RefSeq $fld[5]!\n");
   }
-  push(@fld, $pseq_id[0]);
+  push(@data, $pseq_id[0]);
 
-  printf( "# $sqlf", @fld );
   try {
-	$sth->execute( @fld );
+	$sth->execute( @data );
+	$loaded++;
   } catch Unison::Exception with {
-	warn($_[0]);
-	$skipped++;
+	die($_[0]);
   };
-
-  $loaded++;
 }
+close(FP);
 
 print(STDERR "$seen seen, $loaded loaded, $skipped skipped\n");
+
+exit(0);

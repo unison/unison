@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.13 2005/08/08 21:41:12 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.14 2005/08/08 21:43:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -83,7 +83,7 @@ sub pseq_features_panel($%) {
   }
 
   if(!defined($opts{features})) {
-    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic bigpi regexp pssm hmm prospect2);
+    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic bigpi regexp pssm hmm prospect);
   }
 
   if(defined($opts{track_length})) {
@@ -124,7 +124,7 @@ sub pseq_features_panel($%) {
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
   add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
   add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{hmm});
-  add_paprospect2  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect2});
+  add_paprospect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect});
   add_pfsnp        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{snp});
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
@@ -135,7 +135,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.13 2005/08/08 21:41:12 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.14 2005/08/08 21:43:38 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -345,17 +345,17 @@ sub add_pftmdetect {
 
 
 ######################################################################
-## add_paprospect2
+## add_paprospect
 
 =pod
 
-=item B<< add_paprospect2( C<Bio::Graphics::Panel>, C<pseq_id>, C<params_id> ) >>
+=item B<< add_paprospect( C<Bio::Graphics::Panel>, C<pseq_id>, C<params_id> ) >>
 
-Add paprospect2 features to a panel and return the number of features added.
+Add paprospect features to a panel and return the number of features added.
 
 =cut
 
-sub add_paprospect2 {
+sub add_paprospect {
   my ($u, $panel, $q, $params_id) = @_;
   my ($svm_thr,$topN) = (7,5);
   my $params_name;
@@ -363,7 +363,7 @@ sub add_paprospect2 {
   $params_id = 1 unless defined $params_id;
   $params_name = $u->get_params_name_by_params_id($params_id);
   my $sth = $u->prepare(<<EOT);
-SELECT * FROM v_paprospect2_scop WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
+SELECT * FROM v_paprospect_scop WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
 EOT
   $sth->execute();
   my @raw_data;

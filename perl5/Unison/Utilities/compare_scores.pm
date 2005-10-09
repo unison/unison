@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.6 2005/06/21 22:00:16 mukhyala Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.7 2005/08/08 21:43:38 rkh Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -63,7 +63,7 @@ sub get_p2_scores($$$) {
   %params = (%params,%$v);
 
     #1
-    @ms = @{ $u->selectall_arrayref( "select m.pseq_id,m.pmodel_id from pmprospect2 m join pmsm_prospect2 s on m.pmodel_id=s.pmodel_id where s.pmodelset_id=$params{pmodelset_id}" ) };
+    @ms = @{ $u->selectall_arrayref( "select m.pseq_id,m.pmodel_id from pmprospect m join pmsm_prospect s on m.pmodel_id=s.pmodel_id where s.pmodelset_id=$params{pmodelset_id}" ) };
     my %ms = map { $_->[0] => $_->[1] } @ms;
 
     #2
@@ -80,7 +80,7 @@ sub get_p2_scores($$$) {
     #4
     if (%ms) {
       my $sql = Unison::SQL->new()
-	->table('paprospect2')
+	->table('paprospect')
 	  ->columns($score)
 	    ->columns('pmodel_id')
 	      ->columns('pseq_id')
@@ -354,7 +354,7 @@ sub get_scop_pdb($) {
   map {$$pmodel_scop{$_->[0]}{'name'}  = $_->[2]} @pm_scop;
   map {$$pmodel_scop{$_->[0]}{'descr'} = $_->[3]} @pm_scop;
 
-  my @pm_pdb = @{ $u->selectall_arrayref('select pmodel_id,acc from pmprospect2 where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
+  my @pm_pdb = @{ $u->selectall_arrayref('select pmodel_id,acc from pmprospect where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
 
   map {$$pmodel_pdb{$_->[0]} = $_->[1]} @pm_pdb;
 }

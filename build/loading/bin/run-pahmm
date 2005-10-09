@@ -1,11 +1,28 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.18 2005/09/27 17:39:56 mukhyala Exp $
+# $Id: run-pahmm,v 1.19 2005/09/28 00:43:47 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
 # - currently fetches 1, runs 1, loads 1; better to run in a pipe, or in
 # batches of sequences if that's problematic. ldhmmer will particularly
 # like this
+#
+# - nhits is misleading.  I /thought/ that this was the number of distinct
+# models, just as is shown at the top of the HMMer output.  It's not --
+# hits are only grouped if they're contiguous in sequence.  For example,
+# Unison:1021234 with Pfam_ls 18.0 gives these hsps:
+#    hit:1; hsp:1; [ 42,100] PF00047.14      0.001
+#    hit:2; hsp:2; [136,169] PF00057.8         5.2
+#    hit:3; hsp:3; [138,199] PF00047.14        1.5
+#    hit:3; hsp:4; [239,299] PF00047.14       0.86
+#    hit:4; hsp:5; [325,420] PF07686.4       0.032
+#    hit:5; hsp:6; [339,399] PF00047.14    0.00056
+# The while( next_* ) loops below give 5 (!) hits for 6 HSPs, even though
+# there are only 3 distinct models.  The HMMer output summary shows only 3
+# models of course.
+# In short: The model grouping at the top of HMMer output is NOT the same
+# as the "hit" grouping returned by the bioperl parser.
+
 
 use warnings;
 use strict;
@@ -101,9 +118,9 @@ my $totseqs = 0;
 my $tothits = 0;
 my $tothsps = 0;
 my $toterrs = 0;
-my $totretr = 0;
+my $totdlock = 0;
 
-while( @pseq_ids ) {
+while ( @pseq_ids ) {
   my (@ids) = splice(@pseq_ids,0,$opts{'seqs-per-run'});
 
   my $nseq = fetch_sequences($u,$seqfn,@ids);
@@ -111,15 +128,15 @@ while( @pseq_ids ) {
 
   print(STDERR "fetched $nseq sequences; running...\n");
 
-  my ($seqs,$hits,$hsps,$errs,$retr) = run_and_load($u,$seqfn);
+  my ($seqs,$hits,$hsps,$errs,$dlock) = run_and_load($u,$seqfn);
   $totseqs += $seqs;
   $tothits += $hits;
   $tothsps += $hsps;
   $toterrs += $errs;
-  $totretr += $retr;
+  $totdlock += $dlock;
 
   my $Ncomp = $N - ($#pseq_ids+1);
-  printf(STDERR "run-pahmm: $Ncomp/$N (%5.1f%% complete); $totseqs seqs; $tothits hits; $tothsps HSPs; $toterrs errors; $totretr retries\n",
+  printf(STDERR "run-pahmm: $Ncomp/$N (%5.1f%% complete); $totseqs seqs; $tothits hits; $tothsps HSPs; $toterrs errors; $totdlock retries\n",
 		 $Ncomp / $N * 100);
 }
 
@@ -162,7 +179,7 @@ sub run_and_load ($$) {
   my $rl_hits = 0;
   my $rl_hsps = 0;
   my $rl_errs = 0;
-  my $rl_retr = 0;
+  my $rl_dlock = 0;
 
   my $hmmerpipe = new IO::Pipe;
   $hmmerpipe->reader( @cl )
@@ -170,22 +187,22 @@ sub run_and_load ($$) {
   my $in = new Bio::SearchIO(-format => 'hmmer',
 							 -fh => $hmmerpipe);
 
-  while( my $result = $in->next_result ) {	# "result" is a query sequence
+  while ( my $result = $in->next_result ) {	# "result" is a query sequence
 	my ($pseq_id) = $result->query_name() =~ m/Unison:(\d+)/;
 	(defined $pseq_id)
 	  || die("couldn't parse pseq_id from hmmer results\n");
 
 	$rl_seqs++;
 
-	my $nretr = 0;
+	my $ndlock = 0;
 
   RETRY:
 	my $nhits = 0;
 	my $nhsps = 0;
 	try {
 	  $u->begin_work();
-	  $result->rewind if($nretr > 0);
-	  while( my $hit = $result->next_hit ) {
+	  $result->rewind if ($ndlock > 0);
+	  while ( my $hit = $result->next_hit ) {
 		$nhits++;
 		my $acc = $hit->name();
 		my $pmodel_id = get_pmodel_id($acc);
@@ -193,8 +210,8 @@ sub run_and_load ($$) {
 		  die("\n! couldn't look up a pmodel_id for $acc in origin $opts{model_porigin_id}!\n");
 		}
 
-		$hit->rewind if($nretr > 0);
-		while( my $hsp = $hit->next_hsp ) {
+		$hit->rewind if ($ndlock > 0);
+		while ( my $hsp = $hit->next_hsp ) {
 		  $nhsps++;
 		  my @data = ($opts{params_id}, 
 					  $pseq_id, $hsp->start('query'), $hsp->end('query'),
@@ -211,20 +228,26 @@ sub run_and_load ($$) {
 	  $u->commit();
 
 	  print(STDERR "# Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed $z",
-			($nretr>0 ? '; deadlock resolved' : ''),
+			($ndlock>0 ? "; deadlock resolved after $ndlock dlockies" : ''),
 			"\n");
 	  $rl_hits += $nhits;
 	  $rl_hsps += $nhsps;
-	  $rl_retr += $nretr;
+	  $rl_dlock += $ndlock;
 
 	} catch Unison::Exception with {
 
 	  my $e = $_[0];
 	  if ("$e" =~ m/deadlock detected/) {
 		$u->rollback();
-		$nretr++;
-		warn("\n$e! Unison:$pseq_id loading deadlocked on HSP $nhsps; retrying ($nretr)...\n");
-		goto RETRY;
+		$ndlock++;
+		warn("\n$e! Unison:$pseq_id: deadlock $ndlock on HSP $nhsps\n");
+		if ($ndlock < 25) {
+		  my $sleep = ( $ndlock<5 ? 0 : $ndlock<10 ? 1 : $ndlock<20 ? 10 : 2^($ndlock-15) );
+		  sleep $sleep;
+		  warn("! Unison:$pseq_id, deadlock $ndlock: resuming after sleeping $sleep seconds.\n");
+		  goto RETRY;
+		}
+		warn("! Too many deadlocks. Aborting Unison:$pseq_id.\n");
 	  } elsif ("$e" =~ m/duplicate key/ or "$e" =~ m/(?:over|under)flow/) {
 		$u->rollback();
 		$rl_errs++;
@@ -237,7 +260,7 @@ sub run_and_load ($$) {
   }											# end sequence loop
 
   $hmmerpipe->close();
-  return( $rl_seqs, $rl_hits, $rl_hsps, $rl_errs, $rl_retr );
+  return( $rl_seqs, $rl_hits, $rl_hsps, $rl_errs, $rl_dlock );
 }
 
 

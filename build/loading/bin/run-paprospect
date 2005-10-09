@@ -1,12 +1,12 @@
 #!/usr/bin/env perl
-# run-paprospect2 -- run and insert prospect threads into Unison
+# run-paprospect -- run and insert prospect threads into Unison
 # arguments: 
 #   --params_id|-p <params_id>: params_id for loading (required)
 #   --tfile|-t <template file>: file containing a list of templates (optional)
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect2,v 1.17 2005/03/22 05:44:23 rkh Exp $
+# $Id: run-paprospect,v 1.18 2005/05/11 21:53:41 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -79,9 +79,9 @@ if (defined $opts{'pmodelset_id'} or defined $opts{'porigin_id'}) {
   # given pmodelset_id and/or porigin_id, shove list of models in $opts{templates}
   my $sql = new Unison::SQL;
   $sql->columns('acc')
-	->table('pmprospect2 M');
+	->table('pmprospect M');
   if (defined $opts{pmodelset_id}) {
-	$sql->join('pmsm_prospect2 S on M.pmodel_id=S.pmodel_id')
+	$sql->join('pmsm_prospect S on M.pmodel_id=S.pmodel_id')
 	  ->where('S.pmodelset_id in (' . join(',',@{$opts{pmodelset_id}}) . ')');
   }
   if (defined $opts{porigin_id}) {
@@ -97,7 +97,7 @@ if (defined $opts{'templates'}) {
 } elsif (defined $opts{'template-file'}) {
   $po->{tfile} = $opts{'template-file'}
 } else {
-  $po->{tfile} = '/gne/compbio/share/prospect2/tfiles/all';
+  $po->{tfile} = '/gne/compbio/share/prospect/tfiles/all';
 }
 
 my $temproot = $ENV{TMPDIR} || '/tmp/';
@@ -175,7 +175,10 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 
 
 ############################################################################
-# $Log: run-paprospect2,v $
+# $Log: run-paprospect,v $
+# Revision 1.18  2005/05/11 21:53:41  rkh
+# periodic sync
+#
 # Revision 1.17  2005/03/22 05:44:23  rkh
 # updated for /gne/ and linux-2.6
 #

@@ -1,7 +1,7 @@
 =head1 NAME
 
-Unison::pmprospect2 -- Unison p2params table utilities
-S<$Id: pmprospect2.pm,v 1.3 2004/05/04 04:49:18 rkh Exp $>
+Unison::pmprospect -- Unison p2params table utilities
+S<$Id: pmprospect.pm,v 1.4 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -33,21 +33,21 @@ use warnings;
 
 
 ###############################################################################################
-## add_pmprospect2
+## add_pmprospect
 
 =pod
 
-=item B<< $u->add_pmprospect2( C<pseq_id,id,len,ncores> ) >>
+=item B<< $u->add_pmprospect( C<pseq_id,id,len,ncores> ) >>
 
 =cut
 
-sub add_pmprospect2
+sub add_pmprospect
   {
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
   my ($pseq_id,$id,$len,$ncores) = @_;
-  $self->do( "insert into pmprospect2 (pseq_id,name,len,ncores) "
+  $self->do( "insert into pmprospect (pseq_id,name,len,ncores) "
 			 . "values ($pseq_id,'$id',$len,$ncores);" );
   return;
   }
