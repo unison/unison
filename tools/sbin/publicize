@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.27 2005/07/19 04:38:31 rkh Exp $
+# $Id: publicize,v 1.28 2005/07/19 13:44:53 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -22,12 +22,32 @@ select(STDERR); $|++;						# unbuffer stderr
 select(STDOUT);
 
 my $pset_name = $ENV{PSET} || 'public';
+
+# XXX: The porigin and params now contain an is_public column. We should build
+# the arrays from this data.
 my @public_porigins = qw(Swiss-Prot UniProt UniProt/TrEMBL PDB IPI RefSeq MGC/Human MGC/Mouse Sugen);
 my @public_params_ids = qw(3 4 5 8 9 11 12 15 16 17 19 21 22);
+
+# The following tables are included without any filtering
 my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
-						   pmprospect2 pmprospect2_scop pmpssm pmregexp
-						   pmsm pmsm_pmhmm pmsm_pmpssm pmsm_prospect2
+						   pmprospect pmprospect_scop pmpssm pmregexp
+						   pmsm pmsm_pmhmm pmsm_pmpssm pmsm_prospect
 						   pmsm_regexp porigin);
+
+
+die("publicize is broken. See code.\n");
+__END__
+
+# Publicize is a little broken because the origin_ids and params_ids above
+# are missing Pfam_* (and perhaps other origins/params).  These should be
+# selected by is_public instead (from which database, though?).
+# 
+# Before doing that, we should look into delete within the database.  Now
+# that I've added indexes on FK columns, this might be faster that filtering
+# the dump file.
+
+
+
 
 my $tick_minor = 100000;
 my $tick_major = 50*$tick_minor;
@@ -37,13 +57,13 @@ my $pseq_id_re = qr/^(pseq_id|q_pseq_id|t_pseq_id|query|target)$/;
 my $params_id_re = qr/^params_id$/;
 my $porigin_id_re = qr/^porigin_id$/;
 my $palias_id_re = qr/^palias_id$/;
-my $truncate_tables_re = qr/paprospect2|pnote/;
+my $truncate_tables_re = qr/paprospect|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my $CVSId = '$Id: publicize,v 1.27 2005/07/19 04:38:31 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.28 2005/07/19 13:44:53 rkh Exp $ ';
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
-my %conn_info = (dbname=>'csb-dev',			# evenutally, csb
+my %conn_info = (dbname=>$ARGV[0],			# evenutally, csb
 				 username=>'PUBLIC');
 
 sub col_match($$@);
@@ -306,7 +326,7 @@ EOT
   $ids{p2gblataln}[$_]++ for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.27 $ ';
+  $ids{CVSRevision} = '$Revision: 1.28 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 

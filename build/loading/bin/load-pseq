@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.18 2005/08/20 00:00:26 rkh Exp $
+# $Id: load-pseq,v 1.19 2005/09/13 17:07:01 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -47,13 +47,15 @@ my %opts = (
 			format => undef,
 			'start-after' => undef,
 			'include-subex' => 0,
-			'verbose' => 0
+			'verbose' => 0,
+			tax_id => undef
 );
 GetOptions( \%opts,
 			'origin|o=s',
 			'format|f=s',
 			'start-after|startafter|A=s',
 			'verbose|v',
+			'tax_id|t=i',
 			'incl-subex|inclsubex' )
   || die("$0: bad usage:\n$usage\n");
 
@@ -152,14 +154,16 @@ sub process_stream ($$) {
   my ($u,$in) = @_;
   my %rv = ( nseen => 0, nskipped => 0, nfailed => 0, nadded => 0, naliases => 0 );
 
-  # build a hash of tax_ids in tax.spspec only load tax_id if found in this
-  # hash.  hack to handle the fact that swissprot doesn't have all of the 
-  # tax_ids in their schema.
-  my %tax_id = map {$_->[0],1} @{$u->selectall_arrayref( 'select distinct tax_id from tax.spspec' )};
+  # build a hash of tax_ids in tax.spspec
+  # Sequences are tagged with the tax_id only if the tax_id is found in
+  # this hash.  This is necessary to handle the fact that swissprot
+  # doesn't have all of the tax_ids in their schema.
 
+  my %allowed_tax_ids = map {$_->[0]=>1}
+	@{$u->selectall_arrayref( 'select distinct tax_id from tax.spspec' )};
   while ( my $bs = $in->next_seq() ) {
 	try {
-	  process_seq($u,$bs,\%rv,\%tax_id);
+	  process_seq($u,$bs,\%rv,\%allowed_tax_ids);
 	} catch Unison::Exception with {
 	  warn($_[0]);
 	};
@@ -176,14 +180,14 @@ sub process_stream ($$) {
 ##		version numbers; all others origins ignore sequence version, if any.
 ## RETURNS: nada
 sub process_seq ($$$$) {
-  my ($u,$bs,$rv,$tax_id_allowed) = @_;
+  my ($u,$bs,$rv,$allowed_tax_ids) = @_;
   my ( %alias, %md5 );
   my $id = $bs->display_id();
   my $descr = $bs->desc();
   my $seq = clean_sequence( $bs->seq() );
   my $md5 = sequence_md5($seq);
   my @aliases = ();						  # aliases to be loaded for this sequence
-  my $tax_id = 'NULL';
+  my $tax_id = $opts{'tax_id'};
 
   (defined $seq)
 	|| die("$id: sequence not defined");
@@ -222,10 +226,12 @@ sub process_seq ($$$$) {
   $descr =~ s/\s*\n\s*/ /;					# \s on either side
 
   # see if there's species info and make sure that the tax_id is in the set of allowable
-  # tax_ids (see description of process_stream method for more info).  if so, get the 
+  # tax_ids (see description of process_stream method for more info).  If so, get the 
   # tax_id to insert with the # alias
-  if (defined $bs->species && defined $bs->species->ncbi_taxid() && 
-	  defined $tax_id_allowed->{$bs->species->ncbi_taxid()} ) {
+  if (    defined $bs->species
+	  and defined $bs->species->ncbi_taxid()
+	  and defined $allowed_tax_ids->{$bs->species->ncbi_taxid()}
+	 ) {
     $tax_id = $bs->species->ncbi_taxid();
   }
 
@@ -274,6 +280,7 @@ sub process_seq ($$$$) {
 
   # load unique aliases for this pseq_id
   my %aliases = map {$_=>1} @aliases;
+  $tax_id = 'NULL' unless defined $tax_id;
   foreach my $alias (keys %aliases)  {
 	try {
 	  $u->add_palias($pseq_id,$opts{porigin_id},$alias,$descr,$tax_id);

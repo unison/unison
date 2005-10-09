@@ -1,7 +1,7 @@
 =head1 NAME
 
-Unison::paprospect2 -- Unison paprospect2 table utilities
-S<$Id: paprospect2.pm,v 1.8 2004/05/04 04:51:48 rkh Exp $>
+Unison::paprospect -- Unison paprospect table utilities
+S<$Id: paprospect.pm,v 1.9 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -88,9 +88,9 @@ sub insert_thread {
 
   throw Unison::BadUsage( "keys (" . $#k+1 . ") != values (" . $#v+1 . ")\n" ) if $#k != $#v;
 
-  my $sql = 'insert into paprospect2 (' .  join(',',@k) .  ') values (' .
+  my $sql = 'insert into paprospect (' .  join(',',@k) .  ') values (' .
     join(',',map { '?' } @k) .  ')';
-  my $show_sql = "insert into paprospect2 (" .  join(',',@k) .  ") values (" .
+  my $show_sql = "insert into paprospect (" .  join(',',@k) .  ") values (" .
      join(',',map { defined $_ ? $_ : '' } @v) . ")";
   print "insertThread(): $show_sql\n" if $ENV{'DEBUG'};
   my $sth = $u->prepare_cached($sql);
@@ -132,8 +132,8 @@ sub delete_thread {
     throw Unison::RuntimeError( "deleteThread() pmodel_id doesn't exist for template name: " . $t->name() );
   }
 
-  my $sql = 'delete from paprospect2 where pseq_id=? and params_id=? and pmodel_id=?';
-  my $show_sql = "delete from paprospect2 where pseq_id=$pseq_id and params_id=$params_id and pmodel_id=$pmodel_id";
+  my $sql = 'delete from paprospect where pseq_id=? and params_id=? and pmodel_id=?';
+  my $show_sql = "delete from paprospect where pseq_id=$pseq_id and params_id=$params_id and pmodel_id=$pmodel_id";
   print "deleteThread(): $show_sql\n" if $ENV{'DEBUG'};
 
   my $sth = $u->prepare_cached($sql);
@@ -157,7 +157,7 @@ my %pmodel_id;
 sub get_pmodel_id {
   my ($u,$modn) = @_;
   if (not exists $pmodel_id{$modn})	{
-	my $sth = $u->prepare_cached('select pmodel_id from pmprospect2 where acc=?');
+	my $sth = $u->prepare_cached('select pmodel_id from pmprospect where acc=?');
 	$sth->execute($modn);
 	($pmodel_id{$modn}) = $sth->fetchrow_array();
 	$sth->finish();
