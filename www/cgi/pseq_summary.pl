@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.34 2005/08/04 18:03:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.35 2005/08/08 21:47:18 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -122,7 +122,7 @@ sub homologs_group ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
-  my @col_headings = qw(gene pseq_id species alias);
+  my @col_headings = ('gene', 'pseq_id', 'species', 'best annotation');
 
   my @tax_ids = map {$$_[0]} @{$u->selectall_arrayref("SELECT
   	DISTINCT tax_id FROM palias WHERE pseq_id=$v->{pseq_id} AND tax_id IS NOT NULL")};
@@ -130,8 +130,8 @@ sub homologs_group ($) {
 
   if (not @tax_ids) {
 	# There are no tax_ids associated with this sequence.
-	my $sql_h = "select gene_symbol, pseq_id2, tax_id2gs(tax_id2), best_annotation(pseq_id2)
-  	 from v_homologene where pseq_id1=$v->{pseq_id} order by 1,3";
+	my $sql_h = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
+  	 from v_homologene where q_pseq_id=$v->{pseq_id} order by 1,3";
 	my $hr = $u->selectall_arrayref($sql_h);
 	do { $_->[0] = homologene_link($_->[0]) } for @$hr;
 	do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$hr;
@@ -164,15 +164,15 @@ sub homologs_group ($) {
 
 
   # paralogs:
-  my $sql_p = "select gene_symbol, pseq_id2, tax_id2gs(tax_id2), best_annotation(pseq_id2)
-  	 from v_homologene_paralogs where pseq_id1=$v->{pseq_id} order by 1,3";
+  my $sql_p = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
+  	 from v_homologene_paralogs where q_pseq_id=$v->{pseq_id} order by 1,3";
   my $pr = $u->selectall_arrayref($sql_p);
   do { $_->[0] = homologene_link($_->[0]) } for @$pr;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$pr;
 
   # orthologs:
-  my $sql_o = "select gene_symbol, pseq_id2, tax_id2gs(tax_id2), best_annotation(pseq_id2)
-  	from v_homologene_orthologs where pseq_id1=$v->{pseq_id} order by 1,3";
+  my $sql_o = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
+  	from v_homologene_orthologs where q_pseq_id=$v->{pseq_id} order by 1,3";
   my $or = $u->selectall_arrayref("$sql_o");
   do { $_->[0] = homologene_link($_->[0]) } for @$or;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$or;
