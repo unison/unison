@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.14 2005/08/08 21:43:38 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.15 2005/10/09 09:39:33 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -135,7 +135,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.14 2005/08/08 21:43:38 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.15 2005/10/09 09:39:33 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -278,7 +278,7 @@ sub add_pfsignalp {
 								   ) );
 	$nadded++;
   }
-                                                                                                                                                                          
+
   # add pfsignalphmm feature
   $sql = "select start,stop,pftype.name,sig_peptide_prob
            from pfsignalphmm natural join pftype where pseq_id=$q";
@@ -845,25 +845,29 @@ sub add_pftemplate {
     my ($u, $panel, $q, $view, $pseq_structure) = @_;
     my ($nadded,$topN) = (0,5);
 
-    return unless defined $pseq_structure->{'structure_template_ids'};
-    my @templates = @{$pseq_structure->{'structure_template_ids'}};
+    return unless defined $pseq_structure->{'structure_ids'} or defined $pseq_structure->{'template_ids'};
+    my @structures = @{$pseq_structure->{'structure_ids'}};
+    my @templates  = @{$pseq_structure->{'template_ids'}};
 
-    my $nfeat = $#templates+1;
-    splice(@templates,$topN) if $#templates > $topN;
+    my $nfeat = $#templates+1 + $#structures+1;
+    splice(@structures,$topN) if $#structures > $topN;
+    splice(@templates,$topN - ($#structures+1)) if $#templates > $topN - ($#structures+1);
+
     my $track = $panel->add_track( -glyph => 'graded_segments',
 				   -bgcolor => 'orange',
-				   -key => sprintf('Structure Templates (top %d hits of %d, including modeled structures)',$#templates+1,$nfeat),
+				   -key => sprintf('Structures/Templates (top %d hits of %d, including modeled structures)',$#structures+1 + $#templates+1,$nfeat),
                                                                  -bump => +1,
                                                                  -label => 1,
                                                                  -description => 1,
                                                                  -height => 4
 			       );
 
-    foreach my $t (@templates) {
+    foreach my $t (@structures,@templates) {
 
-      my $start = $pseq_structure->{'structure_templates'}{$t}{'qstart'};
-      my $end   = $pseq_structure->{'structure_templates'}{$t}{'qstop'};
-      my $descr = $pseq_structure->{'structure_templates'}{$t}{'descr'};
+      my $type = ((grep (/$t/, @structures)) ? "structures" : "templates");
+      my $start = $pseq_structure->{$type}{$t}{'qstart'};
+      my $end   = $pseq_structure->{$type}{$t}{'qstop'};
+      my $descr = $pseq_structure->{$type}{$t}{'descr'};
       my $href = ($view ? $pseq_structure->change_structure($t) : "pseq_structure.pl?pseq_id=$q");
 
       $track->add_feature
@@ -877,8 +881,8 @@ sub add_pftemplate {
         $nadded++;
     }
     return $nadded;
-
 }
+
 
 sub glyph_type {
     my $feat = shift (@_);

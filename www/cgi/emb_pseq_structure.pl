@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: emb_pseq_structure.pl,v 1.1 2005/07/26 22:50:10 mukhyala Exp $:
+#$ID = q$Id: emb_pseq_structure.pl,v 1.2 2005/08/19 00:08:29 rkh Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -44,8 +44,10 @@ my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 
 get_user_specs($jmol);
 try {
-    my $structure_templates_ar=$pseq_structure->find_structure_templates();
-    $p->die("Sorry no structures/templates found\n") if($pseq_structure->{'num_structure_templates'} == 0);
+
+    my $structures_ar=$pseq_structure->find_structures();
+    my $templates_ar=$pseq_structure->find_templates();
+    $p->die("Sorry no structures/templates found\n") if($pseq_structure->{'num_structures'} == 0 and $pseq_structure->{'num_templates'} == 0);
 
     $pseq_structure->load_first_structure();
 
@@ -61,7 +63,7 @@ try {
     $parent_url .= "&highlight=$v->{highlight}" if($v->{highlight});
 
     print $p->render("Unison:$v->{pseq_id}: Structural Features",
-		     ($jmol->initialize("pdb$pdb_id.ent",$pseq_structure->{'loaded_structure'},$pseq_structure,$structure_templates_ar)),
+		     ($jmol->initialize("pdb$pdb_id.ent",$pseq_structure->{'loaded_structure'},$pseq_structure,$structures_ar,$templates_ar)),
 		     "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
 		     "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n",
 		     (defined($ENV{HTTP_REFERER}) ? '' :"<a href=$parent_url>Unison Main Page</a>")
