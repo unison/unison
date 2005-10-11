@@ -27,7 +27,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id params_id profiles));
-$p->add_footer_lines('$Id$');
+$p->add_footer_lines('$Id: hmm_alignment.pl,v 1.7 2005/07/27 18:39:41 mukhyala Exp $');
 
 my $modelfile = _get_model_file();
 my ($hmmfh, $hmmfn) = $p->tempfile(SUFFIX=>'.hmm');
@@ -98,12 +98,12 @@ sub dummy_sub { return "";}
 sub _get_model_file {
 
   my $data_url;
-  my $sql = "select o.data_url from porigin o,run_history h where o.porigin_id=h.porigin_id and h.params_id=".$v->{params_id}." limit 1";
+  my $sql = "select o.data_url from porigin o,run_history h where o.porigin_id=h.porigin_id and h.params_id=".$v->{params_id}." and h.pseq_id=".$v->{pseq_id};
   try {
     $data_url = $u->selectrow_array($sql);
   } catch Unison::Exception with {
     $p->die($_[0],"$sql");
   };
-  $p->die("Could not get data_url for params_id = ".$v->{params_id}) if(!$data_url);
+  $p->die("Could not get data_url for params_id = ".$v->{params_id}." and pseq_id = ".$v->{pseq_id}) if(!$data_url);
   return $data_url;
 }
