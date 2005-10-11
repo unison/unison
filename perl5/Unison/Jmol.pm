@@ -1,4 +1,5 @@
 #utilities for calling jmol functions
+#$Id$
 ###########################################################
 package Unison::Jmol;
 
@@ -23,33 +24,33 @@ sub new {
 sub script_header {
     my ($self) = @_;
     my @ret = (-script => {-languange => 'JAVASCRIPT', -src => "../js/jmol/Jmol.js"}
-	      );
+             );
     return @ret;
 }
 sub initialize{
-    my ($self,$fn,$name,$pseq_structure,$structures_ar) = @_;
-    
+    my ($self,$fn,$name,$pseq_structure,$structures_ar,$templates_ar) = @_;
     my $retval = '';
+
     my $select_chain = ":".uc(substr($name,4,1)).".*";
-    my $jmol_menu_arr = $self->_get_jmol_menu_scripts($structures_ar,$select_chain) if(defined($structures_ar));
-
+    my $jmol_menu_arr = $self->_get_jmol_menu_scripts($structures_ar,'structures') if(defined($structures_ar));
+    $jmol_menu_arr .= $self->_get_jmol_menu_scripts($templates_ar,'templates') if(defined($templates_ar));
     $retval .= $pseq_structure->set_js_vars(1);
-    $retval .= "<table border=1>";
-    $retval .= "<tr><td colspan=3><script>jmolInitialize(\"../js/jmol/\");";
-
+    $retval .= "\n<table border=1><tr><td colspan=3>\n";
+    $retval .= "<script>jmolInitialize(\"../js/jmol/\");\n";
     $retval .= "jmolApplet([$self->{'width'}, $self->{'height'}],\"".$self->_load_script("../js/Jmol/pdb/all.ent/$fn",$select_chain,$name);
     $retval .= $self->highlights($select_chain) if(defined($self->{'highlights'}));
-    $retval .= "\");";
-    $retval .= "</script></td></tr>";
+    $retval .= "\");\n";
+    $retval .= "</script></td></tr>\n";
 
-    $retval .= "<tr><td colspan=3><center><script>jmolMenu($jmol_menu_arr)</script></center></td></tr>";
-    $retval .= "<tr><td width=33%><script>jmolCheckbox(\"select hetero ; wireframe 0.5;\",\"select not hetero; restrict selected;\",\"show hetero atoms\",false)</script></td>";
-    $retval .= "<td width=33%><center><script>jmolButton(\"center $select_chain\", \"center\")</script></center></td>";
-    $retval .= "<td width=33%><script>jmolCheckbox(\"select all; cartoon on;\",\"cartoon on; select $select_chain; restrict selected; center $select_chain;zoom 150;\",\"show all chains\")</script></td></tr>";
+    $retval .= "<tr><td colspan=3><center>\n";
+    $retval .= "<script>jmolMenu([$jmol_menu_arr])</script></center></td></tr>\n";
+    $retval .= "<tr><td width=33%><script>jmolCheckbox(\"select hetero ; wireframe 0.5;\",\"select not hetero; restrict selected;\",\"show hetero atoms\",false)</script></td>\n";
+    $retval .= "<td width=33%><center><script>jmolButton(\"center $select_chain\", \"center\")</script></center></td>\n";
+    $retval .= "<td width=33%><script>jmolCheckbox(\"select all; cartoon on;\",\"cartoon on; select $select_chain; restrict selected; center $select_chain;zoom 150;\",\"show all chains\")</script></td></tr>\n";
 
 
 
-    $retval .= "</table>";
+    $retval .= "</table>\n";
     return( $retval );
 }
 
@@ -57,7 +58,7 @@ sub initialize_inline {
   my ($self,$coord,$script,$pseq_structure) = @_;
   my ($retval);
   my $c = "\"\"";
-  my $retval = '';
+  
   $retval .= $pseq_structure->set_js_vars(0) if(defined($pseq_structure));
   $retval .= "<center><table border=\"1\" cellpadding=\"5\"><tr><td><script>jmolInitialize(\"../js/jmol/\");";
 
@@ -75,8 +76,8 @@ sub initialize_inline {
 
 sub load{
     my ($self,$fn,$chain) = @_;
-    
     my $retval = '';
+    
     my $select_chain = ":".uc($chain).".*";
     my $name = substr($fn,3,4);
 	# set frank off;
@@ -92,8 +93,8 @@ sub pos_view {
       $colour =~ s/-/,/g;
       $colour = "[$colour]";
     }
-    
     my $retval = '';
+    
     $retval .= "spacefill off;";
     $retval .= "select within\(10.0, $pos$chain\);hbonds on;"; 
     $retval .= "select ".$pos.$chain.";";
@@ -150,8 +151,8 @@ sub changeStructureLink {
 
     my ($self,$script,$name) = @_;
 
-    
     my $retval = '';
+    
 
     $retval .= "<script>jmolChangeStructureLink(\"$script\",\"$name\");</script>";
     return( $retval );
@@ -182,24 +183,21 @@ sub selectPositionLink {
   return( "<form><script>jmolSelectPositionLink(\'$pos\',\'$label\',\'$text\');</script></form>" );
 }
 
-#INTERNAL  FUNCS
-########################################################################################################
 sub _get_jmol_menu_scripts {
-  my ($self,$ar,$select_chain) = @_;
+  my ($self,$ar,$type) = @_;
   my $retval;
   my $stringio = IO::String->new($retval);
+  $stringio->print(map {"\n[\"".$self->_load_script("../js/Jmol/pdb/all.ent/pdb".substr($_->[0],0,4).".ent", ":".uc(substr($_->[0],4,1)).".*",$_->[0])."\",\"".$_->[1]."\"],"} @$ar) if($type eq 'structures');
 
-  $stringio->print("[");
-  $stringio->print(map {"[\"".$self->_load_script("../js/Jmol/pdb/all.ent/pdb".substr($_->[1],0,4).".ent",$select_chain,$_->[1])."\",\"".substr($_->[13],0,48)." ($_->[1],eval=$_->[7],ident=$_->[9])\"],"} @$ar);
-  $stringio->print("]");
+  $stringio->print(map {"\n[\"".$self->_load_script("../js/Jmol/pdb/all.ent/pdb".substr($_->[1],0,4).".ent", ":".uc(substr($_->[1],4,1)).".*",$_->[1])."\",\"".substr($_->[13],0,48)." ($_->[1],eval=$_->[7],ident=$_->[9])\"],"} @$ar) if($type eq 'templates');
 
   return $retval;
 }
 
 sub _load_script {
   my ($self,$fn,$select_chain,$name) = @_;
-
   my $retval = '';
+
   $retval .= "load $fn;set frank off;spacefill off; wireframe off; cartoon on; color cartoon structure; select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
   return $retval;
 }
