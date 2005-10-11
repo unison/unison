@@ -2,7 +2,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.9 2005/08/08 21:41:12 rkh Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.10 2005/08/08 21:43:38 rkh Exp $;
 
 =head1 SYNOPSIS
 
@@ -45,8 +45,6 @@ sub new {
   $self->{'loaded_structure'} = undef;
   $self->{'unison'} = undef;
   $self->{'features'} = {};
-  $self->{'structure_template'} = {};
-  $self->{'structure_template_ids'} = ();
   $self->{'seq_str_map'} = {};
   $self->{'length'} = undef;
 
@@ -74,27 +72,50 @@ sub jmol {
   }
 }
 
+sub find_structures {
 
-sub find_structure_templates {
-  my $self = shift;
-  my $st_sql = "select distinct on (pct_coverage,t_pseq_id,substr(template,1,4)) B.q_pseq_id,B.template, B.q_start,B.q_stop,B.t_start,B.t_stop,B.gaps,B.eval,B.score,B.pct_ident,B.len,B.pct_coverage,method, B.descr from v_pseq_template B where B.q_pseq_id = $self->{'pseq_id'} order by pct_coverage desc, t_pseq_id, substr(template,1,4) limit 20";
-  my $structure_templates_ar = $self->{'unison'}->selectall_arrayref($st_sql);
-  return undef unless defined $structure_templates_ar;
-  $self->initialize_structure_templates($structure_templates_ar);
-  return $structure_templates_ar;
+     my $self = shift;
+
+     my $structures_sql = "select a.pdbc, a.descr, p.len from v_alias_pdbcs a join pseq p on a.pseq_id=p.pseq_id where a.pseq_id=$self->{'pseq_id'}";
+     my $structures_ar = $self->{'unison'}->selectall_arrayref($structures_sql);
+
+     return undef unless defined($structures_ar);
+     $self->initialize_structures($structures_ar);
+     return $structures_ar;
 }
 
+sub find_templates {
+  my $self = shift;
+  my $st_sql = "select distinct on (pct_coverage,t_pseq_id,substr(template,1,4)) B.q_pseq_id,B.template, B.q_start,B.q_stop,B.t_start,B.t_stop,B.gaps,B.eval,B.score,B.pct_ident,B.len,B.pct_coverage,method, B.descr from v_pseq_template B where B.q_pseq_id = $self->{'pseq_id'} order by pct_coverage desc, t_pseq_id, substr(template,1,4) limit 20";
+  my $templates_ar = $self->{'unison'}->selectall_arrayref($st_sql);
+  return undef unless defined $templates_ar;
+  $self->initialize_templates($templates_ar);
+  return $templates_ar;
+}
 
-sub initialize_structure_templates {
+sub initialize_structures {
+  my ($self,$ar) = @_;
+  foreach my $r(@$ar) {
+    $self->_get_seq_str_map($r->[0]);
+    push @{$self->{'structure_ids'}}, $r->[0];
+    $self->{'num_structures'}++;
+    $self->{'structures'}{$r->[0]}{descr}=$r->[1];
+    $self->{'structures'}{$r->[0]}{qstart}=1;
+    $self->{'structures'}{$r->[0]}{qstop}=$r->[2];
+    $self->{'structures'}{$r->[0]}{tstart}=undef;
+  }
+}
+
+sub initialize_templates {
   my ($self,$ar) = @_;
   foreach my $r (@$ar) {
 	$self->_get_seq_str_map($r->[1]);
-	push @{$self->{'structure_template_ids'}}, $r->[1];
-	$self->{'num_structure_templates'}++;
-	$self->{'structure_templates'}{$r->[1]}{descr}=$r->[13];
-	$self->{'structure_templates'}{$r->[1]}{qstart}=$r->[2];
-	$self->{'structure_templates'}{$r->[1]}{qstop}=$r->[3];
-	$self->{'structure_templates'}{$r->[1]}{tstart}=$r->[4];
+	push @{$self->{'template_ids'}}, $r->[1];
+	$self->{'num_templates'}++;
+	$self->{'templates'}{$r->[1]}{descr}=$r->[13];
+	$self->{'templates'}{$r->[1]}{qstart}=$r->[2];
+	$self->{'templates'}{$r->[1]}{qstop}=$r->[3];
+	$self->{'templates'}{$r->[1]}{tstart}=$r->[4];
   }
 }
 
@@ -118,7 +139,7 @@ sub initialize_snps {
 
 sub load_first_structure {
   my $self = shift;
-  $self->{'loaded_structure'} = ${$self->{'structure_template_ids'}}[0];
+  $self->{'loaded_structure'} = ${$self->{'structure_ids'}}[0] || ${$self->{'template_ids'}}[0];
 }
 
 
@@ -158,13 +179,13 @@ sub set_js_vars {
 
   $stringio->print("<form><script LANGUAGE=\"javascript\">var seq_str = new Object; var pdbid;");
 
-  foreach my $pdbid (@{$self->{'structure_template_ids'}}) {
+  foreach my $pdbid (@{$self->{'template_ids'}}) {
 
     my $j  = 0;
     $stringio->print("pdbid = \'$pdbid\';seq_str[pdbid] = new Object;");
 
-    foreach my $i ($self->{'structure_templates'}{$pdbid}{'qstart'}..$self->{'structure_templates'}{$pdbid}{'qstop'}) {
-      my $template_pos = $self->{'structure_templates'}{$pdbid}{'tstart'} + $j++;
+    foreach my $i ($self->{'templates'}{$pdbid}{'qstart'}..$self->{'templates'}{$pdbid}{'qstop'}) {
+      my $template_pos = $self->{'templates'}{$pdbid}{'tstart'} + $j++;
       next if (!defined($self->{'seq_str_map'}{$pdbid}{$template_pos}));
       my $pdb_res = $self->{'seq_str_map'}{$pdbid}{$template_pos};
       my $res = $pdb_res->{'res_id'};
