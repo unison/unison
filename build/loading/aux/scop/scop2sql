@@ -1,11 +1,8 @@
 #!/usr/bin/env perl
-# scop2sql -  generate SQL inserts from SCOP cla, des, and hie files
-# parses SCOP 1.61 (and probably >=1.55)
-# * 2003/01/24 (Fri) 17:19 Reece Hart <reece@in-machina.com, rkh@gene.com>
+# scop2sql -  generate SQL COPY from SCOP cla, des, and hie files
 # usage:
-# scop2sql [-c clafn] [-d desfn] [-h hiefn] [-C] | psql -qaf-
+# scop2sql [-n] [-C] [-c clafn] [-d desfn] [-h hiefn] | psql -qaf-
 # -c, -d, -h may be specified in combination
-# -C outputs copy from statements instead (UNTESTED)
 
 
 use strict;
@@ -13,35 +10,72 @@ use warnings;
 use IO::File;
 use Getopt::Long qw(:config gnu_getopt);
 
-my %opts;
-$opts{ascopy} = 0;
+my %opts = (
+			create => 0,
+			cla => undef,
+			com => undef,
+			des => undef,
+			hie => undef,
+			namespace => 'scop',
+		   );
 GetOptions( \%opts,
+			'create|C+',
 			'cla|c=s',
+			# 'com=s',   # currently ignored
 			'des|d=s',
 			'hie|h=s',
-			'ascopy|C+' )
+			'namespace|schema|n=s',
+		  )
   || die("usage\n");
 
+(defined $opts{cla} and -f $opts{cla})
+  || die("must provide valid --cla argument\n");
+(defined $opts{des} and -f $opts{des})
+  || die("must provide valid --des argument\n");
+(defined $opts{hie} and -f $opts{hie})
+  || die("must provide valid --hie argument\n");
 
 
-cla2sql($opts{cla}) if exists $opts{cla};
-des2sql($opts{des}) if exists $opts{des};
-hie2sql($opts{hie}) if exists $opts{hie};
+print <<EOSQL;
+SET search_path = $opts{namespace};
+BEGIN;
+EOSQL
+
+if ($opts{create}) {
+  print while (<DATA>);
+} else {
+  print <<EOSQL;
+TRUNCATE cla;
+TRUNCATE des;
+TRUNCATE hie;
+EOSQL
+}
+
+cla2sql($opts{cla});
+des2sql($opts{des});
+hie2sql($opts{hie});
+
+print <<EOSQL;
+COMMIT;
+ANALYZE cla;
+ANALYZE des;
+ANALYZE hie;
+EOSQL
+
 exit(0);
 
 
 
-sub cla2sql
-  {
+sub cla2sql {
   my $fn = shift;
   my $fh = new IO::File;
-  my $dest = sprintf("scop.cla (%s)",
-					 join(',',map {"\"$_\""} qw(sid pdb def sccs sunid cl cf sf fa dm sp)));
+  my @cols = qw(sid pdb def sccs sunid cl cf sf fa dm sp);
+  my $dest = sprintf("cla (%s)",
+					 join(',',map {"\"$_\""} @cols));
   $fh->open("<$fn")
-	|| return undef;
-  printf( "copy $dest from stdin;\n" ) if ($opts{ascopy});
-  while(my $l = <$fh>)
-	{
+	|| die("$fn: $!");
+  printf( "copy $dest from stdin;\n" );
+  while (my $l = <$fh>) {
 	next if $l =~ m/^\#/;
 	my ($sid,$pdb,$def,$sccs,$px,$H) = split(' ',$l);
 	my ($cl) = $H=~m/cl=(\d+)/;
@@ -50,91 +84,120 @@ sub cla2sql
 	my ($fa) = $H=~m/fa=(\d+)/;
 	my ($dm) = $H=~m/dm=(\d+)/;
 	my ($sp) = $H=~m/sp=(\d+)/;
-	if ($opts{ascopy})
-	  {
-	  print( join("\t", $sid, $pdb, $def, $sccs, $px,$cl,$cf,$sf,$fa,$dm,$sp),
-			 "\n" );
-	  }
-	else
-	  {
-	  printf("insert into $dest values (%s);\n",
-			 "'$sid','$pdb','$def','$sccs',$px,$cl,$cf,$sf,$fa,$dm,$sp");
-	  }
-	}
-  $fh->close();
-  print("\\.\n") if $opts{ascopy};
-  return 1;
+	print( join("\t", $sid, $pdb, $def, $sccs, $px,$cl,$cf,$sf,$fa,$dm,$sp),
+		   "\n" );
   }
+  $fh->close();
+  print("\\.\n");
+  return 1;
+}
 
 
-sub des2sql
-  {
+sub des2sql  {
   my $fn = shift;
   my $fh = new IO::File;
-  my $dest = sprintf("scop.des (%s)",
-					 join(',',map {"\"$_\""} qw(sunid level sccs sname descr)));
+  my @cols = qw(sunid level sccs sname descr);
+  my $dest = sprintf("des (%s)",
+					 join(',',map {"\"$_\""} @cols));
   $fh->open("<$fn")
-	|| return undef;
-  printf( "copy $dest from stdin;\n" ) if ($opts{ascopy});
-  while(my $l = <$fh>)
-	{
+	|| die("$fn: $!");
+  printf( "copy $dest from stdin;\n" );
+  while (my $l = <$fh>) {
 	next if $l =~ m/^\#/;
 	chomp $l;
 	my ($sunid,$lvl,$sccs,$sname,$descr) = split(' ',$l,5);
-	if ($opts{ascopy})
-	  {
-	  print( join("\t", $sunid, $lvl, $sccs,
-				  ($sname eq '-' ? '\N' : $sname), $descr),
-			 "\n" );
-	  }
-	else
-	  {
-	  $descr =~ s/\'/\\'/g;
-	  $sname =~ s/\'/\\'/g;
-	  print( "insert into $dest values ($sunid,'$lvl','$sccs',",
-			 ($sname eq '-' ? 'NULL' : "'$sname'"), ",'$descr');\n");
-	  }
-	}
-  $fh->close();
-  print("\\.\n") if $opts{ascopy};
-  return 1;
+	print( join("\t", $sunid, $lvl, $sccs,
+				($sname eq '-' ? '\N' : $sname), $descr),
+		   "\n" );
   }
+  $fh->close();
+  print("\\.\n");
+  return 1;
+}
 
 
-sub hie2sql
-  {
+sub hie2sql {
   my $fn = shift;
   my $fh = new IO::File;
-  my $dest = sprintf("scop.hie (%s)",
-					 join(',',map {"\"$_\""} qw(sunid psunid children)));
+  my @cols = qw(sunid psunid children);
+  my $dest = sprintf("hie (%s)",
+					 join(',',map {"\"$_\""} @cols));
   $fh->open("<$fn")
-	|| return undef;
-  printf( "copy $dest from stdin;\n" ) if ($opts{ascopy});
-  while(my $l = <$fh>)
-	{
+	|| die("$fn: $!");
+  printf( "copy $dest from stdin;\n" );
+  while (my $l = <$fh>) {
 	next if $l =~ m/^\#/;
 	chomp $l;
 	my ($sunid,$psunid,$children) = split(' ',$l,3);
-	if ($opts{ascopy})
-	  {
-	  printf( "%s\t%s\t%s\n",
-			  $sunid,
-			  $psunid eq '-' ? '\N' : $psunid,
-			  $children eq '-' ? '\N' : "{$children}" );
-	  }
-	else
-	  {
-	  printf( "insert into $dest values (%s);\n",
-			  join(',',
-				   $sunid,
-				   $psunid eq '-' ? 'NULL' : $psunid,
-				   $children eq '-' ? 'NULL' : "'{$children}'"
-				  ));
-	  }
-	}
-  $fh->close();
-  print("\\.\n") if $opts{ascopy};
-  return 1;
+	printf( "%s\t%s\t%s\n",
+			$sunid,
+			$psunid eq '-' ? '\N' : $psunid,
+			$children eq '-' ? '\N' : "{$children}" );
   }
+  $fh->close();
+  print("\\.\n");
+  return 1;
+}
 
 
+
+__DATA__
+DROP TABLE hie;
+DROP TABLE cla;
+DROP TABLE des;
+
+CREATE TABLE des (
+    sunid integer NOT NULL PRIMARY KEY,
+    "level" text NOT NULL,
+    sccs text NOT NULL,
+    sname text,
+    descr text NOT NULL
+) WITHOUT OIDS;
+
+REVOKE ALL ON TABLE des FROM PUBLIC;
+GRANT SELECT ON TABLE des TO PUBLIC;
+GRANT INSERT,UPDATE ON TABLE des TO loader;
+
+COMMENT ON TABLE des IS 'SCOP domain descriptions (http://scop.berkeley.edu/)';
+
+
+
+CREATE TABLE cla (
+    sunid integer NOT NULL PRIMARY KEY,
+    sid text NOT NULL,
+    pdb character(4) NOT NULL,
+    def text NOT NULL,
+    sccs text NOT NULL,
+    cl integer NOT NULL,
+    cf integer NOT NULL,
+    sf integer NOT NULL,
+    fa integer NOT NULL,
+    dm integer NOT NULL,
+    sp integer NOT NULL
+) WITHOUT OIDS;
+
+CREATE INDEX cla_pdb ON cla USING btree (pdb);
+CREATE INDEX cla_sid ON cla USING btree (sid);
+CREATE INDEX cla_sccs ON cla USING btree (sccs);
+
+REVOKE ALL ON TABLE cla FROM PUBLIC;
+GRANT SELECT ON TABLE cla TO PUBLIC;
+GRANT INSERT,UPDATE ON TABLE cla TO loader;
+
+COMMENT ON TABLE cla IS 'SCOP domain classification (http://scop.berkeley.edu/)';
+
+
+
+CREATE TABLE hie (
+    sunid integer NOT NULL PRIMARY KEY,
+    psunid integer,
+    children integer[]
+) WITHOUT OIDS;
+
+REVOKE ALL ON TABLE hie FROM PUBLIC;
+GRANT SELECT ON TABLE hie TO PUBLIC;
+GRANT INSERT,UPDATE ON TABLE hie TO loader;
+
+CREATE INDEX hie_psunid ON hie USING btree (psunid);
+
+COMMENT ON TABLE hie IS 'SCOP node hierarchy (http://scop.berkeley.edu/)';
