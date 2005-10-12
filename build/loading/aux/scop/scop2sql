@@ -1,0 +1,140 @@
+#!/usr/bin/env perl
+# scop2sql -  generate SQL inserts from SCOP cla, des, and hie files
+# parses SCOP 1.61 (and probably >=1.55)
+# * 2003/01/24 (Fri) 17:19 Reece Hart <reece@in-machina.com, rkh@gene.com>
+# usage:
+# scop2sql [-c clafn] [-d desfn] [-h hiefn] [-C] | psql -qaf-
+# -c, -d, -h may be specified in combination
+# -C outputs copy from statements instead (UNTESTED)
+
+
+use strict;
+use warnings;
+use IO::File;
+use Getopt::Long qw(:config gnu_getopt);
+
+my %opts;
+$opts{ascopy} = 0;
+GetOptions( \%opts,
+			'cla|c=s',
+			'des|d=s',
+			'hie|h=s',
+			'ascopy|C+' )
+  || die("usage\n");
+
+
+
+cla2sql($opts{cla}) if exists $opts{cla};
+des2sql($opts{des}) if exists $opts{des};
+hie2sql($opts{hie}) if exists $opts{hie};
+exit(0);
+
+
+
+sub cla2sql
+  {
+  my $fn = shift;
+  my $fh = new IO::File;
+  my $dest = sprintf("scop.cla (%s)",
+					 join(',',map {"\"$_\""} qw(sid pdb def sccs sunid cl cf sf fa dm sp)));
+  $fh->open("<$fn")
+	|| return undef;
+  printf( "copy $dest from stdin;\n" ) if ($opts{ascopy});
+  while(my $l = <$fh>)
+	{
+	next if $l =~ m/^\#/;
+	my ($sid,$pdb,$def,$sccs,$px,$H) = split(' ',$l);
+	my ($cl) = $H=~m/cl=(\d+)/;
+	my ($cf) = $H=~m/cf=(\d+)/;
+	my ($sf) = $H=~m/sf=(\d+)/;
+	my ($fa) = $H=~m/fa=(\d+)/;
+	my ($dm) = $H=~m/dm=(\d+)/;
+	my ($sp) = $H=~m/sp=(\d+)/;
+	if ($opts{ascopy})
+	  {
+	  print( join("\t", $sid, $pdb, $def, $sccs, $px,$cl,$cf,$sf,$fa,$dm,$sp),
+			 "\n" );
+	  }
+	else
+	  {
+	  printf("insert into $dest values (%s);\n",
+			 "'$sid','$pdb','$def','$sccs',$px,$cl,$cf,$sf,$fa,$dm,$sp");
+	  }
+	}
+  $fh->close();
+  print("\\.\n") if $opts{ascopy};
+  return 1;
+  }
+
+
+sub des2sql
+  {
+  my $fn = shift;
+  my $fh = new IO::File;
+  my $dest = sprintf("scop.des (%s)",
+					 join(',',map {"\"$_\""} qw(sunid level sccs sname descr)));
+  $fh->open("<$fn")
+	|| return undef;
+  printf( "copy $dest from stdin;\n" ) if ($opts{ascopy});
+  while(my $l = <$fh>)
+	{
+	next if $l =~ m/^\#/;
+	chomp $l;
+	my ($sunid,$lvl,$sccs,$sname,$descr) = split(' ',$l,5);
+	if ($opts{ascopy})
+	  {
+	  print( join("\t", $sunid, $lvl, $sccs,
+				  ($sname eq '-' ? '\N' : $sname), $descr),
+			 "\n" );
+	  }
+	else
+	  {
+	  $descr =~ s/\'/\\'/g;
+	  $sname =~ s/\'/\\'/g;
+	  print( "insert into $dest values ($sunid,'$lvl','$sccs',",
+			 ($sname eq '-' ? 'NULL' : "'$sname'"), ",'$descr');\n");
+	  }
+	}
+  $fh->close();
+  print("\\.\n") if $opts{ascopy};
+  return 1;
+  }
+
+
+sub hie2sql
+  {
+  my $fn = shift;
+  my $fh = new IO::File;
+  my $dest = sprintf("scop.hie (%s)",
+					 join(',',map {"\"$_\""} qw(sunid psunid children)));
+  $fh->open("<$fn")
+	|| return undef;
+  printf( "copy $dest from stdin;\n" ) if ($opts{ascopy});
+  while(my $l = <$fh>)
+	{
+	next if $l =~ m/^\#/;
+	chomp $l;
+	my ($sunid,$psunid,$children) = split(' ',$l,3);
+	if ($opts{ascopy})
+	  {
+	  printf( "%s\t%s\t%s\n",
+			  $sunid,
+			  $psunid eq '-' ? '\N' : $psunid,
+			  $children eq '-' ? '\N' : "{$children}" );
+	  }
+	else
+	  {
+	  printf( "insert into $dest values (%s);\n",
+			  join(',',
+				   $sunid,
+				   $psunid eq '-' ? 'NULL' : $psunid,
+				   $children eq '-' ? 'NULL' : "'{$children}'"
+				  ));
+	  }
+	}
+  $fh->close();
+  print("\\.\n") if $opts{ascopy};
+  return 1;
+  }
+
+
