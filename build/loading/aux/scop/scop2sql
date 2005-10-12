@@ -142,10 +142,6 @@ sub hie2sql {
 
 
 __DATA__
-DROP TABLE hie;
-DROP TABLE cla;
-DROP TABLE des;
-
 CREATE TABLE des (
     sunid integer NOT NULL PRIMARY KEY,
     "level" text NOT NULL,
