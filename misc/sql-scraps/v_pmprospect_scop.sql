@@ -17,38 +17,26 @@ WHERE m.porigin_id=porigin_id('Prospect/SCOP')
 
 UNION
 
--- 2) FSSP domains which correspond to full-chain SCOP sids
--- The hallmark for this is a terminal '_'. 
--- Because FSSP and SCOP treat the case of missing chain names differently,
--- we get cases like 153l ~~ d153l__ and 1riba ~~ d1riba_, which can be
--- collapsed into one join criterion using padding (or trimming)
+-- 2) FSSP identifiers always correspond to full chains, while SCOP
+-- domains may be full or partial chains.  Our choices are 1) map FSSP to
+-- SCOP for full length chains only (1:1 map), or 2) map FSSP chains to
+-- all SCOP domains with the same 'pdbc' (1:N map).  The former is more
+-- specific, the latter more sensitive.  We opt for 2.
+
 SELECT m.porigin_id,m.pmodel_id,m.acc,c.sunid,c.sid,c.pdb,2 as case
-FROM pmprospect m
-JOIN scop.cla c on rpad('d'||m.acc,7,'_')=c.sid
-WHERE m.porigin_id=porigin_id('Prospect/FSSP')
-  AND c.sid~'_$'
-
-UNION
-
--- 3) Ambiguous matches of a single FSSP to multiple SCOP domains (same pdbc). 
--- The hallmark for this is a terminal \d. We'll generate the 1:N
--- FSSP:SCOP mapping by joining on pdbid.  The prudence of this is in
--- doubt... typically, only one of the N is correct and the rest are
--- misleading.  The cost of not doing this is that we'd miss the 1/N.
-SELECT m.porigin_id,m.pmodel_id,m.acc,c.sunid,c.sid,c.pdb,3 as case
-FROM pmprospect m
-JOIN scop.cla c ON substr(m.acc,1,4) = c.pdb
-WHERE m.porigin_id=porigin_id('Prospect/FSSP')
-	AND c.sid ~ '\\d$'
-
-SELECT m.porigin_id,m.pmodel_id,m.acc,c.sunid,c.sid,c.pdb,4 as case
-FROM pmprospect m
-JOIN scop.cla c ON substr(m.acc,1,4) = c.pdb
-WHERE m.porigin_id=porigin_id('Prospect/FSSP')
-	AND c.sid ~ '\\d$'
+FROM pmprospect M
+JOIN scop.cla C on rpad(M.acc,5,'_')=substr(C.sid,2,5)
+WHERE M.porigin_id=porigin_id('Prospect/FSSP');
 
 ;
+
+grant select on _v_pmprospect_scop to public;
+comment on view _v_pmprospect_scop is 'prospect pmodel_id-to-scop sunid mapping, with debugging info';
+
 
 
 create or replace view dv_pmprospect_scop as
 select pmodel_id,sunid from _v_pmprospect_scop;
+
+grant select on dv_pmprospect_scop to public;
+comment on view dv_pmprospect_scop is 'prospect pmodel_id-to-scop sunid mapping';
