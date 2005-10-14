@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.35 2005/08/08 21:47:18 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.36 2005/10/09 08:26:23 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -131,7 +131,7 @@ sub homologs_group ($) {
   if (not @tax_ids) {
 	# There are no tax_ids associated with this sequence.
 	my $sql_h = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
-  	 from v_homologene where q_pseq_id=$v->{pseq_id} order by 1,3";
+  	 from v_homologene_pairs where q_pseq_id=$v->{pseq_id} order by 1,3";
 	my $hr = $u->selectall_arrayref($sql_h);
 	do { $_->[0] = homologene_link($_->[0]) } for @$hr;
 	do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$hr;
