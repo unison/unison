@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.63 2005/10/09 20:08:53 rkh Exp $>
+S<$Id: Page.pm,v 1.64 2005/10/15 05:57:28 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -910,7 +910,7 @@ sub _navbar {
 	## pub = public? 1=yes, 0=no
 	(
 	 [	# About menu
-	  [1,1,'Unison', 		'more information about Unison'],
+	  [1,1,'Unison', 		'more information about Unison', 	'about_unison.pl'],
 	  [1,1,'About', 		'Unison overview', 					'about_unison.pl'],
 	  [1,1,'Legal', 		'Unison legal information',			'about_legal.pl'],
 	  [1,1,'News', 			'Unison news'	, 					'about_news.pl'],
@@ -921,7 +921,7 @@ sub _navbar {
 	 ],
 
 	 [	# Search menu
-	  [1,1,'Search', 		'search for sequences which match criteria'],
+	  [1,1,'Search', 		'search for sequences which match criteria',	'search_by_alias.pl'],
 	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
 	  [1,1,'By Properties',	'mine for sequences based on properties', 'search_by_properties.pl'],
 	  [1,0,'Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
@@ -929,13 +929,13 @@ sub _navbar {
 	 ],
 
 	 [	# Browse menu
-	  [1,1,'Browse', 		'browse curated sets of sequences (unimplemented)'],
-	  [1,1,'Sets', 			'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
+	  [1,1,'Browse', 		'browse curated queries and precomputed sequences sets', 'browse_views.pl'],
 	  [1,1,'Views', 		'browse dynamic queries of protein sequences', 'browse_views.pl'],
+	  [1,1,'Sets', 			'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
 	 ],
 
 	 [	# Analyze menu
-	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence'],
+	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence', 'search_by_alias.pl' ],
 	  [1,1,'Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	  [1,1,'Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	  [1,0,'Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
@@ -952,7 +952,7 @@ sub _navbar {
 	 ],
 
 	 [	# Assess menu
-	  [0,0,'Assess', 		'compare sequence sets and analysis methods'],
+	  [0,0,'Assess', 		'compare sequence sets and analysis methods', 'compare_scores.pl'],
 	  [0,0,'Scores', 		'compare scoring systems',			'compare_scores.pl'],
 	  [0,0,'Methods', 		'compare threading methods',		'compare_methods.pl'],
 	 ],
@@ -1001,7 +1001,9 @@ sub _navbar {
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
   my $rv = '';
   $rv = "\n  <table    class=\"nav\" width=\"100%\">"
-	. "\n    <tr>" . _make_navrow($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs) . '</tr>'
+	. "\n    <tr>"
+	  . _make_navrow($navi, map {$_->[0]} @navs)
+	  . '</tr>'
 	. "\n    <tr>" 
 	. ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
 	. '<td align="center"><img src="../av/v.gif"></td>'
