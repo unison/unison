@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.62 2005/09/22 00:06:29 mukhyala Exp $>
+S<$Id: Page.pm,v 1.63 2005/10/09 20:08:53 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -17,27 +17,27 @@ web pages. It's simple and not powerful.
 =cut
 
 
-BEGIN {
-  # if this file exists and is writable, then we'll open it for logging.
-  # NOTE: the file must be writable by the web server, which DOES NOT run
-  # as remote user. Typically, do something like:
-  # $ touch /tmp/unison-rkh.log
-  # $ chmod a+w /tmp/unison-rkh.log
-  # to enable logging.
-  # THIS WILL SLOW THINGS DOWN... DON'T FORGET TO DELETE THE LOG!
-  if (exists $ENV{REMOTE_USER}) {
-	my $log_fn = "/tmp/unison-$ENV{REMOTE_USER}.log";
-	if (-f $log_fn and -w $log_fn) {
-	  close(STDERR);
-	  if (not open(STDERR, ">>$log_fn")) {
-		# this error will end up on the web server error log
-		print(STDERR __PACKAGE__ . ':' . __LINE__ . ": $log_fn: $!\n");
-		exit(0);
-	  }
-	  $ENV{DEBUG} = 1;
-	}
-  }
-}
+## BEGIN {
+##   # if $log_fn below exists and is writable, then we'll open it for logging.
+##   # NOTE: the file must be writable by the web server.
+##   # Typically, do something like:
+##   # $ touch /tmp/unison-rkh.log
+##   # $ chmod a+w /tmp/unison-rkh.log
+##   # to enable logging.
+##   # THIS WILL SLOW THINGS DOWN... DON'T FORGET TO DELETE THE LOG!
+##   if (exists $ENV{REMOTE_USER}) {
+## 	my $log_fn = "/tmp/unison-$ENV{REMOTE_USER}.log";
+## 	if (-f $log_fn and -w $log_fn) {
+## 	  close(STDERR);
+## 	  if (not open(STDERR, ">>$log_fn")) {
+## 		# this error will end up on the web server error log
+## 		print(STDERR __PACKAGE__ . ':' . __LINE__ . ": $log_fn: $!\n");
+## 		exit(0);
+## 	  }
+## 	  $ENV{DEBUG} = 1;
+## 	}
+##   }
+## }
 
 
 package Unison::WWW::Page;
@@ -60,6 +60,7 @@ use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
 use Error qw(:try);
+use Data::Dumper;  $Data::Dumper::Indent = 0;
 
 
 sub _csb_connection_params ($);
@@ -67,6 +68,7 @@ sub _page_connect ($);
 sub _infer_pseq_id ($);
 sub _make_temp_dir ();
 sub _cleanup_temp($$);
+sub __filter_navs($$@);
 
 our $infer_pseq_id = 0;
 
@@ -103,21 +105,27 @@ sub new {
 	_page_connect($self);
   }	catch Unison::Exception with {
 	$self->die_with_exception($_[0],
-									# plus some addition stuff to tack on...
-									'Relevant environment settings:',
-									join('', map( { "<br><code>$_: ".(defined $ENV{$_} ? 
-																	  $ENV{$_}
-																	  :'<i>undef</i>')."</code>\n" }
-												  qw(REMOTE_USER KRB5CCNAME) ))
-								   );
+							  # plus some addition stuff to tack on...
+							  'Relevant environment settings:',
+							  join('', map( { "<br><code>$_: "
+											  .(defined $ENV{$_} ? 
+												$ENV{$_} : '<i>undef</i>')
+											  ."</code>\n" }
+											qw(REMOTE_USER KRB5CCNAME) ))
+							 );
   };
 
 
   $self->{userprefs} = $self->{unison}->get_userprefs();
   $self->{readonly} = 1;
-  $self->{js_tags} = [ {-language => 'JAVASCRIPT', -src => '../js/domTT/domLib.js'},
-					   {-language => 'JAVASCRIPT', -src => '../js/domTT/domTT.js'},
-					   {-language => 'JAVASCRIPT', -code => "var domTT_styleClass = 'domTTClassic';"} ];
+  $self->{js_tags} = [
+					  {-language => 'JAVASCRIPT', 
+					   -src => '../js/domTT/domLib.js'},
+					  {-language => 'JAVASCRIPT',
+					   -src => '../js/domTT/domTT.js'},
+					  {-language => 'JAVASCRIPT', 
+					   -code => "var domTT_styleClass = 'domTTClassic';"}
+					 ];
 
   # all pseq_id inference should be moved elsewhere...
   if (not exists $v->{pseq_id} and $infer_pseq_id) {
@@ -222,7 +230,8 @@ request. If not, the page C<dies> (which see) with an appropriate error.
 
 sub ensure_required_params {
   my $self = shift;
-  my @undefd = grep { not defined $self->param($_) or $self->param($_) eq '' } @_;
+  my @undefd = grep { not defined $self->param($_)
+						or $self->param($_) eq '' } @_;
   return 0 unless @undefd;
   $self->die('Missing parameters',
 		  '<br>The follow parameters were missing:',
@@ -282,9 +291,13 @@ sub add_html {
   my $self = shift;
   my (@params) = @_;
   foreach my $i (0..$#params) {
-    push @{$self->{js_tags}}, $params[$i+1]  if ($params[$i] eq '-script' and ref($params[$i+1]) eq 'HASH');
+	if ($params[$i] eq '-script'
+		and ref($params[$i+1]) eq 'HASH') {
+	  push(@{$self->{js_tags}}, $params[$i+1]);
+	}
   }
 }
+
 
 ######################################################################
 ## start_html()
@@ -342,7 +355,7 @@ sub render {
 	#						('select value::date from meta where key=\'release timestamp\'') || 'N/A' ),
 	#					  $Unison::RELEASE,
 	#					  $Unison::WWW::RELEASE,
-	#					  ( dev_instance() ? '<span style="background-color: red">DEVELOPMENT</span>' : '' )
+	#					  ( is_dev_instance() ? '<span style="background-color: red">DEVELOPMENT</span>' : '' )
 	#					 );
 	#$conn_info .= sprintf("<br>web connection: host %s\n",
 	#					  $ENV{SERVER_NAME});
@@ -363,7 +376,9 @@ sub render {
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-		  '<a href="about_unison.pl">', $self->tooltip('<img class="logo" src="../av/unison.gif">','Unison Home Page'), '</a>',
+		  '<a href="about_unison.pl">', 
+		       $self->tooltip('<img class="logo" src="../av/unison.gif">',
+							  'Unison Home Page'), '</a>',
 		  '<br><a href="http://unison-db.sourceforge.net">@SourceForge</a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
@@ -387,11 +402,8 @@ sub render {
 		  '  <td class="footer">',
 		  (defined $self->{footer} ? join('     <br>',@{$self->{footer}}) : ''),
 		  "     <br>$elapsed\n",
-		  '     <br>Please submit bugs and requests to the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
-# XXX: connection info might go here...
-#		  "     <br>$conn_info\n",
-#		  sprintf("<br> <a href=\"http://validator.w3.org/check?uri=%s\">Validate this page at the W3C</a>\n",
-#				  $self->escapeHTML($self->url())),
+		  '     <br>Please submit bugs and requests to the ',
+		  ' <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
 		  "  </td>\n",
 		  "</tr>\n",
 		  "</table>\n",
@@ -662,26 +674,53 @@ sub import {
 }
 
 ######################################################################
-## dev_instance
+## is_prd_instance
 
 =pod
 
-=item B<< ::dev_instance() >>
+=item B<< ::is_prd_instance() >>
+
+Return true if this is a production version of Unison.
+
+=cut
+sub is_prd_instance {
+  return 1 if ($ENV{SERVER_PORT}==80);
+  return 0;
+}
+
+
+######################################################################
+## is_dev_instance
+
+=pod
+
+=item B<< ::is_dev_instance() >>
 
 Return true if this is NOT on the production port (80) OR if the page is
 being served by a user development directory
 
 =cut
-sub dev_instance {
-  my $self = shift;
-  return 0;
-  return ( (exists $ENV{SERVER_PORT} and $ENV{SERVER_PORT}!=80)
-		   or (exists $ENV{REQUEST_URI} and $ENV{REQUEST_URI} =~ m%/~%) );
+sub is_dev_instance {
+  return not is_prd_instance();
 }
 
 
+######################################################################
+## is_public
 
+=pod
 
+=item B<< ::is_public() >>
+
+Return true if these pages are being served at a public Unison URL.  This
+method is intended to facilitate hiding features which will fail because
+they depend on data that are not released with Unison.
+
+=cut
+sub is_public {
+  return 1 if $ENV{SERVER_ADDR} !~ m/^128\.137\./; # .gene.com domain
+  return 0;
+}
 
 
 ######################################################################
@@ -724,10 +763,10 @@ sub _page_connect ($) {
 
   # Set PG vars so that spawned apps connect to the same database
   # This will only work for kerberos authentication
-  if ($v->{host}	) { $ENV{PGHOST}     = $v->{host}	   } else { delete $ENV{PGHOST}     };
-  if ($v->{database}) { $ENV{PGDATABASE} = $v->{database}  } else { delete $ENV{PGDATABASE} };
-  if ($v->{username}) { $ENV{PGUSER}     = $v->{username}  } else { delete $ENV{PGUSER}     };
-  if ($v->{password}) { $ENV{PGPASSWORD}  = $v->{password} } else { delete $ENV{PGPASSWORD} };
+  if ($v->{host}	) { $ENV{PGHOST}     = $v->{host}	  } else { delete $ENV{PGHOST}     };
+  if ($v->{database}) { $ENV{PGDATABASE} = $v->{database} } else { delete $ENV{PGDATABASE} };
+  if ($v->{username}) { $ENV{PGUSER}     = $v->{username} } else { delete $ENV{PGUSER}     };
+  if ($v->{password}) { $ENV{PGPASSWORD} = $v->{password} } else { delete $ENV{PGPASSWORD} };
 
   return $self->{unison};
 }
@@ -847,6 +886,13 @@ EOT
 ######################################################################
 ## _navbar
 
+sub _nav_dump {
+  my $n = shift;
+  my $d = Dumper(\@_);
+  $d =~ s/\],/],\n/g;
+  print(STDERR "$n: ",$#_+1," items:\n",$d,"\n");
+}
+
 sub _navbar {
   my $self = shift;
   my $v = $self->Vars() || {};
@@ -854,115 +900,149 @@ sub _navbar {
   my @navs =
 	## format: @navs = ( menu, menu, ... );
 	## where each menu is
-	## [ [ name, tooltip ],
-	##   [ sub1, tooltip1, script1, args1 ],
-	##   [ sub2, tooltip2, script2, args2 ],
+	## [
+	##   [ prd, pub, major_name, tooltip ],
+	##   [ prd, pub, minor_name, tooltip, script, args ],
+	##   [ prd, pub, minor_name, tooltip, script, args ],
 	##   ...
 	## ]
+	## prd = production? 1=yes, 0=no (i.e., not development)
+	## pub = public? 1=yes, 0=no
 	(
 	 [	# About menu
-	  ['Unison', 		'more information about Unison'],
-	  ['About', 		'Unison overview', 					'about_unison.pl'],
-	  ['Legal', 		'Unison legal information',			'about_legal.pl'],
-	  ['News', 			'Unison news'	, 					'about_news.pl'],
-	  ['Credits', 		'authors, acknowledgements, references', 'about_credits.pl'],
-	  ['Contents', 		'show unison meta information', 	'about_contents.pl'],
-	  ['Env', 			'Environment info', 				'about_env.pl'],
-	  ['Prefs',			'User Prefs', 						'about_prefs.pl'],
+	  [1,1,'Unison', 		'more information about Unison'],
+	  [1,1,'About', 		'Unison overview', 					'about_unison.pl'],
+	  [1,1,'Legal', 		'Unison legal information',			'about_legal.pl'],
+	  [1,1,'News', 			'Unison news'	, 					'about_news.pl'],
+	  [1,1,'Credits', 		'authors, acknowledgements, references', 'about_credits.pl'],
+	  [1,1,'Contents', 		'show unison meta information', 	'about_contents.pl'],
+	  [1,1,'Env', 			'environment info', 				'about_env.pl'],
+	  [0,1,'Prefs',			'user prefs', 						'about_prefs.pl'],
 	 ],
 
 	 [	# Search menu
-	  ['Search', 		'search for sequences which match criteria' ],
-	  ['By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
-	  ['By Properties',	'mine for sequences based on properties', 'search_by_properties.pl'],
-	  ['Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
-# XXX: @GNE only:
-#	  ['Framework',    	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
+	  [1,1,'Search', 		'search for sequences which match criteria'],
+	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
+	  [1,1,'By Properties',	'mine for sequences based on properties', 'search_by_properties.pl'],
+	  [1,0,'Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
+	  [1,0,'Framework',    	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
 	 ],
 
 	 [	# Browse menu
-	  ['Browse', 		'browse curated sets of sequences (unimplemented)'],
-	  ['Sets', 			'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
-	  ['Views', 		'browse dynamic queries of protein sequences', 'browse_views.pl'],
-	  # ['SCOP', undef, 'browse_scop.pl'],
-	  # ['Origins', undef, 'browse_origins.pl']
+	  [1,1,'Browse', 		'browse curated sets of sequences (unimplemented)'],
+	  [1,1,'Sets', 			'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
+	  [1,1,'Views', 		'browse dynamic queries of protein sequences', 'browse_views.pl'],
 	 ],
 
 	 [	# Analyze menu
-	  ['Analyze', 		'display precomputed analyses for a single sequence'],
-	  ['Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
-	  ['Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
-	  ['Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
-	  ['Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
-	  ['Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
-# XXX: RETIRED
-# BLAST results are incomplete. This will be replaced by PSI-BLAST in the
-# near future.
-#	  ['BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	  ['Prospect',	 	'Prospect2 threadings', 			'pseq_paprospect.pl', $pseq_id],
-	  ['HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
-# XXX: PSSM alignments are not maintained. To reappear, perhaps.
-#	  ['PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
-	  ['Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
-	  ['Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
-	  ['Notes',			'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
-	  ['History',		'run history',						'pseq_history.pl', 	$pseq_id ],
+	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence'],
+	  [1,1,'Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
+	  [1,1,'Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
+	  [1,0,'Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
+	  [1,1,'Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
+	  [1,1,'Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
+	  [0,1,'BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
+	  [1,1,'Prospect',	 	'Prospect2 threadings', 			'pseq_paprospect.pl', $pseq_id],
+	  [1,1,'HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
+	  [0,1,'PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
+	  [1,1,'Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
+	  [1,1,'Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
+	  [0,0,'Notes',			'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
+	  [1,1,'History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	 ],
 
-# XXX: not maintained
-#	 [	# Assess menu
-#	  ['Assess', 		'compare sequence sets and analysis methods'],
-#	  ['Scores', 		'compare scoring systems',			'compare_scores.pl'],
-#	  ['Methods', 		'compare threading methods',		'compare_methods.pl'],
-#	 ],
+	 [	# Assess menu
+	  [0,0,'Assess', 		'compare sequence sets and analysis methods'],
+	  [0,0,'Scores', 		'compare scoring systems',			'compare_scores.pl'],
+	  [0,0,'Methods', 		'compare threading methods',		'compare_methods.pl'],
+	 ],
 
 	  # empty list forces right-justification of subsequent menus
 	  #[ [ '' ]  ],
 
 	  #[ # run menu
-	  # ['Run', 'run analyses on sequences for which precomputed results aren\'t available'],
-	  # ['BLAST', undef, 'run_blast.pl'],
-	  # ['Pfam', undef, 'run_pfam.pl']
+	  # [1,1,'Run', 'run analyses on sequences for which precomputed results aren\'t available'],
+	  # [1,1,'BLAST', undef, 'run_blast.pl'],
+	  # [1,1,'Pfam', undef, 'run_pfam.pl']
 	  #],
 
 	  #[ # special menu
-	  # ['Special', 'special projects'],
-	  # ['Preferences', 'user preferences']
-	  # ['UNQ', 'UNQ browsing']
+	  # [1,1,'Special', 'special projects'],
+	  # [1,1,'Preferences', 'user preferences']
+	  # [1,1,'UNQ', 'UNQ browsing']
 	  #],
 
 	  #[ # admin menu
-	  # ['Admin', 'Unison administration'],
-	  # ['Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
+	  # [1,1,'Admin', 'Unison administration'],
+	  # [1,1,'Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
 	  #],
 
 	);
 
+
+##  @navs =
+##	(
+##	 [	# About menu
+##	  [1,1,'Unison', 		'more information about Unison'],
+##	  [0,0,'test00', 		'Unison overview', 					'about_unison.pl'],
+##	  [0,1,'test01', 		'Unison overview', 					'about_unison.pl'],
+##	  [1,0,'test10', 		'Unison overview', 					'about_unison.pl'],
+##	  [1,1,'test11', 		'Unison overview', 					'about_unison.pl'],
+##	 ],
+##
+##	 [	# Assess menu
+##	  [0,0,'Dummy', 		'compare sequence sets and analysis methods'],
+##	  [0,0,'Methods', 		'compare threading methods',		'compare_methods.pl'],
+##	 ]
+##	);
+
+
+  @navs = __filter_navs($self->is_prd_instance(),$self->is_public(),@navs);
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
   my $rv = '';
-  # MISFEATURE: undefined navi may occur (eg genome_features) and this causes
-  # the navbar to be omitted.
-  if (defined $navi) {
-	$rv = "\n  <table    class=\"nav\" width=\"100%\">"
-		  . "\n    <tr>" . _make_navrow($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs) . '</tr>'
-		  . "\n    <tr>" 
-		  . ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
-		  . '<td align="center"><img src="../av/v.gif"></td>'
-		  . ($navi==$#navs ? '' : sprintf('<td colspan=%d></td>',$#navs-$navi))
-		  . '</tr>'
-		  . "\n  </table>\n";
-
-	my @nav = @{$navs[$navi]};
-	shift @nav;				# menu header is first item; menu items remain
-	$rv .= "\n  <table class=\"subnav\" width=\"100%\">" 
-	  . '<tr>' . _make_navrow($subnavi, @nav) . '</tr>'
-	  . "</table>\n";
-  }
+  $rv = "\n  <table    class=\"nav\" width=\"100%\">"
+	. "\n    <tr>" . _make_navrow($navi, map {[ @{$_->[0]}, @{$_->[1]}[2,3]]} @navs) . '</tr>'
+	. "\n    <tr>" 
+	. ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
+	. '<td align="center"><img src="../av/v.gif"></td>'
+	. ($navi==$#navs ? '' : sprintf('<td colspan=%d></td>',$#navs-$navi))
+	. '</tr>'
+	. "\n  </table>\n";
+  my @nav = @{$navs[$navi]};
+  shift @nav;				# menu header is first item; menu items remain
+  $rv .= "\n  <table class=\"subnav\" width=\"100%\">" 
+	. '<tr>' . _make_navrow($subnavi, @nav) . '</tr>'
+	. "</table>\n";
   return $rv;
 }
 
 
+sub __filter_navs($$@) {
+  my ($is_prd,$is_pub,@navs) = @_;
+  foreach(my $i=$#navs; $i>=0; $i--) {
+	if (    ($is_prd and not $navs[$i][0][0])
+		 or ($is_pub and not $navs[$i][0][1]) ) {
+	  splice(@navs,$i);						# entire major menu is tossed
+	  next;
+	}
+	# else...
+	#_nav_dump("$i.1",@navs);
+	@{$navs[$i]} = grep {(    (not $is_prd or $_->[0])
+						  and (not $is_pub or $_->[1]) )} @{$navs[$i]};
+	#_nav_dump("$i.2",@navs);
+	@{$navs[$i]} = map { [splice(@$_,2)] } @{$navs[$i]};
+	#_nav_dump("$i.3",@navs);
+  }
+  #_nav_dump("is_prd=$is_prd; is_pub=$is_pub; returned=",@navs);
+  return @navs;
+}
+
+
+
+
 sub _find_nav_ids {
+  # identify indexes in  major and minor @nav entries for
+  # the current page
   my $self = shift;
   my @navs = @_;
   my $script = $self->url(-relative => 1);
@@ -1098,7 +1178,8 @@ sub iframe {
 <style type="text/css">
 div.iframe { text-align:center;}
 </style>
-<div class="iframe"><iframe name="$title" src="$src" frameborder="0" width=750 height=750/></iframe></div>
+<div class="iframe"><iframe name="$title" src="$src" 
+     frameborder="0" width=750 height=750/></iframe></div>
 EOHTML
 }
 
@@ -1114,15 +1195,4 @@ These methods typically begin with two underscores (e.g., __internal_routine).
 
 
 
-## ## XXX: in use?
-## commented out 2005-03-19 to see what breaks (rkh)
-## sub where {
-##   my $self = shift;
-##   ($self->{Nav},$self->{SubNav}) = @_;
-##   return $self;
-## }
-
-
-
 1;
-
