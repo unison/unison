@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.12 2005/09/13 15:05:16 rkh Exp $
+# $Id: Makefile,v 1.13 2005/09/16 04:25:23 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -10,33 +10,52 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-_D:=$(shell mkdir -p data geneseq)
-vpath %.fa .
 
-
-ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq geneseq
+ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq
+ifeq "$(shell hostname -d)" "gene.com"
+ORIGINS+=geneseq
+endif
 
 default all: $(addsuffix .load,${ORIGINS})
-	########################################################################
-	##   REMINDER: you must make GenenGenes.load manually on geneland     ##
-	##   (if you're Reece, that is)                                       ##
-	########################################################################
+ifeq "$(shell hostname -d)" "gene.com"
+	@echo ##########################################################
+	@echo ## REMINDER: you must make GenenGenes.load manually.    ##
+	@echo ##########################################################
+endif
 
 
+
+
+## CCDS
+ccds-human.load: ${CCDS_HUMAN_PATH}
+	gzip -cdq $< | time -p load-pseq --verbose -oCCDS/Human -ffasta -t9606 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 
 
 ## ENSEMBL
-ENSEMBL_SPECIES:=chimp fly human mouse rat zebrafish
+ENSEMBL_SPECIES:=chimp cow fly human mouse rat zebrafish
 .PHONY: ensembl.load
 ensembl.load: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load)
 ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_chimp/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Chimp -ffasta -t9598 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+ensembl-cow.load: $(wildcard ${ENSEMBL_DIR}/current_cow/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Cow -ffasta -t9598 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_fly/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Fly -ffasta -t7227 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_human/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Human -ffasta -t9606 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-mouse.load: $(wildcard ${ENSEMBL_DIR}/current_mouse/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Mouse -ffasta -t10090 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-rat.load: $(wildcard ${ENSEMBL_DIR}/current_rat/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Rat -ffasta -t10116 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-zebrafish.load: $(wildcard ${ENSEMBL_DIR}/current_zebrafish/data/fasta/pep/*.pep.fa.gz)
-ensembl-%.load:
-	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/$* -ffasta - >$@.err 2>&1
+	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Zebrafish -ffasta -t7955 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
@@ -70,14 +89,18 @@ refseq/%.load: ${REFSEQ_DIR}/%.protein.gpff.gz
 
 ## UNIPROT LOADING
 uniprot: uniprot_sprot.load uniprot_trembl.load 
-uniprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
-	gzip -cdq $< | time -p load-pseq --verbose -oUniprot -fswiss - >$@.err 2>&1
+uniprot_sprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
+	gzip -cdq $< | time -p load-pseq --verbose -oUniProtKB/Swiss-Prot -fswiss - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
-	gzip -cdq $< | time -p load-pseq --verbose -oUniprot/TrEMBL -fswiss - >$@.err 2>&1
+	gzip -cdq $< | time -p load-pseq --verbose -oUniProtKB/TrEMBL -fswiss - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
+
+
+## TODO: develop fall-through to download files as needed.  Presumably
+## this would happen via a vpath to existing files.
 
 
 ########################################################################
