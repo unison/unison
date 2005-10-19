@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.21 2005/09/13 15:04:11 rkh Exp $
+# $Id: get-seq,v 1.22 2005/10/09 20:12:59 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.21 2005/09/13 15:04:11 rkh Exp $>
+S<$Id: get-seq,v 1.22 2005/10/09 20:12:59 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ sub map_args_to_pseq_ids($@);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.21 2005/09/13 15:04:11 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.22 2005/10/09 20:12:59 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -90,7 +90,7 @@ sub parse_options() {
   my %opts = 
 	(
 	 # how to select sequences
-	 'all' => 0,
+	 'select-all' => 0,
 	 'select-by-alias' => 0,
 	 'select-by-alias-fuzzy' => 0,
 	 'select-by-porigin' => 0,
@@ -272,19 +272,19 @@ sub process1 {
 sub get1 {
   my $pseq_id = shift;
   my $seq = $u->get_sequence_by_pseq_id($pseq_id);
-  my $alan;
+  my @aliases;
   my @descr;
 
   if (not defined $seq)
 	{ warn("! pseq $pseq_id doesn't exist\n"); return; }
 
   if (    ($opts{'best-alias'} 
-		   and defined ($alan = $u->best_alias($pseq_id)))
+		   and (@aliases = $u->best_alias($pseq_id)))
 	   or ($opts{'best-annotation'}
-		   and defined ($alan = $u->best_annotation($pseq_id)))
+		   and (@aliases = $u->best_annotation($pseq_id)))
 	   or ($opts{'all-aliases'}
-		   and defined ($alan = $u->pseq_get_aliases($pseq_id))) ) {
-	push(@descr, $alan);
+		   and (@aliases = $u->pseq_get_aliases($pseq_id))) ) {
+	push(@descr, @aliases);
   }
 
   if (not $opts{'unison-id'} or not @descr) {
