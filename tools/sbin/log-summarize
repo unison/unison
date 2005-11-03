@@ -1,24 +1,46 @@
 #!/usr/bin/env perl
+# log-summarize -- summarize postgresql logs by host, user, and database
+# $Id$
+# Reece Hart <reece@harts.net>
+
 
 use strict;
 use warnings;
-use Data::Dumper;
+use Date::Calc qw(Parse_Date Delta_YMD Delta_Days);
+#use Data::Dumper;
 
-# users to exclude
-my @user_ex = qw(compbio loader unison);
-my %user_ex = map {$_=>1} @user_ex;
+sub delta($$);
+sub match_any_re($@);
 
-# bins for connection by user, host, etc.
+
+
+# users and hosts to exclude
+my @ex_user = qw(compbio postgres loader unison);
+push(@ex_user, qw(mukhyala rkh));
+
+my @ex_host_re = map { qr/$_/ } qw(^localhost$ ^csb ^csb-dev ^td-interceptor ^comp\d);
+
+
+
+# parsing is done by "connection blocks" stored in a simple structure
+# these cbs are binned by user, host, etc.
 my %cb_user;
 my %cb_host;
 my %cb_user_db;
 my %cb_user_host;
 my %cb_date;
 my %cb_date_user;
+my %cb_earliest;
+my %cb_latest;
+
+# number of days between earliest and latest
+my %user_delta;
+
 
 my $date_re = qr/200\d-\d\d-\d\d/;
 my $time_re = qr/\d\d:\d\d:\d\d/;
 
+my %ex_user = map {$_=>1} @ex_user;
 
 my @pending;
 while(<>) {
@@ -37,7 +59,8 @@ while(<>) {
 
 	my ($host,$user,$db,$date) = @conn{qw(host user database date)};
 
-	next if exists $user_ex{$user};
+	next if exists $ex_user{$user};
+	next if match_any_re($host,@ex_host_re);
 
 	$host =~ s/\.gene\.com//;				# drop domain name
 	$host =~ s/^comp\d+/comp*/				# group connections into
@@ -54,22 +77,40 @@ while(<>) {
   }
 }
 
+foreach my $user (keys %cb_user) {
+  my @conn = sort {$a->{date} cmp $b->{date}} @{$cb_user{$user}};
+  $cb_earliest{$user} = $conn[0];
+  $cb_latest{$user} = $conn[$#conn];
+  $user_delta{$user} = delta($cb_earliest{$user}->{date},
+							 $cb_latest{$user}->{date});
+}
 
 
-print('$Id: log-summarize,v 1.3 2004/11/11 17:26:41 rkh Exp $ ', "\n\n");
+print('$Id: log-summarize,v 1.4 2005/06/15 20:23:24 rkh Exp $ ', "\n\n");
 
-printf("connections by %d user(s):\n", scalar keys %cb_user);
-foreach my $user (sort keys %cb_user) {
-  my $conn = $cb_user{$user};
-  my $earliest = $conn->[0]->{date};
-  my $latest = $conn->[$#$conn]->{date};
+printf("excluding statistics for %d users (%s)\n",
+	   $#ex_user+1, join(',',sort @ex_user));
+printf("excluding statistics for %d host regular expressions (%s)\n",
+	   $#ex_host_re+1, join(',',sort @ex_host_re));
 
-  printf("  %-10s: %4d conn, %2d hosts, %2d dbs; %s..%s\n",
+printf("\nconnections by %d user(s):\n", scalar keys %cb_user);
+foreach my $user (sort {   $user_delta{$b} <=> $user_delta{$a} 
+					    || $cb_latest{$b}->{date} cmp $cb_latest{$a}->{date}
+						|| $a cmp $b 
+					  }  keys %cb_user
+				 ) {
+  my $earliest = 
+  my $latest = $cb_earliest{$user}->{date};
+  my $delta = 
+
+  printf("  %-10s: %5d conn, %2d hosts, %2d dbs; %s..%s (%3dd)\n",
 		 $user,
 		 $#{$cb_user{$user}}+1, 
 		 (scalar keys %{$cb_user_host{$user}}),
 		 (scalar keys %{$cb_user_db{$user}}),
-		 $earliest, $latest
+		 $cb_earliest{$user}->{date},
+		 $cb_latest{$user}->{date},
+		 $user_delta{$user}
 		);
 }
 
@@ -85,4 +126,23 @@ foreach my $date (sort keys %cb_date) {
   my @users = keys %{$cb_date_user{$date}};
   printf("  $date %4d total (%d users = {%s})\n", 
 		 $#{$cb_date{$date}}, $#users+1, join(',',sort @users));
+}
+
+exit(0);
+
+
+sub delta($$) {
+  my ($t0,$t1) = @_;
+  my ($y0,$m0,$d0) = split(/-/,$t0);
+  my ($y1,$m1,$d1) = split(/-/,$t1);
+  return Delta_Days($y0,$m0,$d0, $y1,$m1,$d1);
+}
+
+
+sub match_any_re($@) {
+  my ($q,@re) = @_;
+  for(my $i=0; $i<=$#re; $i++) {
+	return $re[$i] if ($q =~ $re[$i]);
+  }
+  return undef;
 }
