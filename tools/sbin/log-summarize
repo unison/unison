@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # log-summarize -- summarize postgresql logs by host, user, and database
-# $Id$
+# $Id: log-summarize,v 1.5 2005/11/03 17:23:15 rkh Exp $
 # Reece Hart <reece@harts.net>
 
 
@@ -86,11 +86,11 @@ foreach my $user (keys %cb_user) {
 }
 
 
-print('$Id: log-summarize,v 1.4 2005/06/15 20:23:24 rkh Exp $ ', "\n\n");
+print('$Id: log-summarize,v 1.5 2005/11/03 17:23:15 rkh Exp $ ', "\n\n");
 
-printf("excluding statistics for %d users (%s)\n",
+printf("excluding statistics for %d users {%s}\n",
 	   $#ex_user+1, join(',',sort @ex_user));
-printf("excluding statistics for %d host regular expressions (%s)\n",
+printf("excluding statistics for %d host regular expressions {%s}\n",
 	   $#ex_host_re+1, join(',',sort @ex_host_re));
 
 printf("\nconnections by %d user(s):\n", scalar keys %cb_user);
@@ -124,8 +124,12 @@ foreach my $host (sort keys %cb_host) {
 printf("\nconnections by month:\n", scalar keys %cb_date);
 foreach my $date (sort keys %cb_date) {
   my @users = keys %{$cb_date_user{$date}};
-  printf("  $date %4d total (%d users = {%s})\n", 
-		 $#{$cb_date{$date}}, $#users+1, join(',',sort @users));
+  printf("  $date %4d total; %3d user; %3d PUBLIC; %3d unique = {%s})\n", 
+		 scalar(                              @{$cb_date{$date}}),
+		 scalar(grep {$_->{user} ne 'PUBLIC'} @{$cb_date{$date}}),
+		 scalar(grep {$_->{user} eq 'PUBLIC'} @{$cb_date{$date}}),
+		 $#users+1,
+		 join(',',sort @users));
 }
 
 exit(0);
