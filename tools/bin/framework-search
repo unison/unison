@@ -8,7 +8,7 @@
 # eg2$ framework-search <framwork.fa >file.html
 # eg3$ framework-search region1 region2 ... regionN >file.html
 #
-# $Id: framework-search,v 1.6 2005/02/20 04:56:37 rkh Exp $
+# $Id: framework-search,v 1.7 2005/02/20 06:25:53 rkh Exp $
 #
 
 
@@ -89,7 +89,7 @@ exit(0);
 
 sub html_header() {
   my $title = 'Antibody Framework Search';
-  my $Id = '$Id: framework-search,v 1.6 2005/02/20 04:56:37 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.7 2005/02/20 06:25:53 rkh Exp $ ';
   my $date = `date +"%Y-%m-%d %H:%M"`;
 
   my $htmltitle = $title;
@@ -212,7 +212,7 @@ FROM
 
 WHERE
   S.seq ~ ?
-  AND SA.iscurrent = TRUE
+  AND SA.is_current = TRUE
 
 ORDER BY
   S.pseq_id, O.ann_pref
@@ -261,7 +261,7 @@ EOHTML
 }
 
 sub html_footer($) {
-  my $Id = '$Id: framework-search,v 1.6 2005/02/20 04:56:37 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.7 2005/02/20 06:25:53 rkh Exp $ ';
   return <<EOHTML;
 <hr>
 Report generated in $_[0] seconds.
@@ -310,9 +310,9 @@ FROM
 WHERE
   S.seq ~ ?
   AND S.pseq_id <= 100
-  AND SA.iscurrent = TRUE
+  AND SA.is_current = TRUE
   AND O.porigin_id != porigin_id('Geneseq')
-  AND GSSA.iscurrent = TRUE
+  AND GSSA.is_current = TRUE
   AND GSAO.porigin_id = porigin_id('Geneseq')
 
 ORDER BY

@@ -14,7 +14,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.13 2005/07/18 21:10:01 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.14 2005/09/14 23:43:05 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Patents not available.', <<EOT);
@@ -82,7 +82,7 @@ JOIN pseqalias SA on X1.pseq_id=SA.pseq_id
 JOIN paliasorigin AO on	AO.palias_id=SA.palias_id
 JOIN porigin O on O.porigin_id=AO.porigin_id
 JOIN spspec T on AO.tax_id=T.tax_id
-WHERE SA.iscurrent=true
+WHERE SA.is_current=true
   AND AO.porigin_id=porigin_id('Geneseq')
 ORDER BY pct_coverage desc,pct_ident desc,patent_date,patent_authority,alias
 EOSQL

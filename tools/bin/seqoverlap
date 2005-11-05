@@ -21,7 +21,7 @@ CREATE OR REPLACE VIEW seqov_aliases as
    JOIN paliasorigin ao1 ON sa1.palias_id = ao1.palias_id AND s.ori1 = ao1.porigin_id
    JOIN pseqalias sa2 ON s.pseq_id = sa2.pseq_id
    JOIN paliasorigin ao2 ON sa2.palias_id = ao2.palias_id AND s.ori2 = ao2.porigin_id
-  WHERE sa1.iscurrent = true AND sa2.iscurrent = true;
+  WHERE sa1.is_current = true AND sa2.is_current = true;
 
 
 grant select on seqov_aliases to PUBLIC;
