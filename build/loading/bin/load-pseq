@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.19 2005/09/13 17:07:01 rkh Exp $
+# $Id: load-pseq,v 1.20 2005/10/09 09:39:31 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -207,7 +207,8 @@ sub process_seq ($$$$) {
     $skip = 'extant alias';
   } elsif (length($seq) == 0) {
     $skip = "zero-length";
-  } elsif (!$opts{'incl-subex'} and $descr =~ m%/type=(\w+)% and $1 ne 'gene') {
+  } elsif (not $opts{'incl-subex'} 
+		   and defined $descr and $descr =~ m%/type=(\w+)% and $1 ne 'gene') {
     $skip = "non-gene genescan transcript";
   }
   if (defined $skip) {
@@ -254,6 +255,12 @@ sub process_seq ($$$$) {
 	# it should really be addressed there...
 	$descr =~ s%/coords.+trans=[FR]\d %%;
 	$tax_id = 9606;
+  } elsif ($opts{origin} =~ m/^CCDS/i) {
+	# Dear God-
+	#   Please send a fasta standard that people use.
+	# Thanks, Reece
+	$descr = $id;
+	@aliases = $descr =~ m/^([^|]+)/;
   } else {
 	# intentionally blank
   }

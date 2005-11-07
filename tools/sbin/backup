@@ -1,6 +1,6 @@
 #!/bin/bash
 # backup -- backup the csb database
-# $Id: backup,v 1.22 2005/05/13 19:14:23 rkh Exp $
+# $Id: backup,v 1.23 2005/07/18 21:56:00 rkh Exp $
 #
 # you must set PGPASSWORD before running
 # this script any user with write permission in BACKUPDIR (below) should
@@ -20,7 +20,7 @@
 
 
 
-BACKUPDIR="$HOME/csb-db/backups"
+BACKUPDIR="$HOME/compbio/backups"
 PATH=/usr/bin:/bin
 PGD_OPTS="-Upostgres"
 

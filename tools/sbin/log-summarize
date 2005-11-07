@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # log-summarize -- summarize postgresql logs by host, user, and database
-# $Id: log-summarize,v 1.5 2005/11/03 17:23:15 rkh Exp $
+# $Id: log-summarize,v 1.6 2005/11/03 17:53:19 rkh Exp $
 # Reece Hart <reece@harts.net>
 
 
@@ -15,7 +15,7 @@ sub match_any_re($@);
 
 
 # users and hosts to exclude
-my @ex_user = qw(compbio postgres loader unison);
+my @ex_user = qw(compbio postgres loader unison genengenes wwwrun);
 push(@ex_user, qw(mukhyala rkh));
 
 my @ex_host_re = map { qr/$_/ } qw(^localhost$ ^csb ^csb-dev ^td-interceptor ^comp\d);
@@ -86,7 +86,7 @@ foreach my $user (keys %cb_user) {
 }
 
 
-print('$Id: log-summarize,v 1.5 2005/11/03 17:23:15 rkh Exp $ ', "\n\n");
+print('$Id: log-summarize,v 1.6 2005/11/03 17:53:19 rkh Exp $ ', "\n\n");
 
 printf("excluding statistics for %d users {%s}\n",
 	   $#ex_user+1, join(',',sort @ex_user));
@@ -124,7 +124,7 @@ foreach my $host (sort keys %cb_host) {
 printf("\nconnections by month:\n", scalar keys %cb_date);
 foreach my $date (sort keys %cb_date) {
   my @users = keys %{$cb_date_user{$date}};
-  printf("  $date %4d total; %3d user; %3d PUBLIC; %3d unique = {%s})\n", 
+  printf("  $date %5d total; %5d user; %5d PUBLIC; %4d unique = {%s})\n", 
 		 scalar(                              @{$cb_date{$date}}),
 		 scalar(grep {$_->{user} ne 'PUBLIC'} @{$cb_date{$date}}),
 		 scalar(grep {$_->{user} eq 'PUBLIC'} @{$cb_date{$date}}),
