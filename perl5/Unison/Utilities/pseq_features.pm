@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.16 2005/10/11 20:53:40 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.17 2005/11/07 02:13:36 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -135,7 +135,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.16 2005/10/11 20:53:40 mukhyala Exp $',
+			  '$Id: pseq_features.pm,v 1.17 2005/11/07 02:13:36 mukhyala Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -846,8 +846,8 @@ sub add_pftemplate {
     my ($nadded,$topN) = (0,5);
 
     return unless defined $pseq_structure->{'structure_ids'} or defined $pseq_structure->{'template_ids'};
-    my @structures = @{$pseq_structure->{'structure_ids'}};
-    my @templates  = @{$pseq_structure->{'template_ids'}};
+    my @structures = @{$pseq_structure->{'structure_ids'}} if defined $pseq_structure->{'structure_ids'};
+    my @templates  = @{$pseq_structure->{'template_ids'}} if defined $pseq_structure->{'template_ids'};
 
     my $nfeat = $#templates+1 + $#structures+1;
     splice(@structures,$topN) if $#structures > $topN;
