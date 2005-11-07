@@ -1,9 +1,9 @@
 # -*- sh -*-
-# $Id: utils,v 1.10 2004/12/24 00:10:05 rkh Exp $
+# $Id: utils,v 1.11 2005/05/13 19:14:23 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 JEMAPPELLE=`basename $0`
-LOG_DIR="/srv/csb-db/logs"
+LOG_DIR="/home/rkh/compbio/logs"
 LOG_FN="$LOG_DIR/$JEMAPPELLE"
 
 
