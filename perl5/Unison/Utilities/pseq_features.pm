@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.15 2005/10/09 09:39:33 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.16 2005/10/11 20:53:40 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -135,7 +135,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.15 2005/10/09 09:39:33 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.16 2005/10/11 20:53:40 mukhyala Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -265,7 +265,7 @@ sub add_pfsignalp {
 								-height => 4,
 							   );
   # add pfsignalpnn feature
-  $sql = "select start,stop,pftype.name,s_mean
+  $sql = "select start,stop,pftype.name,d_score
            from pfsignalpnn natural join pftype where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   $featref = $u->selectall_arrayref($sql);
