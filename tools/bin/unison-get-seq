@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.22 2005/10/09 20:12:59 rkh Exp $
+# $Id: get-seq,v 1.23 2005/10/19 20:52:50 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.22 2005/10/09 20:12:59 rkh Exp $>
+S<$Id: get-seq,v 1.23 2005/10/19 20:52:50 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ sub map_args_to_pseq_ids($@);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.22 2005/10/09 20:12:59 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.23 2005/10/19 20:52:50 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -164,8 +164,10 @@ sub map_args_to_pseq_ids($@) {
   my $or = shift;
   my @pseq_ids;
 
-if ($or->{'select-by-unison-id'}) {
+  if ($or->{'select-by-unison-id'}) {
 	# expand ranges like 1..5 to (1,2,3,4,5)
+	# This is in part to sanitize the expressions which will be
+	# eval'd next
 	if (my @bad = grep {not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/} @_) {
 	  die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
 	}
@@ -264,7 +266,8 @@ sub process1 {
   my $pseq_id = shift;
   my $seq = get1($pseq_id);
   if (not defined $seq) {
-	warn("Unison:$pseq_id not found\n"); return;
+	warn("! Unison:$pseq_id not found\n");
+	return;
   }
   print $seq;
 }
@@ -275,8 +278,7 @@ sub get1 {
   my @aliases;
   my @descr;
 
-  if (not defined $seq)
-	{ warn("! pseq $pseq_id doesn't exist\n"); return; }
+  return unless defined $seq;
 
   if (    ($opts{'best-alias'} 
 		   and (@aliases = $u->best_alias($pseq_id)))
