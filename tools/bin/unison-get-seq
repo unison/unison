@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.23 2005/10/19 20:52:50 rkh Exp $
+# $Id: get-seq,v 1.24 2005/11/08 05:27:48 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.23 2005/10/19 20:52:50 rkh Exp $>
+S<$Id: get-seq,v 1.24 2005/11/08 05:27:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -39,13 +39,14 @@ use Pod::Usage;
 # PROTOTYPES
 sub parse_options();
 sub map_args_to_pseq_ids($@);
+sub process1($);
 
 
 # We begin...
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.23 2005/10/19 20:52:50 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.24 2005/11/08 05:27:48 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -72,11 +73,11 @@ if ($opts{'select-all'}) {
 my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
 @args = map_args_to_pseq_ids( \%opts, @args );
 for(my $i=0; $i<=$#args; $i++) {
+  process1($args[$i]);
   if ( $opts{verbose} and (0 == $i % $opts{verbose_frequency}) ) {
 	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
 		   $i+1,$#args+1, ($i+1)/($#args+1)*100, $args[$i]);
   }
-  process1($args[$i]);
 }
 printf(STDERR "\n") if $opts{verbose};
 
@@ -134,19 +135,19 @@ sub parse_options() {
 
   @opts = qw(select-all select-by-alias select-by-alias-fuzzy
 			 select-by-pset select-by-porigin select-by-unison-id);
-  $optsum = eval join('+', map {$opts{$_}} @opts);
+  $optsum = eval join('+', map {$opts{$_}?1:0} @opts);
   if ($optsum == 0) {
 	$opts{'select-by-unison-id'}++;
   } elsif ($optsum > 1) {
-	die("$0: may only specifiy one of {", join(',',@opts), "}.\n");
+	die("$0: may only specify one of {", join(',',@opts), "}.\n");
   }
 
   @opts = qw(best-alias best-annotation all-aliases);
-  $optsum = eval join('+', map {$opts{$_}} @opts);
+  $optsum = eval join('+', map {$opts{$_}?1:0} @opts);
   if ($optsum == 0) {
  	$opts{'unison-id'}++;
   } elsif ($optsum > 1) {
-	die("$0: may only specifiy one of {", join(',',@opts), "}.\n");
+	die("$0: may only specify one of {", join(',',@opts), "}.\n");
   }
 
   return %opts;
@@ -261,43 +262,33 @@ sub map_args_to_pseq_ids($@) {
   return @pseq_ids;
 }
 
-
-sub process1 {
+sub process1($) {
   my $pseq_id = shift;
-  my $seq = get1($pseq_id);
+  my $seq = $u->get_sequence_by_pseq_id($pseq_id);
+  my @aliases;
+
   if (not defined $seq) {
 	warn("! Unison:$pseq_id not found\n");
 	return;
   }
-  print $seq;
-}
 
-sub get1 {
-  my $pseq_id = shift;
-  my $seq = $u->get_sequence_by_pseq_id($pseq_id);
-  my @aliases;
-  my @descr;
-
-  return unless defined $seq;
-
-  if (    ($opts{'best-alias'} 
-		   and (@aliases = $u->best_alias($pseq_id)))
-	   or ($opts{'best-annotation'}
-		   and (@aliases = $u->best_annotation($pseq_id)))
-	   or ($opts{'all-aliases'}
-		   and (@aliases = $u->pseq_get_aliases($pseq_id))) ) {
-	push(@descr, @aliases);
+  if ($opts{'best-annotation'}) {
+	(@aliases) = $u->best_annotation($pseq_id)
+  } elsif ($opts{'best-alias'} == 1) {
+	(@aliases) = $u->best_alias($pseq_id)
+  } elsif ($opts{'best-alias'} > 1 ) {
+	(@aliases) = $u->pseq_get_aliases($pseq_id,10000)
+  } elsif ($opts{'all-aliases'}) {
+	(@aliases) = $u->pseq_get_aliases($pseq_id)
   }
 
-  if (not $opts{'unison-id'} or not @descr) {
-	unshift( @descr, "Unison:$pseq_id" );
+  if ($opts{'unison-id'} or not @aliases) {
+	unshift( @aliases, "Unison:$pseq_id" );
   }
 
-
-  my $rv = '>' . join(' ',@descr) . "\n";
+  my $rv = '>' . join(' ',@aliases) . "\n";
   while( length($seq) )
 	{ $rv .= substr($seq,0,60,'') . "\n"; }
 
-  #print(STDERR "# $pseq_id (", $descr[0]||'<no description>', ")\n") if $opts{verbose};
-  return $rv;
+  print $rv;
 }
