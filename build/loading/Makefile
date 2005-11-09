@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.11 2005/09/13 15:05:14 rkh Exp $
+## $Id: Makefile,v 1.12 2005/10/09 20:13:00 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
@@ -44,7 +44,7 @@ pseq.log: aux.log
 ######################################################################
 # 2. UPDATE INTRINSIC SETS AND OTHER DATA
 .PHONY: phase2
-phase2: update_tax_id.log update_psets_intrinsic.log mv_best_annotation.log #update_meta_stats.log
+phase2: update_tax_id.log update_psets_intrinsic.log mv_best_annotation.log pmprospect_scop.log #update_meta_stats.log
 update_tax_id.log: pseq.log
 	(time -p ${PSQL_VCMD} 'begin; select update_tax_ids(); commit;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
@@ -53,6 +53,9 @@ update_psets_intrinsic.log: update_tax_id.log
 	/bin/mv -f $@.err $@
 mv_best_annotation.log: update_psets_intrinsic.log
 	(time -p ${PSQL_VCMD} 'begin; truncate mv_best_annotation; insert into mv_best_annotation select * from v_best_annotation; commit') >$@.err 2>&1
+	/bin/mv -f $@.err $@
+pmprospect_scop.log: aux.log
+	(PGUSER=unison time -p ${PSQL_VCMD} 'begin; truncate pmprospect_scop; insert into pmprospect_scop select * from dv_pmprospect_scop; commit') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 # m_s_u is broken, I think because of temp tables within plpgsql (unverified)
 # in any case, the following doesn't work.

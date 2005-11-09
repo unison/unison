@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.13 2005/09/16 04:25:23 rkh Exp $
+# $Id: Makefile,v 1.14 2005/10/18 18:53:20 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -35,27 +35,48 @@ ccds-human.load: ${CCDS_HUMAN_PATH}
 ## ENSEMBL
 ENSEMBL_SPECIES:=chimp cow fly human mouse rat zebrafish
 .PHONY: ensembl.load
-ensembl.load: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load)
+ensembl.load: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load) $(foreach S,${ENSEMBL_SPECIES},ensembl-$S-ai.load)
 ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_chimp/data/fasta/pep/*.pep.fa.gz)
 	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Chimp -ffasta -t9598 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+ensembl-chimp-ai.load: $(wildcard ${ENSEMBL_DIR}/current_chimp/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -o'Ensembl/Chimp (ab initio)' -ffasta -t9598 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 ensembl-cow.load: $(wildcard ${ENSEMBL_DIR}/current_cow/data/fasta/pep/*.pep.fa.gz)
 	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Cow -ffasta -t9598 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
+ensembl-cow-ai.load: $(wildcard ${ENSEMBL_DIR}/current_cow/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -o'Ensembl/Cow (ab initio)' -ffasta -t9598 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_fly/data/fasta/pep/*.pep.fa.gz)
 	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Fly -ffasta -t7227 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+ensembl-fly-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fly/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -o'Ensembl/Fly (ab initio)' -ffasta -t7227 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_human/data/fasta/pep/*.pep.fa.gz)
 	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Human -ffasta -t9606 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
+ensembl-human-ai.load: $(wildcard ${ENSEMBL_DIR}/current_human/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -o'Ensembl/Human (ab initio)' -ffasta -t9606 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-mouse.load: $(wildcard ${ENSEMBL_DIR}/current_mouse/data/fasta/pep/*.pep.fa.gz)
 	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Mouse -ffasta -t10090 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+ensembl-mouse-ai.load: $(wildcard ${ENSEMBL_DIR}/current_mouse/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -o'Ensembl/Mouse (ab initio)' -ffasta -t10090 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 ensembl-rat.load: $(wildcard ${ENSEMBL_DIR}/current_rat/data/fasta/pep/*.pep.fa.gz)
 	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Rat -ffasta -t10116 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
+ensembl-rat-ai.load: $(wildcard ${ENSEMBL_DIR}/current_rat/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -o'Ensembl/Rat (ab initio)' -ffasta -t10116 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
 ensembl-zebrafish.load: $(wildcard ${ENSEMBL_DIR}/current_zebrafish/data/fasta/pep/*.pep.fa.gz)
 	gzip -cdq $< | time -p load-pseq --verbose -oEnsembl/Zebrafish -ffasta -t7955 - >$@.err 2>&1
+	/bin/mv -f $@.err $@
+ensembl-zebrafish-ai.load: $(wildcard ${ENSEMBL_DIR}/current_zebrafish/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq --verbose -o'Ensembl/Zebrafish (ab initio)' -ffasta -t7955 - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
@@ -130,9 +151,8 @@ GenenGenes.load : data/GenenGenes.fa
 	grep -v ^ERROR: $< | load-pseq --verbose -oGenenGenes -ffasta - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 data/GenenGenes.fa: data/GenenGenes.proids
-	# This must be done on geneland!
-	sed -e 's/^/ssp.PRO/' <$< | xargs -tn100 /usr/local/seq/bin/getseq -F >$@.tmp 2>$@.err
-	/bin/mv -f $@.err $@; /bin/mv $@.tmp $@
+	sed -e 's/^/ssp.PRO/' <$< | ssh geneland xargs -tn100 /usr/local/seq/bin/getseq -F >$@.tmp 2>$@.err
+	/bin/mv -f $@.err $@; /bin/mv -f $@.tmp $@
 data/GenenGenes.proids:
 	gg-proids-to-load >$@.tmp 2>$@.err
 	/bin/mv -f $@.err $@; /bin/mv $@.tmp $@
