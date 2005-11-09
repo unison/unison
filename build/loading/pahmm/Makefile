@@ -2,19 +2,21 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=20
+N:=10
 QNAME=${SUBDIR}p${PAHMM_PARAMS_ID}
+RUNSET=runC
+NPER:=250
 
 default:
 	@echo no $@ target; exit 1
 
 run:
 	make cleanest
-	make done.ids runC-todo.ids runC-todo-N$N
-	make runC-todo-N$N-qload
+	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N$N
+	make ${RUNSET}-todo-N$N-qload
 
 %.load: %.ids
-	(time -p run-pahmm -N250 -p${PAHMM_PARAMS_ID} <$<) >$@.err 2>&1;
+	(time -p run-pahmm -N${NPER} -p${PAHMM_PARAMS_ID} <$<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
 .done.ids:

@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.15 2005/09/27 23:39:13 rkh Exp $
+## $Id: common.mk,v 1.16 2005/10/09 20:13:00 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -11,9 +11,6 @@ PSQL:=psql
 PSQL_VCMD:=${PSQL} -c
 PSQL_DCMD:=${PSQL} -At -c
 
-# default PGUSER; overridden by -U in places
-PGUSER:=unison
-export PGUSER
 
 #CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
 
@@ -74,6 +71,8 @@ ids: runA.ids runB.ids runC.ids
 	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
 .pset%.ids:
 	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@
+.porigin%.ids:
+	psql -Atc 'select distinct pseq_id from palias where porigin_id=$*' >$@
 
 # generic set-todo.ids is anything which hasn't been done already
 # The top-level makefile which included this one must
