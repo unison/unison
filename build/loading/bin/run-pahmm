@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.19 2005/09/28 00:43:47 rkh Exp $
+# $Id: run-pahmm,v 1.20 2005/10/09 09:39:31 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -53,7 +53,8 @@ my %opts =
    params_id => undef,
    pmodelset_id => undef,
    verbose => 0,
-   'seqs-per-run' => 50
+   'seqs-per-run' => 50,
+   'max-length' => 3000,					# works, but probably too low
   );
 GetOptions(\%opts,
 		   'force|f+',
@@ -160,6 +161,11 @@ sub fetch_sequences ($$@) {
 	my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
 	if (not defined $seq) {
 	  warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+	  next;
+	}
+
+	if (length($seq) > $opts{'max-length'}) {
+	  warn("! Unison:$pseq_id is over $opts{'max-length'} AA; skipping\n");
 	  next;
 	}
 
