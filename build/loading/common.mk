@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.16 2005/10/09 20:13:00 rkh Exp $
+## $Id: common.mk,v 1.17 2005/11/09 03:24:56 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -26,12 +26,15 @@ commonmk_default: default
 # eg$ make PBSARCH=xeon
 QPPN:=2
 QNODES:=nodes=1:ppn=${QPPN}
+ifdef Q
+Q=-q${Q}
+endif
 ifdef PBSARCH
 QNODES:=${QNODES}:${PBSARCH}
 endif
 QTIME:=120000:00
 #QOE:=-ogoose.gene.com:${PWD}/$@.out -egoose.gene.com:${PWD}/$@.err
-QSUB:=qsub -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
+QSUB:=qsub ${Q} -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
 
 
 ifdef DEBUG
@@ -69,6 +72,8 @@ vpath %.ids .:..
 ids: runA.ids runB.ids runC.ids
 .runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
 	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
+.runA-human.ids .runB-human.ids .runC-human.ids .uniA-human.ids .uniB-human.ids .uniC-human.ids .uniD-human.ids: .%.ids:
+	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseq_set where pset_id=pset_id('Human')" >$@
 .pset%.ids:
 	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@
 .porigin%.ids:
