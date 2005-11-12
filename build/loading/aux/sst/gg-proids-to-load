@@ -1,4 +1,4 @@
-#!/usr/local/tools/bin/perl
+#!/usr/bin/env perl
 # gg-proids-to-load -- fetch GenenGenees proids to load into Unison
 #
 # This script identifies DNA ids which are either primary DNA ids or are
@@ -10,7 +10,7 @@ use strict;
 use warnings;
 use DBI;
 
-print(STDERR '$Id: gg-proids-to-load,v 1.1 2005/04/08 22:27:31 rkh Exp $ ', "\n");
+print(STDERR '$Id: gg-proids-to-load,v 1.2 2005/05/11 21:53:41 rkh Exp $ ', "\n");
 
 
 # @GB: list of GENERATED_BY values which we'll load into Unison
