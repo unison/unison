@@ -4,6 +4,10 @@
 #
 # This requires Bio::Tools::pSW in the bioperl-ext package (i.e., it's
 # not yet part of bioperl itself)
+#
+# This should refactored to not be unison specific, and instead do
+# something like   'get-seq 1 2 3 | pairwise-sw'
+
 
 use strict;
 use warnings;
@@ -55,6 +59,10 @@ for(my $i=0; $i<=$#ids; $i++) {
   printf( " | %8d %5d %s\n",
 		  $ids[$i], length($bs[$i]->seq()), $bs[$i]->desc());
 }
+
+
+
+
 
 exit(0);
 
