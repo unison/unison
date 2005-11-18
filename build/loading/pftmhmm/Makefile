@@ -2,18 +2,23 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-PARAMS_ID=24
-PSET_ID=62
+N:=10
+QNAME=${SUBDIR}p${PFTMHMM_PARAMS_ID}
+RUNSET=runC
+NPER:=250
 
 default:
 	@echo no $@ target; exit 1
 
-%: %.ids
-	(time -p run-pftmhmm -p ${PARAMS_ID} < $<) >$@.err 2>&1;
+run:
+	make cleanest
+	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N$N
+	make ${RUNSET}-todo-N$N-qload
+
+%.load: %.ids
+	(time -p run-pftmhmm -p ${PFTMHMM_PARAMS_ID} < $<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
-done.ids:
-	psql -Atc 'select pseq_id from run_history where params_id=${PARAMS_ID}' >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv -f $@.tmp $@
-	@wc -l $@
+.done.ids:
+	${PSQL} -UPUBLIC -Atc 'select pseq_id from run_history where params_id=${PFTMHMM_PARAMS_ID}' >$@
+
