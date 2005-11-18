@@ -1,13 +1,14 @@
 Unison Loading and Updating				-*-outline-*-
 
-This document describes the Unison loading, updating, and release
-processes. It is intended for developers and maintainers of a Unison
-database.
+This document describes the Unison loading and release processes. It is
+intended for developers and maintainers of a Unison database.  In this
+document, "loading" means both "loading from scratch" and "updating an
+existing database" -- the processes are essentially identical.
 
 
 * The Big Picture
-csb-dev is the only database which is ever modified. Period.  Other
-versions of the database are read-only (from my point of view).
+The csb-dev instance is the only database which is ever modified. Period.
+Other versions of the database are read-only (from my point of view).
 
 csb-dev contents (sequences, results, sets, etc) are loaded/updated as
 described extensively below. Once a round of loading is completed, Unison
@@ -27,16 +28,20 @@ scripts in unison/sbin. There's is an ongoing effort to unify the
 operation of these, but some tweaking and debugging may still be required.
 
 Loading occurs in these phases:
-- Loading auxiliary data
-- Loading sequences
-- Loading models (HMMs, threading backbones, etc)
-- Inferring tax_ids for loaded sequences.
-- Building sequence sets based on simple sequence data (init met, length)
+- Load auxiliary data
+- Load sequences
+- Load models (HMMs, threading backbones, etc)
+- Infer tax_ids for loaded sequences.
+- Build sequence sets based on simple sequence data (init met, length)
   or associated data (origin, tax_id). This includes building sets of
   sequences for which results should be precomputed.
-- Computing and loading results.
-- Computing statistics.
-- Building sequence sets based on computed results.
+- Compute and load results.
+- Compute statistics.
+- Build sequence sets based on computed results.
+
+Unison is designed for repeated loading by the above processes.  Unison
+provides sufficient bookkeeping that only the new or updated data are
+loaded.
 
 Data are always loaded by the 'loader' user. The exact permissions on a
 table for insert, update, or delete depend on the needs for that data
@@ -62,7 +67,7 @@ Current auxiliary schemas:
 ** sst (aka GenenGenes; Genentech specific)
 
 NB: homologene and MINT were errantly loaded into unison itself and
-will be moved.
+will be moved to their own schemas.
 
 
 * Sequence loading

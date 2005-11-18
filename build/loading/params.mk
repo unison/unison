@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.2 2005/10/09 20:13:00 rkh Exp $
+## $Id: params.mk,v 1.3 2005/11/09 03:24:56 rkh Exp $
 
 
 
@@ -16,22 +16,6 @@ CCDS_HUMAN_PATH:=${COMPBIO_PREFIX}/share/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/c
 UNIPROT_DIR:=${COMPBIO_PREFIX}/share/uniprot
 
 
-############################################################################
-#### PMHMM/PAHMM
-PAHMM_PARAMS_ID:=27
-PAHMM_PORIGIN_ID:=$(shell ${PSQL} -UPUBLIC -Atc 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
-
-
-############################################################################
-#### PFREGEXP
-PFREGEXP_PARAMS_ID:=12
-ITxM_PMODELSET_ID:=11
-
-
-############################################################################
-#### PSPROTCOMP
-PSPROTCOMP_PARAMS_ID:=20
-PSPROTCOMP_SEQS_PER_RUN:=25
 
 
 ############################################################################
@@ -41,10 +25,35 @@ PAPROSPECT_PMODELSET_ID:=10
 
 
 ############################################################################
-#### PFSSP_PSIPRED
-PFSSP_PSIPRED_PARAMS_ID=17
+#### PAHMM
+PAHMM_PARAMS_ID:=27
+PAHMM_PORIGIN_ID:=$(shell ${PSQL} -UPUBLIC -Atc 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
 
 
 ############################################################################
 #### PFBIGPI
 PFBIGPI_PARAMS_ID:=19
+
+
+############################################################################
+#### PFREGEXP
+PFREGEXP_PARAMS_ID:=12
+ITxM_PMODELSET_ID:=11
+
+
+############################################################################
+#### PFSSP_PSIPRED
+PFSSP_PSIPRED_PARAMS_ID=17
+
+
+############################################################################
+#### PFTMHMM
+PFTMHMM_PARAMS_ID:=29
+
+
+############################################################################
+#### PSPROTCOMP
+PSPROTCOMP_PARAMS_ID:=20
+PSPROTCOMP_SEQS_PER_RUN:=25
+
+

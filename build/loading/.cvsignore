@@ -5,3 +5,4 @@ qsub
 *.ids
 *.[eo][0-9][0-9][0-9]*
 *.fa
+ensembl-*

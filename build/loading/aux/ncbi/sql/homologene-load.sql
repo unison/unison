@@ -1,9 +1,9 @@
-begin;
-truncate ncbi.homologene;
-\copy ncbi.homologene from stdin
-update porigin set last_updated = now() where origin='HomoloGene';
-commit;
-analyze ncbi.homologene;
+BEGIN;
+TRUNCATE ncbi.homologene;
+\copy ncbi.homologene FROM STDIN
+UPDATE porigin SET last_updated = NOW() WHERE origin='HomoloGene';
+COMMIT;
+ANALYZE ncbi.homologene;
 
-select count(*) from ncbi.homologene;
-select origin,last_updated from porigin where origin='HomoloGene';
+SELECT COUNT(*) FROM ncbi.homologene;
+SELECT origin,last_updated FROM porigin WHERE origin='HomoloGene';

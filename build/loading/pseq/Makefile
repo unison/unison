@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.14 2005/10/18 18:53:20 rkh Exp $
+# $Id: Makefile,v 1.15 2005/11/09 03:24:56 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -144,19 +144,6 @@ geneseq/AA-GENESEQ.update.gz.load: ${GENESEQ_DIR}/AA-GENESEQ.update.gz
 #	/bin/mv -f $@.err $@
 
 
-## SST/GENENGENES LOADING
-## All Genentech-specific stuff will be moved out of common
-## Unison areas soon. 
-GenenGenes.load : data/GenenGenes.fa
-	grep -v ^ERROR: $< | load-pseq --verbose -oGenenGenes -ffasta - >$@.err 2>&1
-	/bin/mv -f $@.err $@
-data/GenenGenes.fa: data/GenenGenes.proids
-	sed -e 's/^/ssp.PRO/' <$< | ssh geneland xargs -tn100 /usr/local/seq/bin/getseq -F >$@.tmp 2>$@.err
-	/bin/mv -f $@.err $@; /bin/mv -f $@.tmp $@
-data/GenenGenes.proids:
-	gg-proids-to-load >$@.tmp 2>$@.err
-	/bin/mv -f $@.err $@; /bin/mv $@.tmp $@
-	@wc -l $@
 
 
 
