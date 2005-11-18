@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.19 2005/04/04 18:42:02 rkh Exp $>
+S<$Id: pseq.pm,v 1.20 2005/05/11 21:53:41 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -150,14 +150,21 @@ by porigin.ann_pref.
 =cut
 
 sub pseq_get_aliases {
-  my $self = shift;
+  my ($self,$pseq_id,$ann_pref_max) = @_;
+  my $ann_pref_clause = '';
   $self->is_open()
 	|| croak("Unison connection not established");
-  ($#_==0)
-	|| croak("exactly one porigin_id needed\n");
-  my $pseq_id = shift;
-  my $sql = "select origin||':'||alias from palias as a join porigin as o on a.porigin_id=o.porigin_id  where pseq_id=$pseq_id  order by o.ann_pref";
-  return( map {@$_} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
+  if (defined $ann_pref_max) {
+	$ann_pref_clause = "AND ann_pref<=$ann_pref_max";
+  }
+  my $sql = <<EOSQL;
+SELECT origin||':'||alias
+  FROM palias AS a
+  JOIN porigin AS o ON a.porigin_id=o.porigin_id
+ WHERE pseq_id=$pseq_id $ann_pref_clause
+ORDER BY o.ann_pref
+EOSQL
+  return( map {"@$_"} @{ $self->{'dbh'}->selectall_arrayref($sql) } );
 }
 
 
