@@ -18,7 +18,7 @@ my $margin = 5000;						# margin around gene for geode
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.14 2005/06/18 00:16:45 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.15 2005/07/18 20:56:24 rkh Exp $ ');
 
 
 ## BUG: the genasm_id isn't passed to the Unison or geode views.
@@ -31,7 +31,7 @@ $p->add_footer_lines('$Id: pseq_loci.pl,v 1.14 2005/06/18 00:16:45 rkh Exp $ ');
 # which returns just the graphic and image map.
 
 my $sql = qq/select pstart,pstop,pct_ident,G.name,chr,gstart,gstop
-			from blatloci L  join genasm G on L.genasm_id=G.genasm_id where G.genasm_id=2 and L.pseq_id=$v->{pseq_id}/;
+			from blatloci L  join genasm G on L.genasm_id=G.genasm_id where G.genasm_id=1 and L.pseq_id=$v->{pseq_id}/;
 
 
 try {

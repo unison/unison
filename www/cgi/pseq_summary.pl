@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.36 2005/10/09 08:26:23 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.37 2005/10/14 00:15:18 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -36,7 +36,7 @@ try {
 } catch Unison::Exception with {
   $p->die_with_exception(shift, <<EOT);
 You've provided a bogus pseq_id. Please verify the
-id an try again, or consider <a href="search_by_alias.pl">searching for it by name</a>.
+id an try again, or consider <a href="search_alias.pl">searching for it by name</a>.
 EOT
 };
 
