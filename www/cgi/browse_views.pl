@@ -14,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: browse_views.pl,v 1.12 2005/07/25 22:15:33 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_views.pl,v 1.13 2005/08/08 21:46:34 rkh Exp $ ');
 
 my %cvs = %{ $u->selectall_hashref('select cv_id,name,descr,sql from canned_views where cv_id>0',
 								   'cv_id') };
@@ -124,7 +124,7 @@ sub build_form {
   return ( 
 		  $p->warn('"Canned" queries on this page may be
 				 computationally expensive and take several minutes to
-				 complete. Please be patient and click vroom! only once.'),
+				 complete. Please be patient and click submit only once.'),
 
 		  $p->start_form(-method => 'GET'),
 		  '<table>',
@@ -163,7 +163,7 @@ sub build_form {
 		  '</td></tr>',
 		  '</table>',
 
-		  $p->submit(-value=>'vroom!'),
+		  $p->submit(-value=>'submit'),
 		  $p->end_form(), "\n",
 		 )
 };
