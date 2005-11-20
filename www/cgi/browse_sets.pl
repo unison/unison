@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: browse_sets.pl,v 1.7 2005/07/25 22:15:33 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_sets.pl,v 1.8 2005/10/09 08:27:06 rkh Exp $ ');
 
 
 my @psets = @{ $u->selectall_arrayref("select pset_id,name from pset where pset_id>=1000 order by pset_id") };
@@ -29,7 +29,7 @@ print $p->render("Browse Sets",
 								-values => [map {$_->[0]} @psets],
 								-labels => \%psets,
 								-default => $v->{pset_id} || undef ),
-				 $p->submit(-value=>'vroom!'),
+				 $p->submit(-value=>'submit'),
 				 $p->end_form(), "\n",
 
 				 "<hr>\n", do_search($p)

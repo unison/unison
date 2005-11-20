@@ -44,7 +44,7 @@ print $p->render("Search by Subsequence"
 				 $p->textfield(-name=>'query',
                                -default=>$v->{query},
                                -size=>50),
-				 $p->submit(-value=>'vroom!'),
+				 $p->submit(-value=>'submit'),
 				 $p->end_form(), "\n",
 
 				 (defined $v->{query} ? do_search($v->{query}) : '')

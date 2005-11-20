@@ -20,7 +20,7 @@ use Unison::SQL;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: search_sets.pl,v 1.18 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_sets.pl,v 1.19 2005/10/09 20:08:53 rkh Exp $ ');
 
 
 my @hmm_ps = $u->get_params_info_by_pftype('hmm');
@@ -222,14 +222,14 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset orde
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.18 2005/07/18 20:56:24 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.19 2005/10/09 20:08:53 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
 				 the Model Set, methods, and thresholds you wish to use to
 				 select sequences, 2) the set of "known" sequences with
 				 which sensitivity and specificity will be assessed, and
-				 3) click "vroom". Clicking the summary statistics in the
+				 3) click "submit". Clicking the summary statistics in the
 				 hits, TP, FN, and UP columns will show sequences in those
 				 sets.',
 
@@ -242,7 +242,7 @@ print $p->render("Sequence Mining Summary",
 
 				 '<tr>', 
 				 '<th colspan="3">',
-				 $p->submit(-name=>'submit', -value=>'vroom'),
+				 $p->submit(-value=>'submit'),
 				 ,'</th>',
 				 '<th align="center" colspan="3">',
 				 $p->tooltip('Compare to sequences in set',

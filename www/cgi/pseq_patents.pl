@@ -14,7 +14,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.14 2005/09/14 23:43:05 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.15 2005/11/05 00:21:55 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Patents not available.', <<EOT);
@@ -47,7 +47,7 @@ print $p->render("Patents 'near' Unison:$v->{pseq_id}",
 							   -size => 8,
 							   -value => $v->{pseq_id}),
 
-				 $p->submit(-value=>'vroom!'),
+				 $p->submit(-value=>'submit'),
 				 $p->end_form(), "\n",
 
 				 do_search($p)

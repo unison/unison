@@ -15,7 +15,7 @@ my $cmd = '/gne/compbio/opt/unison/bin/framework-search';
 
 my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_framework.pl,v 1.3 2005/06/18 00:16:46 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_framework.pl,v 1.4 2005/07/18 20:56:24 rkh Exp $ ');
 
 
 if (defined $v->{frameworks}) {
@@ -52,7 +52,7 @@ sub form {
 					  ),
 
 		  '<br>',
-		  $p->submit(-value=>'vroom!'),
+		  $p->submit(-value=>'submit'),
 		  $p->end_form(), "\n",
 		 );
 }

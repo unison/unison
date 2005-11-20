@@ -20,14 +20,14 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_properties.pl,v 1.12 2005/08/08 21:48:06 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_properties.pl,v 1.13 2005/10/09 20:08:53 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_by_properties.pl,v 1.12 2005/08/08 21:48:06 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.13 2005/10/09 20:08:53 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
-							'Gnarly searches may take several minutes!'),
+							'Complex searches may take several minutes!'),
 				   spit_form($p));
   exit(0);
 }
@@ -106,7 +106,7 @@ $sql = "select X1.pseq_id,best_annotation(X1.pseq_id) from ($sql) X1";
 
 
 
-my $results = "<p>(SQL only requested -- go back and hit vroom! for results)\n";
+my $results = "<p>(SQL only requested -- go back and hit submit for results)\n";
 if ($v->{submit} !~ m/^sql/) {
   my @fields = ( 'pseq_id', 'origin:alias (description)' );
   my $ar;
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.12 2005/08/08 21:48:06 rkh Exp $',
+				 '$Id: search_by_properties.pl,v 1.13 2005/10/09 20:08:53 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
@@ -269,7 +269,7 @@ sub spit_form {
 
 	   "</table>",
 
-	   $p->submit(-name=>'submit', -value=>'vroom!'),
+	   $p->submit(-name=>'submit', -value=>'submit'),
 	   $p->submit(-name=>'submit', -value=>'sql only'),
 	   $p->end_form(), "\n",
 	  );

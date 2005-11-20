@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.12 2005/10/09 20:08:52 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -18,7 +18,7 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: compare_methods.pl,v 1.11 2005/07/25 22:15:33 rkh Exp $ ');
+$p->add_footer_lines('$Id: compare_methods.pl,v 1.12 2005/10/09 20:08:52 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Prospect threadings not available.', <<EOT);
@@ -103,7 +103,7 @@ sub _render_page {
   print $p->render("Scoring Methods Assessment",
 		   '<p>This page allows you to qualitatively asses the scoring methods that are part of the Threading tools we use, using sensitivity and specificity values.
                                  1) Select the Model Set and choose the Scoring methods,
-                                 2) click "vroom".',
+                                 2) click "submit".',
 		     $p->tip($p->tooltip('Green text','This is sample descriptive text'),
 			     ' indicates elements with descriptive mouseover text.'),
 
@@ -112,7 +112,7 @@ sub _render_page {
 		     '<table border=1 width="100%">', "\n",
 		     '<tr>',
 		     '<th colspan="4">',
-		     $p->submit(-name=>'submit', -value=>'vroom'),
+		     $p->submit(-name=>'submit', -value=>'submit'),
 		     '</th>',
 		     '</tr>',
 
