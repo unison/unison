@@ -20,12 +20,12 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_properties.pl,v 1.13 2005/10/09 20:08:53 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_properties.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_by_properties.pl,v 1.13 2005/10/09 20:08:53 rkh Exp $',
+				   '$Id: search_by_properties.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Complex searches may take several minutes!'),
 				   spit_form($p));
@@ -120,8 +120,8 @@ if ($v->{submit} !~ m/^sql/) {
 }
 
 
-print $p->render("Gnarly Search Results",
-				 '$Id: search_by_properties.pl,v 1.13 2005/10/09 20:08:53 rkh Exp $',
+print $p->render("Feature Based Mining Results",
+				 '$Id: search_by_properties.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 

@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.64 2005/10/15 05:57:28 rkh Exp $>
+S<$Id: Page.pm,v 1.65 2005/10/15 06:09:42 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -60,7 +60,6 @@ use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
 use Error qw(:try);
-use Data::Dumper;  $Data::Dumper::Indent = 0;
 
 
 sub _csb_connection_params ($);
@@ -376,10 +375,9 @@ sub render {
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-		  '<a href="about_unison.pl">', 
+		  '<a href="../index.html">', 
 		       $self->tooltip('<img class="logo" src="../av/unison.gif">',
 							  'Unison Home Page'), '</a>',
-		  '<br><a href="http://unison-db.sourceforge.net">@SourceForge</a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
@@ -868,7 +866,7 @@ sub _infer_pseq_id ($) {
 	  $self->die('alias not found',
 				 'The alias you provided wasn\'t found in Unison (case insensitive).');
 	} elsif ($#ids > 0) {
-	  print CGI::redirect("search_by_alias.pl?alias=$v->{alias}");
+	  print CGI::redirect("search_alias.pl?alias=$v->{alias}");
 	  exit(0);
 	}
 	return $ids[0];
@@ -876,7 +874,7 @@ sub _infer_pseq_id ($) {
 
   $self->die('Please specify sequence', <<EOT );
 The page you requested requires you to specify a sequence.
-<p>You may wish to <a href="search_by_alias.pl">search for a sequence by name</a>.
+<p>You may wish to <a href="search_alias.pl">search for a sequence by name</a>.
 EOT
 
   # NO RETURN
@@ -887,6 +885,7 @@ EOT
 ## _navbar
 
 sub _nav_dump {
+  eval 'use Data::Dumper;  $Data::Dumper::Indent = 0;';
   my $n = shift;
   my $d = Dumper(\@_);
   $d =~ s/\],/],\n/g;
@@ -921,9 +920,9 @@ sub _navbar {
 	 ],
 
 	 [	# Search menu
-	  [1,1,'Search', 		'search for sequences which match criteria',	'search_by_alias.pl'],
-	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_by_alias.pl'],
-	  [1,1,'By Properties',	'mine for sequences based on properties', 'search_by_properties.pl'],
+	  [1,1,'Search', 		'search for sequences which match criteria',	'search_alias.pl'],
+	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_alias.pl'],
+	  [1,1,'By Properties',	'mine for sequences based on properties', 'search_properties.pl'],
 	  [1,0,'Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
 	  [1,0,'Framework',    	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
 	 ],
@@ -935,7 +934,7 @@ sub _navbar {
 	 ],
 
 	 [	# Analyze menu
-	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence', 'search_by_alias.pl' ],
+	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence', 'search_alias.pl' ],
 	  [1,1,'Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	  [1,1,'Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	  [1,0,'Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],

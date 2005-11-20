@@ -59,12 +59,12 @@ searches to get you started:
 
 <ul>
 <li>If you've got a favorite protein, <a
-href="search_by_alias.pl">search for it by accession</a>.  Once you've
+href="search_alias.pl">search for it by accession</a>.  Once you've
 identified a sequence, you may click the tabs to show details of the
 precomputed results.
 
 <li>If you'd like to find proteins with particular features, try <a
-href="search_by_properties.pl">searching for sequences by
+href="search_properties.pl">searching for sequences by
 properties</a>.
 
 <li>Finally, "<a href="browse_views.pl">canned views</a>" provide
