@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.69 2005/11/21 05:58:24 rkh Exp $>
+S<$Id: Page.pm,v 1.70 2005/11/21 07:20:06 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -65,6 +65,7 @@ use Text::Wrap;
 sub _csb_connection_params ($);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
+sub _conn_info_html ($);
 sub _make_temp_dir ();
 sub _cleanup_temp($$);
 sub __filter_navs($$@);
@@ -345,27 +346,11 @@ sub render {
   my $self = shift;
   my $title = shift;
 
-  my $conn_info = '';
+  my $conn_info_html = '';
   my $elapsed = '';
 
   if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
-	# conn_info isn't currently used... it takes up too much space to display
-	# I think it would be better in a mouseover popup
-	#$conn_info .= sprintf("release: Unison %s; API %s; www %s  %s\n",
-	#					  ( $self->{unison}->selectrow_array
-	#						('select value::date from meta where key=\'release timestamp\'') || 'N/A' ),
-	#					  $Unison::RELEASE,
-	#					  $Unison::WWW::RELEASE,
-	#					  ( is_dev_instance() ? '<span style="background-color: red">DEVELOPMENT</span>' : '' )
-	#					 );
-	#$conn_info .= sprintf("<br>web connection: host %s\n",
-	#					  $ENV{SERVER_NAME});
-	#$conn_info .= sprintf("<br>db connection: %s @ %s/%s\n",
-	#				  ['db host', 	$self->{unison}->{host} || 'local' ],
-	#				  ['database',	$self->{unison}->{dbname}		   ],
-	#				  ['username', 	$self->{unison}->{username}		   ],
-	#					 );
-
+	$conn_info_html = $self->_conn_info_html();
 	$elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
   }
 
@@ -378,6 +363,7 @@ sub render {
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
 		  '<a href="../index.html"><img class="logo" src="../av/unison.gif"></a>',
+		  '<br>', $self->popup('&lt;=&gt;','Unison Connection Information',$conn_info_html),
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
@@ -527,6 +513,31 @@ sub tip {
 
 
 ######################################################################
+## popup()
+
+=pod
+
+=item B<< $p->popup( C<title>, C<content> ) >>
+
+=item B<< popup( C<title>, C<content> ) >> (without object reference)
+
+Format C<tip> as an HTML "tooltip" which will appear when the mouse is over
+C<text>.
+
+=cut
+
+sub popup {
+  shift if ref $_[0];						# method or fx
+  my $cue = shift;							# cue, caption, content may contain HTML tags!
+  my $caption = shift;
+  my $content = join('',@_);
+  $content =~ s/"/&quot;/g;
+  return sprintf('<span onmouseover="domTT_activate(this, event, \'caption\', \'%s\', \'content\', \'%s\', \'trail\', \'x\');">%s</span>',
+				 $caption, $content, $cue);
+}
+
+
+######################################################################
 ## tooltip()
 
 =pod
@@ -629,8 +640,7 @@ A best annotation is a guess about the most informative and reliable
 annotation for this sequence from all source databases.
 <br>Click the Aliases tab to see all annotations
 EOT
-  return( $self->tooltip( '"best" annotation', $tooltip ),
-		  ': ',
+  return( '"best" annotation&nbsp;', $self->tooltip( '?', $tooltip ), ': ',
 		  $self->{unison}->best_annotation($pseq_id,1) );
 }
 
@@ -1095,6 +1105,26 @@ sub _make_navrow {
 		 . "</td>" );
   }
   return( join('', @nav) . $spacer );
+}
+
+sub _conn_info_html ($) {
+  my $self = shift;
+  my $conn_info = '';
+  $conn_info .= sprintf("release: Unison %s; API %s; www %s  %s\n",
+						( $self->{unison}->selectrow_array
+						  ('select value::date from meta where key=\'release timestamp\'') || 'N/A' ),
+						$Unison::RELEASE,
+						$Unison::WWW::RELEASE,
+						( is_dev_instance() ? '<span style="background-color: red">DEVELOPMENT</span>' : '' )
+					   );
+  $conn_info .= sprintf("<br>web connection: host %s\n",
+						$ENV{SERVER_NAME});
+  $conn_info .= sprintf("<br>db connection: %s @ %s/%s\n",
+						['db host', 	$self->{unison}->{host} || 'local' ],
+						['database',	$self->{unison}->{dbname}		   ],
+						['username', 	$self->{unison}->{username}		   ],
+					   );
+  return $conn_info;
 }
 
 sub _make_temp_dir () {

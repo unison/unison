@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.39 2005/11/21 05:58:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.40 2005/11/21 07:20:06 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -82,9 +82,9 @@ sub sequence_group ($) {
 
   $p->group(sprintf("Sequence (%d&nbsp;AA)", length($seq)),
 			"<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format",
-			'<br><code>', 
+			'<br><pre>', 
 			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}),
-			'<br>',	$wrapped_seq,'</code>',
+			'<br>',	$wrapped_seq,'</pre>',
 			)
 }
 
@@ -102,9 +102,7 @@ sub aliases_group ($) {
 Unison stores sequences non-redundantly from many sources.  Aliases are
 all of the known names for this exact sequence.
 EOT
-  $p->group(sprintf('%s (%d)',
-					$p->tooltip('Aliases', $tooltip),
-					$#$ar+1),
+  $p->group( 'Aliases (' . ($#$ar+1) . ')&nbsp;' . $p->tooltip('?', $tooltip),
 			Unison::WWW::Table::render(\@f,$ar),
 			'These are the aliases from the most reliable sources only; see also ',
 			'<a href="pseq_paliases.pl?pseq_id=', $v->{pseq_id}, '">other aliases</a>'
@@ -136,9 +134,8 @@ sub homologs_group ($) {
 	do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$hr;
 
 	return 
-	  $p->group( $p->tooltip('HomoloGene',
-							 "Homologous sequences as determined by NCBI's Homologene project"),
-
+	  $p->group( 'HomoloGene&nbsp' 
+				 . $p->tooltip( '?', "Homologous sequences as determined by NCBI's Homologene project"),
 				 '<table width="100%">',
 				 '<tr><td style="background: yellow"><b>', $#$hr+1, ' Homologs</b> ',
 				 sprintf('There are no taxonomic identifiers associated with this sequence. The
@@ -175,9 +172,8 @@ sub homologs_group ($) {
   do { $_->[0] = homologene_link($_->[0]) } for @$or;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$or;
 
-  $p->group( $p->tooltip('HomoloGene',
-						 "Homologous sequences as determined by NCBI's Homologene project"),
-
+  $p->group( 'HomoloGene&nbsp' 
+				 . $p->tooltip( '?', "Homologous sequences as determined by NCBI's Homologene project"),
 			 '<table width="100%">',
 			 '<tr><td style="background: yellow"><b>', $#$pr+1, ' Paralogs</b> ',
 			 sprintf('This sequence occurs in %d specie%s (%s). The
@@ -228,7 +224,7 @@ sub features_group ($) {
 						 ($attr->{href} ? "HREF=\"$attr->{href}\"" : '') );
   }
 
-  $p->group($p->tooltip('Features','a selection of precomputed results for this sequence.'),
+  $p->group('Features&nbsp;' . $p->tooltip('?','a selection of precomputed results for this sequence.'),
 			"<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
 			"\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n",
 			'See also: <a href="pseq_features.pl?pseq_id=', $v->{pseq_id}, '">a summary of all features</a>',
