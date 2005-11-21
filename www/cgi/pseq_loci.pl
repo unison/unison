@@ -18,7 +18,7 @@ my $margin = 5000;						# margin around gene for geode
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.16 2005/11/20 23:31:30 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.17 2005/11/21 05:58:24 rkh Exp $ ');
 
 
 ## BUG: the genasm_id isn't passed to the Unison or geode views.
@@ -90,7 +90,7 @@ sub genome_links {
   #push(@links,
   #	 sprintf('<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?org=%s&db=%s&position=chr%s%3A%d-%d&pix=620&Submit=submit">UCSC</a>',
   #			 @{$ucsc_tax_id_map{$r->{tax_id}}},$r->{chr},$r->{gstart},$r->{gstop}));
-  }
+  #}
 
   return join(' ', @links);
 }

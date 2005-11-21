@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.68 2005/11/21 03:25:22 rkh Exp $>
+S<$Id: Page.pm,v 1.69 2005/11/21 05:58:24 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -59,8 +59,8 @@ use Unison::Exceptions;
 use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
-use Error qw(:try);
-use Data::Dumper;
+use Text::Wrap;
+
 
 sub _csb_connection_params ($);
 sub _page_connect ($);
@@ -122,8 +122,10 @@ sub new {
 					   -src => '../js/domTT/domLib.js'},
 					  {-language => 'JAVASCRIPT',
 					   -src => '../js/domTT/domTT.js'},
+					  {-language => 'JAVASCRIPT',
+					   -src => '../js/unison_domTT.js'},
 					  {-language => 'JAVASCRIPT', 
-					   -code => "var domTT_styleClass = 'domTTClassic';"}
+					   -code => "var domTT_styleClass = 'domTTUnison';"}
 					 ];
 
   # all pseq_id inference should be moved elsewhere...
@@ -320,7 +322,7 @@ sub start_html {
 			   ],
 	  -style => { -src => ['../styles/unison.css'] },
 	  -target => '_top',
-	  -onload => 'javascript:{ domTT_replaceTitles(); }',
+	  -onload => 'javascript:{ unison_activateTooltips(); }',
 	  -script => $self->{js_tags},
 	);
 }
@@ -539,11 +541,16 @@ C<text>.
 =cut
 
 sub tooltip {
-  shift if ref $_[0];
-  my ($text,$tooltip) = @_;
+  shift if ref $_[0];						# method or fx
+  my ($text,$tooltip,$class) = @_;
   return $text unless defined $tooltip;
+  local $Text::Wrap::columns = 80;
   $tooltip =~ s/\s+/ /g;
-  return( "<span class=\"tooltip\" title=\"$tooltip\">$text</span>" );
+  $tooltip = Text::Wrap::wrap('','',$tooltip);
+  $tooltip =~ s/\n/<br>/g;
+  $class = 'tooltip' unless defined $class;
+  my $cltag = $class eq '' ? '' : "class=\"$class\"" ;
+  return( "<span $cltag tooltip=\"$tooltip\">$text</span>" );
 }
 
 
@@ -617,12 +624,12 @@ C<pseq_id>
 sub best_annotation {
   my $self = shift;
   my $pseq_id = shift;
-
-  return( $self->tooltip( '"best" annotation', 'A best annotation is
-					   a guess about the most informative and reliable
-					   annotation for this sequence from all source
-					   databases. Click the Aliases tab to see all
-					   annotations' ),
+  my $tooltip = <<EOT;
+A best annotation is a guess about the most informative and reliable
+annotation for this sequence from all source databases.
+<br>Click the Aliases tab to see all annotations
+EOT
+  return( $self->tooltip( '"best" annotation', $tooltip ),
 		  ': ',
 		  $self->{unison}->best_annotation($pseq_id,1) );
 }
@@ -1077,7 +1084,6 @@ sub _make_navrow {
 	}
 
 	$text =~ s/ /&nbsp;/g;					# make tab headings non-breaking
-	$tooltip = defined $tooltip ? ' title="'.$tooltip.'"' : '';
 	$url .= "?$params" if defined $params;
 	my $cl = 'unselected';
 	if (defined $sel and $sel == $i) {
@@ -1085,7 +1091,7 @@ sub _make_navrow {
 	  $url = undef;
 	}
 	push(@nav, "<td class=\"$cl\">"
-		 . (defined $url ? "<a href=\"$url\"$tooltip>$text</a>" : "<span$tooltip>$text</span>")
+		 . tooltip( (defined $url ? "<a href=\"$url\">$text</a>" : $text), $tooltip, '' )
 		 . "</td>" );
   }
   return( join('', @nav) . $spacer );
