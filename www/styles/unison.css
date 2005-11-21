@@ -1,6 +1,4 @@
-/* $Id: unison.css,v 1.27 2005/11/21 07:20:06 rkh Exp $     emacs: -*-c-*-  */
-
-/* GenenBlue: #150067; /* decimal RGB = 21,0,103 */
+/* $Id: unison.css,v 1.28 2005/11/21 16:46:10 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -18,9 +16,9 @@ IMG {
 
 /* page elements */
 TABLE.page TD.logo {
- text-align: center;
- vertical-align: middle;
- border-right: medium double #150067;
+  text-align: center;
+  vertical-align: middle;
+  border-right: medium double #150067;
  padding: 0px 5px 0px 0px;
 }
 TABLE.page TD.body {
@@ -31,11 +29,11 @@ TABLE.page TD.body {
   vertical-align: top;
 }
 TABLE.page TD.footer {
- vertical-align: middle;
+  vertical-align: middle;
  padding: 0px 0px 0px 5px;
 }
 TABLE.page TD.navbar {
- font-size: small;
+  font-size: small;
  padding: 0px 0px 5px 5px;
  marging: 0px;
 }
@@ -47,10 +45,10 @@ TABLE.nav {
 }
 TABLE.nav TD.unselected {
  width: 50px;
- border: lightgrey thin solid;
+ border: #E0E0FF thin solid;
  padding-left: 5px;
  padding-right: 5px;
- background: #E2E0F3;
+ background: #E0E0FF;
 }
 TABLE.nav TD.selected {
  width: 50px;
@@ -67,12 +65,12 @@ TABLE.nav TD.unselected:hover {
  cursor:pointer;cursor:hand;
 }
 TABLE.nav TD.selected A {
- color: #ffffff;
+ color: white;
  font-weight: bold;
  text-decoration: none;
 }
 TABLE.nav TD.unselected A {
- color: #000000;
+ color: black;
  text-decoration: none;
 }
 
@@ -82,10 +80,10 @@ TABLE.subnav {
 }
 TABLE.subnav TD.unselected {
  width: 50px;
- border: lightgrey thin solid;
+ border: #E0E0FF thin solid;
  padding-left: 5px;
  padding-right: 5px;
- background: #E2E0F3;
+ background: #E0E0FF;
 }
 TABLE.subnav TD.selected {
  width: 50px;
@@ -102,12 +100,12 @@ TABLE.subnav TD.unselected:hover {
  cursor:pointer;cursor:hand;
 }
 TABLE.subnav TD.selected A {
- color: #ffffff;
+ color: white;
  font-weight: bold;
  text-decoration: none;
 }
 TABLE.subnav TD.unselected A {
- color: #000000;
+ color: black;
  text-decoration: none;
 }
 
@@ -116,14 +114,15 @@ TABLE.subnav TD.unselected A {
 /* grouped data */
 TABLE.group {
  width: 100%;
+ margin: 0px;
 }
 
 TABLE.group TH.grouptag {
- border: black thin solid;
- background-color: #BDB6F3;
+ border: #150067 thin solid;
+ background-color: #E0E0FF;
+ color: black;
  width: 20%;
  font-size: largest;
- text-decoration: underline;
 }
 
 TABLE.group TD {
@@ -136,17 +135,17 @@ TABLE.group TD {
 /* Quick Links */
 table.quicklinks {
   white-space: nowrap;
-  /* border: #000055 thin solid; */
+  /* border:  #150067 thin solid; */
 }
 TD.quicklinks_title {
- background: #000055;
+ background:  #150067;
  color: white;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
 }
 TD.quicklinks {
- border: #000055 thin solid;
+ border:  #150067 thin solid;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
@@ -172,12 +171,12 @@ TABLE.credits TD {
 
 
 TABLE.uwtable {
-  background-color: #BDB6F3;
+  background-color: #E0E0FF;
 }
 TABLE.uwtable TH {
  border: black thin solid;
  font-size: 100%;
- background-color: #BDB6F3;
+ background-color: #E0E0FF;
 }
 TABLE.uwtable TH.highlighted {
  border: black thin solid;
@@ -216,24 +215,51 @@ SPAN.button:hover {
  background: darkgrey;
 }
 /* SPAN.button A {
-   color: #ffffff;
+   color: white;
    font-weight: bold;
    text-decoration: none;
    } */
 
 
-
-/* miscellany */
-IMG.logo {
- border: 0;
-}
+/* tooltip */
 SPAN.tooltip {
- color: green;
+ border: 1px solid #cc9900;
+ background-color: #ffcc33;
+ color: black;
  font-weight: bold;
+ font-size: smaller;
+ padding: 0px 1px 0px 1px;
+ margin: 0px;
 }
-SPAN.tootip:hover {
+SPAN.tooltip:hover {
  cursor:pointer;cursor:hand;
 }
+
+
+/* domTT Classic Style, from domTT examples.css */
+div.domTTUnison {
+ border: 2px solid #cc9900;
+ background-color: #ffcc33;
+}
+div.domTTUnison .caption {
+  font-family: serif;
+  font-size: 13px;
+  _font-size: 12px;
+  font-weight: bold;
+  font-style: italic;
+ padding: 1px 2px;
+}
+div.domTTUnison .contents {
+ color: black;
+ font-size: 13px;
+ _font-size: 12px;
+ font-family: Arial, sans-serif;
+ padding: 1px 2px;
+ _padding-bottom: 0;
+}
+
+
+/* miscellany */
 SPAN.error {
  color: red;
 }
@@ -261,29 +287,3 @@ div.sql {
 # margin: 20px;
 # background: lightgrey;
 #}
-
-
-
-
-/* domTT Classic Style, from domTT examples.css */
-div.domTTUnison {
- border: 2px solid #cc9900;
- background-color: #ffcc33;
-}
-div.domTTUnison .caption {
-  font-family: serif;
-  font-size: 13px;
-  _font-size: 12px;
-  font-weight: bold;
-  font-style: italic;
- padding: 1px 2px;
-}
-div.domTTUnison .contents {
- color: black;
- font-size: 13px;
- _font-size: 12px;
- font-family: Arial, sans-serif;
- padding: 1px 2px;
- _padding-bottom: 0;
-}
-
