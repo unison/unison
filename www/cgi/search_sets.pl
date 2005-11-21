@@ -4,7 +4,6 @@
 ## TODO:
 ## - species limits
 ## - sequence details should include appropriate scores
-## - show params names in menus
 
 
 use strict;
@@ -20,21 +19,20 @@ use Unison::SQL;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: search_sets.pl,v 1.19 2005/10/09 20:08:53 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_sets.pl,v 1.20 2005/11/20 23:22:42 rkh Exp $ ');
 
 
 my @hmm_ps = $u->get_params_info_by_pftype('hmm');
 my %hmm_ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @hmm_ps;
 my @pssm_ps = $u->get_params_info_by_pftype('pssm');
 my %pssm_ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @pssm_ps;
-my @p2_ps = $u->get_params_info_by_pftype('prospect');
-my %p2_ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @p2_ps;
-
+my @prospect_ps = $u->get_params_info_by_pftype('prospect');
+my %prospect_ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @prospect_ps;
 
 my %defaults = 
   ( 
-   pset_id => 1001,
-   pmodelset_id => 3,
+   pset_id => 1003,
+   pmodelset_id => 1,
 
    hmm => 0,
    hmm_params_id => $hmm_ps[0]->[0],
@@ -45,11 +43,14 @@ my %defaults =
    pssm_eval => '1e-10',
 
    prospect => 0,
-   prospect_params_id => $p2_ps[0]->[0],
+   prospect_params_id => $prospect_ps[0]->[0],
    prospect_svm => 12,
    prospect_raw => -500,
   );
 
+
+
+# XXX: CLEAN
 my $v = $p->Vars();
 my %v = (%defaults, %$v);
 $v = \%v;
@@ -71,21 +72,25 @@ $v = \%v;
 ## - compute I_ unless we're showing a list of U_*
 
 
-my (@SP) = map { $_->[0] } @{ $u->selectall_arrayref("select pseq_id from pseqset where pset_id=$v->{pset_id}") };
-my $nSP = $#SP+1;
 my %P;										# counts # of times pseq_id was hit for U_ & I_
 my $set;									# pseq_id array ref; if set below, show seq list
+my $nSP;									# # of sequences in set
 my %data = (
-			hmm =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
-			pssm =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			# method     show sql?  #models  #hits    #true+    #false-   #candidates
+			hmm =>		{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			pssm =>		{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
 			prospect =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
-			I =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
-			U =>	{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			I =>		{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
+			U =>		{sql => '', M => '', P => '', TP => '', FN => '', UP => ''},
 		   );
+
 
 
 if (exists $v->{submit}) {
   my (@P,$FNr,$UPr,$TPr);
+
+  my (@SP) = map { $_->[0] } @{ $u->selectall_arrayref("select pseq_id from pseqset where pset_id=$v->{pset_id}") };
+  $nSP = $#SP+1;
 
   if ($v->{hmm}) {
 	my $url = $p->make_url( qw(pset_id pmodelset_id hmm hmm_params_id hmm_eval) );
@@ -204,6 +209,7 @@ if (exists $v->{submit}) {
 
 
 
+
 if ($set) {
   @$set = sort {$a<=>$b} @$set;
   my @rows = map { ["<a href=\"pseq_summary.pl?pseq_id=$_\">$_</a>",$u->best_annotation($_)] } @$set;
@@ -213,16 +219,14 @@ if ($set) {
   exit(0);
 }
 
-
-
-# default case: prepare the form and summary statistics
-my @xs = @{ $u->selectall_arrayref("select pset_id,name from pset where pset_id>0 order by pset_id") };
+## else... display the form and summary statistics
+my @xs = @{ $u->selectall_arrayref("select pset_id,name from pset where pset_id>=1000 order by pset_id") };
 my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" } @xs;
-my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset order by pmodelset_id') };
+my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset where pmodelset_id>0 order by pmodelset_id') };
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.19 2005/10/09 20:08:53 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.20 2005/11/20 23:22:42 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -242,7 +246,7 @@ print $p->render("Sequence Mining Summary",
 
 				 '<tr>', 
 				 '<th colspan="3">',
-				 $p->submit(-value=>'submit'),
+				 $p->submit(-name=>'submit',-value=>'submit'),
 				 ,'</th>',
 				 '<th align="center" colspan="3">',
 				 $p->tooltip('Compare to sequences in set',
@@ -259,6 +263,7 @@ print $p->render("Sequence Mining Summary",
 				 '</th>',
 				 '</tr>',"\n",
 
+
 				 '<tr>', 
 				 '<th align="left" colspan="3">Select sequences matching any model in<br>',
 				 $p->popup_menu(-name => 'pmodelset_id',
@@ -268,7 +273,7 @@ print $p->render("Sequence Mining Summary",
 				 '</th>',
 				 '<th align="center" colspan="2">', $p->tooltip('SP',
 																'Set Positives -- the members of the set (SP=TP+FN)'),
-                 "<br>($nSP sequences)",
+                 (defined $nSP ? "<br>($nSP sequences)" : ''),
 				 '</th>',
 				 '<th></th>',
 				 '</tr>',"\n",
@@ -290,6 +295,8 @@ print $p->render("Sequence Mining Summary",
 				 '</th>',
 				 '</tr>',"\n",
 
+
+				 # HMM row
 				 '<tr>',
 				 '<td>',
 				 $p->checkbox(-name => 'hmm',
@@ -312,6 +319,8 @@ print $p->render("Sequence Mining Summary",
 				 '<td align="right">', $data{hmm}{UP},'</td>',
 				 '</tr>',"\n",
 
+
+				 # PSSM row
 				 '<tr>',
 				 '<td>',
 				 $p->checkbox(-name => 'pssm',
@@ -334,16 +343,17 @@ print $p->render("Sequence Mining Summary",
 				 '<td align="right">', $data{pssm}{UP},'</td>',
 				 '</tr>',"\n",
 
+				 # prospect row
 				 '<tr>',
-				 '<td>',
+				 '<td>', 
 				 $p->checkbox(-name => 'prospect',
 							  -label => 'Prospect ',
 							  -checked => $v->{prospect}),
 
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;Parameter set:&nbsp',
 				 $p->popup_menu(-name => 'prospect_params_id',
-								-values => [map {$_->[0]} @p2_ps],
-								-labels => \%p2_ps,
+								-values => [map {$_->[0]} @prospect_ps],
+								-labels => \%prospect_ps,
 								-default => "$v->{prospect_params_id}"),
 				 '<br>&nbsp;&nbsp;&nbsp;&nbsp;with svm >= ',
 				 $p->popup_menu(-name => 'prospect_svm',
@@ -361,6 +371,7 @@ print $p->render("Sequence Mining Summary",
 				 '<td align="right">', $data{prospect}{UP},'</td>',
 				 '</tr>',"\n",
 
+				 # 
 				 '<tr>',
 				 '<td colspan=4></td>',
 				 '<td colspan=2 bgcolor="lightgrey" align="center">',
