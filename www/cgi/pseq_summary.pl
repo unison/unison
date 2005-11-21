@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.38 2005/11/20 23:31:30 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.39 2005/11/21 05:58:24 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -98,12 +98,12 @@ sub aliases_group ($) {
   my $ar = $u->selectall_arrayref($sql);
   do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
   my @f = qw( origin alias description );
-
+  my $tooltip = <<EOT;
+Unison stores sequences non-redundantly from many sources.  Aliases are
+all of the known names for this exact sequence.
+EOT
   $p->group(sprintf('%s (%d)',
-					$p->tooltip('Aliases', 'Unison stores sequences
-						   non-redundantly from many sources. Aliases are
-						   all of the known names for this exact
-						   sequence.'),
+					$p->tooltip('Aliases', $tooltip),
 					$#$ar+1),
 			Unison::WWW::Table::render(\@f,$ar),
 			'These are the aliases from the most reliable sources only; see also ',
@@ -136,9 +136,8 @@ sub homologs_group ($) {
 	do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$hr;
 
 	return 
-	  $p->group( ('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene">Homologene</a>'
-				  . $p->tooltip(' ?',
-								"Homologous sequences as determined by NCBI's Homologene project")),
+	  $p->group( $p->tooltip('HomoloGene',
+							 "Homologous sequences as determined by NCBI's Homologene project"),
 
 				 '<table width="100%">',
 				 '<tr><td style="background: yellow"><b>', $#$hr+1, ' Homologs</b> ',
@@ -176,9 +175,8 @@ sub homologs_group ($) {
   do { $_->[0] = homologene_link($_->[0]) } for @$or;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$or;
 
-  $p->group( ('<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene">Homologene</a>'
-			  . $p->tooltip(' ?',
-							"Homologous sequences as determined by NCBI's Homologene project")),
+  $p->group( $p->tooltip('HomoloGene',
+						 "Homologous sequences as determined by NCBI's Homologene project"),
 
 			 '<table width="100%">',
 			 '<tr><td style="background: yellow"><b>', $#$pr+1, ' Paralogs</b> ',

@@ -19,7 +19,7 @@ use Unison::SQL;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: search_sets.pl,v 1.20 2005/11/20 23:22:42 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_sets.pl,v 1.21 2005/11/21 00:13:09 rkh Exp $ ');
 
 
 my @hmm_ps = $u->get_params_info_by_pftype('hmm');
@@ -226,7 +226,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset wher
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.20 2005/11/20 23:22:42 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.21 2005/11/21 00:13:09 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -236,9 +236,6 @@ print $p->render("Sequence Mining Summary",
 				 3) click "submit". Clicking the summary statistics in the
 				 hits, TP, FN, and UP columns will show sequences in those
 				 sets.',
-
-				 $p->tip($p->tooltip('Green text','This is sample descriptive text'),
-						 ' indicates elements with descriptive mouseover text.'),
 
 				 $p->start_form(-method=>'GET'),
 
@@ -250,10 +247,10 @@ print $p->render("Sequence Mining Summary",
 				 ,'</th>',
 				 '<th align="center" colspan="3">',
 				 $p->tooltip('Compare to sequences in set',
-							 'Sequences selected by the models will be 
+							 $p->escapeHTML('Sequences selected by the models will be 
 							 classified as true positives, false negatives,
-							 and "unknown" positives by comparing against
-							 this set.'),
+							 and unknown" positives by comparing against
+							 this set.')),
 				 ':<br>',
 				 $p->popup_menu(-name => 'pset_id',
 								-values => [map {$_->[0]} @xs],
