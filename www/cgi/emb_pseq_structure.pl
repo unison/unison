@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: emb_pseq_structure.pl,v 1.2 2005/08/19 00:08:29 rkh Exp $:
+#$ID = q$Id: emb_pseq_structure.pl,v 1.3 2005/10/11 20:57:14 mukhyala Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -37,7 +37,7 @@ my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png' );
 my $pseq_structure = new Unison::Utilities::pseq_structure($v->{pseq_id});
 $pseq_structure->unison($u);
 
-my $jmol = new Unison::Jmol(600,300);
+my $jmol = new Unison::Jmol(600,400);
 $pseq_structure->jmol($jmol);
 
 my %opts = (%Unison::Utilities::pseq_features::opts, %$v);

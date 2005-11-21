@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.37 2005/10/14 00:15:18 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.38 2005/11/20 23:31:30 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -81,11 +81,10 @@ sub sequence_group ($) {
   $wrapped_seq =~ s/.{60}/$&\n/g;
 
   $p->group(sprintf("Sequence (%d&nbsp;AA)", length($seq)),
-			"<br><a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format",
-			'<pre>', 
-			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}), "\n",
-			$wrapped_seq,
-			'</pre>',
+			"<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format",
+			'<br><code>', 
+			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}),
+			'<br>',	$wrapped_seq,'</code>',
 			)
 }
 
