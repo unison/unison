@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.70 2005/11/21 07:20:06 rkh Exp $>
+S<$Id: Page.pm,v 1.71 2005/11/21 18:00:26 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -346,13 +346,8 @@ sub render {
   my $self = shift;
   my $title = shift;
 
-  my $conn_info_html = '';
-  my $elapsed = '';
-
-  if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
-	$conn_info_html = $self->_conn_info_html();
-	$elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
-  }
+  my $elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
+  my $conn_info_html = $self->_conn_info_html();
 
   return ($self->header(),
 
@@ -363,7 +358,7 @@ sub render {
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
 		  '<a href="../index.html"><img class="logo" src="../av/unison.gif"></a>',
-		  '<br>', $self->popup('&lt;=&gt;','Unison Connection Information',$conn_info_html),
+		  '<br>', $self->popup('<span style="font-size: smaller">&lt;=&gt;</span>','Unison Connection Information',$conn_info_html),
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
@@ -531,6 +526,7 @@ sub popup {
   my $cue = shift;							# cue, caption, content may contain HTML tags!
   my $caption = shift;
   my $content = join('',@_);
+  $content =~ s/\n/ /g;
   $content =~ s/"/&quot;/g;
   return sprintf('<span onmouseover="domTT_activate(this, event, \'caption\', \'%s\', \'content\', \'%s\', \'trail\', \'x\');">%s</span>',
 				 $caption, $content, $cue);
@@ -1109,22 +1105,34 @@ sub _make_navrow {
 
 sub _conn_info_html ($) {
   my $self = shift;
-  my $conn_info = '';
-  $conn_info .= sprintf("release: Unison %s; API %s; www %s  %s\n",
-						( $self->{unison}->selectrow_array
-						  ('select value::date from meta where key=\'release timestamp\'') || 'N/A' ),
-						$Unison::RELEASE,
-						$Unison::WWW::RELEASE,
-						( is_dev_instance() ? '<span style="background-color: red">DEVELOPMENT</span>' : '' )
-					   );
-  $conn_info .= sprintf("<br>web connection: host %s\n",
-						$ENV{SERVER_NAME});
-  $conn_info .= sprintf("<br>db connection: %s @ %s/%s\n",
-						['db host', 	$self->{unison}->{host} || 'local' ],
-						['database',	$self->{unison}->{dbname}		   ],
-						['username', 	$self->{unison}->{username}		   ],
-					   );
-  return $conn_info;
+  my $info = 'not connected to the Unison database';
+
+  if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
+	my $state = is_dev_instance() ? '<center><span style="background-color: red">development</span></center>' : '';
+	my $db_rel = $self->{unison}->selectrow_array('select value::date from meta where key=\'release timestamp\'') || '';
+	my $db_host = $self->{unison}->{host} || 'local';
+
+	$info = <<EOHTML;
+$state
+
+<p><u>versions</u>
+<br>- database: $db_rel
+<br>- API: $Unison::RELEASE
+<br>- web: $Unison::WWW::RELEASE
+
+<p><u>web</u>
+<br>- host: $ENV{SERVER_NAME}
+<br>- client: $ENV{REMOTE_ADDR}
+<br>- user: $ENV{REMOTE_USER}
+
+<p><u>database</u>
+<br>- db host: $db_host
+<br>- database $self->{unison}->{dbname}
+<br>- username: $self->{unison}->{username}
+EOHTML
+  }
+
+  return $info;
 }
 
 sub _make_temp_dir () {
