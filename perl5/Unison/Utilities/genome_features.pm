@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.2 2005/03/25 19:44:44 rkh Exp $>
+S<$Id: genome_features.pm,v 1.3 2005/04/04 18:42:03 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -29,7 +29,7 @@ our @EXPORT_OK = qw( genome_features_panel );
 
 use Bio::Graphics;
 use Bio::Graphics::Feature;
-use Unison::blat;
+use Unison::pmap;
 
 
 
@@ -76,6 +76,7 @@ used to generate a graphic and or imagemap to depict genomic features.
 %opts may contain the following keys:
   pseq_id
   genasm_id
+  params_id
   chr, gstart, gstop
   margin
   width
@@ -89,14 +90,12 @@ doing.
 sub genome_features_panel ($%) {
   my $u = shift;
   my %opts = @_;
-  my $p2gblataln_id;
+  my $pmap_aln_id;
   my $logo_margin = 10;
 
   if ( defined $opts{pseq_id}) {
-#	($opts{genasm_id},$opts{chr},$opts{gstart},$opts{gstop},$p2gblataln_id)
-#	  = Unison::get_p2blataln_info($u,$opts{pseq_id});
-	($opts{chr},$opts{gstart},$opts{gstop},$p2gblataln_id)
-	  = Unison::get_blataln($u,$opts{pseq_id});
+    	($opts{genasm_id},$opts{chr},$opts{gstart},$opts{gstop},$pmap_aln_id)
+	  = Unison::get_pmapaln_info($u,$opts{pseq_id},$opts{params_id});
   }
 
   # expand gstart and gstop to include margin
@@ -137,11 +136,11 @@ sub genome_features_panel ($%) {
 				   );
 
 
-  add_blatloci( $u, $panel, %opts );
+  add_pmaploci( $u, $panel, %opts );
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.2 2005/03/25 19:44:44 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.3 2005/04/04 18:42:03 rkh Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
@@ -174,10 +173,10 @@ sub genome_features_panel ($%) {
 ## INTERNAL FUNCTIONS
 
 #-------------------------------------------------------------------------------
-# NAME: add_blatloci_features
-# PURPOSE: add blat loci features to a panel
+# NAME: add_pmaploci_features
+# PURPOSE: add pmap loci features to a panel
 #-------------------------------------------------------------------------------
-sub add_blatloci {
+sub add_pmaploci {
   my ($u, $panel, %opts) = @_;
   my $nadded = 0;
   my $plus_strand_track = $panel->add_track( 
@@ -234,9 +233,10 @@ sub add_blatloci {
 # -- indicate ambiguity of hsp locations
 # -- restrict aliases to species
   my $sql = <<EOSQL;
-SELECT p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand
-FROM v_p2gblataln
-WHERE genasm_id=$opts{genasm_id} 
+SELECT aln_id,pseq_id,ident,gstart,gstop,plus_strand
+FROM v_pmap_aln
+WHERE genasm_id=$opts{genasm_id}
+  AND params_id=$opts{params_id}
   AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}
   AND ident/(pstop-pstart+1)*100>=$opts{min_pct_ident}
 EOSQL
@@ -247,11 +247,11 @@ EOSQL
   my $sth = $u->prepare($sql);
   $sth->execute();
 
-  my $p2gblataln_id = -1;
+  my $pmap_aln_id = -1;
   my ($plus_strand,$feat);
   while ( my $r = $sth->fetchrow_hashref ) {
     # new BLAT alignment - create a new feature
-    if ( $r->{p2gblataln_id} != $p2gblataln_id ) {
+    if ( $r->{aln_id} != $pmap_aln_id ) {
       # if we have a feat defined, then add it to the appropriate strand track
       if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
         if ( $plus_strand ) {
@@ -260,7 +260,7 @@ EOSQL
           $rev_strand_track->add_feature($feat);
         }
       }
-      $p2gblataln_id = $r->{p2gblataln_id};
+      $pmap_aln_id = $r->{aln_id};
       $plus_strand = $r->{plus_strand};
       print STDERR "Get a new feature\n" if $opts{verbose};
       $feat = new Bio::Graphics::Feature->new(-name=>sprintf('Unison:%d (%s)',
@@ -292,18 +292,18 @@ EOSQL
 
 
 #-------------------------------------------------------------------------------
-# NAME: add_p2gblataln
-# PURPOSE: add blat alignment features to a track given a p2gblataln_id
+# NAME: add_pmap_aln
+# PURPOSE: add blat alignment features to a track given a pmap_aln_id
 #-------------------------------------------------------------------------------
-sub add_p2gblataln {
-  my ($u, $panel, $p2gblataln_id) = @_;
+sub add_pmap_aln {
+  my ($u, $panel, $pmap_aln_id) = @_;
   my $nadded = 0;
 
-  my $sql = "select * from p2gblatalnhsp natural join p2gblathsp where " .
-    "p2gblataln_id=? order by gstart";
+  my $sql = "select * from pmap_alnhsp natural join pmap_hsp where " .
+    "aln_id=? order by gstart";
 
   my $sth = $u->prepare($sql);
-  $sth->execute($p2gblataln_id);
+  $sth->execute($pmap_aln_id);
 
   my $track = $panel->add_track(
 								-glyph => 'graded_segments',
