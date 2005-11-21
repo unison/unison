@@ -18,8 +18,16 @@ my $margin = 5000;						# margin around gene for geode
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.17 2005/11/21 05:58:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.18 2005/11/21 07:20:06 rkh Exp $ ');
 
+
+my @ps = $u->get_params_info_by_pftype('pmap');
+
+if (not defined $v->{params_id}) {
+  $v->{params_id} = 
+	$u->get_current_params_id_by_pftype($v->{pseq_id},'pmap')
+	|| $ps[0]->[0];
+}
 
 ## BUG: the genasm_id isn't passed to the Unison or geode views.
 # genasm_id=2 (NHGD 35) because that's all geode supports and I don't want
@@ -36,7 +44,7 @@ SELECT pstart,pstop,pct_ident,pct_cov,L.genasm_id,G.tax_id,T.latin,G.name as gen
 FROM v_pmap L
 JOIN genasm G ON L.genasm_id=G.genasm_id
 JOIN tax.spspec T on G.tax_id=T.tax_id
-WHERE L.genasm_id=G.genasm_id AND L.pseq_id=?
+WHERE L.genasm_id=G.genasm_id AND L.params_id=? AND L.pseq_id=?
 ORDER BY tax_id,genasm_id,chr
 EOSQL
 
@@ -46,7 +54,7 @@ my @cols = ('pstart-pstop', '% ident', '% cov', 'species', 'genome name', 'locus
 try {
   my @data;
   my $sth = $u->prepare($sql);
-  $sth->execute($v->{pseq_id});
+  $sth->execute($v->{params_id},$v->{pseq_id});
 
   while ( my $r = $sth->fetchrow_hashref() ) {
 	my (%row_data) = map { $_ => '' } @cols;
@@ -82,8 +90,8 @@ sub genome_links {
   my (%ucsc_tax_id_map) = ( 9606 => ['Human','hg17'] );
 
   push(@links,
-	   sprintf('<a href="genome_features.pl?genasm_id=%d;chr=%d;gstart=%d;gstop=%d"><img border=0 tooltip="view genomic region in Unison" src="../av/favicon.gif"></a>',
-			   $r->{genasm_id},$r->{chr},$r->{gstart},$r->{gstop}));
+	   sprintf('<a href="genome_features.pl?genasm_id=%d;chr=%d;gstart=%d;gstop=%d;params_id=%d"><img border=0 tooltip="view genomic region in Unison" src="../av/favicon.gif"></a>',
+			   $r->{genasm_id},$r->{chr},$r->{gstart},$r->{gstop},$v->{params_id}));
 
   # UCSC browser links are broken... apparently the coords are not the same!
   # (exists $ucsc_tax_id_map{$r->{tax_id}}) {
