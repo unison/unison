@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.66 2005/11/20 23:31:30 rkh Exp $>
+S<$Id: Page.pm,v 1.67 2005/11/21 02:11:12 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -60,7 +60,7 @@ use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
 use Error qw(:try);
-
+use Data::Dumper;
 
 sub _csb_connection_params ($);
 sub _page_connect ($);
@@ -346,8 +346,6 @@ sub render {
   my $conn_info = '';
   my $elapsed = '';
 
-  print(STDERR "$self, $title\n");
-
   if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
 	# conn_info isn't currently used... it takes up too much space to display
 	# I think it would be better in a mouseover popup
@@ -377,37 +375,38 @@ sub render {
 		  "\n<!-- ========== begin banner bar ========== -->\n",
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
-		  '<a href="../index.html">', 
-		       $self->tooltip('<img class="logo" src="../av/unison.gif">',
-							  'Unison Home Page'), '</a>',
+		  '<a href="../index.html"><img class="logo" src="../av/unison.gif"></a>',
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
 		  "<!-- ========== end banner bar ========== -->\n",
-		  '</table>', "\n",
 
-		  "<hr>\n",
 
-		  '  <td colspan=2 class="body">', "\n",
-		  "  <span class=\"page_title\">$title</span><br>", "\n", 
-		  '  ', @_, "\n",
+		  "\n<!-- ========== begin body ========== -->\n",
+		  '<tr><td colspan=2 class="body">', "\n",
+		  '<span class="page_title">',$title,'</span>', "\n", 
+		  '<br>', @_, "\n",
+		  '</td></tr>', "\n",
+		  "\n<!-- ========== end body ========== -->\n",
 
-		  "<hr>\n",
 
 		  "\n<!-- ========== begin footer ========== -->\n",
-		  '<table class="page">', "\n",
 		  '<tr>', "\n",
 		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
 		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
 		  '  <td class="footer">',
-		  (defined $self->{footer} ? join('     <br>',@{$self->{footer}}) : ''),
-		  "     <br>$elapsed\n",
-		  '     <br>Please submit bugs and requests to the ',
-		  ' <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
+		  '  Questions?  Email <a href="mailto:unison@unison-db.org?subject=Unison Question&body=Regarding ',
+		     $self->url(), ' : ',
+		     '">unison@unison-db.org</a>.',
+		  '  &nbsp; &nbsp; ',
+		  '  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
+		  '     <br>',$elapsed, "\n",
+		  (defined $self->{footer} ? (map {"<br>$_"} @{$self->{footer}}) : ''),
 		  "  </td>\n",
 		  "</tr>\n",
-		  "</table>\n",
 		  "\n<!-- ========== end footer ========== -->\n",
+
+		  "</table>\n",
 
 		  "\n", $self->end_html(),"\n"
 		 );
@@ -923,16 +922,6 @@ sub _navbar {
 	## prd = production? 1=yes, 0=no (i.e., show ONLY in production)
 	## pub = public? 1=yes, 0=no (i.e., show ONLY in public version)
 	(
-	 [	# About menu
-	  [1,1,'Unison', 		'more information about Unison', 	'about_unison.pl'],
-	  [1,1,'About', 		'Unison overview', 					'about_unison.pl'],
-	  [1,1,'Statistics',	'Unison summary statistics',		'about_statistics.pl'],
-	  [1,1,'Origins', 		'Unison data sources',			 	'about_origins.pl'],
-	  [1,1,'Params', 		'Unison precomputed data types', 	'about_params.pl'],
-	  [1,1,'Env', 			'environment info', 				'about_env.pl'],
-	  [0,1,'Prefs',			'user prefs', 						'about_prefs.pl'],
-	 ],
-
 	 [	# Search menu
 	  [1,1,'Search', 		'Text- and Feature-based mining',	'search_alias.pl'],
 	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_alias.pl'],
@@ -970,8 +959,18 @@ sub _navbar {
 	  [0,0,'Methods', 		'compare threading methods',		'compare_methods.pl'],
 	 ],
 
-	  # empty list forces right-justification of subsequent menus
-	  #[ [ '' ]  ],
+	 # empty list forces right-justification of subsequent menus
+	 [ [ '' ]  ],
+
+	 [	# About menu
+	  [1,1,'About', 		'more information about Unison', 	'about_unison.pl'],
+	  [1,1,'About Unison',	'Unison overview', 					'about_unison.pl'],
+	  [1,1,'Statistics',	'Unison summary statistics',		'about_statistics.pl'],
+	  [1,1,'Origins', 		'Unison data sources',			 	'about_origins.pl'],
+	  [1,1,'Params', 		'Unison precomputed data types', 	'about_params.pl'],
+	  [1,1,'Env', 			'environment info', 				'about_env.pl'],
+	  [0,1,'Prefs',			'user prefs', 						'about_prefs.pl'],
+	 ],
 
 	  #[ # run menu
 	  # [1,1,'Run', 'run analyses on sequences for which precomputed results aren\'t available'],
@@ -1033,6 +1032,9 @@ sub _navbar {
 
 
 sub __filter_navs($$@) {
+  ## Purpose: remove development tabs from production environments, and remove
+  ## proprietary tabs from public environments.
+
   my ($is_prd,$is_pub,@navs) = @_;
   foreach(my $i=$#navs; $i>=0; $i--) {
 	if (    ($is_prd and not $navs[$i][0][0])
@@ -1045,7 +1047,7 @@ sub __filter_navs($$@) {
 	@{$navs[$i]} = grep {(    (not $is_prd or $_->[0])
 						  and (not $is_pub or $_->[1]) )} @{$navs[$i]};
 	#_nav_dump("$i.2",@navs);
-	@{$navs[$i]} = map { [splice(@$_,2)] } @{$navs[$i]};
+	@{$navs[$i]} = map { $_->[0] eq '' ? [''] : [splice(@$_,2)] } @{$navs[$i]};
 	#_nav_dump("$i.3",@navs);
   }
   #_nav_dump("is_prd=$is_prd; is_pub=$is_pub; returned=",@navs);
