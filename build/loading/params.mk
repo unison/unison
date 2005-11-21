@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.3 2005/11/09 03:24:56 rkh Exp $
+## $Id: params.mk,v 1.4 2005/11/18 04:20:02 rkh Exp $
 
 
 
@@ -56,4 +56,8 @@ PFTMHMM_PARAMS_ID:=29
 PSPROTCOMP_PARAMS_ID:=20
 PSPROTCOMP_SEQS_PER_RUN:=25
 
+############################################################################
+#### PFSIGNALP
+PFSIGNALP_PARAMS_ID:=28
+PFSIGNALP_SEQS_PER_RUN:=100
 
