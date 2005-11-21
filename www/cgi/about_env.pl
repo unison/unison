@@ -23,8 +23,8 @@ print $p->render
    '<hr><u>Unison host information:</u>',
    '<br>platform: <code>', `uname -a`, '</code>',
    '<br>uptime: <code>', `uptime`, '</code>',
-#   '<br>running jobs:<br><pre>', 
-#      `ps --sort=-pcpu r -wopid,ppid,stime,etime,cputime,pcpu,pmem,cmd 2>&1`,
+   '<br>running jobs:<br><pre>', 
+      `ps --sort=-pcpu r -wopid,ppid,stime,etime,cputime,pcpu,pmem,cmd 2>&1`,
    '</pre>',
 
 
@@ -51,16 +51,19 @@ print $p->render
    join("\n&nbsp;&nbsp;", '<pre>@INC = (', @INC, ");</pre>\n\n"),
 
    "- Unison modules found in:\n",
-   '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
-			sort grep {/^Unison/} keys %INC), '</pre>',
+   '<pre>',
+   (map { sprintf("$_ => $INC{$_}\n") } sort grep {/^Unison/} keys %INC),
+   '</pre>',
 
    "- Bioperl modules found in:\n",
-   '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
-			sort grep {/^Bio/} keys %INC), '</pre>',
+   '<pre>',
+   (map { sprintf("$_ => $INC{$_}\n") } sort grep {/^Bio/} keys %INC),
+   '</pre>',
 
-   "- Other modules found in:\n<pre>",
-   '<pre>',(map { sprintf("$_ => $INC{$_}\n") } 
-			sort grep {not (/^Unison/ or /^Bio/)} keys %INC), '</pre>',
+   "- Other modules found in:\n",
+   '<pre>',
+   (map { sprintf("$_ => $INC{$_}\n") } sort grep {not (/^Unison/ or /^Bio/)} keys %INC), 
+   '</pre>',
 
   );
 

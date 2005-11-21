@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.67 2005/11/21 02:11:12 rkh Exp $>
+S<$Id: Page.pm,v 1.68 2005/11/21 03:25:22 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -49,8 +49,8 @@ use warnings;
 
 use base Exporter;
 use CGI qw(-debug -nosticky -newstyle_urls);
+use CGI::Carp qw(fatalsToBrowser);
 push(@ISA, 'CGI');
-#BEGIN { (-t 0) || eval "use CGI::Carp qw(fatalsToBrowser)" }
 
 use strict;
 
@@ -968,7 +968,7 @@ sub _navbar {
 	  [1,1,'Statistics',	'Unison summary statistics',		'about_statistics.pl'],
 	  [1,1,'Origins', 		'Unison data sources',			 	'about_origins.pl'],
 	  [1,1,'Params', 		'Unison precomputed data types', 	'about_params.pl'],
-	  [1,1,'Env', 			'environment info', 				'about_env.pl'],
+	  [0,1,'Env', 			'environment info', 				'about_env.pl'],
 	  [0,1,'Prefs',			'user prefs', 						'about_prefs.pl'],
 	 ],
 
@@ -992,23 +992,6 @@ sub _navbar {
 	);
 
 
-##  @navs =
-##	(
-##	 [	# About menu
-##	  [1,1,'Unison', 		'more information about Unison'],
-##	  [0,0,'test00', 		'Unison overview', 					'about_unison.pl'],
-##	  [0,1,'test01', 		'Unison overview', 					'about_unison.pl'],
-##	  [1,0,'test10', 		'Unison overview', 					'about_unison.pl'],
-##	  [1,1,'test11', 		'Unison overview', 					'about_unison.pl'],
-##	 ],
-##
-##	 [	# Assess menu
-##	  [0,0,'Dummy', 		'compare sequence sets and analysis methods'],
-##	  [0,0,'Methods', 		'compare threading methods',		'compare_methods.pl'],
-##	 ]
-##	);
-
-
   @navs = __filter_navs($self->is_prd_instance(),$self->is_public(),@navs);
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
   my $rv = '';
@@ -1016,17 +999,19 @@ sub _navbar {
 	. "\n    <tr>"
 	  . _make_navrow($navi, map {$_->[0]} @navs)
 	  . '</tr>'
-	. "\n    <tr>" 
+	. "\n" . '<tr>'  
 	. ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
 	. '<td align="center"><img src="../av/v.gif"></td>'
 	. ($navi==$#navs ? '' : sprintf('<td colspan=%d></td>',$#navs-$navi))
 	. '</tr>'
 	. "\n  </table>\n";
+
   my @nav = @{$navs[$navi]};
-  shift @nav;				# menu header is first item; menu items remain
+  shift @nav;				# menu header is first item; subnav items remain
   $rv .= "\n  <table class=\"subnav\" width=\"100%\">" 
 	. '<tr>' . _make_navrow($subnavi, @nav) . '</tr>'
 	. "</table>\n";
+
   return $rv;
 }
 
