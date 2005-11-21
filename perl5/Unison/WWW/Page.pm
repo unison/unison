@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.65 2005/10/15 06:09:42 rkh Exp $>
+S<$Id: Page.pm,v 1.66 2005/11/20 23:31:30 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -346,6 +346,8 @@ sub render {
   my $conn_info = '';
   my $elapsed = '';
 
+  print(STDERR "$self, $title\n");
+
   if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
 	# conn_info isn't currently used... it takes up too much space to display
 	# I think it would be better in a mouseover popup
@@ -387,7 +389,7 @@ sub render {
 		  "<hr>\n",
 
 		  '  <td colspan=2 class="body">', "\n",
-		  "  <b>$title</b><br>", "\n", 
+		  "  <span class=\"page_title\">$title</span><br>", "\n", 
 		  '  ', @_, "\n",
 
 		  "<hr>\n",
@@ -682,7 +684,7 @@ Return true if this is a production version of Unison.
 
 =cut
 sub is_prd_instance {
-  return 1 if ($ENV{SERVER_PORT}==80);
+  return 1 if (defined $ENV{SERVER_PORT} and $ENV{SERVER_PORT}==80);
   return 0;
 }
 
@@ -716,7 +718,7 @@ they depend on data that are not released with Unison.
 
 =cut
 sub is_public {
-  return 1 if $ENV{SERVER_ADDR} !~ m/^128\.137\./; # .gene.com domain
+  return 1 if defined $ENV{SERVER_ADDR} and $ENV{SERVER_ADDR} !~ m/^128\.137\./; # .gene.com domain
   return 0;
 }
 
@@ -872,10 +874,23 @@ sub _infer_pseq_id ($) {
 	return $ids[0];
   }
 
-  $self->die('Please specify sequence', <<EOT );
-The page you requested requires you to specify a sequence.
-<p>You may wish to <a href="search_alias.pl">search for a sequence by name</a>.
-EOT
+  # if we don't have a pseq_id by this point, we need to
+  # throw up a generic search box
+  print $self->render('Please specify a sequence',
+					  '<p>Please specify a protein sequence by sequence alias/accession, Unison pseq_id, or md5 checksum.',
+					  '<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>',
+
+					  $self->start_form(-method => 'GET'),
+					  'query: ',
+					  $self->textfield(-name=>'q',
+									   -size=>32,
+									   -maxlength=>32),
+					  $self->submit(-value=>'submit'),
+					  '<p>',
+					  $self->end_form(), "\n",
+					  'You may wish to use the more advanced search abilities under the "Search" tab instead.'
+					 );
+  exit(0);
 
   # NO RETURN
 }
@@ -905,22 +920,21 @@ sub _navbar {
 	##   [ prd, pub, minor_name, tooltip, script, args ],
 	##   ...
 	## ]
-	## prd = production? 1=yes, 0=no (i.e., not development)
-	## pub = public? 1=yes, 0=no
+	## prd = production? 1=yes, 0=no (i.e., show ONLY in production)
+	## pub = public? 1=yes, 0=no (i.e., show ONLY in public version)
 	(
 	 [	# About menu
 	  [1,1,'Unison', 		'more information about Unison', 	'about_unison.pl'],
 	  [1,1,'About', 		'Unison overview', 					'about_unison.pl'],
-	  [1,1,'Legal', 		'Unison legal information',			'about_legal.pl'],
-	  [1,1,'News', 			'Unison news'	, 					'about_news.pl'],
-	  [1,1,'Credits', 		'authors, acknowledgements, references', 'about_credits.pl'],
-	  [1,1,'Contents', 		'show unison meta information', 	'about_contents.pl'],
+	  [1,1,'Statistics',	'Unison summary statistics',		'about_statistics.pl'],
+	  [1,1,'Origins', 		'Unison data sources',			 	'about_origins.pl'],
+	  [1,1,'Params', 		'Unison precomputed data types', 	'about_params.pl'],
 	  [1,1,'Env', 			'environment info', 				'about_env.pl'],
 	  [0,1,'Prefs',			'user prefs', 						'about_prefs.pl'],
 	 ],
 
 	 [	# Search menu
-	  [1,1,'Search', 		'search for sequences which match criteria',	'search_alias.pl'],
+	  [1,1,'Search', 		'Text- and Feature-based mining',	'search_alias.pl'],
 	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_alias.pl'],
 	  [1,1,'By Properties',	'mine for sequences based on properties', 'search_properties.pl'],
 	  [1,0,'Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
@@ -934,7 +948,7 @@ sub _navbar {
 	 ],
 
 	 [	# Analyze menu
-	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence', 'search_alias.pl' ],
+	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence', 'pseq_summary.pl' ],
 	  [1,1,'Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	  [1,1,'Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
 	  [1,0,'Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
