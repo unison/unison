@@ -5,7 +5,7 @@
 # PURPOSE: web script to output pseq aligned to a genome
 # USAGE: genome_features.pl?genasm_id=<genasm_id>;[(chr=<chr>;gstart=<gstart>;gstop=<gstop>)||(pseq_id=<pseq_id>)]
 #
-# $Id: genome_features.pl,v 1.14 2005/07/18 20:56:23 rkh Exp $
+# $Id: genome_features.pl,v 1.15 2005/11/21 05:58:24 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -24,12 +24,10 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-
-
 # verify parameters
 if ( ! ( defined $v->{genasm_id} && (
-  ( defined $v->{chr} && defined $v->{gstart} && defined $v->{gstop} ) ||
-  ( defined $v->{pseq_id} ) ) )) { $p->die( &usage ); }
+  ( defined $v->{chr} && defined $v->{gstart} && defined $v->{gstop}) ||
+  ( defined $v->{pseq_id} ) )   && (defined $v->{params_id}) )) { $p->die( &usage ); }
 
 # merge defaults and options
 my %opts = (%Unison::Utilities::genome_features::opts, %$v);
@@ -74,7 +72,7 @@ print $p->render("Genome Map",
 # PURPOSE: return usage string
 #-------------------------------------------------------------------------------
 sub usage {
-  return( "USAGE: genome_features.pl ? genasm_id=&lt;gensam_id&gt; " .
+  return( "USAGE: genome_features.pl ? genasm_id=&lt;gensam_id&gt; params_id=&lt;params_id&gt; " .
      "[(chr=&lt;chr&gt; ; gstart=&lt;gstart&gt; ; gstop=&lt;gstop&gt; " .
      "|| pseq_id=&lt;pseq_id&gt;]" );
 }
