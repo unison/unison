@@ -15,6 +15,7 @@ use Unison::SQL;
 sub meta_group($);
 
 my $p = new Unison::WWW::Page;
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.41 2005/11/21 18:00:26 rkh Exp $ ');
 
 print $p->render('Unison Statistics',
 				 meta_group($p),

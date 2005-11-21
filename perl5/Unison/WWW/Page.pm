@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.71 2005/11/21 18:00:26 rkh Exp $>
+S<$Id: Page.pm,v 1.72 2005/11/21 18:31:07 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -65,7 +65,6 @@ use Text::Wrap;
 sub _csb_connection_params ($);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
-sub _conn_info_html ($);
 sub _make_temp_dir ();
 sub _cleanup_temp($$);
 sub __filter_navs($$@);
@@ -347,7 +346,6 @@ sub render {
   my $title = shift;
 
   my $elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
-  my $conn_info_html = $self->_conn_info_html();
 
   return ($self->header(),
 
@@ -358,7 +356,6 @@ sub render {
 		  '<tr>', "\n",
 		  '  <td class="logo" width="10%">',
 		  '<a href="../index.html"><img class="logo" src="../av/unison.gif"></a>',
-		  '<br>', $self->popup('<span style="font-size: smaller">&lt;=&gt;</span>','Unison Connection Information',$conn_info_html),
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
