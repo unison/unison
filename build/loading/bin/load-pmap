@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id$
+# $Id: load-pmap,v 1.1 2005/09/14 22:35:07 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -17,6 +17,7 @@ use Data::Dumper;
 
 my %opts =
   (
+   genasm_id => undef,
    pct_ident_cutoff => 80,
    score_cutoff => 80,
    verbose => 0,
@@ -25,18 +26,19 @@ my %opts =
 
 GetOptions(\%opts,
   'pct_ident_cutoff|i=i',
+  'genasm_id|g=i',
   'score_cutoff|s=i',
   'help',
   'verbose|v+',
   'params|p=s'
 ) || usage();
 
-usage() if ($#ARGV != 0 || ! defined $opts{params} );
+usage() if ($#ARGV != 0 || ! defined $opts{params} || ! defined $opts{genasm_id} );
 
 
 my $u = new Unison(dbname=>'csb-dev', username=>'loader');
-my $aln_sth = $u->prepare( 'select assign_pmap_aln( ?, ?, ?, ?, ?, ?, ? )' );
-my $hsp_sth = $u->prepare( 'select ins_pmap_hsp( ?, ?, ?, ?, ?, ?, ? )' );
+my $aln_sth = $u->prepare( 'select ins_pmap_aln( ?, ?, ?, ?, ?, ?, ?, ?, ? )' );
+my $hsp_sth = $u->prepare( 'select ins_pmap_hsp( ?, ?, ?, ?, ?, ?, ?, ?, ? )' );
 
 my $params_id = $u->get_params_id_by_name( $opts{params} );
 (defined $params_id)
@@ -96,10 +98,9 @@ while( my $r = $bio->next_result() ){
       $chr = $1;
 
       # load each HSP
-
-      $hsp_sth->execute( $chr,(( $f->strand > 0 ) ? 'true' : 'false'),$f->start, $f->end, $pseq_id, $f->hstart, $f->hend );
+      $hsp_sth->execute( $opts{genasm_id},  $chr,
+			 (( $f->strand > 0 ) ? 'true' : 'false'),$f->start, $f->end, $pseq_id, $f->hstart, $f->hend, $params_id );
       push @hsp_ids,$hsp_sth->fetchrow_array;
-
     }
 
     # get serialized hsp_str - probably should use database version
@@ -111,8 +112,8 @@ while( my $r = $bio->next_result() ){
 	     $pseq_id,$chr,$ident[0],$r->score,($#hsp_ids+1));
     }
 
-    $aln_sth->execute( $hsp_str, $ident[0], $qgap_cnt[0], $qgap_bases[0],
-		       $tgap_cnt[0], $tgap_bases[0], $params_id );
+    $aln_sth->execute( $hsp_str, $pseq_id, $ident[0], $qgap_cnt[0], $qgap_bases[0],
+		       $tgap_cnt[0], $tgap_bases[0], $params_id, $opts{genasm_id} );
 
     # update run history if we haven't yet done so during this session
     $u->upd_run_history($pseq_id,$params_id,undef,undef) unless $updated{$pseq_id}++;
@@ -126,7 +127,6 @@ while( my $r = $bio->next_result() ){
     }
     die("$e") unless $e->error() =~ m/unique constraint/;
   };
-
 }
 
 
@@ -136,10 +136,9 @@ while( my $r = $bio->next_result() ){
 # PURPOSE: output usage message and then exit
 #-------------------------------------------------------------------------------
 sub usage {
-  die( "USAGE: load-pmap [OPTIONS] output.psl\n" ,
+  die( "USAGE: load-pmap [OPTIONS] -g <genasm_id> |--genasm_id <genasm_id> -p <param_name> |--params <param_name> output.psl\n" ,
     "\tOPTIONS:\n",
     "\t\t-h|--help: output USAGE statement and exit\n",
-    "\t\t-p <params> | --params=<name>: load pmap alignments generated with these parameters\n",
     "\t\t-i <cutoff> | --pct_ident_cutoff=<cutoff>: only accept HSPs with percent identity greater than cutoff\n",
     "\t\t-s <cutoff> | --score_cutoff=<cutoff>: only accept HSPs with score greater than cutoff\n" );
 }
