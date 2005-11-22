@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.4 2005/11/18 04:20:02 rkh Exp $
+## $Id: params.mk,v 1.5 2005/11/21 22:14:34 mukhyala Exp $
 
 
 
@@ -20,8 +20,8 @@ UNIPROT_DIR:=${COMPBIO_PREFIX}/share/uniprot
 
 ############################################################################
 #### PAPROSPECT
-PAPROSPECT_PARAMS_ID:=1
-PAPROSPECT_PMODELSET_ID:=10
+PAPROSPECT_PARAMS_ID:=31
+PAPROSPECT_PMODELSET_ID:=20
 
 
 ############################################################################
@@ -60,4 +60,8 @@ PSPROTCOMP_SEQS_PER_RUN:=25
 #### PFSIGNALP
 PFSIGNALP_PARAMS_ID:=28
 PFSIGNALP_SEQS_PER_RUN:=100
+
+############################################################################
+#### PMAP
+PMAP_PARAMS_ID:=30
 
