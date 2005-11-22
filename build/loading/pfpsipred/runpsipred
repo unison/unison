@@ -26,7 +26,7 @@ my %opts = (
 	    smooth     => '1',
 	    helix      => '1.0',
 	    strand     => '1.0',
-	    cpus       => '1'
+	    cpus       => '2'
 	   );
 GetOptions(\%opts,
 	   'alignments|b=i',
@@ -73,7 +73,7 @@ run("cp -f $fasta $fa_fn");
 #bank files.
 print STDERR "Running PSI-BLAST with sequence $ARGV[0] ...\n";
 # btw following are default options recommended by psipred installation
-run("$ncbidir/blastpgp -a $opts{'cpus'} -b $opts{'alignments'} -j $opts{'iterations'} -h $opts{'eval'} -d $dbroot/$opts{'database'} -i $fa_fn -C $basename.chk >& $basename.blast");
+run("$ncbidir/blastpgp -a $opts{'cpus'} -b $opts{'alignments'} -j $opts{'iterations'} -h $opts{'eval'} -d $dbroot/$opts{'database'} -i $fa_fn -C $basename.chk > $basename.blast");
 
 print STDERR "Predicting secondary structure...\n";
 
@@ -101,9 +101,10 @@ run("$execdir/psipass2 $datadir/weights_p2.dat $opts{'smooth'} $opts{'helix'} $o
 
 run("cp $basename.horiz $fasta.horiz");
 run("cp $basename.ss $fasta.ss");
+run("cp $basename.chk $fasta.chk");
 # Remove temporary files
 print STDERR "Cleaning up ...$basename.*\n";
-run("rm -f $basename* error.log");
+run("rm -f $basename* error.log") if(not $ENV{'DEBUG'});
 
 print STDERR "Final output files: $fasta.ss $fasta.horiz\n";
 print STDERR "Finished.\n";
