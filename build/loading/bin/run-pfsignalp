@@ -5,38 +5,39 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.8 2005/08/08 21:40:54 rkh Exp $
+# $Id: run-pfsignalp,v 1.9 2005/08/20 00:00:27 rkh Exp $
 #-------------------------------------------------------------------------------
 
+use strict;
+use warnings;
 use Unison;
 use IO::File;
-use Env qw(@PATH);
 use Bio::SeqIO;
 use Bio::PrimarySeq;
 use Getopt::Long qw(:config gnu_getopt);
-use warnings;
-use strict;
+use File::Temp qw(tempdir);
+
 
 my %opts = 
   (
    debug => 0,
-   params_id => 6,
+   params_id => undef,
    verbose => 0,
-   #'seqs-per-run' => 50
   );
 GetOptions( \%opts,
 			'debug|d+',
 			'force|f+',
 			'params_id|p=i',
 			'verbose|v+',
-			#'seqs-per-run|N=i',
 		  )
   || die("$0: usage\n");
 
-$opts{params_id} = 6;                # hardwired for now
+(defined $opts{params_id})
+  || die("$0: parameters not defined (-p)\n");
 
-my $temp_in_fn =  "/tmp/run-pfsignalp-$$.fa";
-my $temp_out_fn = "/tmp/run-pfsignalp-$$.out";
+my $dir = tempdir( 'run-pfsignalp-XXXXXX', CLEANUP => 1, TMPDIR => 1 );
+my $temp_in_fn =  "$dir/seqs.fa";
+my $temp_out_fn = "$dir/seqs.signalp";
 
 # signalp barfs on really small and large seqs
 my $len_lower_cutoff = '50';
@@ -53,14 +54,13 @@ my $u = new Unison;
 
 my $cmd = $u->run_commandline_by_params_id( $opts{params_id} ) . " $temp_in_fn 1>$temp_out_fn";
 my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
-my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,s_mean,params_id) values (?,?,?,?,?)' );
-my $sthhmm = $u->prepare( 'insert into pfsignalphmm(pseq_id,start,stop,sig_peptide_prob,sig_anchor_prob,max_cleavage_prob,params_id) values (?,?,?,?,?,?,?)' );
+my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,d_score,signal_peptide,params_id) values (?,?,?,?,?,?)' );
+my $sthhmm = $u->prepare( 'insert into pfsignalphmm(pseq_id,start,stop,sig_peptide_prob,sig_anchor_prob,max_cleavage_prob,pfsignalphmm_pred_id,params_id) values (?,?,?,?,?,?,pfsignalphmm_pred(?),?)' );
 my %run_me;  # track pseqs to run
 
-#my @list = Unison::utils::range_to_enum(@ARGV);
-my @list = @ARGV;
-PSEQ_ID: for(my $i=0; $i<=$#list; $i++) {
-  my $pseq_id = $list[$i];
+my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
+
+PSEQ_ID: foreach my $pseq_id ( @pseq_ids ) {
 
   my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
   if (defined $ran_on and not $opts{update}) {
@@ -92,13 +92,14 @@ if ( scalar(keys %run_me) > 0 ) {
   my $fp = new IO::File $temp_out_fn;
   local $/='----------------------------------------------------------------------';
   while(<$fp>){
-    next if m/SignalP predictions/;
-    if (my($id,$spos,$sprob,$spp,$sap,$mcsp,$hmme) = m/>(\S+).+mean S\s+(\S+)\s+(\S+).+Signal peptide probability:\s+(\S+)\s+Signal anchor probability:\s+(\S+)\s+Max cleavage site probability:\s+(\S+) between pos. (\S+) and/sm) {
+    next if m/SignalP 3.0 predictions/;
+    if (my($id,$dpos,$dprob,$dcutoff,$dcall,$pred,$spp,$sap,$mcsp,$hmme) = m/>(\S+).+\s+D\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+).+Prediction:\s+(\D+).+Signal peptide probability:\s+(\S+)\s+Signal anchor probability:\s+(\S+)\s+Max cleavage site probability:\s+(\S+) between pos. (\S+) and/sm) {
       $id =~ m/^Unison:(\d+)/;
       my $pseq_id = $1;
-      my ($nn_start,$nn_end) = split/-/,$spos,2;
-      $sthnn->execute($pseq_id,$nn_start,$nn_end,$sprob,$opts{params_id});
-      $sthhmm->execute($pseq_id,'1',$hmme,$spp,$sap,$mcsp,$opts{params_id});
+      my ($nn_start,$nn_end) = split/-/,$dpos,2;
+      my $speptide = ($dcall eq 'YES' ? 't' : 'n');
+      $sthnn->execute($pseq_id,$nn_start,$nn_end,$dprob,$speptide,$opts{params_id});
+      $sthhmm->execute($pseq_id,'1',$hmme,$spp,$sap,$mcsp,$pred,$opts{params_id});
 
       # delete this pseq_id from the run_me hash and then update
       # the run history table.  any pseqs left in %run_me are pseqs
@@ -109,7 +110,7 @@ if ( scalar(keys %run_me) > 0 ) {
 	  printf(STDERR "loaded signalp results for Unison:$pseq_id\n");
 	  if ($opts{verbose}) {
 		printf(STDERR "   NN:  sig_pep_prob: %.2f, cleavage_site: %d\n",
-			   $pseq_id,$sprob,$nn_end);
+			   $pseq_id,$dprob,$nn_end);
 		printf(STDERR "  HMM: sig_pep_prob: %.2f, sig_anchor_prob: %.2f, cleavage_site: %d, max_cleavage_prob: %.2f\n",
 			   $pseq_id,$spp,$sap,$hmme,$mcsp);
 	  }
