@@ -16,11 +16,12 @@ my $usage = <<'EOU';
 #   --cpus        |-a:   cpus (psiblast)
 #   --verbose     |-v:   output more processing information
 #   --tfile       |-t <file_name>: file containing list of templates (default is FSSP)
+#   --scop        |  :   use SCOP templates
 #   --sort        |-s <n>: sort and output top n templates. Creates .raw and .svm files
 #   --save        |-x:   output in XML format. Creates a .xml file
 #   --3d                 create backbone coordinates of sequences
 #   --help               this output
-# $Id: gne_prospect,v 1.4 2005/09/19 21:01:21 mukhyala Exp $
+# $Id: gne_prospect,v 1.5 2005/09/19 21:07:26 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -50,8 +51,10 @@ my %opts = (
             eval          => 0.001,
             cpus          => 2,
 	    tfile         => 0,
+	    scop          => 0,
 	    sort          => 0,
-	    save          => 0,
+	    pids          => 0,
+	    save          => 1,
 	    help          => 0,
 	    db            => undef
 );
@@ -65,8 +68,10 @@ GetOptions( \%opts,
 	    'eval|h=f',
 	    'cpus|a=i',
 	    'tfile|t=s',
+	    'scop',
 	    'sort|s=i',
 	    'save|x',
+	    'pids',
 	    'global',
 	    'global_local',
 	    'help' => 0,
@@ -77,9 +82,11 @@ GetOptions( \%opts,
 my $opts=\%opts;
 die("\n$usage\n") if ($opts{help});
 
-$opts->{db} = (defined($ENV{BLASTPGP_DB}) ? $ENV{BLASTPGP_DB} : 'nr') unless(defined($opts->{db}));
+# The root of the BLAST data bank
+my $dbroot = " /gne/compbio/share/blast/aa";
 
-$ENV{BLASTPGP_DB} = $opts->{db} if (not defined $ENV{BLASTPGP_DB});
+$opts->{db} = 'nr' unless(defined($opts->{db}));
+$ENV{BLASTPGP_DB} = "$dbroot/".$opts->{db} if (not defined $ENV{BLASTPGP_DB});
 $ENV{BLASTPGP_EXE} = '/gne/compbio/i686-linux-2.6/opt/blast/bin/blastpgp'  if (not defined $ENV{BLASTPGP_DB});
 
 foreach my $e('PSIPRED_PATH') {
@@ -111,8 +118,8 @@ sub main {
 
   #output
   sort_output($xml_file) if($opts{sort});
-  save_xml($xml_file) if($opts{xml});
-  output(@ts);
+  save_xml($xml_file) if($opts{save});
+  output(@ts) if($opts{pids});
 }
 
 #-----------------------------------------------------------------------------
@@ -176,9 +183,9 @@ sub output {
     my $ts = $summaries[$i];
     printf(STDERR "%8s (%4d/%4d %3d%%)...\n", 
 	   $ts->tname(), ($i+1), ($#summaries+1), ($i+1)/($#summaries+1)*100 ) if($opts->{verbose});
-    printf(STDOUT "%s\t%.2f\t%.2f\t%.2f\n",$ts->tname(),$ts->{$uf{raw}},$ts->{$uf{svm}},(100*$ts->{$uf{nident}}/$ts->{$uf{nalign}}));
+    my $pid = ((defined $ts->{$uf{nident}}  and defined $ts->{$uf{nalign}}) and ($ts->{$uf{nident}} > 0 and $ts->{$uf{nalign}} > 0) ? (100*$ts->{$uf{nident}}/$ts->{$uf{nalign}}) : -1);
+    printf(STDOUT $ts->tname(),"\t",$ts->{$uf{raw}},"\t",$ts->{$uf{svm}},"\t",$pid,"\n");
   }
-
 }
 
 #------------------------------------------------------------------------
@@ -186,7 +193,7 @@ sub parse_options {
 
   if($opts->{verbose}) {
     while( my ($k, $v) = each %$opts ) {
-      print "$k\t: $v\n";
+      print STDERR "$k\t: $v\n";
     }
   }
 
@@ -198,11 +205,10 @@ sub parse_options {
   return new Bio::Prospect::Options
     (
      $opts->{global_local} ? (global_local=>1,global=>0)   : (global_local=>0,global=>1),
-     $opts->{scop}         ? (scop=>1)                     : (scop=>0),
      $opts->{'3d'}         ? ('3d'=>1)                     : ('3d'=>0),
      $opts->{psipred}      ? (phd=>$opts->{phd})           : (),
      $opts->{psiblast}     ? (freqfile=>$opts->{freqfile}) : (),
-     $opts->{tfile}        ? (templates=>[split(/\n/,`cat $opts->{tfile}`)]) : (fssp=>1),
+     $opts->{tfile}        ? (templates=>[split(/\n/,`cat $opts->{tfile}`)]) : ($opts->{scop} ? (scop=>1,fssp=>0) : (scop=>0,fssp=>1)),
      seq=>1
     );
 }
@@ -213,7 +219,7 @@ sub ssp_phd {
   my ($fa_fn) = @_;
 
   $ENV{'DEUBG'}++;
-  run("runpsipred -j ".$opts->{iter}." -h ".$opts->{eval}." -a ".$opts->{cpus}." -s 1 -hb 1 -sb 1 -d ".$opts->{db}." $fa_fn >/dev/null 2>&1");
+  run("runpsipred -j ".$opts->{iter}." -h ".$opts->{eval}." -a ".$opts->{cpus}." -s 1 -hb 1 -sb 1 -d ".$opts->{db}." $fa_fn");
 
   # parse the results
   my $psipred_output = `cat $fa_fn.horiz`;
@@ -321,15 +327,14 @@ sub print_phd {
 sub read_chk {
 
   my $fa_fn=shift;
-  my $freq_fn="$fa_fn.freq";
-  run("read_chk $fa_fn > $freq_fn");
-  return $freq_fn;
+  run("read_chk $fa_fn.chk > $fa_fn.freq");
+  return "$fa_fn.freq";
 }
 
 #-----------------------------------------------------------------------------
 sub run {
   my $cmd = shift;
-  print "$cmd\n" if($opts{verbose});
+  print STDERR "$cmd\n" if($opts{verbose});
   system( $cmd );
   $? && die("FAILED: $cmd: $!\n");
 }
