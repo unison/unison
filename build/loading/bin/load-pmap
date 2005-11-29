@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.3 2005/11/26 05:29:21 rkh Exp $
+# $Id: load-pmap,v 1.4 2005/11/29 02:24:37 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -132,7 +132,7 @@ sub load_seq_alns ($@) {
 
 	  if ( $opts{verbose} ) {
 		printf(STDERR "  loaded aln %d: chr %s, ident: %d, %%ident: %d, score: %4.2f, exons: %d\n",
-			   $i,chr,$ident[0],$pct_ident[0],$aln->score,($#hsp_ids+1));
+			   $i,$chr,$ident[0],$pct_ident[0],$aln->score,($#hsp_ids+1));
 	  }
 	}
 
