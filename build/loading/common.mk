@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.17 2005/11/09 03:24:56 rkh Exp $
+## $Id: common.mk,v 1.18 2005/11/11 22:33:48 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -64,7 +64,7 @@ endif
 # 2) sort them in this rule into a file like 'set.ids'
 # (sorted locally to ensure consistent LANG sorting rules)
 %.ids: .%.ids
-	@sort -u -o $@ $<; wc -l $@
+	sort -u -o $@ $<; wc -l $@
 
 # sequences by from unison's psets
 vpath %.ids .:..
@@ -72,8 +72,8 @@ vpath %.ids .:..
 ids: runA.ids runB.ids runC.ids
 .runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
 	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
-.runA-human.ids .runB-human.ids .runC-human.ids .uniA-human.ids .uniB-human.ids .uniC-human.ids .uniD-human.ids: .%.ids:
-	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseq_set where pset_id=pset_id('Human')" >$@
+.runA-human.ids .runB-human.ids .runC-human.ids .uniA-human.ids .uniB-human.ids .uniC-human.ids .uniD-human.ids: .%-human.ids:
+	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('Human')" >$@
 .pset%.ids:
 	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@
 .porigin%.ids:
@@ -194,11 +194,3 @@ cleanest:: cleaner
 	/bin/rm -f *.load *.log
 	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
 	/bin/rm -fr          *-l[1-9][0-9] *-l[1-9][0-9][0-9] *-l[1-9][0-9][0-9][0-9]
-
-
-
-## Are these used anymore? Commented to see what breaks.
-#PSET_ID_A:=60
-#PSET_ID_B:=61
-#PSET_ID_C:=62
-

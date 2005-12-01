@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.4 2005/11/29 02:24:37 rkh Exp $
+# $Id: load-pmap,v 1.5 2005/11/29 04:15:09 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -93,7 +93,7 @@ sub load_seq_alns ($@) {
   my ($u,@alns) = @_;
   return unless @alns;
   my ($pseq_id) = $alns[0]->seq_id =~ m/Unison:(\d+)/; # error-checked in calling loop
-  my $aln_sth = $u->prepare_cached( 'select ins_pmap_aln( ?, ?, ?, ?, ?, ?, ?, ?, ? )' );
+  my $aln_sth = $u->prepare_cached( 'select ins_pmap_aln( NULL, ?, ?, ?, ?, ?, ?, ?, ? )' );
 
   printf(STDERR "# Unison:%d (<=%d alignments):\n", $pseq_id, $#alns+1);
 
@@ -124,8 +124,7 @@ sub load_seq_alns ($@) {
 	  }
 
 	  my ($chr,@hsp_ids) = load_aln_hsps($u,$pseq_id,$aln);
-	  my $hsp_str = join (':', sort {$a<=>$b} @hsp_ids); # DB SHOULD BE DOING THIS!
-	  $aln_sth->execute( $hsp_str, $pseq_id, $ident[0],
+	  $aln_sth->execute( $pseq_id, $ident[0],
 						 $qgap_cnt[0], $qgap_bases[0],
 						 $tgap_cnt[0], $tgap_bases[0],
 						 $params_id, $opts{genasm_id} );

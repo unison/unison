@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.8 2005/08/20 00:00:26 rkh Exp $
+# $Id: Makefile,v 1.9 2005/10/09 20:13:57 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -68,7 +68,7 @@ stage.log:
 .PHONY: dump
 dump: unison-${DATE}-schema.psql.gz unison-${DATE}-data.psql.gz
 unison-${DATE}-data.psql.gz:
-	(pg_dump csb $< | ../../sbin/publicize -dcsb-dev | gzip >$@.tmp) 2>$@.err
+	(pg_dump csb-stage $< | ../../sbin/publicize -dcsb-dev | gzip >$@.tmp) 2>$@.err
 	/bin/mv $@.err $@.log
 	/bin/mv $@.tmp $@
 unison-${DATE}-schema.psql.gz:
@@ -100,24 +100,6 @@ upload-%: % %.md5 %.asc
 	(echo cd incoming; echo prompt; echo mput $^) | /usr/bin/ftp -A ftp://ftp:reece-at-sf.net@upload.sf.net
 
 
-
-## ## WARNING: the branch-% and release-% targets are being tested
-## branch-%:
-## 	@BRTAG=`echo "br_$*" | sed -e 's/\./-/g; s/-[0-9][0-9]*$$//;'`; \
-## 	set -x; \
-## 	cvs up -A; \
-## 	cvs tag "$$BRTAG-root"; \
-## 	cvs rtag -r "$$BRTAG-root" "$$BRTAG"; \
-## 	cvs up -r "$$BRTAG"
-## 
-## release-%:
-## 	@BRTAG=`echo "br_$*" | sed -e 's/\./-/g; s/-[0-9][0-9]*$$//;'`; \
-## 	RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
-## 	set -x; \
-## 	cvs up -r "$$BRTAG"; \
-## 	cvs tag "$$RTAG"
-
-
 .PHONY: clean cleaner cleanest
 clean:
 	/bin/rm -f *~ *.bak
@@ -125,5 +107,3 @@ cleaner: clean
 	/bin/rm -f *.asc *.md5
 cleanest: cleaner
 	/bin/rm -f *.tgz
-
-

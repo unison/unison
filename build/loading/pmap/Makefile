@@ -19,8 +19,8 @@ CMDLINE=$(shell psql -h csb -d csb-dev -Atc "select commandline from params wher
 	&& /bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
 
 %.load: %.psl
-	(time -p load-pmap -p ${PARAMS} -v --genasm_id=2 $< >$@.tmp) 2>$@.err \
-	&& /bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
+	(time -p ~/unison/sbin/load-pmap -p ${PARAMS} -v --genasm_id=2 $<) >$@.err 2>&1
+	/bin/mv $@.err $@
 
 # eg$ make todo-psl
 %-psl: % FORCE
