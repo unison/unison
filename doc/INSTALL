@@ -4,12 +4,12 @@ These notes describe how I (Reece) typically prepare to create or restore
 a Unison database.  It's not thorough and you're expected to know
 something about installing postgresql and databases.
 
-
-* Become the db superuser and set a few variables
-$ sudo -H -s -u postgres
-$ unset PGHOST PGPORT
+* Assumptions
 $ export PGUSER=postgres
 $ export PGDATA=/srv/postgresql
+$ unset PGHOST PGPORT
+$ sudo -H -s -u postgres
+(all subsequent command lines assume that you're the postgres user)
 
 * Starting a database cluster for the first time
 $ initdb -Upostgres -W -A password --locale=C -D $PGDATA
@@ -17,7 +17,9 @@ $ pg_ctl -D $PGDATA -l $PGDATA/postgresql.log start
 
 * configure the cluster
 $ psql -d template1 -c "alter user $PGUSER password 'thepass'";
-$ GENENTECH: cp conf/{postgresql.conf,pg_hba.conf} $PGDATA/
+
+* Genentech only:
+$ cp conf/{postgresql.conf,pg_hba.conf} $PGDATA/
 $ pg_ctl -l $PGDATA/log -D $PGDATA restart
   [NOTE: some distributions have other startup wrappers]
 
@@ -25,18 +27,22 @@ $ pg_ctl -l $PGDATA/log -D $PGDATA restart
 $ cd unison/src
 $ make unison.so
 $ make install
+NOTE: installs into $PGDATA, and this requires fiddling with lib_dir in postgresql.conf.
 
 * create users
-NOTE: the user 'postgres' must exist and will if you initdb as above (or
-have a typical Linux distribution)
+NOTE1: The PUBLIC user isn't required by Unison itself.
+NOTE2: The users "unison" and "loader" ARE required, but the sysids are immaterial.
 $ createuser -i2 -A -D    PUBLIC
 $ createuser -i3 -A -D -P unison
 $ createuser -i4 -A -D -P loader
-$ psql -d template1 -c "alter user unison password 'password'";
-$ psql -d template1 -c "alter user loader password 'password'";
 
-$ GENENTECH: sbin/passwd2sql </etc/passwd -g1279,100,227,199,136,140,201,202,984,81 \
+* Genentech users:
+$ sbin/passwd2sql </etc/passwd -g1279,100,227,199,136,140,201,202,984,81 \
   | psql -Upostgres -hcsb -dtemplate1 -qaf-
+$ or perhaps: -g43,52,55,57,63,69,71,82,83,85,91,100,136,138,139,140,141,154,173,176,199,201,202,227,228,234,239,280,285,286,289,440,463,984,1279
+
+
+
 
 * stopping/starting/restarting the database
 $ pg_ctl -l $PGDATA/postgresql.log stop
@@ -65,3 +71,5 @@ $ export PGDATABASE=csb-dev
 $ psql -c "alter database $PGDATABASE set search_path = '\$user',unison,gong,scop,tax,public";
 Note: You should connect to the same database that you're modifying, as above.
 
+* useful commands
+$ psql -d template1 -c "alter user <user> password '<pass>'";

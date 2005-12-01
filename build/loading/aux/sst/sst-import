@@ -13,16 +13,17 @@ my %opts =
 
 my @table_defs =
   (
-   [ 'unqpro', 		'unqproform', 	[qw(unqid proid)] 					],
-   [ 'prodna', 		'prodna',	 	[qw(proid dnaid)] 					],
-   [ 'fam',    		'fam', 		 	[qw(famid familyname shortname)] 	],
-   [ 'unqfamily',	'unqfamily',	[qw(unqid famid)] 					],
+   # table			columns
+   [ 'unqproform', 	qw(unqid proid) 					],
+   [ 'prodna',	 	qw(proid dnaid) 					],
+   [ 'fam', 	 	qw(famid familyname shortname)	 	],
+   [ 'unqfamily',	qw(unqid famid) 					],
   );
 
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '$Id: sst-import,v 1.6 2005/05/11 21:53:41 rkh Exp $ ', "\n");
+print(STDERR '$Id: sst-import,v 1.7 2005/06/15 03:49:03 rkh Exp $ ', "\n");
 
 #(defined $ENV{SSTPASS})
 #  || die("$0: SSTPASS not defined\n");
@@ -35,17 +36,16 @@ my $dbh = DBI->connect($dsn) #, 'rkh', $ENV{SSTPASS})
 
 
 for(my $ti=0; $ti<=$#table_defs; $ti++) {
-  my ($utable,$otable) = @{$table_defs[$ti]};
-  my (@cols) = @{$table_defs[$ti]->[2]};
+  my ($table,@cols) = @{$table_defs[$ti]};
   my $cols = join(',',@cols);
-  my $msg = "preparing table sst.$utable";
-  my $sql = "select $cols from $otable";
+  my $msg = "preparing table sst.$table";
+  my $sql = "select $cols from $table";
   my $n = 0;
 
-  print(STDERR "# $utable: $sql\n");
+  print(STDERR "# $table: $sql\n");
 
-  print("TRUNCATE sst.$utable;\n");
-  print("COPY sst.$utable ($cols) FROM stdin;\n");
+  print("TRUNCATE sst.$table;\n");
+  print("COPY sst.$table ($cols) FROM stdin;\n");
 
   $sth = $dbh->prepare($sql);
   $sth->execute()

@@ -2,9 +2,9 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=10
+N:=5
 QNAME=${SUBDIR}p${PAHMM_PARAMS_ID}
-RUNSET=runC
+RUNSET=runB
 NPER:=250
 
 default:
@@ -12,8 +12,8 @@ default:
 
 run:
 	make cleanest
-	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N$N
-	make ${RUNSET}-todo-N$N-qload
+	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
+	make ${RUNSET}-todo-N${N}-qload
 
 %.load: %.ids
 	(time -p run-pahmm -N${NPER} -p${PAHMM_PARAMS_ID} <$<) >$@.err 2>&1;

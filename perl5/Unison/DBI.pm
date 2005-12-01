@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.20 2005/07/18 21:54:38 rkh Exp $>
+S<$Id: DBI.pm,v 1.21 2005/09/13 17:05:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -48,7 +48,7 @@ our %opts =
    attr => {
 			PrintError => 0,
 			RaiseError => 0,
-			AutoCommit => 1,
+			AutoCommit => 0,
 			# XXX: does the following work?
 			# HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
 		   },
