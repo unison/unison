@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.31 2005/07/25 22:15:33 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.32 2005/10/09 20:08:52 rkh Exp $ ');
 
 
 my @cols;
@@ -264,7 +264,7 @@ print $p->render
    $p->start_form(-action=>'p2alignment.pl'),
    $p->hidden('pseq_id',$v->{pseq_id}),
    $p->hidden('params_id',$v->{params_id}),
-   $p->group(['Prospect2 Threadings',$ctl],
+   $p->group(['Prospect Threadings',$ctl],
 			 Unison::WWW::Table::render(\@htmlcols,\@ar,{highlight_column=>$hc})),
    $p->submit(-value=>'align checked'),
    $p->end_form(), "\n",
