@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.30 2005/11/21 18:00:26 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.31 2005/11/21 20:24:18 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -238,7 +238,7 @@ SPAN.button:hover {
 /* tooltip */
 SPAN.tooltip {
  border: 1px solid #cc9900;
- background-color: #ffcc33;
+ background-color: yellow;
  color: black;
  font-weight: bold;
  font-size: smaller;
@@ -253,7 +253,7 @@ SPAN.tooltip:hover {
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
  border: 2px solid #cc9900;
- background-color: #ffcc33;
+ background-color: yellow;
 }
 div.domTTUnison .caption {
   font-family: serif;
@@ -273,6 +273,25 @@ div.domTTUnison .contents {
  _padding-bottom: 0;
 }
 
+
+pre.code {
+ border: black thin dashed;
+ background: lightgrey;
+ margin: 20px;
+ padding: 5px;
+}
+
+
+dl {
+ margin-right: 50px;
+}
+dt {
+ font-style: italic;
+}
+dd {
+ margin-right: 50px;
+ font-size: smaller;
+}
 
 /* miscellany */
 SPAN.error {
@@ -302,3 +321,15 @@ div.sql {
 # margin: 20px;
 # background: lightgrey;
 #}
+
+
+
+/* background: #004b8c; /* Genentech Blue (294) */
+/* background: #f5cc06; /* Genentech Yellow (123) */
+/* background: #ff9900; /* Genentech Orange (144) */
+/* background: #e1293e; /* Genentech Red (1795) */
+/* background: #913745; /* Genentech Maroon (202) */
+/* background: #8cd5f9; /* Genentech Light Blue (297) */
+/* background: #496a08; /* Genentech Green (371) */
+/* background: #b7d98b; /* Genentech Light Green (367) */
+/* background: #150067; /* Genentech Blue (old) */
