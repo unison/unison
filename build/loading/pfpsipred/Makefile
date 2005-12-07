@@ -16,8 +16,8 @@ run:
 	make ${RUNSET}-todo-N${N}-qload
 
 %.load: %.ids
-	(PATH=.:${PATH} time -p run-pfssp_psipred -p ${PFSSP_PSIPRED_PARAMS_ID} < $<) >$@.err 2>&1
+	(PATH=.:${PATH} time -p run-pfpsipred -p ${PFPSIPRED_PARAMS_ID} < $<) >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 .done.ids:
-	${PSQL} -UPUBLIC -Atc 'select pseq_id from run_history where params_id=${PFSSP_PSIPRED_PARAMS_ID}' >$@
+	${PSQL} -UPUBLIC -Atc 'select pseq_id from run_history where params_id=${PFPSIPRED_PARAMS_ID}' >$@

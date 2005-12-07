@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.32 2005/10/09 20:08:52 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.33 2005/12/05 19:57:41 mukhyala Exp $ ');
 
 
 my @cols;
@@ -138,9 +138,10 @@ foreach my $row ( @{$feats} ) {
   # build structure link
   my $strxlink = $row->{acc};
   if ( -f "$pdbDir/pdb".substr($row->{acc},0,4).".ent" ) {
-    $strxlink = "<a href=\"p2cm.pl?pseq_id=$v->{pseq_id};viewer=$v->{viewer};params_id="
-	  . "$v->{params_id};templates=$row->{acc}\" tooltip=\""
-	  . "show threading alignment with $v->{viewer}\">$row->{acc}</a>";
+	my $url = "p2cm.pl?pseq_id=$v->{pseq_id};viewer=$v->{viewer};params_id=$v->{params_id};templates=$row->{acc}";
+    $strxlink = sprintf('<a href="%s" tooltip="%s">%s</a>',
+						$url, "show threading alignment with $v->{viewer}",
+						$row->{acc});
   }
 
   # build scop description

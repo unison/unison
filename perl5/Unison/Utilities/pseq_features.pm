@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.17 2005/11/07 02:13:36 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.18 2005/11/07 21:05:46 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -83,12 +83,12 @@ sub pseq_features_panel($%) {
   }
 
   if(!defined($opts{features})) {
-    $opts{features}{$_}++ foreach qw(ssp_psipred tmdetect signalp sigcleave antigenic bigpi regexp pssm hmm prospect);
+    $opts{features}{$_}++ foreach qw(psipred tmdetect signalp sigcleave antigenic bigpi regexp pssm hmm prospect);
   }
 
   if(defined($opts{track_length})) {
     $opts{features}{$_} = 0 foreach (keys %{$opts{features}});
-    $opts{features}{ssp_psipred} = 1;
+    $opts{features}{psipred} = 1;
     $tick = 2;
   } else {
     $opts{track_length} = int($len / 100 + 1) * 100;
@@ -115,7 +115,7 @@ sub pseq_features_panel($%) {
 				   );
 
   add_pftemplate   ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
-  add_pfssp_psipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{ssp_psipred});
+  add_pfpsipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
   add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
@@ -135,7 +135,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.17 2005/11/07 02:13:36 mukhyala Exp $',
+			  '$Id: pseq_features.pm,v 1.18 2005/11/07 21:05:46 mukhyala Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -150,12 +150,12 @@ sub pseq_features_panel($%) {
 
 
 #-------------------------------------------------------------------------------
-# NAME: add_pfssp_psipred
-# PURPOSE: add pfssp_psipred features to a panel
+# NAME: add_pfpsipred
+# PURPOSE: add pfpsipred features to a panel
 # ARGUMENTS: Unison object, Bio::Graphics::Feature object, pseq_id
 # RETURNS: count of features added
 #-------------------------------------------------------------------------------
-sub add_pfssp_psipred {
+sub add_pfpsipred {
   my ($u, $panel, $q, $len, $track_length) = @_;
   my ($nadded) = (0);
   my ($sql,$featref);
@@ -172,8 +172,8 @@ sub add_pfssp_psipred {
 
   my $confidence_string = $$featref[0]->[0];
 
-  # add pfssp_psipred feature
-  $sql = "select start,stop,type from pfssp_psipred where pseq_id=$q";
+  # add pfpsipred feature
+  $sql = "select start,stop,type from pfpsipred where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   $featref = $u->selectall_arrayref($sql); 
 
@@ -265,6 +265,7 @@ sub add_pfsignalp {
 								-height => 4,
 							   );
   # add pfsignalpnn feature
+  ## REVIEW: 2005-12-06 Reece: pftype join unused
   $sql = "select start,stop,pftype.name,d_score
            from pfsignalpnn natural join pftype where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
@@ -280,6 +281,7 @@ sub add_pfsignalp {
   }
 
   # add pfsignalphmm feature
+  ## REVIEW: 2005-12-06 Reece: pftype join unused
   $sql = "select start,stop,pftype.name,sig_peptide_prob
            from pfsignalphmm natural join pftype where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
@@ -326,15 +328,14 @@ sub add_pftmdetect {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,stop,pftype.name,prob 
-           from pftmdetect natural join pftype where pseq_id=$q";
+  my $sql = "select start,stop,type,prob from pftmdetect where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref($sql);
   foreach my $r (@$featref) {
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
-									 -name => eval {my($x)=$r->[2]=~m%/(\S+)%;$x;},
+									 -name => $r->[2],
 									 -score => $r->[3]
 								   ) );
 	$nadded++;

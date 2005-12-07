@@ -18,7 +18,7 @@ my $margin = 5000;						# margin around gene for geode
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.18 2005/11/21 07:20:06 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.19 2005/11/21 19:37:05 mukhyala Exp $ ');
 
 
 my @ps = $u->get_params_info_by_pftype('pmap');
@@ -73,6 +73,7 @@ try {
 				   '<p>',
 				   $p->group("Loci",
 							 Unison::WWW::Table::render(\@cols,\@data)),
+
 				   $p->sql($sql)
 				  );
 } catch Unison::Exception with {
@@ -102,14 +103,3 @@ sub genome_links {
 
   return join(' ', @links);
 }
-
-
-sub geode_url {
-  my ($chr,$gstart,$gstop) = @_;
-  return "http://research/geode/browseGenome.do?queryType=chromosome&start=$gstart&end=$gstop&chromosome=$chr";
-  }
-
-sub unison_url {
-  my ($genasm_id,$chr,$gstart,$gstop) = @_;
-  ### WARNING: HARDWIRED genasm_id
-  }

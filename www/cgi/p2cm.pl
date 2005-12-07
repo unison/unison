@@ -10,17 +10,17 @@ use Error qw(:try);
 
 # uses below here might come from ../perl5 if available
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::EmbPage;
 use Unison::Jmol;
 
-use Unison::Utilities::pfssp_psipred;
+use Unison::Utilities::pfpsipred;
 
 use Bio::Prospect::Options;
 use Bio::Prospect::LocalClient;
 use Bio::Prospect::Exceptions;
 use Bio::Prospect::Align;
 
-my $p = new Unison::WWW::Page;
+my $p = new Unison::WWW::EmbPage;
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id params_id templates viewer));
@@ -41,7 +41,7 @@ $po->{templates} = \@templates;
 $po->{"3d"} = 1;
 
 if ($po->{'phd'}) {
-  my $ssp = Unison::Utilities::pfssp_psipred::ssp_phd($po->{'phd'},$v->{pseq_id},$u);
+  my $ssp = Unison::Utilities::pfpsipred::ssp_phd($po->{'phd'},$v->{pseq_id},$u);
   if(not defined($ssp)) {
     $p->die("no psipred with params_id=$v->{params_id}; \n");
   }
@@ -76,16 +76,16 @@ try {
 
     my $pa = new Bio::Prospect::Align( -debug=>0,-threads => \@threads);
 
-      my $jmol = new Unison::Jmol(600,300);
+      my $jmol = new Unison::Jmol(600,400);
       $p->add_html($jmol->script_header());
       print $p->render("Threading model for Unison:$v->{pseq_id}",
-		       $p->best_annotation($v->{pseq_id}),
-		       $jmol->initialize_inline($thr->output_jmol_script),
-		       "<center>Threading alignment : Identities are colored <font color=blue>blue</font>, similarities are colored <font color=cyan>cyan</font> and mismatches are colored <font color=red>red</font>. Insertions are shown in <font color=green>>number of insertions<</font>. Deletions are colored <font color=grey>grey</font>. All Cysteines are colored <font color=yellow>yellow</font> and conserved cysteines are spacefilled.</center>",
-		       '<p>',
-		       $p->group('Prospect2 Threading Alignment',
-		       '<b>', $pa->get_alignment(-format=>'html'), '</b>')
-		      );
+					   $p->best_annotation($v->{pseq_id}),
+					   '<p>',
+					   $jmol->initialize_inline($thr->output_jmol_script),
+					   '<p>',
+					   $p->group('Prospect Threading Alignment',
+								 '<b>', $pa->get_alignment(-format=>'html'), '</b>')
+					  );
 
     }
 }

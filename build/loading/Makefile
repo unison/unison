@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.13 2005/11/09 03:24:56 rkh Exp $
+## $Id: Makefile,v 1.14 2005/12/01 06:05:02 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
@@ -68,7 +68,7 @@ pmprospect_scop.log: aux.log
 # 3. COMPUTE
 COMPUTE_DIRS:=
 COMPUTE_DIRS+=pahmm paprospect2 papseq #papssm
-COMPUTE_DIRS+=pfbigpi pfregexp pfsignalp pfssp_psipred pftmdetect pftmhmm
+COMPUTE_DIRS+=pfbigpi pfregexp pfsignalp pfpsipred pftmdetect pftmhmm
 COMPUTE_DIRS+=psprotcomp
 COMPUTE_DIRS+=blat plocus pmhmm
 CLEANUP_DIRS+=${COMPUTE_DIRS}
