@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::paprospect -- Unison paprospect table utilities
-S<$Id: paprospect.pm,v 1.9 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: paprospect.pm,v 1.10 2005/10/09 09:39:32 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -87,6 +87,11 @@ sub insert_thread {
   my @v = ( $pseq_id,$params_id, $pmodel_id, map { $t->{$uf{$_}} } @ufs );
 
   throw Unison::BadUsage( "keys (" . $#k+1 . ") != values (" . $#v+1 . ")\n" ) if $#k != $#v;
+  #this needs to be reconsidered : why `NA` values in threading output
+  if (grep {/NA/} map {$_ if defined $_} @v) {
+    warn "found value = NA, not inserting thread\n";
+    return;
+  }
 
   my $sql = 'insert into paprospect (' .  join(',',@k) .  ') values (' .
     join(',',map { '?' } @k) .  ')';
