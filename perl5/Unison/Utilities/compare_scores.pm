@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.7 2005/08/08 21:43:38 rkh Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.8 2005/10/09 09:39:32 rkh Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -348,7 +348,7 @@ sub get_scop_pdb($) {
 
   my ($u) = @_;
 
-  my @pm_scop = @{ $u->selectall_arrayref('select pmodel_id,sp,pdb,descr from v_scop_pmodel where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
+  my @pm_scop = @{ $u->selectall_arrayref('select pmodel_id,sp,pdb,descr from scop_pmodel_v where pmodel_id in  (' . join(',',keys %$scores) . ') order by pmodel_id') };
 
   map {$$pmodel_scop{$_->[0]}{'sunid'} = $_->[1]} @pm_scop;
   map {$$pmodel_scop{$_->[0]}{'name'}  = $_->[2]} @pm_scop;

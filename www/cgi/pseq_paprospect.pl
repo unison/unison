@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.33 2005/12/05 19:57:41 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.34 2005/12/07 07:27:57 rkh Exp $ ');
 
 
 my @cols;
@@ -92,7 +92,7 @@ my $sc = $sort_col{$v->{sort}};
 # construct query
 $sql->columns('*')
   ->distinct($sc,($sc eq 'acc'?'':'acc,').'clid,cfid,sfid,dmid')
-  ->table('v_paprospect_scop')
+  ->table('paprospect_scop_v')
   ->where("pseq_id=$v->{pseq_id} AND params_id=$v->{params_id}")
   ->order($ob,($sc eq 'acc'?'':'acc,').'clid,cfid,sfid,dmid');
 if (defined $v->{pmodelset_id}

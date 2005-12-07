@@ -99,7 +99,7 @@ expressions.
 ** infer_tax_id
 select update_tax_ids();
 
-** mv_best_annotation
+** best_annotation_mv
 
 ** update sets
 select update_psets_intrinsic();
@@ -157,7 +157,7 @@ typeII
 
 ** generate schema docs
 
-** mv_best_annotation
+** best_annotation_mv
 
 ** update stats
 

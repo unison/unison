@@ -14,7 +14,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.15 2005/11/05 00:21:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.16 2005/11/20 23:22:42 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Patents not available.', <<EOT);
@@ -69,7 +69,7 @@ SELECT
 	substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([\\\\w\\\\d\\\\s\\\\.]+)') as patent_authority,
 	AO.descr
 FROM (SELECT t_pseq_id AS pseq_id,len,pct_ident::smallint,pct_coverage::smallint
-	  FROM v_papseq
+	  FROM papseq_v
 	  WHERE q_pseq_id=$v->{pseq_id}
 		AND pct_ident>=$v->{pct_ident}
 		AND pct_coverage>=$v->{pct_coverage}

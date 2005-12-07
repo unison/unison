@@ -2,7 +2,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.11 2005/10/11 20:51:51 mukhyala Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.12 2005/12/07 07:27:57 rkh Exp $;
 
 =head1 SYNOPSIS
 
@@ -76,7 +76,7 @@ sub find_structures {
 
      my $self = shift;
 
-     my $structures_sql = "select a.pdbc, a.descr, p.len from v_alias_pdbcs a join pseq p on a.pseq_id=p.pseq_id where a.pseq_id=$self->{'pseq_id'}";
+     my $structures_sql = "select a.pdbc, a.descr, p.len from alias_pdbcs_v a join pseq p on a.pseq_id=p.pseq_id where a.pseq_id=$self->{'pseq_id'}";
      my $structures_ar = $self->{'unison'}->selectall_arrayref($structures_sql);
 
      return undef unless defined($structures_ar);
@@ -86,7 +86,7 @@ sub find_structures {
 
 sub find_templates {
   my $self = shift;
-  my $st_sql = "select distinct on (pct_coverage,t_pseq_id,substr(template,1,4)) B.q_pseq_id,B.template, B.q_start,B.q_stop,B.t_start,B.t_stop,B.gaps,B.eval,B.score,B.pct_ident,B.len,B.pct_coverage,method, B.descr from v_pseq_template B where B.q_pseq_id = $self->{'pseq_id'} order by pct_coverage desc, t_pseq_id, substr(template,1,4) limit 20";
+  my $st_sql = "select distinct on (pct_coverage,t_pseq_id,substr(template,1,4)) B.q_pseq_id,B.template, B.q_start,B.q_stop,B.t_start,B.t_stop,B.gaps,B.eval,B.score,B.pct_ident,B.len,B.pct_coverage,method, B.descr from pseq_template_v B where B.q_pseq_id = $self->{'pseq_id'} order by pct_coverage desc, t_pseq_id, substr(template,1,4) limit 20";
   my $templates_ar = $self->{'unison'}->selectall_arrayref($st_sql);
   return undef unless defined $templates_ar;
   $self->initialize_templates($templates_ar);
@@ -122,7 +122,7 @@ sub initialize_templates {
 
 sub find_snps {
   my $self = shift;
-  my $snp_sql = "select s.original_aa,s.variant_aa,s.start_pos,s.descr,s.var_id from v_pseq_sp_var s where s.pseq_id=".$self->{'pseq_id'};
+  my $snp_sql = "select s.original_aa,s.variant_aa,s.start_pos,s.descr,s.var_id from pseq_sp_var_v s where s.pseq_id=".$self->{'pseq_id'};
   my $snp_data = $self->{'unison'}->selectall_arrayref($snp_sql);
   $self->initialize_snps($snp_data);
 }

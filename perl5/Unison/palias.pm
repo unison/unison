@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.19 2005/05/13 19:14:23 rkh Exp $>
+S<$Id: palias.pm,v 1.20 2005/06/18 00:22:01 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -128,9 +128,9 @@ sub get_pseq_id_from_alias {
 	# in which case the view returns rows with empty pseq_ids.  This
 	# is the origin of the 'and pseq_id is not null' condition.
 	if ($type eq 'PRO' or $type eq 'DNA' or $type eq 'UNQ') {
-	  $sql = "select distinct pseq_id from v_gg_unq_pro_dna_pseq where ${type}ID=$id and pseq_id is not null";
+	  $sql = "select distinct pseq_id from gg_unq_pro_dna_pseq_v where ${type}ID=$id and pseq_id is not null";
 	} elsif ($type eq 'FAM') {
-	  $sql = "select distinct pseq_id from v_gg_famid_pseq_id where ${type}ID=$id and pseq_id is not null";
+	  $sql = "select distinct pseq_id from gg_famid_pseq_id_v where ${type}ID=$id and pseq_id is not null";
 	} else {
 	  throw Unison::Exception('Unmatched SST entry type',
 							  "I don't know what a $type entry is");

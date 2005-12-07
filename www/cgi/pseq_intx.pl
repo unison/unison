@@ -14,10 +14,10 @@ use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_intx.pl,v 1.4 2005/05/13 15:57:55 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_intx.pl,v 1.5 2005/07/18 20:56:24 rkh Exp $ ');
 
 my $sql = qq/select pseq_id_b, sprot_b, best_annotation(pseq_id_b), pmid, interaction_detection_method
-      from v_mint where pseq_id_a=$v->{pseq_id}/;
+      from mint_v where pseq_id_a=$v->{pseq_id}/;
 
 my $ar = $u->selectall_arrayref($sql);
 my @f = ( 'Sequence', 'Swiss-Prot', 'Best annotation', 'PubMed', 'Interaction detection method', 'Link' );

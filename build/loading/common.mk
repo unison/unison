@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.18 2005/11/11 22:33:48 rkh Exp $
+## $Id: common.mk,v 1.19 2005/12/01 06:05:02 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -103,7 +103,7 @@ ids: runA.ids runB.ids runC.ids
 
 # sequence lists by other info
 .fam%.ids:
-	psql -Atc 'select distinct pseq_id from sst.v_fam_pseq where famid=$*' >$@
+	psql -Atc 'select distinct pseq_id from unison.gg_famid_pseq_id_v where famid=$*' >$@
 
 
 # -Nn rules: split .ids files into N sets, w/ approximately the same number

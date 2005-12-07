@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.40 2005/11/21 07:20:06 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.41 2005/11/21 18:00:26 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -64,7 +64,7 @@ sub protcomp_info ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
-  my $sql = qq/select loc,method from v_psprotcomp_reliable where pseq_id=$v->{pseq_id}/;
+  my $sql = qq/select loc,method from psprotcomp_reliable_v where pseq_id=$v->{pseq_id}/;
   my $hr = $u->selectrow_hashref($sql);
   return 'no prediction' unless defined $hr;
   return "$hr->{loc} by $hr->{method}";
@@ -93,7 +93,7 @@ sub aliases_group ($) {
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
-  my $sql = qq/select origin,alias,descr from v_current_annotations
+  my $sql = qq/select origin,alias,descr from current_annotations_v
 			 where pseq_id=$v->{pseq_id} AND ann_pref<=10000/;
   my $ar = $u->selectall_arrayref($sql);
   do { $_->[1] = alias_link($_->[1],$_->[0]) } for @$ar;
@@ -128,7 +128,7 @@ sub homologs_group ($) {
   if (not @tax_ids) {
 	# There are no tax_ids associated with this sequence.
 	my $sql_h = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
-  	 from v_homologene_pairs where q_pseq_id=$v->{pseq_id} order by 1,3";
+  	 from homologene_pairs_v where q_pseq_id=$v->{pseq_id} order by 1,3";
 	my $hr = $u->selectall_arrayref($sql_h);
 	do { $_->[0] = homologene_link($_->[0]) } for @$hr;
 	do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$hr;
@@ -160,14 +160,14 @@ sub homologs_group ($) {
 
   # paralogs:
   my $sql_p = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
-  	 from v_homologene_paralogs where q_pseq_id=$v->{pseq_id} order by 1,3";
+  	 from homologene_paralogs_v where q_pseq_id=$v->{pseq_id} order by 1,3";
   my $pr = $u->selectall_arrayref($sql_p);
   do { $_->[0] = homologene_link($_->[0]) } for @$pr;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$pr;
 
   # orthologs:
   my $sql_o = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
-  	from v_homologene_orthologs where q_pseq_id=$v->{pseq_id} order by 1,3";
+  	from homologene_orthologs_v where q_pseq_id=$v->{pseq_id} order by 1,3";
   my $or = $u->selectall_arrayref("$sql_o");
   do { $_->[0] = homologene_link($_->[0]) } for @$or;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$or;
@@ -205,7 +205,7 @@ sub features_group ($) {
   my $imagemap = '';
   my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png');
   my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
-  $opts{features}{$_}++ foreach qw(ssp_psipred signalp hmm );
+  $opts{features}{$_}++ foreach qw(psipred tmhmm signalp hmm );
 
   my $panel = Unison::Utilities::pseq_features::pseq_features_panel($u,%opts);
   

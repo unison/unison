@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.18 2005/11/07 21:05:46 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.19 2005/12/07 07:27:57 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -30,6 +30,9 @@ use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::Utilities::misc qw( warn_deprecated unison_logo );
 use Unison::Utilities::pseq_structure;
+
+my @default_panel_features = qw( psipred tmdetect tmhmm signalp sigcleave
+  antigenic bigpi regexp pssm hmm prospect );
 
 our %opts = 
   (
@@ -83,7 +86,7 @@ sub pseq_features_panel($%) {
   }
 
   if(!defined($opts{features})) {
-    $opts{features}{$_}++ foreach qw(psipred tmdetect signalp sigcleave antigenic bigpi regexp pssm hmm prospect);
+    $opts{features}{$_}++ foreach @default_panel_features;
   }
 
   if(defined($opts{track_length})) {
@@ -115,8 +118,9 @@ sub pseq_features_panel($%) {
 				   );
 
   add_pftemplate   ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
-  add_pfpsipred( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
+  add_pfpsipred    ( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
+  add_pftmhmm      ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmhmm});
   add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
   add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
   add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
@@ -125,8 +129,10 @@ sub pseq_features_panel($%) {
   add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
   add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{hmm});
   add_paprospect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect});
+
   add_pfsnp        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{snp});
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
+
 
   $panel->add_track( ) for 1..3;			# spacing
 
@@ -135,7 +141,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.18 2005/11/07 21:05:46 mukhyala Exp $',
+			  '$Id: pseq_features.pm,v 1.19 2005/12/07 07:27:57 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -344,6 +350,47 @@ sub add_pftmdetect {
 }
 
 
+######################################################################
+## add_pftmhmm
+
+=pod
+
+=item B<< add_pftmhmm( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pftmhmm features to a panel and return the number of features added.
+
+=cut
+
+sub add_pftmhmm {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 0,
+								 -max_score => 1,
+								 -sort_order => 'high_score',
+								 -bgcolor => 'blue',
+								 -key => 'tmhmm',
+								 -bump => +1,
+								 -label => 1,
+								 -fgcolor => 'black',
+								 -fontcolor => 'black',
+								 -font2color => 'red',
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $sql = "select start,stop,type from pftmhmm where pseq_id=$q";
+  my $featref = $u->selectall_arrayref($sql);
+  foreach my $r (@$featref) {
+	$track->add_feature
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
+									 -end => $r->[1],
+									 -name => $r->[2],
+									 -score => $r->[3]
+								   ) );
+	$nadded++;
+  }
+  return $nadded;
+}
 
 ######################################################################
 ## add_paprospect
@@ -364,7 +411,7 @@ sub add_paprospect {
   $params_id = 1 unless defined $params_id;
   $params_name = $u->get_params_name_by_params_id($params_id);
   my $sth = $u->prepare(<<EOT);
-SELECT * FROM v_paprospect_scop WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
+SELECT * FROM paprospect_scop_v WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
 EOT
   $sth->execute();
   my @raw_data;
@@ -433,7 +480,7 @@ EOT
 aref := arrayref (row) of hashrefs (columns)
 
 Coalesce scop information for duplicate pseq_id and acc hits. handles
-the duplicate rows generated from the v_paprospect_scop view
+the duplicate rows generated from the paprospect_scop_v view
 
 arrayref (new reference) with the scop information coalesced
 
@@ -498,7 +545,7 @@ sub add_pahmm {
   my ($params_id,$params_name) = @{$params_info[0]};
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
-FROM v_pahmm
+FROM pahmm_v
 WHERE pseq_id=? AND params_id=? AND eval<=? ORDER BY start
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
@@ -622,7 +669,7 @@ sub add_pfantigenic {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,stop,score,subseq from v_pfantigenic where pseq_id=$q limit 10";
+  my $sql = "select start,stop,score,subseq from pfantigenic_v where pseq_id=$q limit 10";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
@@ -707,7 +754,7 @@ sub add_pfbigpi {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,quality from v_bigpi where pseq_id=$q";
+  my $sql = "select start,quality from bigpi_v where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
@@ -776,7 +823,7 @@ sub add_pfsnp {
                                                                  -height => 4
 			       );
 
-    my $sql = "select start_pos,original_aa,variant_aa,descr from v_pseq_sp_var where pseq_id=$q";
+    my $sql = "select start_pos,original_aa,variant_aa,descr from pseq_sp_var_v where pseq_id=$q";
 
     print(STDERR $sql, ";\n\n") if $opts{verbose};
     my $featref = $u->selectall_arrayref( $sql );

@@ -26,7 +26,7 @@ try {
 	 'select version()',
 	 'select current_user',
 	 'select count(*) from porigin',
-	 'select * from v_run_history where pseq_id=12',
+	 'select * from run_history_v where pseq_id=12',
 
 	 # EXPECT errors for the following:
 	 "select 'EXPECT ERRORS FOR THE FOLLOWING SQL:'",
