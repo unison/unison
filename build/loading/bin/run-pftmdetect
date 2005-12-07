@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-pftmdetect,v 1.10 2005/08/08 21:40:55 rkh Exp $
+# $Id: run-pftmdetect,v 1.11 2005/12/07 07:06:07 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -36,9 +36,7 @@ my %opts = (
 			'verbose' => 0,
 		   );
 
-die(<<EOM);
-$0 is broken
-
+die( "$0 is broken\n", <<'EOM' );
 The schema was so that pftmdetect has one pftype_id and a new type column
 (M, N, or S).  This script was not updated appropriately.  You'll need to
 do that before running.
@@ -46,8 +44,9 @@ do that before running.
 2005-12-06 23:03 Reece Hart reece@harts.net, rkh@gene.com
 EOM
 
+__END__
 
-print(STDERR '$Id: run-pftmdetect,v 1.10 2005/08/08 21:40:55 rkh Exp $ ', "\n");
+print(STDERR '$Id: run-pftmdetect,v 1.11 2005/12/07 07:06:07 rkh Exp $ ', "\n");
 
 GetOptions(\%opts,
        'debug+',
