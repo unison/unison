@@ -1,10 +1,10 @@
 ############################################################
-# pfssp_psipred.pm
-# Methods for accessing pfssp_psipred data
-# $ID = q$Id$
+# pfpsipred.pm
+# Methods for accessing pfpsipred data
+# $ID = q$Id: pfpsipred.pm,v 1.1 2005/07/22 22:05:18 mukhyala Exp $
 ############################################################
 
-package Unison::Utilities::pfssp_psipred;
+package Unison::Utilities::pfpsipred;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
@@ -13,7 +13,7 @@ use warnings;
 
 use base 'Exporter';
 our @EXPORT = ();
-our @EXPORT_OK = qw(pfssp_psipred);
+our @EXPORT_OK = qw(pfpsipred);
 
 
 ############################################################################

@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.72 2005/11/21 18:31:07 rkh Exp $>
+S<$Id: Page.pm,v 1.73 2005/11/21 20:24:18 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -633,7 +633,7 @@ A best annotation is a guess about the most informative and reliable
 annotation for this sequence from all source databases.
 <br>Click the Aliases tab to see all annotations
 EOT
-  return( '"best" annotation&nbsp;', $self->tooltip( '?', $tooltip ), ': ',
+  return( '<b>"best" annotation</b>&nbsp;', $self->tooltip( '?', $tooltip ), ': ',
 		  $self->{unison}->best_annotation($pseq_id,1) );
 }
 
@@ -954,7 +954,7 @@ sub _navbar {
 	  [1,1,'Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
 	  [1,1,'Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
 	  [0,1,'BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	  [1,1,'Prospect',	 	'Prospect2 threadings', 			'pseq_paprospect.pl', $pseq_id],
+	  [1,1,'Prospect',	 	'Prospect threadings', 			'pseq_paprospect.pl', $pseq_id],
 	  [1,1,'HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	  [0,1,'PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	  [1,1,'Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],

@@ -10,107 +10,47 @@
 
 <body>
 
-<SCRIPT LANGUAGE="JavaScript" SRC="../searchplugin/webinstall.js"></SCRIPT>
+<h1>Unison Tour</h1>
 
-<table width="100%" border=0>
-  <tr>
-	<td valign="top">
-	  <span style="font-size: 150%; font-weight: bold;">Welcome to</span>
-	  <br><img src="../av/logo5.png" alt="[Unison Logo]">
-	  <br><i>integrated, precomputed proteomic predictions for rapid
-	  feature-based mining, sequence analysis, and hypothesis generation</i>
-	</td>
-
-	<td valign="top" align="right">
-	 <table class=quicklinks>
-	  <tr><td colspan=2 class="quicklinks_title" align=center><b>quick
-		 links</b></td></tr>
-
-	  <tr>
-	   <td class="quicklinks_title">info</td>
-	   <td class=quicklinks>
-	     <a href="http://unison-db.org/">home</a> | tour | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
-	     | <a href="../LICENSE">license</a> | <a href="../credits.html">credits</a>
-<!-- | <a href="intro.html">introduction</a> -->
-<!-- | <a href="answers.html">FAQ</a> -->
-<!-- | <a href="refs.html">references</a> -->
-	   </td>
-	  </tr>
-
-	  <tr>
-	   <td class="quicklinks_title">contacts</td>
-	   <td class=quicklinks><a href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a> | <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
-	  </tr>
-
-	  <tr>
-	   <td class="quicklinks_title">develop</td>
-	   <td class=quicklinks><a href="http://sourceforge.net/projects/unison-db/">SourceForge</a> | <a href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
-	  </tr>
-
-	  <tr>
-	   <td class="quicklinks_title">tools</td>
-	   <td class=quicklinks><a href="javascript:addUnisonEngine()">Firefox search engine</a></td>
-	  </tr>
-
-	 </table>
-	</td>
-  </tr>
-</table>
-
-<hr>
-
-The Unison Tour is being overhauled.  The following links provide a few
-examples of how Unison may be used.  We expect the new Unison Tour pages
-to be available in mid-September.
+A primary design goal for Unison is to make the data broadly available from
+many calling environments.
 
 <dl>
 
-<dt><b>Sequence Analysis (i.e., show information for a given sequence)</b>
-<dd><a href="../cgi/pseq_summary.pl?q=TNFA_HUMAN"><code>http://unison-db.org/cgi/pseq_summary.pl?q=TNFA_HUMAN</code></a>
-<br>The "Summary" tab provides an overview for a sequence. The second row
-of tabs navigate across other details for this sequence.
+<dt>direct connections to the database via command-line interactive terminal
+<dd>Unison is based on <a href="http://www.postgresql.org/">PostgreSQL</a>,
+an excellent <a href="http://www.opensource.org/">OpenSource</a> database.
+Read-only public access is available.  Please see the <a href="psql.html">psql
+access instructions</a> for examples.
 
-<dt><b>Sequence Features</b>
-<dd><a href="../cgi/pseq_features.pl?q=TNFA_HUMAN"><code>http://unison-db.org/cgi/pseq_features.pl?q=TNFA_HUMAN</code></a>
-<br>The "Features" tab graphically displays many additional features which
-are not shown on the "Summary" tab.
+<dt>direct database access via programmatic interface
+<dd>Unison may be accessed using any of the numerous database interfaces
+available in Perl, Python, Java, Ruby, Mono, and other languages.  Please
+familiarize yourself with the <a href="psql.html">psql access instructions</a>
+to get started.
 
-<dt><b>Structural Context of Sequence Features</b> 
-<dd><a href="../cgi/pseq_structure.pl?q=TNFA_HUMAN;userfeatures=Estrand@164-174,mysnp@170"><code>http://unison-db.org/cgi/pseq_structure.pl?q=TNFA_HUMAN;userfeatures=Estrand@164-174,mysnp@170</code></a>
-<br>The "Structure" tab shows structures associated with the query
-sequence, including conservative comparative modelling structures. Please
-be sure to click the TNF model and a SNP to see the on-the-fly
-highlighting. Currently, we display only SNPs from Swiss-Prot. Users may
-specify their own regions to highlight using the userfeatures URL
-parameter, as shown above. Within Genentech, this tab also displays
-homology models using protein threading, but these data are not part of
-the public release.
+<dt>Unison Perl API
+<dd>There is a beta-quality Perl API available.  We use it internally to load
+data, but the API is still in flux.  The API is provided with the Unison code
+download and documentation is included.
 
+<dt>Browsing via GUI database browser
+<dd>There are many GUI-based database browsers available.  Unison should work
+with any that support the native PostgreSQL protocol, ODBC, or JDBC.
 
-<dt><b>Mining for Sequences Using Predifined Criteria</b>
-<dd><a href="../cgi/browse_views.pl?cv_id=5"><code>http://unison-db.org/cgi/browse_views.pl?cv_id=5</code></a>
-<br>Frequently used queries are stored as "canned views". This makes it
-easy to bookmark dynamic queries, and this is the primary mechanism I use
-to convey search results to others. In a near-future release, we will
-permit restriction by species and sequence "age".
+<dt>Unison web interface.
+<dd>The "official" Unison web interface is <a
+href="http://unison-db.org/">http://unison-db.org/</a>.  Again, this is open
+to all users.  Please see <a href="web.html">these examples of the web
+interface</a> for some of the web page highlights.
 
-<dt><b>Mining for Sequences Using User Criteria</b>
-<dd><a href="../cgi/search_sets.pl"><code>http://unison-db.org/cgi/search_sets.pl</code></a>
-<br>This page integrates precomputed results from HMMs, PSSMs, and
-Prospect threading for family-specific mining. The left side allows the
-user to define sequence selection criteria. At the top is menu of curated
-sequence sets. In the default example, sequences are selected using models
-(i.e., HMMs, PSSMs, or PDBs) for TNF superfamily members, and "hits" are
-categorized according to the specified curated set of
-sequences.
+<dt>Programmatic generation of links to the Unison web interface.
+<dd>Of course, users may wish to generate their own links to the Unison web
+interface above.  We endeavor to provide a transparent link style which
+facilitates this.  The above <a href="web.html">web highlights</a> includes
+some sample links.
 
 </dl>
-
-
-<p>We anticipate that the overhauled Unison Tour pages will include
-examples of conntecting to Unison using an interactive SQL interpreter,
-with Perl DBI, and with the Unison Perl API. 
-
 
 
 </body>

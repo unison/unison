@@ -22,10 +22,10 @@ my @table_defs =
    ['v_pahmm',[qw(start stop ends score eval acc name descr)], 'Pfam_fs 17.0', 'eval <= 1e-5'],
    ['pfsignalpnn', [qw(start stop confidence)], 'SignalP-2.0'],
    ['pftmhmm', [qw(start stop)], 'tmhmm default', 'type = \'M\''],
-   ['pfssp_psipred', [qw(start stop type)],'Psipred v2.45']
+   ['pfpsipred', [qw(start stop type)],'Psipred v2.45']
   );
 
-print "# ".'$Id$'."\n";
+print "# ".'$Id: annotate-from-fasta,v 1.1 2005/08/17 20:09:41 mukhyala Exp $'."\n";
   my $in = new Bio::SeqIO( -fh => \*STDIN,
 			   -format => 'fasta' );
 my $sno = 0;

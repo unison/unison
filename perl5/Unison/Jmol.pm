@@ -1,5 +1,5 @@
 #utilities for calling jmol functions
-#$Id$
+#$Id: Jmol.pm,v 1.11 2005/10/11 21:04:07 mukhyala Exp $
 ###########################################################
 package Unison::Jmol;
 
@@ -56,12 +56,11 @@ sub initialize{
 
 sub initialize_inline {
   my ($self,$coord,$script,$pseq_structure) = @_;
-  my ($retval);
+  my $retval = '';
   my $c = "\"\"";
   
   $retval .= $pseq_structure->set_js_vars(0) if(defined($pseq_structure));
-  $retval .= "<center><table border=\"1\" cellpadding=\"5\"><tr><td><script>jmolInitialize(\"../js/jmol/\");";
-
+  $retval .= '<center><table width='.$self->{'width'}.' border="1"><tr><td align="center"><script>jmolInitialize("../js/jmol/");';
   foreach my $line (split(/\n/,$coord)) {
     if ($line =~ /^ATOM/) {
       $c .= "+\"$line\\n\"\n" if($line =~ /CA/);
@@ -69,8 +68,9 @@ sub initialize_inline {
   }
   $retval .= "var myPdb = $c;";
   $retval .= "jmolAppletInline([$self->{'width'}, $self->{'height'}],myPdb,\"$script\");";
-  $retval .= "</script></td>";
-  $retval .= "</tr></table></center>";
+  $retval .= '</script></td></tr>';
+  $retval .= '<tr><td align="center" style="background: black; color: white">Legend: Identities, <font color=blue><b>blue</b></font>; similarities <font color=cyan><b>cyan</b></font>; mismatches <font color=red><b>red</b></font>.<br>All Cysteines are colored <font color=yellow><b>yellow</b></font>; conserved cysteines are spacefilled.<br>Deletions are colored <font color=grey><b>grey</b></font>; insertions are shown as <font color=green><b>&gt;number of insertions&lt;</b></font>.</td></tr>';
+  $retval .= '</table></center>';
   return( $retval );
 }
 

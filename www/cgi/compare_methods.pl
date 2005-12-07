@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.12 2005/10/09 20:08:52 rkh Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.13 2005/11/20 23:22:42 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -18,7 +18,7 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: compare_methods.pl,v 1.12 2005/10/09 20:08:52 rkh Exp $ ');
+$p->add_footer_lines('$Id: compare_methods.pl,v 1.13 2005/11/20 23:22:42 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Prospect threadings not available.', <<EOT);
@@ -127,7 +127,7 @@ sub _render_page {
 		   $p->tooltip('Select Parameters ','Unison currently has data for params_id=1'),
 		   '</th>',
 		     '<th width=25%>',
-		     $p->tooltip('Select from the following scores ','svm and raw score are part of the Prospect2 threading method'),
+		     $p->tooltip('Select from the following scores ','svm and raw score are part of the Prospect threading method'),
 		     '</th>',
 		     '</tr>',"\n",
 

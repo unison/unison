@@ -2,7 +2,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.10 2005/08/08 21:43:38 rkh Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.11 2005/10/11 20:51:51 mukhyala Exp $;
 
 =head1 SYNOPSIS
 
@@ -25,7 +25,7 @@ use warnings;
 use base 'Exporter';
 our @EXPORT = ();
 
-use Unison::Utilities::pfssp_psipred;
+use Unison::Utilities::pfpsipred;
 
 
 sub new {

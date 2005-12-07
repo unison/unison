@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.5 2005/11/21 22:14:34 mukhyala Exp $
+## $Id: params.mk,v 1.6 2005/11/22 22:31:07 mukhyala Exp $
 
 
 
@@ -42,8 +42,8 @@ ITxM_PMODELSET_ID:=11
 
 
 ############################################################################
-#### PFSSP_PSIPRED
-PFSSP_PSIPRED_PARAMS_ID=17
+#### PFPSIPRED
+PFPSIPRED_PARAMS_ID=17
 
 
 ############################################################################

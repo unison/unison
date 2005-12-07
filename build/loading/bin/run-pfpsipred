@@ -1,12 +1,12 @@
 #!/usr/bin/env perl
-# run-pfssp_psipred -- run psipred and load into unison
+# run-pfpsipred -- run psipred and load into unison
 # arguments: 
 #   --params_id|-p <params_id>: params_id for loading (required)
 #   --pseq_id|-Q <pset_id>: pset_id for set of sequences to runand load (optional)
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
-# usage: run-pfssp_psipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
+# usage: run-pfpsipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
 #
-# $Id: run-pfssp_psipred,v 1.1 2005/06/15 17:25:18 mukhyala Exp $
+# $Id: run-pfpsipred,v 1.2 2005/06/15 18:32:58 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -141,7 +141,7 @@ foreach my $pseq_id (@pseq_ids ) {
     if($opts{sql}) {print "$dsql\n";}
     else {$dsth->execute($pseq_id,$opts{params_id});}
 
-    my $dsql2 = 'delete from pfssp_psipred where pseq_id=? and params_id=?';
+    my $dsql2 = 'delete from pfpsipred where pseq_id=? and params_id=?';
     my $dsth2 = $u->prepare($dsql2);
     if($opts{sql}) {print "$dsql2\n";}
     else {$dsth2->execute($pseq_id,$opts{params_id});}
@@ -157,7 +157,7 @@ foreach my $pseq_id (@pseq_ids ) {
   };
 
   foreach my $f (@$ss_elements) {
-    my $sql2 = 'insert into pfssp_psipred (pseq_id,pftype_id,start,stop,type,params_id) values (?,?,?,?,?,?)';
+    my $sql2 = 'insert into pfpsipred (pseq_id,pftype_id,start,stop,type,params_id) values (?,?,?,?,?,?)';
     my $sth2 = $u->prepare( $sql2 );
 
     print "$sql2\t$pseq_id, $pftype_id, $f->[0], $f->[1], $f->[2],$opts{params_id}\n" if($opts{sql});
