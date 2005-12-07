@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.3 2005/04/04 18:42:03 rkh Exp $>
+S<$Id: genome_features.pm,v 1.4 2005/11/21 19:18:04 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -140,7 +140,7 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.3 2005/04/04 18:42:03 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.4 2005/11/21 19:18:04 mukhyala Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
@@ -219,7 +219,7 @@ sub add_pmaploci {
 										  );
 
 # [rkh] The following is original:
-#  my $sql = "select p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand from v_p2gblataln where "
+#  my $sql = "select p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand from p2gblataln_v where "
 #	. "genasm_id=$opts{genasm_id} and "
 #	. "chr='$opts{chr}' and "
 #    . "gstart>=$opts{gstart} and "
@@ -234,7 +234,7 @@ sub add_pmaploci {
 # -- restrict aliases to species
   my $sql = <<EOSQL;
 SELECT aln_id,pseq_id,ident,gstart,gstop,plus_strand
-FROM v_pmap_aln
+FROM pmap_aln_v
 WHERE genasm_id=$opts{genasm_id}
   AND params_id=$opts{params_id}
   AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}

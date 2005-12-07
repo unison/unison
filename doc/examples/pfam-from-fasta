@@ -32,13 +32,13 @@ my $params_id = $u->params_id_by_name($params);
 # prepare the Pfam lookup
 my $pfam_sth = $u->prepare(<<EOSQL);
 	SELECT start, stop, ends, score, eval, acc, name, descr
-	FROM v_pahmm A
+	FROM pahmm_v A
 	WHERE A.pseq_id=? AND A.params_id=? AND A.eval<=?
 	ORDER BY eval, start
 EOSQL
 
 
-my $Id = '$Id$ ';
+my $Id = '$Id: pfam-from-fasta,v 1.2 2004/11/30 21:56:15 rkh Exp $ ';
 print(STDERR <<EOT);
 # $Id
 # params = $params (params_id = $params_id)

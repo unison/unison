@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.14 2005/12/01 06:05:02 rkh Exp $
+## $Id: Makefile,v 1.15 2005/12/07 07:27:57 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
@@ -55,7 +55,7 @@ best_annotation_mv.log: update_psets_intrinsic.log
 	(time -p ${PSQL_VCMD} 'begin; truncate best_annotation_mv; insert into best_annotation_mv select * from best_annotation_mv; commit') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 pmprospect_scop.log: aux.log
-	(PGUSER=unison time -p ${PSQL_VCMD} 'begin; truncate pmprospect_scop; insert into pmprospect_scop select * from dv_pmprospect_scop; commit') >$@.err 2>&1
+	(PGUSER=unison time -p ${PSQL_VCMD} 'begin; truncate pmprospect_scop; insert into pmprospect_scop select * from pmprospect_scop_dv; commit') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 # m_s_u is broken, I think because of temp tables within plpgsql (unverified)
 # in any case, the following doesn't work.

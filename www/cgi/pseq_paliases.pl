@@ -14,12 +14,11 @@ use Unison::WWW::utilities qw(alias_link text_wrap);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.17 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.18 2005/09/16 04:24:42 rkh Exp $ ');
 
 my $sql = <<EOSQL;
 SELECT	origin,alias,latin as species,descr
- FROM	v_current_annotations A
- JOIN	tax.spspec T on A.tax_id=T.tax_id
+ FROM	current_annotations_v A
 WHERE	pseq_id=$v->{pseq_id} AND porigin_id!=porigin_id('Geneseq')
 EOSQL
 

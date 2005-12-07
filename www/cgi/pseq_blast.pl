@@ -14,14 +14,14 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_blast.pl,v 1.13 2005/07/18 20:56:23 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_blast.pl,v 1.14 2005/07/25 22:15:33 rkh Exp $ ');
 
 my $sql = <<EOSQL;
 SELECT t_pseq_id,best_annotation(t_pseq_id),
   q_start||'-'||q_stop,t_start||'-'||t_stop,
   len,ident,sim,gaps,eval,pct_ident::int,
   pct_hsp_coverage::int,pct_coverage::int
-FROM v_papseq
+FROM papseq_v
 WHERE q_pseq_id=$v->{pseq_id}
 ORDER BY pct_ident desc,len desc,eval
 EOSQL

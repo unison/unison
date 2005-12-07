@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.29 2005/10/09 09:39:31 rkh Exp $
+# $Id: publicize,v 1.30 2005/12/01 06:05:03 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -46,7 +46,7 @@ my $palias_id_re = qr/^palias_id$/;
 my $truncate_tables_re = qr/paprospect|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my $CVSId = '$Id: publicize,v 1.29 2005/10/09 09:39:31 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.30 2005/12/01 06:05:03 rkh Exp $ ';
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 my %conn_info = (dbname=>$ARGV[0], # evenutally, csb
@@ -276,7 +276,7 @@ sub load_public_ids($) {
   my $ppis = join(',',@public_porigin_ids);
   my @public_palias_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
 SELECT DISTINCT A.palias_id
-FROM v_current_annotations_unsorted A
+FROM current_annotations_unsorted_v A
       JOIN pseqset S ON A.pseq_id=S.pseq_id
 	WHERE S.pset_id=pset_id(?) AND A.porigin_id IN ($ppis)
 	  EOT
@@ -313,7 +313,7 @@ FROM v_current_annotations_unsorted A
   $ids{p2gblataln}[$_]++ for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.29 $ ';
+  $ids{CVSRevision} = '$Revision: 1.30 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
