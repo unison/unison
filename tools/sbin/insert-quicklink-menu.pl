@@ -22,7 +22,7 @@ while( my $fn = shift ) {
   close(F);
 
   my $my_ql_table = $ql_table;
-  $html =~ s/$ql_start_tag.*$ql_end_tag/$ql_start_tag$my_ql_table$ql_end_tag/;
+  $html =~ s/$ql_start_tag.*$ql_end_tag/$ql_start_tag$my_ql_table$ql_end_tag/s;
   if (not $&) {
 	warn("$fn: no substitution tags found\n");
 	next;
@@ -65,11 +65,11 @@ __DATA__
 	  <tr>
 	   <td class="quicklinks_title">info</td>
 	   <td class=quicklinks>
-	     <a href="index.html">home</a> | <a href="moreinfo.html">more info</a> | <a href="docs/index.html">docs</a> | <a href="tour/index.html">tour</a> | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
-	     | <a href="LICENSE">license</a> | <a href="credits.html">credits</a>
-<!-- | <a href="intro.html">introduction</a> -->
-<!-- | <a href="answers.html">FAQ</a> -->
-<!-- | <a href="refs.html">references</a> -->
+	     <a href="index.html">home</a> 
+       | <a href="moreinfo.html">more info</a>
+  <!-- | <a href="docs/index.html">docs</a> -->
+       | <a href="tour/index.html">tour</a> | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
+	   | <a href="LICENSE">license</a> | <a href="credits.html">credits</a>
 	   </td>
 	  </tr>
 
