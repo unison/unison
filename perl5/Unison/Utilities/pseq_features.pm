@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.19 2005/12/07 07:27:57 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.20 2005/12/07 23:21:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -141,7 +141,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.19 2005/12/07 07:27:57 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.20 2005/12/07 23:21:02 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -368,7 +368,7 @@ sub add_pftmhmm {
 								 -min_score => 0,
 								 -max_score => 1,
 								 -sort_order => 'high_score',
-								 -bgcolor => 'blue',
+								 -bgcolor => 'purple',
 								 -key => 'tmhmm',
 								 -bump => +1,
 								 -label => 1,
