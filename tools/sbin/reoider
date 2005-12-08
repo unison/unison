@@ -1,0 +1,27 @@
+#!/bin/sh
+# reoider -- help find db object dependencies that are out-of-oider (ugh) 
+#
+# I love postgresql, but a recurring annoyance is that cascades of views
+# may sometimes fail to be dumped in the order of dependency.  This script
+# helps find these empirically.
+#
+# eg$ PGPASSWORD=hubba ./reoider 
+
+export PGUSER=postgres
+export PGHOST=csb
+unset PGDATABASE
+
+dropdb reoider
+createdb reoider
+
+pg_dump -s csb-dev | psql -a -dreoider >/tmp/reoider.log 2>&1
+perl -n0e 'print "$1\n" while m/CREATE VIEW (\w+) AS\n[^\n]+\nERROR:\s+relation "(\w+)"/g' /tmp/reoider.log >/tmp/out-of-oider
+
+echo 'These are out of order:' 1>&2
+cat /tmp/out-of-oider
+
+
+# try:
+# perl -ne 'print "drop view $_;" /tmp/out-of-oider
+# pg_get <backup> `cat /tmp/out-of-oider` >rebuild.sql
+# psql -frebuild.sql
