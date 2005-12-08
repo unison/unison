@@ -1,57 +1,28 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
-        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Frameset//EN"
+        "http://www.w3.org/TR/REC-html40/frameset.dtd">
 
 <html>
-
 <head>
 <title>Unison Tour</title>
 <link rel="stylesheet" type="text/css" href="../styles/unison.css">
 </head>
 
-<body>
+<frameset rows="175,*">
 
-<h1>Unison Tour</h1>
+	<frame name="topnav" src="topnav.html" title="topnav" scrolling="no" noresize>
 
-A primary design goal for Unison is to make the data broadly available from
-many calling environments.
+	<frameset cols="20%,*">
+		<frame name="tournav" src="tournav.html" title="tournav" scrolling="no">
+		<frame name="content" src="overview.html" title="content">
+	</frameset>
 
-<dl>
+	<noframes>
+	<body>
+	Sorry, your browser doesn't support frames.  Please go
+	straight to the <a href="tournav.html">menu of topics</a>
+	</body>
+	</noframes>
 
-<dt>direct connections to the database via command-line interactive terminal
-<dd>Unison is based on <a href="http://www.postgresql.org/">PostgreSQL</a>,
-an excellent <a href="http://www.opensource.org/">OpenSource</a> database.
-Read-only public access is available.  Please see the <a href="psql.html">psql
-access instructions</a> for examples.
+</frameset>
 
-<dt>direct database access via programmatic interface
-<dd>Unison may be accessed using any of the numerous database interfaces
-available in Perl, Python, Java, Ruby, Mono, and other languages.  Please
-familiarize yourself with the <a href="psql.html">psql access instructions</a>
-to get started.
-
-<dt>Unison Perl API
-<dd>There is a beta-quality Perl API available.  We use it internally to load
-data, but the API is still in flux.  The API is provided with the Unison code
-download and documentation is included.
-
-<dt>Browsing via GUI database browser
-<dd>There are many GUI-based database browsers available.  Unison should work
-with any that support the native PostgreSQL protocol, ODBC, or JDBC.
-
-<dt>Unison web interface.
-<dd>The "official" Unison web interface is <a
-href="http://unison-db.org/">http://unison-db.org/</a>.  Again, this is open
-to all users.  Please see <a href="web.html">these examples of the web
-interface</a> for some of the web page highlights.
-
-<dt>Programmatic generation of links to the Unison web interface.
-<dd>Of course, users may wish to generate their own links to the Unison web
-interface above.  We endeavor to provide a transparent link style which
-facilitates this.  The above <a href="web.html">web highlights</a> includes
-some sample links.
-
-</dl>
-
-
-</body>
 </html>
