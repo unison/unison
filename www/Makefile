@@ -1,3 +1,6 @@
+.SUFFIXES:
+.PHONY: FORCE
+
 default:
 	@echo "There is no default target"
 	@echo "This makefile creates symlinks (`make links') for testing against"
@@ -7,6 +10,10 @@ default:
 # eventually:
 # perl5-prereq target
 # packaging targets (akin to md5, pgp signing, etc for unison)
+
+renav: FORCE
+	./bin/insert-quicklink-menu.pl credits.html index.html license.html moreinfo.html topnav.html
+
 
 clean:
 	/bin/rm perl5/Unison perl5/Prospect2
