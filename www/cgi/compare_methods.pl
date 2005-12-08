@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.13 2005/11/20 23:22:42 rkh Exp $;
+# $ID = q$Id: compare_methods.pl,v 1.14 2005/12/07 07:27:57 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -18,7 +18,7 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: compare_methods.pl,v 1.13 2005/11/20 23:22:42 rkh Exp $ ');
+$p->add_footer_lines('$Id: compare_methods.pl,v 1.14 2005/12/07 07:27:57 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Prospect threadings not available.', <<EOT);
@@ -104,8 +104,6 @@ sub _render_page {
 		   '<p>This page allows you to qualitatively asses the scoring methods that are part of the Threading tools we use, using sensitivity and specificity values.
                                  1) Select the Model Set and choose the Scoring methods,
                                  2) click "submit".',
-		     $p->tip($p->tooltip('Green text','This is sample descriptive text'),
-			     ' indicates elements with descriptive mouseover text.'),
 
 		     $p->start_form(-method=>'GET'),
 
