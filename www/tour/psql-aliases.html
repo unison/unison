@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+
+<html>
+
+<head>
+<title>Unison Tour: aliases</title>
+<link rel="stylesheet" type="text/css" href="../styles/unison.css">
+</head>
+
+<body>
+
+<h2>Dealing with Sequence Aliases</h2>
+
+The <code>palias</code> view provides a summary of all aliases for a sequence.
+It may be used to find the Unison "pseq_id" sequence identifier for an alias,
+and it may be used to find all aliases for a pseq_id.  Here's an example:
+
+<pre class="code">
+unison=> select * from palias where alias='TNFA_HUMAN';
+ palias_id | pseq_id | porigin_id |   alias    |                                                        descr            | tax_id | ref_pseq_id |             added
+-----------+---------+------------+------------+---------------------------------------------------------------------------------------------------------------------+--------+-------------+-------------------------------
+    127210 |      98 |         12 | TNFA_HUMAN | Tumor necrosis factor precursor (TNF-alpha) (Cachectin).            |   9606 |             | 2003-01-07 14:31:29.751015-08
+  13498936 |      98 |      10052 | TNFA_HUMAN | Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin) |   9606 |             | 2004-09-14 21:14:42.883859-07
+(2 rows)
+
+unison=> select * from palias where pseq_id=98;
+ palias_id | pseq_id | porigin_id |           alias            |                                                                            descr                                                                    | tax_id | ref_pseq_id |             added
+-----------+---------+------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+-------------+-------------------------------
+    127210 |      98 |         12 | TNFA_HUMAN                 | Tumor necrosis factor precursor (TNF-alpha) (Cachectin).                                                                    |   9606 |             | 2003-01-07 14:31:29.751015-08
+   3842651 |      98 |      10012 | gi|20381341|gb|BC028148.1| | Homo sapiens, tumor necrosis factor (TNF superfamily, member 2), clone MGC:39905 IMAGE:5217636, mRNA, complete cds ESTER:CDS:158..859 Path: FC              |   9606 |             | 2003-01-21 15:44:58.290734-08
+   5356664 |      98 |         18 | IPI00001671.1              | Tumor necrosis factor precursor; SWISS-PROT:P01375|REFSEQ_NP:NP_000585|TREMBL:Q9UIV3;O43647|REFSEQ_XP:XP_165823;XP_175231;XP_175158|ENSEMBL:ENSP00000229681 |        |             | 2003-05-02 09:34:49.698736-07
+   9850526 |      98 |         20 | NP_000585.2                | tumor necrosis factor alpha [Homo sapiens]                                                                    |   9606 |             | 2004-04-20 14:49:25.105249-07
+  11533537 |      98 |         12 | P01375                     | Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin).                                        |   9606 |             | 2004-06-04 13:54:28.16476-07
+  13498936 |      98 |      10052 | TNFA_HUMAN                 | Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin)                                         |   9606 |             | 2004-09-14 21:14:42.883859-07
+  13498937 |      98 |      10052 | P01375                     | Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin)                                         |   9606 |             | 2004-09-14 21:14:42.894009-07
+(7 rows)
+
+</pre>
+
+
+A particularly handy use of the palias table is to self-join on the sequence
+identifier in order to map an accession to accessions from other databases.
+Here's an example, which sorts by the "annotation preference" associated with
+each sequence origin.
+
+<pre class="code">
+unison=> select O2.origin,A2.alias,A2.descr
+from palias A1
+join palias A2 on A1.pseq_id=A2.pseq_id
+join porigin O2 on A2.porigin_id=O2.porigin_id
+where A1.alias='TNFB_HUMAN'
+order by O2.ann_pref;
+
+   origin   |     alias     |                                                 descr
+------------+---------------+--------------------------------------------------------------------------------------------------------
+ UniProt    | TNFB_HUMAN    | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta) (Tumor necrosis factor ligand superfamily member 1)
+ UniProt    | P01374        | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta) (Tumor necrosis factor ligand superfamily member 1)
+ UniProt    | TNFB_HUMAN    | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta) (Tumor necrosis factor ligand superfamily member 1)
+ UniProt    | P01374        | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta) (Tumor necrosis factor ligand superfamily member 1)
+ Refseq     | NP_000586.2   | lymphotoxin alpha precursor [Homo sapiens]
+ Refseq     | NP_000586.2   | lymphotoxin alpha precursor [Homo sapiens]
+ Swiss-Prot | TNFB_HUMAN    | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta).
+ Swiss-Prot | P01374        | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta) (Tumor necrosis factor ligand superfamily member 1).
+ Swiss-Prot | TNFB_HUMAN    | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta).
+ Swiss-Prot | P01374        | Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta) (Tumor necrosis factor ligand superfamily member 1).
+ IPI        | IPI00001670.1 | Lymphotoxin-alpha precursor; SWISS-PROT:P01374|REFSEQ_NP:NP_000586|ENSEMBL:ENSP00000308936
+ IPI        | IPI00001670.1 | Lymphotoxin-alpha precursor; SWISS-PROT:P01374|REFSEQ_NP:NP_000586|ENSEMBL:ENSP00000308936
+(12 rows)
+</pre>
+
+</body>
+</html>

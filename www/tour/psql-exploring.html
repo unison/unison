@@ -1,0 +1,104 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+
+<html>
+
+<head>
+<title>Unison Tour: psql</title>
+<link rel="stylesheet" type="text/css" href="../styles/unison.css">
+</head>
+
+<body>
+
+<h2>Exploring the Unison Schema</h2>
+<p>For a thorough introduction to psql, you should consult the psql manual
+(try <a
+href="http://www.postgresql.org/docs/8.1/static/app-psql.html">here</a>).  To
+get you started, here are a few of the most important commands:
+
+<center>
+<table class="uwtable">
+<tr><th>command</th> <th>description</th> <th>try this</th></tr>
+
+<tr>
+<td><code>\?</code></td>
+<td>show help</td>
+<td><code>\?</code></td>
+</tr>
+
+<tr>
+<td><code>\dt+</code></td>
+<td>list tables with comments</td>
+<td><code>\dt+ unison.</code></td>
+</tr>
+
+<tr>
+<td><code>\dv+</code></td>
+<td>list views with comments</td>
+<td><code>\dv+ unison.</code></td>
+</tr>
+
+<tr>
+<td><code>\d+ [object]</code></td>
+<td>show the definition of an object, with comments</td>
+<td><code>\d+ unison.pseq</code></td>
+</tr>
+
+</table>
+</center>
+
+
+<p>Most of the precomputed data in Unison are stored in "Protein Feature" and
+"Protein Alignment" tables, which are prefixed with "pf" and "pa"
+respectively.  The example below shows a listing of protein feature tables,
+and inspection of the BIG-PI results table in detail.
+
+<pre class="code">
+unison=>unison=> \dt+ unison.pf*
+                                               List of relations
+ Schema |     Name      | Type  | Owner  |                             Description
+--------+---------------+-------+--------+----------------------------------------------------------------------
+ unison | pfantigenic   | table | unison | EMBOSS antigenic features
+ unison | pfbigpi       | table | unison | BIG-PI GPI predictions; see also bigpi_v
+ unison | pfeature      | table | unison | parent table of all features; inherited by "subclass" feature tables
+ unison | pfregexp      | table | unison | regular expression features based on pmregexp motifs
+ unison | pfsigcleave   | table | unison | protein feature from EMBOSS sigcleave
+ unison | pfsignalphmm  | table | unison | HMM output from SignalP
+ unison | pfsignalpnn   | table | unison | neural network output from SignalP
+ unison | pfpsipred     | table | unison | Psipred predicted secondary structure elements
+ unison | pftmdetect    | table | unison | signal and transmembrane predictions
+ unison | pftmhmm       | table | unison | TMHMM output
+ unison | pftype        | table | unison | enumeration of feature types
+(11 rows)
+
+
+unison=> \d+ unison.pfbigpi
+                                         Table "unison.pfbigpi" //
+   Column    |     Type     |            Modifiers              //  |                 Description
+-------------+--------------+---------------------------------- // -+----------------------------------------------
+ pfeature_id | integer      | not null default nextval('unison. //  |
+ pseq_id     | integer      | not null                          //  |
+ pftype_id   | integer      | not null default pftype_id('BIG-P //  |
+ start       | integer      | not null                          //  | omega site
+ stop        | integer      | not null default 0                //  | 0
+ confidence  | real         | not null                          //  | BIG-PI Pv value
+ params_id   | integer      | not null                          //  |
+ site_no     | smallint     | not null                          //  |
+ quality     | character(1) | not null                          //  | A-D are good sites; S,N,I are rejected sites
+ score       | real         | not null                          //  |
+Indexes:
+    "pfbigpi_redundant_feature" UNIQUE, btree (pseq_id, "start", params_id)
+    "pfbigpi_gpi_proteins" btree (pseq_id) WHERE quality = 'A'::bpchar OR
+                                         quality = 'B'::bpchar OR quality = 'C'::bpchar OR quality = 'D'::bpchar
+    "pfbigpi_pseq_id" btree (pseq_id)
+Check constraints:
+    "big_pi_identifies_only_two_sites" CHECK (site_no = 1 OR site_no = 2)
+    "quality_must_be_one_of_abcdsni" CHECK (strpos('ABCDSNI'::text, quality::text) <> 0)
+
+</pre>
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+
+<html>
+
+<head>
+<title>Unison Conventions</title>
+<link rel="stylesheet" type="text/css" href="../styles/unison.css">
+</head>
+
+<body>
+
+<h2>Unison Conventions</h2>
+
+Here are a few conventions and tips for new users:
+
+<dl>
+
+<dt><b>Be aware of table suffixes</b>
+<dd>Unison views nearly always have a suffix.  We use <code>_v</code> for
+views which we intend people to use directly and routinely.
+<code>_cv</code> denotes a cannded view: a special view which defines
+searches which appear in the <code>canned_views</code> table.
+<code>_dv</code> indicates a "defining view"; such views are often
+expensive and are used to periodically generate a materialized view
+(really, a table) with a <code>_mv</code> suffix.
+
+<dt><b>Specify <code>params_id</code> in queries whenever possible</b>
+<dd>Most feature tables are indexed on pseq_id and params_id at the very
+least.  Multicolumn indexes typically specify the params_id first, which
+means that queries which don't provide a params_id will not use an index.
+This also prevents users from seeing multiple similar results for distinct
+runs.
+
+<dt><b>Look at the run_history table</b>
+<dd>If a query returns no results, there are two possibilities: the
+program returned no output or the sequence was never run with these
+parameters.  The only way to distinguish these cases is by consulting the
+run_history table or run_history_v view.
+
+</dl>
+
+
+</body>
+</html>

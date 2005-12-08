@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+
+<html>
+
+<head>
+<title>Unison Tour: Getting Results</title>
+<link rel="stylesheet" type="text/css" href="../styles/unison.css">
+</head>
+
+<body>
+
+<h2>Getting Results</h2>
+
+<b>All</b> protein prediction results are distinguished from other results of
+the same type by a params_id.  You should think of the params_id as a
+shorthand for the exact invocation which led to a particular result.  The
+intent is to guarantee that results are reproducible, identify sets of results
+which are comparable (<i>i.e.</i>, have the same params_id), and distinguish
+results of a similar type but with different runs (<i>e.g.</i>, different gap
+penalties). <b>You should always specify a params_id when searching for
+results.</b> The params table contains all of the parameters available in
+Unison; try <code>select * from params</code>.
+
+<p>For example, let's say you want to look up Pfam_fs 17.0 results for
+TNFB_HUMAN.  First, you'll need the pseq_id as described above (it's 98).
+Then you'll need the params_id (<code>select params_id from params where
+name='Pfam_fs 17.0'</code>).  Then:
+
+<pre class="code">
+unison=> select pseq_id,start,stop,pmodel_id,mstart,mstop,score,eval from pahmm where pseq_id=98 and params_id=21;
+ pseq_id | start | stop | pmodel_id | mstart | mstop | score | eval
+---------+-------+------+-----------+--------+-------+-------+-------
+      98 |    19 |   43 |  13606812 |      1 |    26 |     4 |  0.22
+      98 |    59 |  100 |  13612088 |     96 |   136 |     2 |     2
+      98 |    97 |  114 |  13608971 |    186 |   199 |     0 |   6.1
+      98 |   102 |  233 |  13612264 |      1 |   142 |   208 | 8e-61
+      98 |   156 |  175 |  13609641 |    306 |   327 |    -1 |   9.5
+(5 rows)
+</pre>
+
+To make this useful, you need to map the pmodel_id to a Pfam model name,
+description, and other info.  You could do the join yourself, but we've
+already provided a view which performs the join and provides other useful
+information as well, as shown below.
+
+<pre class="code">
+unison=> select * from pahmm_v where pseq_id=98 and params_id=21;
+ params_id | pseq_id | start | stop | mstart | mstop | ends | pct_cov | score | eval  | pmodel_id |    acc    |   name    |                             descr 
+-----------+---------+-------+------+--------+-------+------+---------+-------+-------+-----------+-----------+-----------+----------------------------------------------------------------
+        21 |      98 |   102 |  233 |      1 |   142 | []   |     100 |   208 | 8e-61 |  13612264 | PF00229.8 | TNF       | TNF(Tumour Necrosis Factor) family
+        21 |      98 |    19 |   43 |      1 |    26 | [.   |       8 |     4 |  0.22 |  13606812 | PF06682.2 | DUF1183   | Protein of unknown function (DUF1183)
+        21 |      98 |    59 |  100 |     96 |   136 | .]   |      30 |     2 |     2 |  13612088 | PF01387.7 | Synuclein | Synuclein
+        21 |      98 |    97 |  114 |    186 |   199 | .]   |       7 |     0 |   6.1 |  13608971 | PF01001.7 | HCV_NS4b  | Hepatitis C virus non-structural protein NS4b
+        21 |      98 |   156 |  175 |    306 |   327 | .]   |       7 |    -1 |   9.5 |  13609641 | PF08124.1 | Lyase_8_N | Polysaccharide lyase family 8, N terminal alpha-helical domain
+(5 rows)
+</pre>
+
+
+Unison's real power, however, is in the inverse problem: given some criteria,
+find matching sequences.  Feature-based mining requires precomputed data and
+this is where Unison excels.
+
+<pre class="code">
+unison=> select pseq_id,eval,best_annotation(pseq_id) from pahmm_v where params_id=21 and pmodel_id=13612264 and eval<1e-5 order by eval;
+
+ pseq_id |  eval   |                                                             best_annotation
+---------+---------+------------------------------------------------------------------------------------------------------------------------------------------
+   96930 | 4.6e-61 | UniProt:TNFA_PIG (Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin))
+ 1232850 |   8e-61 | UniProt:TNFA_PANTR (Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin))
+      98 |   8e-61 | UniProt:TNFA_HUMAN (Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin))
+   96931 | 1.3e-60 | UniProt:TNFA_RABIT (Tumor necrosis factor precursor (TNF-alpha) (Tumor necrosis factor ligand superfamily member 2) (TNF-a) (Cachectin))
+  953430 | 3.1e-58 | Refseq:NP_796345.1 (tumor necrosis factor (ligand) superfamily, member 15 [Mus musculus])
+...
+</pre>
+
+It is easy to restrict sequences to particular species or require other
+criteria.
+
+
+</body>
+</html>

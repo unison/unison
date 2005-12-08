@@ -1,0 +1,45 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+
+<html>
+
+<head>
+<title>Unison Tour: psql</title>
+<link rel="stylesheet" type="text/css" href="../styles/unison.css">
+</head>
+
+<body>
+
+<h2>Connecting with psql</h2>
+
+<p>psql is the PostgreSQL interactive terminal client, a command-line based
+interface to PostgreSQL databases.  Although many users will deem psql to be
+the most rudimentary interface, it is a terrific way to browse the Unison
+schema and experiment with queries rapidly.  psql is part of the PostgreSQL
+distribution; binaries and source code are available from <a
+href="http://www.postgresql.org/">http://www.postgresql.org/</a>.
+
+<p>Unison is available to the public at host <code>unison-db.org</code>,
+database <code>unison</code>, as user <code>PUBLIC</code>. No password is
+required. (The default PostgreSQL port, <code>5432</code>, is used and is not
+typically required.)  A typical session looks like this:
+
+<pre class="code">
+eg$ psql -h unison-db.org -U PUBLIC -d unison
+Welcome to psql 8.0.3, the PostgreSQL interactive terminal.
+
+Type:  \copyright for distribution terms
+       \h for help with SQL commands
+       \? for help with psql commands
+       \g or terminate with semicolon to execute query
+       \q to quit
+
+unison=>
+</pre>
+
+<p>From now on, I'll use assume you're already connected to Unison and will use
+<code>unison=></code> as the prompt.
+
+
+</body>
+</html>

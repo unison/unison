@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+<head>
+<title>Unison Protein Database</title>
+<link rel="shortcut icon" href="av/favicon.png">
+<link rel="stylesheet" type="text/css" href="styles/unison.css">
+</head>
+
+<body>
+
+<SCRIPT TYPE="text/javascript" SRC="searchplugin/webinstall.js"></script>
+
+<!-- quicklinks start -->
+<table width="100%" border=0>
+  <tr>
+	<td valign="top">
+	  <span style="font-size: 150%; font-weight: bold;">Welcome to</span>
+	  <br><img src="av/logo5.png" alt="[Unison Logo]">
+	  <br><i>integrated, precomputed proteomic predictions for rapid
+	  feature-based mining, sequence analysis, and hypothesis generation</i>
+	</td>
+
+	<td valign="top" align="right">
+	 <table class=quicklinks>
+	  <tr><td colspan=2 class="quicklinks_title" align=center><b>quick
+		 links</b></td></tr>
+
+	  <tr>
+	   <td class="quicklinks_title">info</td>
+	   <td class=quicklinks>
+	     <a href="index.html">home</a> | <a href="moreinfo.html">more info</a> | <a href="docs/index.html">docs</a> | <a href="tour/index.html">tour</a> | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
+	     | <a href="LICENSE">license</a> | <a href="credits.html">credits</a>
+<!-- | <a href="intro.html">introduction</a> -->
+<!-- | <a href="answers.html">FAQ</a> -->
+<!-- | <a href="refs.html">references</a> -->
+	   </td>
+	  </tr>
+
+	  <tr>
+	   <td class="quicklinks_title">contacts</td>
+	   <td class=quicklinks><a href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a> | <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
+	  </tr>
+
+	  <tr>
+	   <td class="quicklinks_title">develop</td>
+	   <td class=quicklinks><a href="http://sourceforge.net/projects/unison-db/">SourceForge</a> | <a href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
+	  </tr>
+
+	  <tr>
+	   <td class="quicklinks_title">tools</td>
+	   <td class=quicklinks><a href="javascript:addUnisonEngine()">Firefox search engine</a></td>
+	  </tr>
+
+	 </table>
+	</td>
+  </tr>
+</table>
+<!-- quicklinks end -->
+
+
+<hr>
+
+<h1>HOW DOES UNISON WORK?</h1>
+
+<p>Sequences in Unison are culled from numerous sources and include both
+well-annotated sequences (<i>e.g.,</i> from UniProt, Derwent Geneseq) and
+speculative sequences (<i>e.g.,</i> from Ensembl, gene transcript
+predictions, raw 6-frame translations).  The intent is to provide a
+superset of all available sequences. Sequences are stored
+<i>non-redundandtly</i> and are given a permanent identifier, a
+<code>pseq_id</code>.  Sequences are never deleted or modified, and the
+corresponding <code>pseq_id</code> is never changed. [<a
+href="pseq_summary.pl?pseq_id=76">example</a>]
+
+<p>Although sequences in Unison are stored non-redundantly, they came from
+many highly redundant databases. Each of those databases typically
+provides an accession number, a name, and a description for the sequence.
+Unison stores this annotation with each sequence and the date that the
+sequence was loaded from each source database and this provides a record
+of when a sequence was loaded. Furthermore, each origin is ranked for its
+reliability and informative content, and this is used to provide a
+heuristic "best annotation" for each sequence as seen in the example.  [<a
+href="pseq_paliases.pl?pseq_id=76">example</a>]
+
+<p>After sequences are loaded, a set of reliable sequences is built based
+on origin, species, and other properties.  These sequences are subjected
+to an array of algorithms whose results are stored.  The predictions
+currently include signal sequence, transmembrane prediction, GPI
+anchoring, antigenicity, and alignments from BLAST, HMM (Pfam) alignments,
+and threading, and many others.  Unison's bookkeeping about which
+algorithms have been run (and how) provides a powerful mechanism for
+keeping Unison sequences and results up to date [<a
+href="pseq_history.pl?pseq_id=76">example</a>].
+
+<p>All precomputed results are linked directly to the <code>pseq_id</code> [<a
+href="pseq_features.pl?pseq_id=76">example</a>].  And because precomputed
+results are linked to immutable sequences, there's no issue about results
+being "stale" with respsect to a changed sequence.  Unison also
+distinguishes results by algorighm parameters, and this permits users to
+compare several sets of analyses.
+
+<p>Unison integrates many other data sources which are useful in
+querying. For example, NCBI's Homologene enables queries to require that a
+human putative target also has a homolog in mouse or rat with similar
+protein features.  The Structural Classification of Proteins (SCOP),
+Patents, Gene Ontology, NCBI taxonomy, and genomic localization and
+clustering are also available in Unison.
+
+
+
+
+
+Unison contains 1) a comprehensive, non-redundent superset of protein
+sequences from many sources, 2) numerous types of precomputed predictions
+on those sequences, 3) auxiliary data that enables rich interpetations of
+prediction results.
+
+<p>The integration of these data enables mining of sequences based on
+holistic protein feature criteria, synthesis of these predictions for the
+analysis of individual sequences, and refinement of hypotheses regarding
+the composition of protein families.
+
+<b>License and Availability</b>
+<p>The Unison schema, source code, web interface, and public data are
+released under the <a
+href="http://opensource.org/licenses/afl-2.1.php">Academic Free
+License</a> and may be downloaded from <a
+href="http://unison-db.org">http://unison-db.org</a>.  Please see <a
+href="../license.html">http://unison-db.org/license.html</a> for more
+information.
+
+
+<b>Credits</b>
+<p>The Unison project was initiated by Reece Hart.  
+
+<b>Contacts</b>
+
+<p>Please <a
+href="mailto:rkh@gene.com,reece@harts.net?subject=Unison">email Reece
+Hart</a> with questions.
+
+</body>
+</html>
