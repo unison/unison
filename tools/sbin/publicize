@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.31 2005/12/07 23:21:02 rkh Exp $
+# $Id: publicize,v 1.32 2005/12/08 23:37:29 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -29,7 +29,7 @@ select(STDOUT);
 my $tick_minor = 500000;
 my $tick_major = 50*$tick_minor;
 
-my $CVSId = '$Id: publicize,v 1.31 2005/12/07 23:21:02 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.32 2005/12/08 23:37:29 rkh Exp $ ';
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 print(STDERR "# $0\n",
@@ -104,9 +104,12 @@ while ( my $line = <> ) {
     # BEGIN extra-COPY parsing
 
     ########
-    # Reject GRANT/REVOKE for any user other than PUBLIC or unison
-    # Those users must exist.
-    if ($line =~ m/^(?:GRANT|REVOKE).+(?:TO|FROM)\s+/ and $' !~ m/PUBLIC|unison/) {
+    # Reject GRANT/REVOKE/CREATE SCHEMA/SSA
+	# for any user other than PUBLIC or unison
+    if ( (   $line =~ m/^(?:GRANT|REVOKE).+(?:TO|FROM)\s+/
+		  or $line =~ m/^(?:CREATE SCHEMA.+|SET SESSION) AUTHORIZATION '/ )
+		 and $' !~ m/PUBLIC|unison/
+	   ) {
       print(STDERR "\n# skipped: $line");
       $line =~ s/^/-- /;	# comment it out 
     }
@@ -309,7 +312,7 @@ EOT
   $ids{p2gblataln}[$_]++ for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.31 $ ';
+  $ids{CVSRevision} = '$Revision: 1.32 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
