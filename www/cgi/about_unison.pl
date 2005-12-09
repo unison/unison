@@ -12,7 +12,7 @@ use Unison::WWW::Page;
 sub _conn_info_html($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines('$Id: about_unison.pl,v 1.14 2005/11/21 20:24:18 rkh Exp $ ');
+$p->add_footer_lines('$Id: about_unison.pl,v 1.15 2005/12/09 00:46:34 rkh Exp $ ');
 
 
 print $p->render("About Unison", <<EOHTML, _conn_info_html($p) );
@@ -29,7 +29,7 @@ available to all users.
 
 <p>Please see the <a href="../index.html">Unison Home Page
 (http://unison-db.org/)</a> for more information about the Unison project,
-<a href="../credits.html">credits</a>, <a href="../LICENSE">license</a>,
+<a href="../credits.html">credits</a>, <a href="../license.html">license</a>,
 documentation, direct database connection instructions, a guided tour, and
 download sites.
 
