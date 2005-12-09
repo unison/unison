@@ -1,12 +1,12 @@
 #!/usr/bin/env perl
-#$ID = q$Id: emb_pseq_structure.pl,v 1.3 2005/10/11 20:57:14 mukhyala Exp $:
+#$ID = q$Id: emb_pseq_structure.pl,v 1.4 2005/11/21 05:58:24 rkh Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
 use CGI( -debug );
 use CGI::Carp qw(fatalsToBrowser);
