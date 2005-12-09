@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.11 2005/11/20 23:31:30 rkh Exp $
+# $Id: cgi-test.pl,v 1.12 2005/12/09 01:22:02 rkh Exp $
 
 use warnings;
 use strict;
@@ -20,7 +20,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.11 2005/11/20 23:31:30 rkh Exp $
+# $Id: cgi-test.pl,v 1.12 2005/12/09 01:22:02 rkh Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -68,9 +68,9 @@ my @cgi_scripts =
   (
    ['./env.sh'],
    ['../about_env.pl'],
-   ['../about_prefs.pl'],
    ['../about_origins.pl'],
    ['../about_params.pl'],
+   ['../about_prefs.pl'],
    ['../about_statistics.pl'],
    ['../about_unison.pl'],
    ['../browse_sets.pl',"pset_id=-1234"],
@@ -84,8 +84,9 @@ my @cgi_scripts =
    ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Scatter"],
    ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Range"],
    ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Clustered"],
-   ['../genome_features.pl',"genasm_id=1 chr=15 gstart=39562512 gstop=39591527"],
+   ['../genome_features.pl',"genasm_id=2 chr=15 gstart=39562512 gstop=39591527 params_id=32"],
    ['../get_fasta.pl',"pseq_id=$pseq_id"],
+   ['../hmm_alignment.pl',"pseq_id=$pseq_id profiles=TNF params_id=27"],
    ['../p2alignment.pl',"pseq_id=76 params_id=1 templates=1jtzx"],
    ['../p2cm.pl',"pseq_id=$pseq_id viewer=rasmol params_id=1 templates=1jtzx"],
    ['../pseq_blast.pl',"pseq_id=$pseq_id"],
@@ -121,7 +122,7 @@ my %dir_scripts = map {$_=>1} grep {not m%(?:CVS|t|~)$%} glob('./* ../*');
 my @badwords = ('Server Error', 'Object not found', 'DBIError', 'Exception', 'Error');
 my $npassed =  0;
 
-print('$Id: cgi-test.pl,v 1.11 2005/11/20 23:31:30 rkh Exp $ ', "\n\n");
+print('$Id: cgi-test.pl,v 1.12 2005/12/09 01:22:02 rkh Exp $ ', "\n\n");
 
 printf("%-30.30s\tstatus\t%7s\tmessage\n",'script','time');
 print('='x76,"\n");
