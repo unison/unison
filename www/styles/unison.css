@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.31 2005/11/21 20:24:18 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.32 2005/12/06 22:04:42 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -193,7 +193,7 @@ TABLE.uwtable TD.highlighted {
 
 /* software stack table (in about_unison) */
 TABLE.sw_stack {
- border: thin #150067 solid;
+ border: medium #150067 solid;
 }
 TABLE.sw_stack TR {
  border: thin #150067 solid;
@@ -202,6 +202,11 @@ TABLE.sw_stack TH {
  background: #150067;
  color: white;
  vertical-align: top;
+ padding: 5px;
+}
+TABLE.sw_stack TD.sw_stack_sep {
+ border-top: thin solid #150067;
+ border-bottom: thin solid #150067;
 }
 
 
