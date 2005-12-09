@@ -9,8 +9,10 @@ use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bi
 use Unison::WWW;
 use Unison::WWW::Page;
 
+sub _conn_info_html($);
+
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.41 2005/11/21 18:00:26 rkh Exp $ ');
+$p->add_footer_lines('$Id: about_unison.pl,v 1.14 2005/11/21 20:24:18 rkh Exp $ ');
 
 
 print $p->render("About Unison", <<EOHTML, _conn_info_html($p) );
@@ -39,45 +41,35 @@ sub _conn_info_html ($) {
   my $info = 'not connected to the Unison database';
 
   if (ref $p and defined $p->{unison} and $p->{unison}->is_open()) {
-	my $www_state = ( $p->is_dev_instance() 
-					  ? '<span style="color: red">development</span>'
-					  : '');
-	my $db_rel = $p->{unison}->selectrow_array('select value::date from meta where key=\'release timestamp\'') || '';
-	my $db_host = $p->{unison}->{host} ? "$p->{unison}->{host}:$p->{unison}->{port}" : 'local';
-
-
+	my $dev_str = '<span style="color: red">development</span>';
+	my $pub_str = '<span style="color: green">public</span>';
+	my $www_rel = $Unison::WWW::RELEASE || $dev_str;
+	my $api_rel = $Unison::RELEASE || $dev_str;
+	my $db_rel = $p->{unison}->selectrow_array('select value::date from meta where key=\'release timestamp\'') || $dev_str;
+	$db_rel .= $pub_str if $p->{unison}->is_public();
+	my $db_host = $p->{unison}->{host}
+	  ? sprintf("%s:%s",$p->{unison}->{host},$p->{unison}->{port}||'&lt;default&gt;')
+	  : 'local';
 
 	$info = <<EOHTML;
 <center>
 <table class="sw_stack">
+<tr><th rowspan=4>web</th>		<td><b>release:</b></td>	<td>$www_rel</td></tr>
+<tr>                      		<td><b>host:</b></td>	  	<td>$ENV{SERVER_NAME}</td></tr>
+<tr>							<td><b>client:</b></td>  	<td>$ENV{REMOTE_ADDR}</td></tr>
+<tr>							<td><b>user:</b></td>	  	<td>$ENV{REMOTE_USER}</td></tr>
 
-<tr>
-<th>web</th>
-<td>
-release: $Unison::WWW::RELEASE $www_state
-<br>host: $ENV{SERVER_NAME}
-<br>client: $ENV{REMOTE_ADDR}
-<br>user: $ENV{REMOTE_USER}
-</td>
-</tr>
+<tr><td colspan=3 class="sw_stack_sep"></td></tr>
 
-<tr>
-<th>API</th>
-<td>
-release: $Unison::RELEASE
-<br>path: $INC{'Unison.pm'}
-</td>
-</tr>
+<tr><th rowspan=2>API</th>		<td><b>release:</b></td>	<td>$api_rel</td></tr>
+<tr>							<td><b>path:</b></td>		<td>$INC{'Unison.pm'}</td></tr>
 
-<tr>
-<th>database</th>
-<td>
-release: $db_rel
-<br>host:port: $db_host
-<br>database $p->{unison}->{dbname}
-<br>username: $p->{unison}->{username}
-</td>
-</tr>
+<tr><td colspan=3 class="sw_stack_sep"></td></tr>
+
+<tr><th rowspan=4>database</th>	<td><b>release:</b></td>	<td>$db_rel</td></tr>
+<tr>							<td><b>host:port:</b></td>	<td>$db_host</td></tr>
+<tr>							<td><b>database:</b></td>	<td>$p->{unison}->{dbname}</td></tr>
+<tr>							<td><b>username:</b></td>	<td>$p->{unison}->{username}</td></tr>
 
 </table>
 </center>
