@@ -1,11 +1,11 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.9 2005/10/09 20:13:57 rkh Exp $
+# $Id: Makefile,v 1.10 2005/12/01 06:05:02 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
 # eg$ make upload-1.0.0
 
-export CVSROOT=geneland:/usr/local/cvs
+export CVSROOT=/srv/cvs
 export GZIP:=
 DATE:=$(shell date +%Y%m%d)
 
