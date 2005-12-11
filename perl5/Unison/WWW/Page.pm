@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.74 2005/12/07 07:27:57 rkh Exp $>
+S<$Id: Page.pm,v 1.75 2005/12/07 23:21:03 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -60,7 +60,9 @@ use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use File::Temp;
 use Text::Wrap;
+use Data::Dumper;
 
+$Data::Dumper::Indent = 1;
 
 sub _csb_connection_params ($);
 sub _page_connect ($);
@@ -98,7 +100,9 @@ sub new {
   $v->{debug} = 0 unless defined $v->{debug};
 
   try {
-	if (not defined $ENV{SERVER_NAME} or $ENV{SERVER_NAME} eq 'csb') {
+	# set up db connection params
+	if (not defined $ENV{SERVER_HOST} 		# command line debugging
+		or $ENV{SERVER_HOST} =~ '^128\.137\.') { # Genentech subnet
 	  _csb_connection_params($self) 
 	}
 	_page_connect($self);
@@ -359,6 +363,7 @@ sub render {
 		  '</td>',"\n",
 		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
 		  '</tr>', "\n",
+
 		  "<!-- ========== end banner bar ========== -->\n",
 
 
@@ -719,17 +724,18 @@ sub is_dev_instance {
 
 =pod
 
-=item B<< ::is_public() >>
+=item B<< ::is_public_instance() >>
 
 Return true if these pages are being served at a public Unison URL.  This
 method is intended to facilitate hiding features which will fail because
 they depend on data that are not released with Unison.
 
 =cut
-sub is_public {
+sub is_public_instance {
   return 1 if defined $ENV{SERVER_ADDR} and $ENV{SERVER_ADDR} !~ m/^128\.137\./; # .gene.com domain
   return 0;
 }
+sub is_public { goto &is_public_instance; }
 
 
 ######################################################################
@@ -777,6 +783,8 @@ sub _page_connect ($) {
   if ($v->{username}) { $ENV{PGUSER}     = $v->{username} } else { delete $ENV{PGUSER}     };
   if ($v->{password}) { $ENV{PGPASSWORD} = $v->{password} } else { delete $ENV{PGPASSWORD} };
 
+  $self->{unison} -> do('set statement_timeout = 300000');	# 2 min
+
   return $self->{unison};
 }
 
@@ -789,6 +797,7 @@ sub _csb_connection_params ($) {
 
   if (defined $ENV{SERVER_PORT}) {
 	if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
+	elsif ($ENV{SERVER_PORT} == 8000)  { $v->{dbname} = 'csb-pub'   }
 	elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
 	elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
   }
@@ -1004,6 +1013,7 @@ sub _navbar {
 
   @navs = __filter_navs($self->is_prd_instance(),$self->is_public(),@navs);
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
+  $navi = -1 unless defined $navi;
   my $rv = '';
   $rv = "\n  <table    class=\"nav\" width=\"100%\">"
 	. "\n    <tr>"
@@ -1032,15 +1042,21 @@ sub __filter_navs($$@) {
 
   my ($is_prd,$is_pub,@navs) = @_;
   foreach(my $i=$#navs; $i>=0; $i--) {
-	if (    ($is_prd and not $navs[$i][0][0])
-		 or ($is_pub and not $navs[$i][0][1]) ) {
-	  splice(@navs,$i);						# entire major menu is tossed
+	if ($navs[$i][0][0] eq '') {
+	  # menu break
 	  next;
 	}
+
+	if (    ($is_prd and not $navs[$i][0][0])
+		 or ($is_pub and not $navs[$i][0][1]) ) {
+	  splice(@navs,$i,1);					# entire major menu is tossed
+	  next;
+	}
+
 	# else...
 	@{$navs[$i]} = grep {(    (not $is_prd or $_->[0])
 						  and (not $is_pub or $_->[1]) )} @{$navs[$i]};
-	@{$navs[$i]} = map { $_->[0] eq '' ? [''] : [splice(@$_,2)] } @{$navs[$i]};
+	@{$navs[$i]} = map { [splice(@$_,2)] } @{$navs[$i]};
   }
   #_nav_dump("is_prd=$is_prd; is_pub=$is_pub; returned=",@navs);
   return @navs;
