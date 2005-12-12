@@ -3,12 +3,20 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.32 2005/12/08 23:37:29 rkh Exp $
+# $Id: publicize,v 1.33 2005/12/09 04:39:40 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
 # TODO:
 # - filter entire schemas (e.g., sst)
+# - p2gblat parsing... same for pmap?
+
+# BUG: filter tables which have an is_public column
+
+# BUG: seen on 2005-12-08:
+# psql:<stdin>:74436468: ERROR:  insert or update on table "papseq" violates foreign key constraint "pfeature_pseq_id_exists"
+# psql:<stdin>:74437053: ERROR:  insert or update on table "pmap_alnhsp" violates foreign key constraint "pmap_aln_id_exists"
+# psql:<stdin>:74437062: ERROR:  insert or update on table "pmap_alnhsp" violates foreign key constraint "pmap_hsp_id_exists"
 
 
 use strict;
@@ -29,7 +37,7 @@ select(STDOUT);
 my $tick_minor = 500000;
 my $tick_major = 50*$tick_minor;
 
-my $CVSId = '$Id: publicize,v 1.32 2005/12/08 23:37:29 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.33 2005/12/09 04:39:40 rkh Exp $ ';
 my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 
 print(STDERR "# $0\n",
@@ -41,8 +49,8 @@ print("-- $0\n",
 
 # The following tables are included without any filtering
 my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
-			   pmprospect pmprospect_scop pmpssm pmregexp
-			   pmsm pmsm_pmhmm pmsm_pmpssm pmsm_prospect
+			   pmpssm pmregexp
+			   pmsm pmsm_pmhmm pmsm_pmpssm
 			   pmsm_regexp porigin);
 
 my $pset_name = $ENV{PSET} || 'public';
@@ -51,42 +59,43 @@ my $pseq_id_re = qr/^(pseq_id|q_pseq_id|t_pseq_id|query|target)$/;
 my $params_id_re = qr/^params_id$/;
 my $porigin_id_re = qr/^porigin_id$/;
 my $palias_id_re = qr/^palias_id$/;
-my $truncate_tables_re = qr/paprospect|pnote/;
+my $truncate_tables_re = qr/pmprospect|paprospect|pmsm_prospect|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
-my %conn_info = (dbname=>'csb-stage',
-				 username=>'PUBLIC');
-my $u = new Unison(%conn_info);
+
+
+my $u = new Unison();
 
 my (@public_porigin_ids) = map {$_->[0]} @{$u->selectall_arrayref('select porigin_id from porigin where is_public')};
 my (@public_params_ids) = map {$_->[0]} @{$u->selectall_arrayref('select params_id from params where is_public')};
 my %public_ids = load_public_ids($pset_name);
 
-
-printf(STDERR "# %d pseq_ids, %d porigin_ids, %d params_ids, %d palias_ids will be public\n",
-       scalar(grep {defined $_} @{$public_ids{pseq}}),
-       scalar(grep {defined $_} @{$public_ids{porigin}}),
-       scalar(grep {defined $_} @{$public_ids{params}}),
-       scalar(grep {defined $_} @{$public_ids{palias}}),
-      );
-printf("-- %d pseq_ids, %d porigin_ids, %d params_ids, %d palias_ids will be public\n",
-       scalar(grep {defined $_} @{$public_ids{pseq}}),
-       scalar(grep {defined $_} @{$public_ids{porigin}}),
-       scalar(grep {defined $_} @{$public_ids{params}}),
-       scalar(grep {defined $_} @{$public_ids{palias}}),
-      );
+foreach my $id_class (sort keys %public_ids) {
+  next unless ref $public_ids{$id_class};
+  my $msg = sprintf("    %10d $id_class\n",
+					scalar(grep {defined $_} @{$public_ids{$id_class}}));
+  print('-- ', $msg);
+  print(STDERR '# ', $msg);
+}
 
 
-my $table;			# filtering COPY block if defined
-my %id_cols;			# hash of arrays; h by col name
+if ( -t 0 ) {
+  open(DUMP_IN, "pg_dump|")
+	|| die("couldn't open pg_dump pipe\n");
+  print(STDERR "# reading from pg_dump pipe\n");
+} else {
+  open(DUMP_IN, "<&=STDIN");
+  print(STDERR "# reading from stdin\n");
+}
+
+
+my $table;								 # filtering COPY block if defined
+my %id_cols;							   # hash of arrays; h by col name
 my $printed = 0;
-my %skipped;
+my %skipped;								# No. lines skipped
+my %copied;								   # ... and copied, by table name
 
-
-# TODO: we should build a pg_dump pipe by default
-# and optionally take a saved dump
-
-while ( my $line = <> ) {
+while ( my $line = <DUMP_IN> ) {
   # default is to print line as-is at end of loop; exceptions:
   # 1) skip to next line if row is proprietary
   # 2) modify text of current line (and then print it)
@@ -106,12 +115,13 @@ while ( my $line = <> ) {
     ########
     # Reject GRANT/REVOKE/CREATE SCHEMA/SSA
 	# for any user other than PUBLIC or unison
-    if ( (   $line =~ m/^(?:GRANT|REVOKE).+(?:TO|FROM)\s+/
-		  or $line =~ m/^(?:CREATE SCHEMA.+|SET SESSION) AUTHORIZATION '/ )
+	# not sure if this the right thing to do for some, e.g., pgtools schema
+    if ( (   $line =~ m/^(?:GRANT|REVOKE).+(?:TO|FROM)\s+/ )
+#		  or $line =~ m/^(?:CREATE SCHEMA.+|SET SESSION) AUTHORIZATION '/ )
 		 and $' !~ m/PUBLIC|unison/
 	   ) {
       print(STDERR "\n# skipped: $line");
-      $line =~ s/^/-- /;	# comment it out 
+      $line =~ s/^/-- /;	# comment it out
     }
 
     ########
@@ -130,21 +140,25 @@ EOT
     # be caught by the column-based rules below, but it's faster to
     # just fast forward across them.
     elsif ( $line =~ m/^COPY ($truncate_tables_re)/ ) {
+	  my $tbl = $1;
       my $tlines = 0;
-      print(STDERR "\n# table $1 is truncated...");
+      print(STDERR "\n# table $tbl: truncating...");
       print $line;
       while ($line = <>) {
-	last if $line =~ $eodata_re; 
-	$tlines++;
+		last if $line =~ $eodata_re;
+		$tlines++;
       }
       print(STDERR "$tlines lines truncated\n");
+	  $skipped{$tbl} = $tlines;
+	  $copied{$tbl} = 0;
+	  next;
     }
 
     ########
     # Tables which shouldn't be filtered, even though
     # they might match column-based filtering below.
     elsif ( $line =~ m/^COPY ($unfiltered_tables_re)/ ) {
-      print(STDERR "\n# table $1 is unfiltered\n");
+      print(STDERR "\n# table $1: unfiltered\n");
       # $table not set => won't enter filtering loop and all
       # lines will be included as-is
     }
@@ -154,7 +168,7 @@ EOT
     elsif ( ($tbl, $cols) = $line =~ m/^COPY (papseq) \(([^\)]+)\)/ ) {
       my @cols = split(/,\s*/,$cols);
       @{$id_cols{papseq_pmodel}} = grep {$cols[$_]=~m/pmodel_id/} 0..$#cols;
-      print(STDERR "\n# special case: table $1\n");
+      print(STDERR "\n# table $1: special case\n");
       $table = $tbl;
     }
 
@@ -164,7 +178,7 @@ EOT
       my @cols = split(/,\s*/,$cols);
       @{$id_cols{p2gblathsp}} = grep {$cols[$_]=~m/p2gblathsp_id/} 0..$#cols;
       @{$id_cols{p2gblataln}} = grep {$cols[$_]=~m/p2gblataln_id/} 0..$#cols;
-      print(STDERR "\n# special case: table $1\n");
+      print(STDERR "\n# table $1: special case\n");
       $table = $tbl;
     }
 
@@ -175,20 +189,23 @@ EOT
     # correctly, but this isn't currently a problem
     elsif ( ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
       my @cols = split(/,\s*/,$cols);
-      @{$id_cols{pseq}} 	 = grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
-      @{$id_cols{params}}	 = grep {$cols[$_]=~$params_id_re } 0..$#cols;
-      @{$id_cols{porigin}} = grep {$cols[$_]=~$porigin_id_re} 0..$#cols;
-      @{$id_cols{palias}}  = grep {$cols[$_]=~$palias_id_re } 0..$#cols;
+      @{$id_cols{pseq}} 	= grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
+      @{$id_cols{params}}	= grep {$cols[$_]=~$params_id_re } 0..$#cols;
+      @{$id_cols{porigin}}	= grep {$cols[$_]=~$porigin_id_re} 0..$#cols;
+      @{$id_cols{palias}}	= grep {$cols[$_]=~$palias_id_re } 0..$#cols;
       if (   @{$id_cols{pseq}}
-	     or @{$id_cols{params}} 
+	     or @{$id_cols{params}}
 	     or @{$id_cols{porigin}}
 	     or @{$id_cols{palias}}) {
-	printf(STDERR "\n# $tbl: o(%s), q(%s), a(%s), p(%s)\n",
-	       join(',',@{$id_cols{porigin}}), join(',',@{$id_cols{pseq}}),
-	       join(',',@{$id_cols{palias}}),	 join(',',@{$id_cols{params}}) );
-	$table = $tbl;
+		printf(STDERR "\n# table $tbl: o(%s), q(%s), a(%s), p(%s)\n",
+			   join(',',@{$id_cols{porigin}}),
+			   join(',',@{$id_cols{pseq}}),
+			   join(',',@{$id_cols{palias}}),
+			   join(',',@{$id_cols{params}})
+			  );
+		$table = $tbl;
       } else {
-	print(STDERR "\n# COPY wo/filter cols: $line");
+		print(STDERR "\n# COPY wo/filter cols: $line");
       }
     }
 
@@ -198,9 +215,16 @@ EOT
       die("\n! fell through to COPY block for table $1\n# <$line");
     }
 
+	if (defined $table) { 					# table must have just been set
+	  $skipped{$table} = 0;
+	  $copied{$table} = 0;
+	}
+
     # END extra-COPY parsing
 
+
   } else {
+
 
     # BEGIN intra-COPY parsing
 
@@ -213,17 +237,19 @@ EOT
       chomp $F[$#F];
       # Note: if @{$id_cols{x}} is empty, we're not filtering on that column 
       # and col_match returns match
-      if ( not (    col_match(\@{$public_ids{pseq}},    \@F, @{$id_cols{pseq}}    )
-		    and col_match(\@{$public_ids{porigin}}, \@F, @{$id_cols{porigin}} )
-		    and col_match(\@{$public_ids{params}},  \@F, @{$id_cols{params}}  )
-		    and col_match(\@{$public_ids{palias}},  \@F, @{$id_cols{palias}}  )
-		    and col_match(\@{$public_ids{pmpseq_pmodel}},  \@F, @{$id_cols{papseq_pmodel}}  )
-		    and col_match(\@{$public_ids{p2gblathsp}},  \@F, @{$id_cols{p2gblathsp}}  )
-		    and col_match(\@{$public_ids{p2gblataln}},  \@F, @{$id_cols{p2gblataln}}  )
-	       ) ) {
-	$skipped{$table}++;
-	next;
-      }
+      if ( not (    col_match(\@{$public_ids{pseq}},    	\@F, @{$id_cols{pseq}}    )
+				and col_match(\@{$public_ids{porigin}}, 	\@F, @{$id_cols{porigin}} )
+				and col_match(\@{$public_ids{params}},  	\@F, @{$id_cols{params}}  )
+				and col_match(\@{$public_ids{palias}}, 		\@F, @{$id_cols{palias}}  )
+				and col_match(\@{$public_ids{pmpseq_pmodel}},\@F, @{$id_cols{papseq_pmodel}}  )
+				and col_match(\@{$public_ids{p2gblathsp}},  \@F, @{$id_cols{p2gblathsp}}  )
+				and col_match(\@{$public_ids{p2gblataln}},  \@F, @{$id_cols{p2gblataln}}  )
+			   ) ) {
+		$skipped{$table}++;
+		next;
+      } else {
+		$copied{$table}++;
+	  }
     }
     # END intra-COPY parsing
   }
@@ -233,6 +259,7 @@ EOT
   $printed++;
 }
 print(STDERR "\n# done.\n");
+close(DUMP_IN);
 
 
 $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
@@ -241,7 +268,9 @@ printf(STDERR "# $0 finished at %s\n# %12d printed / %12d lines total (%5.1f%%)\
 printf("-- $0 finished at %s\n-- %12d printed / %12d lines total (%5.1f%%)\n",
        $timestamp,$printed,$.,$printed/$.*100);
 foreach my $tbl (sort keys %skipped) {
-  printf(STDERR "# skipped %12d $tbl lines\n", $skipped{$tbl});
+  my $tot = $copied{$tbl}+$skipped{$tbl};
+  my $line = printf(STDERR "# %15s: %12d total; %12d (%5.1f%%) copied, %12d (%5.1f%%) skipped\n",
+					$tot, $copied{$tbl},$copied{$tbl}/$tot*100,$skipped{$tbl},$skipped{$tbl}/$tot*100);
   printf("-- skipped %12d $tbl lines\n", $skipped{$tbl});
 }
 
@@ -291,7 +320,7 @@ SELECT DISTINCT p2gblathsp_id
   JOIN pseqset SS on H.pseq_id=SS.pseq_id
  WHERE SS.pset_id=pset_id(?)
 EOT
-	    my @public_p2gblataln_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
+  my @public_p2gblataln_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
 SELECT DISTINCT A.p2gblataln_id
   FROM p2gblataln A
   JOIN p2gblatalnhsp AH on A.p2gblataln_id=AH.p2gblataln_id
@@ -303,16 +332,16 @@ EOT
   # Create bit vector for the above enumerated ids
   # Really, these aren't bits at all and I should
   # use a less wasteful representation.
-  $ids{pseq}[$_]++ for @public_pseq_ids;
-  $ids{porigin}[$_]++ for @public_porigin_ids;
-  $ids{params}[$_]++ for @public_params_ids;
-  $ids{palias}[$_]++ for @public_palias_ids;
+  $ids{pseq}[$_]++ 			for @public_pseq_ids;
+  $ids{porigin}[$_]++		for @public_porigin_ids;
+  $ids{params}[$_]++ 		for @public_params_ids;
+  $ids{palias}[$_]++ 		for @public_palias_ids;
   $ids{pmpseq_pmodel}[$_]++ for @public_pmpseq_pmodel_ids;
-  $ids{p2gblathsp}[$_]++ for @public_p2gblathsp_ids;
-  $ids{p2gblataln}[$_]++ for @public_p2gblataln_ids;
+  $ids{p2gblathsp}[$_]++	for @public_p2gblathsp_ids;
+  $ids{p2gblataln}[$_]++	for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.32 $ ';
+  $ids{CVSRevision} = '$Revision: 1.33 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
