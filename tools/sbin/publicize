@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.34 2005/12/12 16:06:25 rkh Exp $
+# $Id: publicize,v 1.35 2005/12/12 22:08:27 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -25,20 +25,34 @@ use Unison;
 use Unison::pset;
 use Storable;
 use Data::Dumper;
+use Getopt::Long qw(:config gnu_getopt);
 
 sub col_match($$@);
 sub load_public_ids($);
 sub log(@);
 
+my $CVSId = '$Id: publicize,v 1.35 2005/12/12 22:08:27 rkh Exp $ ';
+
+my %opts =
+  (
+   tick_minor => 250000,
+   tick_major => 250000 * 40,
+   pset => 'public'
+  );
+
+GetOptions(\%opts,
+		   'tick_minor=i',
+		   'tick_major=i',
+		   'pset|S=s'
+		  )
+  || die("$0: bad usage. Even worse error message.\n");
+
 
 select(STDERR); $|++;		# unbuffer stderr
 select(STDOUT);
 
-my $tick_minor = 250000;
-my $tick_major = 40*$tick_minor;
-
-my $CVSId = '$Id: publicize,v 1.34 2005/12/12 16:06:25 rkh Exp $ ';
-my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
+my $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`;
+chomp $timestamp;
 
 print(STDERR "# $0\n",
       "# $CVSId\n",
@@ -53,11 +67,8 @@ my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
 			   pmsm pmsm_pmhmm pmsm_pmpssm
 			   pmsm_regexp porigin);
 
-my $pset_name = $ENV{PSET} || 'public';
-$pset_name='pubtest50';
-warn("overriding pset_name = $pset_name");
 my $eodata_re = qr/^\\\./;
-my $pseq_id_re = qr/^(pseq_id|q_pseq_id|t_pseq_id|query|target)$/;
+my $pseq_id_re = qr/^(pseq_id|[qt]_pseq_id|query|target)$/;
 my $params_id_re = qr/^params_id$/;
 my $porigin_id_re = qr/^porigin_id$/;
 my $palias_id_re = qr/^palias_id$/;
@@ -70,14 +81,14 @@ my $u = new Unison();
 
 my (@public_porigin_ids) = map {$_->[0]} @{$u->selectall_arrayref('select porigin_id from porigin where is_public')};
 my (@public_params_ids) = map {$_->[0]} @{$u->selectall_arrayref('select params_id from params where is_public')};
-my %public_ids = load_public_ids($pset_name);
+my %public_ids = load_public_ids($opts{pset});
 
 foreach my $id_class (sort keys %public_ids) {
   next unless ref $public_ids{$id_class};
-  my $msg = sprintf("    %10d $id_class\n",
+  my $msg = sprintf("    %10d $id_class",
 					scalar(grep {defined $_} @{$public_ids{$id_class}}));
-  print('-- ', $msg);
-  print(STDERR '# ', $msg);
+  print('-- ', $msg, "\n");
+  print(STDERR '# ', $msg, "\n");
 }
 
 
@@ -144,6 +155,7 @@ EOT
 		last if $line =~ $eodata_re;
 		$tlines++;
       }
+	  print $line;							# = eodata_re (\.)
       print(STDERR "$tlines lines truncated\n");
 	  $skipped{$tbl} = $tlines;
 	  $copied{$tbl} = 0;
@@ -160,44 +172,38 @@ EOT
     }
 
     ########
-    # special case: papseq
-    elsif ( ($tbl, $cols) = $line =~ m/^COPY (papseq) \(([^\)]+)\)/ ) {
-      my @cols = split(/,\s*/,$cols);
-      @{$id_cols{papseq_pmodel}} = grep {$cols[$_]=~m/pmodel_id/} 0..$#cols;
-      print(STDERR "\n# table $1: special case\n");
-      $table = $tbl;
-    }
-
-    ########
-    # special case: p2gblat*
-    elsif ( ($tbl, $cols) = $line =~ m/^COPY (p2gblat\S+) \(([^\)]+)\)/ ) {
-      my @cols = split(/,\s*/,$cols);
-      @{$id_cols{p2gblathsp}} = grep {$cols[$_]=~m/p2gblathsp_id/} 0..$#cols;
-      @{$id_cols{p2gblataln}} = grep {$cols[$_]=~m/p2gblataln_id/} 0..$#cols;
-      print(STDERR "\n# table $1: special case\n");
-      $table = $tbl;
-    }
-
-    ########
     # Column-based filtering. Tables matching the following COPY regexp
     # are candidates for filtering based on the column names. 
     # WARNING: quoted column names (e.g., "start") aren't parsed
     # correctly, but this isn't currently a problem
     elsif ( ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
       my @cols = split(/,\s*/,$cols);
+
+	  # standard cols for all tables
       @{$id_cols{pseq}} 	= grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
       @{$id_cols{params}}	= grep {$cols[$_]=~$params_id_re } 0..$#cols;
       @{$id_cols{porigin}}	= grep {$cols[$_]=~$porigin_id_re} 0..$#cols;
       @{$id_cols{palias}}	= grep {$cols[$_]=~$palias_id_re } 0..$#cols;
+	  @{$id_cols{pmodel}} = grep {$cols[$_]=~m/pmodel_id/} 0..$#cols;
+	  @{$id_cols{p2gblathsp}} = grep {$cols[$_]=~m/p2gblathsp/} 0..$#cols;
+	  @{$id_cols{p2gblataln}} = grep {$cols[$_]=~m/p2gblataln/} 0..$#cols;
+
       if (   @{$id_cols{pseq}}
-	     or @{$id_cols{params}}
-	     or @{$id_cols{porigin}}
-	     or @{$id_cols{palias}}) {
-		printf(STDERR "\n# table $tbl: filter on o(%s), q(%s), a(%s), p(%s)\n",
+	      or @{$id_cols{params}}
+	      or @{$id_cols{porigin}}
+	      or @{$id_cols{palias}}
+	      or @{$id_cols{pmodel}}
+	      or @{$id_cols{p2gblataln}}
+	      or @{$id_cols{p2gblathsp}}
+		 ) {
+		printf(STDERR "\n# table $tbl: filter on o(%s), q(%s), a(%s), p(%s), m(%s), p2gblataln(%s), p2gblathsp(%s)\n",
 			   join(',',@{$id_cols{porigin}}),
 			   join(',',@{$id_cols{pseq}}),
 			   join(',',@{$id_cols{palias}}),
-			   join(',',@{$id_cols{params}})
+			   join(',',@{$id_cols{params}}),
+			   join(',',@{$id_cols{pmodel}}),
+			   join(',',@{$id_cols{p2gblataln}}),
+			   join(',',@{$id_cols{p2gblathsp}}),
 			  );
 		$table = $tbl;
       } else {
@@ -224,9 +230,9 @@ EOT
     # BEGIN intra-COPY parsing
 
 	# progress ticks:
-	if ($. % $tick_major == 0) {
+	if ($. % $opts{tick_major} == 0) {
 	  printf(STDERR " %12d\n",$.);
-	} elsif ($. % $tick_minor == 0) {
+	} elsif ($. % $opts{tick_minor} == 0) {
 	  print(STDERR '.');
 	}
 
@@ -243,7 +249,7 @@ EOT
 				and col_match(\@{$public_ids{porigin}}, 	\@F, @{$id_cols{porigin}} )
 				and col_match(\@{$public_ids{params}},  	\@F, @{$id_cols{params}}  )
 				and col_match(\@{$public_ids{palias}}, 		\@F, @{$id_cols{palias}}  )
-				and col_match(\@{$public_ids{pmpseq_pmodel}},\@F, @{$id_cols{papseq_pmodel}}  )
+				and col_match(\@{$public_ids{pmodel}},		\@F, @{$id_cols{pmodel}}  )
 				and col_match(\@{$public_ids{p2gblathsp}},  \@F, @{$id_cols{p2gblathsp}}  )
 				and col_match(\@{$public_ids{p2gblataln}},  \@F, @{$id_cols{p2gblataln}}  )
 			   ) ) {
@@ -261,17 +267,13 @@ EOT
   $printed++;
 }
 print(STDERR "\n# done.\n");
+my $nlines = $. + 1;
 close(DUMP_IN);
 
 
-$timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
-printf(STDERR "# $0 finished at %s\n# %12d printed / %12d lines total (%5.1f%%)\n",
-       $timestamp,$printed,$.,$printed/$.*100);
-printf("-- $0 finished at %s\n-- %12d printed / %12d lines total (%5.1f%%)\n",
-       $timestamp,$printed,$.,$printed/$.*100);
 foreach my $tbl (sort keys %skipped) {
   my $tot = $copied{$tbl}+$skipped{$tbl};
-  my $line = sprintf(STDERR "%15s: %12d total lines", $tbl, $tot);
+  my $line = sprintf("%15s: %12d total lines", $tbl, $tot);
   if ($tot > 0) {
 	$line .= sprintf("; %12d (%5.1f%%) copied, %12d (%5.1f%%) skipped",
 					$tot, $copied{$tbl},$copied{$tbl}/$tot*100,$skipped{$tbl},$skipped{$tbl}/$tot*100);
@@ -279,6 +281,13 @@ foreach my $tbl (sort keys %skipped) {
   printf(STDERR '# ',  $line, "\n");
   printf(       '-- ', $line, "\n");
 }
+
+$timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
+printf(STDERR "# $0 finished at %s\n# %12d printed / %12d lines total (%5.1f%%)\n",
+       $timestamp, $printed, $nlines, $printed/$nlines*100);
+printf("-- $0 finished at %s\n-- %12d printed / %12d lines total (%5.1f%%)\n",
+       $timestamp, $printed, $nlines, $printed/$nlines*100);
+
 
 exit(0);
 
@@ -288,7 +297,7 @@ exit(0);
 
 sub load_public_ids($) {
   my $pset_name = shift;
-  my $s_fn = "/tmp/$pset_name public_ids.plst";
+  my $s_fn = "/tmp/$pset_name-public_ids.plst";
   my %ids;
 
   if ( -f $s_fn ) {
@@ -314,7 +323,7 @@ SELECT DISTINCT A.palias_id
   JOIN pseqset S ON A.pseq_id=S.pseq_id
  WHERE S.pset_id=pset_id(?) AND A.porigin_id IN ($ppis)
 EOT
-  my @public_pmpseq_pmodel_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
+  my @public_pmodel_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
 SELECT DISTINCT pmodel_id
   FROM pmpseq M
   JOIN pseqset SS on M.pseq_id=SS.pseq_id
@@ -342,12 +351,12 @@ EOT
   $ids{porigin}[$_]++		for @public_porigin_ids;
   $ids{params}[$_]++ 		for @public_params_ids;
   $ids{palias}[$_]++ 		for @public_palias_ids;
-  $ids{pmpseq_pmodel}[$_]++ for @public_pmpseq_pmodel_ids;
+  $ids{pmodel}[$_]++ 		for @public_pmodel_ids;
   $ids{p2gblathsp}[$_]++	for @public_p2gblathsp_ids;
   $ids{p2gblataln}[$_]++	for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.34 $ ';
+  $ids{CVSRevision} = '$Revision: 1.35 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
