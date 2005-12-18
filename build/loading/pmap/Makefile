@@ -3,15 +3,14 @@ include ../local.mk
 include ../params.mk
 
 
-
 PATH:=/usr/local/tools/bin:/usr/local/seq/bin/:${PATH}
 SHELL=bash
+CMDLINE:=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PMAP_PARAMS_ID}')
+
+
 
 default all:
 	@echo "no default target" 1>&2; exit 1
-
-PARAMS:=PMAP
-CMDLINE=$(shell psql -h csb -d csb-dev -Atc "select commandline from params where name='${PARAMS}'")
 
 .PRECIOUS: %.psl
 %.psl: %.fa
@@ -19,8 +18,9 @@ CMDLINE=$(shell psql -h csb -d csb-dev -Atc "select commandline from params wher
 	&& /bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
 
 %.load: %.psl
-	(time -p ~/unison/sbin/load-pmap -p ${PARAMS} -v --genasm_id=2 $<) >$@.err 2>&1
+	(time -p load-pmap -p ${PMAP_PARAMS_ID} -v --genasm_id=2 $<) >$@.err 2>&1
 	/bin/mv $@.err $@
+
 
 # eg$ make todo-psl
 %-psl: % FORCE
@@ -31,7 +31,7 @@ CMDLINE=$(shell psql -h csb -d csb-dev -Atc "select commandline from params wher
 %-qpsl: % FORCE
 	@for f in $*/${PATTERN}.ids; do echo "qsub/$${f%ids}psl"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
 
-done.ids:
+.done.ids:
 	psql -Atc 'select pseq_id from run_history where params_id=${PMAP_PARAMS_ID}' >$@.tmp
 	sort -u -o $@.tmp $@.tmp
 	/bin/mv -f $@.tmp $@

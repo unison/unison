@@ -2,16 +2,22 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-default: runA.ids done.ids runA-todo.ids runA-todo.load
+N:=5
+QNAME=${SUBDIR}p${PAPROSPECT_PARAMS_ID}
+RUNSET=runB
+
+
+default:
+	@echo no $@ target; exit 1
 
 run:
 	make cleanest
-	make done.ids runA-todo.ids runA-todo-N5
-	make runA-todo-N5-qload
+	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
+	make ${RUNSET}-todo-N${N}-qload
 
 %.load: %-M${PAPROSPECT_PMODELSET_ID}.load;
 %-M${PAPROSPECT_PMODELSET_ID}.load: %.ids
-	(time -p xargs -n10 <$< run-paprospect2 -p${PAPROSPECT_PARAMS_ID} -M${PAPROSPECT_PMODELSET_ID}) >$@.err 2>&1
+	(time -p xargs -n10 <$< run-paprospect -p${PAPROSPECT_PARAMS_ID} -M${PAPROSPECT_PMODELSET_ID}) >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 .done.ids:

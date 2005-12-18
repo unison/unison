@@ -2,7 +2,7 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=10
+N:=5
 QNAME=${SUBDIR}p${PFTMHMM_PARAMS_ID}
 RUNSET=runC
 NPER:=250

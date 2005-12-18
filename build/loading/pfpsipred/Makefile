@@ -2,8 +2,8 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=20
-QNAME=${SUBDIR}p${PAHMM_PARAMS_ID}
+N:=5
+QNAME=${SUBDIR}p${PFPSIPRED_PARAMS_ID}
 RUNSET=runB
 NPER:=250
 
