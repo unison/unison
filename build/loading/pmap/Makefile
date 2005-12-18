@@ -2,15 +2,22 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
+N:=5
+RUNSET=runC-human
 
 PATH:=/usr/local/tools/bin:/usr/local/seq/bin/:${PATH}
 SHELL=bash
 CMDLINE:=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PMAP_PARAMS_ID}')
 
 
-
 default all:
 	@echo "no default target" 1>&2; exit 1
+
+run:
+	make cleanest
+	make done.ids ${RUNSET}-todo.ids
+	make ${RUNSET}-todo.load
+
 
 .PRECIOUS: %.psl
 %.psl: %.fa
@@ -20,6 +27,9 @@ default all:
 %.load: %.psl
 	(time -p load-pmap -p ${PMAP_PARAMS_ID} -v --genasm_id=2 $<) >$@.err 2>&1
 	/bin/mv $@.err $@
+
+.done.ids:
+	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${PMAP_PARAMS_ID}' >$@
 
 
 # eg$ make todo-psl
@@ -31,8 +41,3 @@ default all:
 %-qpsl: % FORCE
 	@for f in $*/${PATTERN}.ids; do echo "qsub/$${f%ids}psl"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
 
-.done.ids:
-	psql -Atc 'select pseq_id from run_history where params_id=${PMAP_PARAMS_ID}' >$@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv -f $@.tmp $@
-	@wc -l $@
