@@ -2,14 +2,24 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-default: runC.ids done.ids runC-todo.ids runC-todo.load
+N:=5
+QNAME=${SUBDIR}p${PSPROTCOMP_PARAMS_ID}
+RUNSET=runB
+NPER:=250
+
+default:
+	@echo no $@ target; exit 1
+
+run:
+	make cleanest
+	make done.ids ${RUNSET}-todo.ids
+	make ${RUNSET}-todo.load
 
 
 ifeq '$(shell uname -s)' 'OSF1'
 # uname -s == OSF1 is a surrogate for whether we're on a geneland node
-PATH:=${COMPBIO_EPREFIX}/bin:${PATH}
 %.load: %.ids
-	(time -p run-psprotcomp -N${PSPROTCOMP_SEQS_PER_RUN} <$<) >$@.err 2>&1
+	(time -p run-psprotcomp -v -N${PSPROTCOMP_SEQS_PER_RUN} <$<) >$@.err 2>&1
 	/bin/mv -f $@.err $@
 else
 %.load: %.ids

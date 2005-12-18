@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.19 2005/12/01 06:05:02 rkh Exp $
+## $Id: common.mk,v 1.20 2005/12/07 23:21:02 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -114,6 +114,7 @@ ids: runA.ids runB.ids runC.ids
 	wcl=`wc -l <$< `; L=`expr $$wcl / $$N + 1`; \
 	echo "L = wcl / N = $$wcl / $$N = $$L"; \
 	set -x; split -l$$L "$<" "$@/"
+	touch "$@"/aa				# empty file prevents "impossible target" errors
 	${RENAME} 's/$$/.ids/' "$@"/??
 
 # -ln rules: split .ids file into files of l lines each

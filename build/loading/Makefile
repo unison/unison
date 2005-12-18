@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.15 2005/12/07 07:27:57 rkh Exp $
+## $Id: Makefile,v 1.16 2005/12/07 23:21:02 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
@@ -43,41 +43,63 @@ pseq.log: aux.log
 
 ######################################################################
 # 2. UPDATE INTRINSIC SETS AND OTHER DATA
+FX:=update_tax_ids update_psets_intrinsic
+MV:=best_annotation pmprospect_scop pseq_gene
 .PHONY: phase2
-phase2: update_tax_id.log update_psets_intrinsic.log best_annotation_mv.log pmprospect_scop.log #update_meta_stats.log
-update_tax_id.log: pseq.log
-	(time -p ${PSQL_VCMD} 'begin; select update_tax_ids(); commit;') >$@.err 2>&1
+phase2: $(addsuffix .log,${FX}) $(addsuffix _mv.log,${MV})
+
+# functions
+$(addsuffix .log,${FX}): %.log:
+	(time -p ${PSQL_VCMD} 'select $*();') >$@.err 2>&1
 	/bin/mv -f $@.err $@
+update_tax_ids.log: pseq.log
 update_psets_intrinsic.log: update_tax_id.log
-	(time -p ${PSQL_VCMD} 'begin; select update_psets_intrinsic(); commit;') >$@.err 2>&1
+
+# materialized views
+$(addsuffix _mv.log,${MV}): %_mv.log:
+	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $* select * from $*_dv;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 best_annotation_mv.log: update_psets_intrinsic.log
-	(time -p ${PSQL_VCMD} 'begin; truncate best_annotation_mv; insert into best_annotation_mv select * from best_annotation_mv; commit') >$@.err 2>&1
-	/bin/mv -f $@.err $@
-pmprospect_scop.log: aux.log
-	(PGUSER=unison time -p ${PSQL_VCMD} 'begin; truncate pmprospect_scop; insert into pmprospect_scop select * from pmprospect_scop_dv; commit') >$@.err 2>&1
-	/bin/mv -f $@.err $@
-# m_s_u is broken, I think because of temp tables within plpgsql (unverified)
-# in any case, the following doesn't work.
-#update_meta_stats.log:
-#	time -p ${PSQL_VCMD} 'begin; select meta_stats_update(); commit;' >$@.err 2>&1
-#	/bin/mv -f $@.err $@
+pmprospect_scop_mv.log: aux.log
+pseq_gene_mv.log: aux.log
+
 
 
 ######################################################################
-# 3. COMPUTE
+# 3a. MODELS
+# these must be done manually
+#MODEL_DIRS:=pmhmm pmprospect pmregexp
+
+
+######################################################################
+# 3b. COMPUTE
+# The 'run' target in the COMPUTE_DIRS directories should run current
+# sequences as necessary.  This ideal is not fully implemented yet.
+#
+# IMPORTANT NOTE: Many of the subdir targets submit PBS jobs.  The exit
+# status of these targets and the existence of a .log file indicates PBS
+# submission only.  The .log files don NOT indicate that the jobs finished
+# (or started, even).  Therefore, be careful about using them as
+# dependencies elsewhere.
+
 COMPUTE_DIRS:=
-COMPUTE_DIRS+=pahmm paprospect2 papseq #papssm
-COMPUTE_DIRS+=pfbigpi pfregexp pfsignalp pfpsipred pftmdetect pftmhmm
-COMPUTE_DIRS+=psprotcomp
-COMPUTE_DIRS+=blat plocus pmhmm
+COMPUTE_DIRS+=pahmm #paprospect
+COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm
+COMPUTE_DIRS+=pmap
+#GENELAND only: psprotcomp
+#NEEDS ATTENTION: papseq papssm pfregexp
+#DEPRECATED: pftmdetect
 CLEANUP_DIRS+=${COMPUTE_DIRS}
 .PHONY: phase3
 phase3: $(addsuffix .log,${COMPUTE_DIRS})
 
-paprospect2.log: pmprospect2.log
-pahmm.log: pmhmm.log
-pcluster.log: blat.log
+$(addsuffix .log,${COMPUTE_DIRS}): %.log: %
+	make -C $* run >$@.err 2>&1
+	/bin/mv $@.err $@
+
+#paprospect2.log: pmprospect2.log
+#pahmm.log: pmhmm.log
+#pcluster.log: blat.log
 
 
 ######################################################################
@@ -85,8 +107,14 @@ pcluster.log: blat.log
 .PHONY: phase4
 phase4: update_psets_extrinsic.log
 update_psets_extrinsic.log:
-	${PSQL_VCMD} 'begin; truncate meta; select update_psets_intrinsic(); commit;' >$@.err 2>&1
+	${PSQL_VCMD} 'truncate meta; select update_psets_intrinsic();' >$@.err 2>&1
 	/bin/mv -f $@.err $@
+
+# m_s_u is broken, I think because of temp tables within plpgsql (unverified)
+# in any case, the following doesn't work.
+#update_meta_stats.log:
+#	time -p ${PSQL_VCMD} 'begin; select meta_stats_update(); commit;' >$@.err 2>&1
+#	/bin/mv -f $@.err $@
 
 
 ######################################################################
