@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.75 2005/12/07 23:21:03 rkh Exp $>
+S<$Id: Page.pm,v 1.76 2005/12/11 19:51:55 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -64,11 +64,12 @@ use Data::Dumper;
 
 $Data::Dumper::Indent = 1;
 
-sub _csb_connection_params ($);
+sub _genentech_connection_params ($);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
 sub _make_temp_dir ();
 sub _cleanup_temp($$);
+sub __format_tab_labels(@);
 sub __filter_navs($$@);
 
 our $infer_pseq_id = 0;
@@ -100,13 +101,16 @@ sub new {
   $v->{debug} = 0 unless defined $v->{debug};
 
   try {
-	# set up db connection params
-	if (not defined $ENV{SERVER_HOST} 		# command line debugging
-		or $ENV{SERVER_HOST} =~ '^128\.137\.') { # Genentech subnet
-	  _csb_connection_params($self) 
+	if (not defined $ENV{SERVER_ADDR}) {
+	  # command line debugging
+	  $v->{username} = $ENV{USER} || `/usr/bin/id -un`;
+	  $v->{dbname} = $v->{dbname} || 'csb-dev';
+	} elsif ($ENV{SERVER_ADDR} =~ '^128\.137\.') {
+	  # Genentech subnet
+	  _genentech_connection_params($self)
 	}
 	_page_connect($self);
-  }	catch Unison::Exception with {
+  } catch Unison::Exception with {
 	$self->die_with_exception($_[0],
 							  # plus some addition stuff to tack on...
 							  'Relevant environment settings:',
@@ -114,7 +118,7 @@ sub new {
 											  .(defined $ENV{$_} ? 
 												$ENV{$_} : '<i>undef</i>')
 											  ."</code>\n" }
-											qw(REMOTE_USER KRB5CCNAME) ))
+											qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT) ))
 							 );
   };
 
@@ -213,6 +217,7 @@ sub tempfile {
 
   if ( my ($fh,$fn) = File::Temp::tempfile( %opts ) ) {
 	my ($urn) = $fn =~ m/^$self->{tmproot}(\/.+)/;
+	$urn = $fn unless defined $urn;			# command-line
 	return ($fh,$fn,$urn);
   }
 
@@ -758,60 +763,56 @@ sub _page_connect ($) {
   my $self = shift;
   my $v = $self->Vars();
 
+  # These are the defaults expected for public versions of Unison
+  # Some or all may have been preset in new()
   $v->{host}	 = undef	unless defined $v->{host};
   $v->{dbname} 	 = 'unison'	unless defined $v->{dbname};
   $v->{username} = 'PUBLIC'	unless defined $v->{username};
   $v->{password} = undef	unless defined $v->{password};
 
-  #printf(STDERR "# ci = (%s,%s,%s,%s,%s)\n",
-  #		 (map {$v->{$_}||'undef'} qw(host dbname username password)),
-  #		 $ENV{KRB5CCNAME} || 'wo/krb');
-
-  # NOTE: password=>undef works for PUBLIC and krb auth
-  # I got errors when it wasn't explicitly listed
   $self->{unison} = new Unison( host => $v->{host},
 								dbname => $v->{dbname},
 								username => $v->{username},
 								password => $v->{password} );
   # Errors are caught by exceptions.
 
-
-  # Set PG vars so that spawned apps connect to the same database
-  # This will only work for kerberos authentication
+  # If the connection succeeded, then set PG vars so that spawned apps
+  # connect to the same database.  The krb credential, if any, is
+  # implicitly passed in KRB5CCNAME.
   if ($v->{host}	) { $ENV{PGHOST}     = $v->{host}	  } else { delete $ENV{PGHOST}     };
   if ($v->{database}) { $ENV{PGDATABASE} = $v->{database} } else { delete $ENV{PGDATABASE} };
   if ($v->{username}) { $ENV{PGUSER}     = $v->{username} } else { delete $ENV{PGUSER}     };
   if ($v->{password}) { $ENV{PGPASSWORD} = $v->{password} } else { delete $ENV{PGPASSWORD} };
 
-  $self->{unison} -> do('set statement_timeout = 300000');	# 2 min
+  $self->{unison} -> do('set statement_timeout = 300000'); # milliseconds
 
   return $self->{unison};
 }
 
 
 ######################################################################
-## _csb_connection_params
-sub _csb_connection_params ($) {
+## _genentech_connection_params
+sub _genentech_connection_params ($) {
   my $self = shift;
-  my $v = $self->Vars();
 
-  if (defined $ENV{SERVER_PORT}) {
-	if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
-	elsif ($ENV{SERVER_PORT} == 8000)  { $v->{dbname} = 'csb-pub'   }
-	elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
-	elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
-  }
+  defined $ENV{SERVER_PORT}
+	|| die("_genentech_connection_params: called outside of web environment");
+
+  my $v = $self->Vars();
+  if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
+  elsif ($ENV{SERVER_PORT} == 8000)  { $v->{dbname} = 'csb-pub'   }
+  elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
+  elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
+  # else: not set => use _page_connect defaults
 
   # If KRB5CCNAME is set, we're doing kerberos authentication.
   if (defined $ENV{KRB5CCNAME}) {
-	$v->{username} = $ENV{REMOTE_USER} 		# from webserver...
-	                 || `/usr/bin/id -un`;	# ... or debugging on command line
-	$v->{username} =~ s/@.+//;				# strip domain from krb user name
-
-	# pg_hba.conf requires tcp connection for kerberos
-	# (This doesn't work with 'localhost', I think because we've got 2
-	# names for csb.)
+	$v->{username} = $ENV{REMOTE_USER};
+	$v->{username} =~ s/@.+//;				# strip realm from krb identity
 	$v->{host} = 'csb';
+  } else {
+	$v->{username} = 'PUBLIC';
+	warn("_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user.");
   }
 
   return;
@@ -915,7 +916,11 @@ sub _infer_pseq_id ($) {
 
 
 ######################################################################
-## _navbar
+## NAVBAR CODE
+## This navbar code is among the ugliest, most fragile, and least
+## maintainable bits of flotsam I've ever created.  It should be
+## jettisoned, except that there's so little glamor in rewriting something
+## that works.  Long live inertia!
 
 sub _nav_dump {
   eval 'use Data::Dumper;  $Data::Dumper::Indent = 0;';
@@ -945,37 +950,37 @@ sub _navbar {
 	  [1,1,'Search', 		'Text- and Feature-based mining',	'search_alias.pl'],
 	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_alias.pl'],
 	  [1,1,'By Properties',	'mine for sequences based on properties', 'search_properties.pl'],
-	  [1,0,'Compare Sets*',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
-	  [1,0,'Framework*',   	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
+	  [1,0,'Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
+	  [1,0,'Framework',   	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
 	 ],
 
 	 [	# Browse menu
 	  [1,1,'Browse', 		'browse curated queries and precomputed sequences sets', 'browse_views.pl'],
 	  [1,1,'Views', 		'browse dynamic queries of protein sequences', 'browse_views.pl'],
-	  [1,1,'Sets', 			'browse <i>precomputed</i> sets of proteins', 'browse_sets.pl'],
+	  [1,1,'Sets', 			'browse precomputed sets of proteins', 'browse_sets.pl'],
 	 ],
 
 	 [	# Analyze menu
 	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence', 'pseq_summary.pl' ],
 	  [1,1,'Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
 	  [1,1,'Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
-	  [1,0,'Patents*', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
+	  [1,0,'Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
 	  [1,1,'Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
 	  [1,1,'Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
-	  [0,1,'BLAST*', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	  [1,1,'Prospect',	 	'Prospect threadings', 			'pseq_paprospect.pl', $pseq_id],
+	  [0,1,'BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
+	  [1,1,'Prospect',	 	'Prospect threadings', 				'pseq_paprospect.pl', $pseq_id],
 	  [1,1,'HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
-	  [0,1,'PSSM*',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
+	  [0,1,'PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	  [1,1,'Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
 	  [1,1,'Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
-	  [0,0,'Notes*',		'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
+	  [0,0,'Notes',			'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
 	  [1,1,'History',		'run history',						'pseq_history.pl', 	$pseq_id ],
 	 ],
 
 	 [	# Assess menu
-	  [0,0,'Assess*', 		'compare sequence sets and analysis methods', 'compare_scores.pl'],
-	  [0,0,'Scores*', 		'compare scoring systems',			'compare_scores.pl'],
-	  [0,0,'Methods*', 		'compare threading methods',		'compare_methods.pl'],
+	  [0,0,'Assess', 		'compare sequence sets and analysis methods', 'compare_scores.pl'],
+	  [0,0,'Scores', 		'compare scoring systems',			'compare_scores.pl'],
+	  [0,0,'Methods', 		'compare threading methods',		'compare_methods.pl'],
 	 ],
 
 	 # empty list forces right-justification of subsequent menus
@@ -987,8 +992,8 @@ sub _navbar {
 	  [1,1,'Statistics',	'Unison summary statistics',		'about_statistics.pl'],
 	  [1,1,'Origins', 		'Unison data sources',			 	'about_origins.pl'],
 	  [1,1,'Params', 		'Unison precomputed data types', 	'about_params.pl'],
-	  [0,1,'Env*', 			'environment info', 				'about_env.pl'],
-	  [0,1,'Prefs*',		'user prefs', 						'about_prefs.pl'],
+	  [0,1,'Env', 			'environment info', 				'about_env.pl'],
+	  [0,1,'Prefs',			'user prefs', 						'about_prefs.pl'],
 	 ],
 
 	  #[ # run menu
@@ -1010,7 +1015,7 @@ sub _navbar {
 
 	);
 
-
+  @navs = __format_tab_labels(@navs);
   @navs = __filter_navs($self->is_prd_instance(),$self->is_public(),@navs);
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
   $navi = -1 unless defined $navi;
@@ -1035,13 +1040,36 @@ sub _navbar {
   return $rv;
 }
 
+sub __format_tab_labels(@) {
+  my @navs = @_;
+  for (my $i=0; $i<=$#navs; $i++) {
+	for (my $j=0; $j<=$#{$navs[$i]}; $j++) {
+	  my @tooltip_tags = ();
+	  if (not $navs[$i]->[$j]->[1]) {
+		$navs[$i]->[$j]->[2] = "<i>$navs[$i]->[$j]->[2]</i>";
+		push(@tooltip_tags,'proprietary');
+	  }
+	  if (not $navs[$i]->[$j]->[0]) {
+		$navs[$i]->[$j]->[2] = "<span style=\"color: red;\">$navs[$i]->[$j]->[2]</span>";
+		push(@tooltip_tags,'development');
+	  }
+	  if (@tooltip_tags) {
+		$navs[$i]->[$j]->[3] = '' unless $navs[$i]->[$j]->[3];
+		$navs[$i]->[$j]->[3] .= '<br>NOTE: ' . join(', ',@tooltip_tags);
+	  }
+	}
+  }
+  return @navs;
+}
+
 
 sub __filter_navs($$@) {
   ## Purpose: remove development tabs from production environments, and remove
-  ## proprietary tabs from public environments.
+  ## proprietary tabs from public environments.  The result is a modified navbar 
+  ## array WITHOUT the prd and pub bits (array elems 0 and 1).
 
   my ($is_prd,$is_pub,@navs) = @_;
-  foreach(my $i=$#navs; $i>=0; $i--) {
+  for(my $i=$#navs; $i>=0; $i--) {
 	if ($navs[$i][0][0] eq '') {
 	  # menu break
 	  next;
@@ -1087,19 +1115,19 @@ sub _find_nav_ids {
 sub _make_navrow {
   # makes one row of the navbar as an array of <td>...</td> objects
   # $sel is which is selected, and may be undef
-  # @tu = array ref of [text,tooltip,url,params]
+  # @tu = array ref of [tab_label,tooltip,url,params]
   my ($sel,@tu) = @_;
   my $spacer = '<td width="%80">&nbsp;</td>';
   my @nav = ();
   for(my $i=0; $i<=$#tu; $i++) {
-	my ($text,$tooltip,$url,$params) = @{$tu[$i]};
-	if ($text eq '') {
+	my ($tab_label,$tooltip,$url,$params) = @{$tu[$i]};
+	if ($tab_label eq '') {
 	  push(@nav, $spacer);
 	  $spacer = '';
 	  next;
 	}
 
-	$text =~ s/ /&nbsp;/g;					# make tab headings non-breaking
+	$tab_label = "<span style=\"white-space: nowrap;\">$tab_label</span>";
 	$url .= "?$params" if defined $params;
 	my $cl = 'unselected';
 	if (defined $sel and $sel == $i) {
@@ -1107,7 +1135,7 @@ sub _make_navrow {
 	  $url = undef;
 	}
 	push(@nav, "<td class=\"$cl\">"
-		 . tooltip( (defined $url ? "<a href=\"$url\">$text</a>" : $text), $tooltip, '' )
+		 . tooltip( (defined $url ? "<a href=\"$url\">$tab_label</a>" : $tab_label), $tooltip, '' )
 		 . "</td>" );
   }
   return( join('', @nav) . $spacer );
@@ -1131,7 +1159,7 @@ $state
 <br>- web: $Unison::WWW::RELEASE
 
 <p><u>web</u>
-<br>- host: $ENV{SERVER_NAME}
+<br>- host: $ENV{SERVER_NAME} ($ENV{SERVER_ADDR})
 <br>- client: $ENV{REMOTE_ADDR}
 <br>- user: $ENV{REMOTE_USER}
 
