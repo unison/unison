@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.20 2005/12/07 23:21:02 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.21 2005/12/08 00:58:06 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -46,11 +46,6 @@ our %opts =
   );
 
 
-sub pseq_features_panel($%);
-
-
-
-
 =pod
 
 =head1 ROUTINES AND METHODS
@@ -58,6 +53,35 @@ sub pseq_features_panel($%);
 =over
 
 =cut
+
+
+
+sub new($$%) {
+  my $self = bless({},shift);
+  $self->{panel} = pseq_features_panel(@_);
+  return $self;
+}
+
+
+sub as_png() {
+  my $self = shift;
+  return $self->{panel}->gd()->png();
+}
+
+sub imagemap_body($) {
+  my $self = shift;
+  my $imagemap = '';
+  foreach my $box ( $self->{panel}->boxes() ) {
+	my ($feature, $x1, $y1, $x2, $y2) = @$box;
+	my $attr = $feature->{attributes};
+	next unless defined $attr;
+	$imagemap .= sprintf('<AREA SHAPE="RECT" COORDS="%d,%d,%d,%d" TOOLTIP="%s" HREF="%s">'."\n",
+						 $x1,$y1,$x2,$y2, $attr->{tooltip}||'', $attr->{href}||'');
+  }
+  return $imagemap;
+}
+
+
 
 
 ######################################################################
@@ -141,7 +165,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.20 2005/12/07 23:21:02 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.21 2005/12/08 00:58:06 mukhyala Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -281,7 +305,8 @@ sub add_pfsignalp {
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
 									 -name => sprintf("NN  (%3.2f)",$r->[3]),
-									 -score => $r->[3]
+									 -score => $r->[3],
+									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
 								   ) );
 	$nadded++;
   }
@@ -296,8 +321,9 @@ sub add_pfsignalp {
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
-									 -name => sprintf("Pfam HMM (%3.2f)",$r->[3]),
-									 -score => $r->[3]
+									 -name => sprintf("HMM (%3.2f)",$r->[3]),
+									 -score => $r->[3],
+									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
 								   ) );
 	$nadded++;
   }
@@ -342,7 +368,8 @@ sub add_pftmdetect {
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
 									 -name => $r->[2],
-									 -score => $r->[3]
+									 -score => $r->[3],
+									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
 								   ) );
 	$nadded++;
   }
@@ -381,11 +408,19 @@ sub add_pftmhmm {
   my $sql = "select start,stop,type from pftmhmm where pseq_id=$q";
   my $featref = $u->selectall_arrayref($sql);
   foreach my $r (@$featref) {
+	my $tooltip = sprintf("%d-%d: %s",
+						  $r->[0], $r->[1],
+						  ( $r->[2] eq 'o' ? 'extracellular (outside)'
+							: $r->[2] eq 'i' ? 'intracellular (inside)'
+							: $r->[2] eq 'M' ? 'transmembrane outside->inside'
+							: $r->[2] eq 'N' ? 'transmembrane inside->outside'
+							: 'unknown prediction' ));
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
 									 -name => $r->[2],
-									 -score => $r->[3]
+									 -score => $r->[3],
+									 -attributes => { tooltip => $tooltip }
 								   ) );
 	$nadded++;
   }
@@ -411,7 +446,9 @@ sub add_paprospect {
   $params_id = 1 unless defined $params_id;
   $params_name = $u->get_params_name_by_params_id($params_id);
   my $sth = $u->prepare(<<EOT);
-SELECT * FROM paprospect_scop_v WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
+SELECT *
+FROM paprospect_scop_v
+WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
 EOT
   $sth->execute();
   my @raw_data;
@@ -446,7 +483,8 @@ EOT
     for ( my $i=0; $i<$#scops+1; $i++ ) {
 	  my %scopi = %{$scops[$i]};
 	  $scopsf{$scopi{sfname}}++;
-	  $scop .= sprintf("%s > %s > %s\n",
+	  $scop .= sprintf("%d-%d: %s > %s > %s\n",
+					   $row->{start}, $row->{stop},
 					   @scopi{qw(clname sfname dmname)});
 	  $scoplink = sprintf('http://scop.berkeley.edu/search.cgi?sunid=%d',$scopi{dmid});
 	}
@@ -460,7 +498,7 @@ EOT
 													-end   => $row->{stop},
 													-score => $row->{svm},
 													-name  => $name,
-													-attributes => { tooltip => $scop, 
+													-attributes => { tooltip => $scop,
 																	 href => $scoplink }
 												   ));
     $nadded++;
@@ -566,9 +604,7 @@ EOSQL
 								 -height => 4,
 							   );
 
- 
   foreach my $r (@$featref) {
-   
 	next unless defined $r->[0];
 	#printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
 	my $href = ($view ? $pseq_structure->region_script($r->[0],$r->[1],$r->[6]):"http://pfam.wustl.edu/cgi-bin/getdesc?name=$r->[6]");	
@@ -578,11 +614,10 @@ EOSQL
 									 -score => $r->[3],
 									 -name => sprintf("%s; %s; S=%s; E=%s)",
 													  @$r[6,2,3,4]),
-									 -attributes => { tooltip => sprintf("%s: %s", @$r[5,7]),
-											  href => $href
+									 -attributes => { tooltip => sprintf("%d-%d: %s [%s]", @$r[0,1,6,7]),
+													  href => $href
 											}
 								   ) );
-	 
 	$nadded++;
   }
   return $nadded;
@@ -635,7 +670,8 @@ sub add_papssm {
 									 -end => $r->[1],
 									 -score => $r->[3],
 									 -name => sprintf("%s; S=%s; E=%s)",
-													  $r->[2], $r->[3], $r->[4])
+													  $r->[2], $r->[3], $r->[4]),
+									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
 								   ) );
 	$nadded++;
   }
@@ -678,7 +714,7 @@ sub add_pfantigenic {
 									 -end => $r->[1],
 									 -score => $r->[2],
 									 -name => $r->[3],
-									 -attributes => {}
+									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
 								   ) );
 	$nadded++;
   }
@@ -720,7 +756,8 @@ sub add_pfsigcleave {
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
 									 -score => $r->[2],
-									 -name => $r->[2]
+									 -name => $r->[2],
+									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
 								   ) );
 	$nadded++;
   }
