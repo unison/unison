@@ -1,10 +1,11 @@
 /* unison_activateTooltips
-	Attaches onmouseover function to all span objects with "tooltip" attributes.
+	Attaches onmouseover function to ALL elements with "tooltip" attributes.
 	This enables simple tooltips like <span tooltip="hi there">something</a>.
  */
 
 function unison_activateTooltips() {
-	var elements = document.getElementsByTagName('span');
+	/* WARNING: domLib_isIE5 must have already been set; see domLib.js */
+    var elements = domLib_isIE5 ? document.all : document.getElementsByTagName('*');
 	for (var i = 0; i < elements.length; i++) {
 		if (elements[i].getAttribute("tooltip")) {
 			var content = elements[i].getAttribute("tooltip");
