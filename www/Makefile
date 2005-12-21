@@ -15,6 +15,9 @@ renav: FORCE
 	./bin/insert-quicklink-menu.pl credits.html index.html license.html moreinfo.html topnav.html
 
 
+push-offline: FORCE
+	rsync -e 'ssh -lreece' -Rav offline.html styles/unison.css av harts.net:harts.net/unison/
+
 clean:
 	/bin/rm perl5/Unison perl5/Prospect2
 	rmdir perl5
