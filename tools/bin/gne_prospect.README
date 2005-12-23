@@ -1,0 +1,29 @@
+gne_prospect README 
+$Id$
+#-------------------------------------------------------------------------------
+# NAME: gne_prospect
+# PURPOSE: run propsect with various options
+# USAGE: gne_prospect ARGUMENTS OPTIONS <seq file>
+# ARGUMENTS (required):
+# none
+# OPTIONS:
+#   --global      |  :   global alignment mode (default)
+#   --global_local|  :   global-local alignment mode
+#   --psiblast    |-b:   use profile information in threading
+#   --psipred     |-p:   use Psired secondary structure in threading
+#   --db          |-d:   blast database (psiblast)
+#   --iter        |-j:   iterations (psiblast)
+#   --eval        |-h:   eval cutoff (psiblast)
+#   --cpus        |-a:   cpus (psiblast)
+#   --verbose     |-v:   output more processing information
+#   --tfile       |-t <file_name>: file containing list of templates (default is FSSP)
+#   --sort        |-s <n>: sort and output top n templates. Creates .raw and .svm files
+#   --save        |-x:   output in XML format. Creates a .xml file
+#   --3d                 create backbone coordinates of sequences
+#   --help               this output
+#------------------------------------------------------------------------------
+ 
+ 
+The script basically calls the Bio::Prospect methods for threading. 
+When supplied with --psipred or --psiblast options it runs runpsipred (you need to set PSIPRED_PATH to the correct location: unison/loading/pfpsipred) and read_chk, sortProspect depending on the options.
+
