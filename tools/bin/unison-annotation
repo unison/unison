@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id:$
+# $Id: unison-annotation,v 1.1 2005/12/23 21:48:33 mukhyala Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id$>
+S<$Id: unison-annotation,v 1.1 2005/12/23 21:48:33 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -55,7 +55,7 @@ unison-annotation [-S|-A|-F|-U  -s|-v  |--pfam|--signalp|--transmembrane|--local
  #1 summary (one line per protein)
  unison-annotation -s [-S|-A|-F|-U] <input>
  #2 detailed (default)
- unison-annotation -s [-S|-A|-F|-U] <input>
+ unison-annotation [-S|-A|-F|-U] <input>
  #3 verbose
  unison-annotation -v [-S|-A|-F|-U] <input>
  #4 help and Version
@@ -92,7 +92,7 @@ my $u = new Unison(username=>'PUBLIC');
 
 my %opts = parse_options();
 if ( $opts{version} ) {
-  print(STDERR '$Id:$ ', "\n");
+  print(STDERR '$Id: unison-annotation,v 1.1 2005/12/23 21:48:33 mukhyala Exp $ ', "\n");
   exit;
 }
 if ( $opts{help} ) {
@@ -103,9 +103,9 @@ if ( $opts{help} ) {
 my @short_table_defs =
   (
    ['signalp','pfsignalpnn', [qw(signal_peptide)], 'SignalP 3.0 (euk)'],
-   ['tm count','pftmhmm_tm_count_v', [qw(count)], 'TMHMM 2.0c'],
+   ['tm_count','pftmhmm_tm_count_v', [qw(count)], 'TMHMM 2.0c'],
    ['localization','psprotcomp_reliable_v', [qw(loc)], 'protcomp default'],
-   ['pfam domains(eval)','pahmm_v',[qw(name eval)], 'Pfam_ls 18.0', 'eval <= 1e-5']
+   ['pfam','pahmm_v',[qw(name eval)], 'Pfam_ls 18.0', 'eval <= 1e-5']
   );
 
 my @long_table_defs =
@@ -113,7 +113,7 @@ my @long_table_defs =
    ['signalp','pfsignalpnn', [qw(start stop d_score signal_peptide)], 'SignalP 3.0 (euk)'],
    ['transmembrane','pftmhmm_tms_v', [qw(start stop type)], 'TMHMM 2.0c'],
    ['localization','psprotcomp_reliable_v', [qw(loc)], 'protcomp default'],
-   ['pfam domains(eval)','pahmm_v',[qw(start stop ends score eval acc name descr)], 'Pfam_ls 18.0', 'eval <= 1e-5']
+   ['pfam','pahmm_v',[qw(start stop ends score eval acc name descr)], 'Pfam_ls 18.0', 'eval <= 1e-5']
   );
 
 # args from command line or stdin, but not both
@@ -121,19 +121,24 @@ my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
 @args = map_args_to_pseq_ids( \%opts, @args );
 my @outcols = map {$_->[0]} @short_table_defs;
 my $optsum = eval join('+', map {$opts{$_}?1:0} @outcols);
-if($optsum) {
-  undef @outcols;
-  foreach (@short_table_defs) {
-    push @outcols, $_->[0] if($opts{$_->[0]});
+
+
+#create the right column headers for --summary option
+if($opts{summary}) {
+  if($optsum) {
+    undef @outcols;
+    foreach (@short_table_defs) {
+      push @outcols, $_->[0] if($opts{$_->[0]});
+    }
   }
+  my $summary_header = sprintf("%-40s\t".'%-24s'x($#outcols+1),"alias",@outcols);
+  printf(STDERR "#$summary_header\n");
 }
-my $summary_header = sprintf("%-40s\t".'%-24s'x($#outcols+1),"alias",@outcols);
+
 
 my %id_alias;
-print "#$summary_header\n" if($opts{summary});
 for(my $i=0; $i<=$#args; $i++) {
-  my $results=get_data($args[$i]);
-  show_results($results,$args[$i]);
+  show_results(get_data($args[$i]),$args[$i]);
 }
 exit(0);
 
@@ -182,7 +187,7 @@ sub map_args_to_pseq_ids($@) {
 	warn( "! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
 	next;
       }
-      printf("* %s (Unison:%d; %s);\n",
+      printf(STDERR "* %s (Unison:%d; %s);\n",
 	     $bs->display_id(), $pseq_id,
 	     $u->best_alias($pseq_id) || '<no alias>');
       push @pseq_ids, $pseq_id;
@@ -298,7 +303,8 @@ sub show_results($$) {
       $summary .= "\t";
     }
     else {
-      printf("#".join "\t",@{$_->[2]},"\n");
+      printf(STDERR "#$data\n");
+      printf(STDERR "#".join "\t",@{$_->[2]},"\n");
       foreach my $a (@results) {
 	printf(join "\t", @{$a},"\n");
       }
