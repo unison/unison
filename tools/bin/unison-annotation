@@ -1,20 +1,22 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id: unison-annotation,v 1.1 2005/12/23 21:48:33 mukhyala Exp $
+# $Id: unison-annotation,v 1.2 2005/12/23 22:07:43 mukhyala Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id: unison-annotation,v 1.1 2005/12/23 21:48:33 mukhyala Exp $>
+S<$Id: unison-annotation,v 1.2 2005/12/23 22:07:43 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
   unison-annotation 1234
   unison-annotation -A TNFA_HUMAN
   unison-annotation -F NP_004439
+  unison-annotation -S seqs.fa
+  unison-annotation 100-110
 
 =head1 OPTIONS
 
@@ -33,12 +35,11 @@ unison-annotation [-S|-A|-F|-U  -s|-v  |--pfam|--signalp|--transmembrane|--local
  unison-annotation -F <fuzzy alias>
     or echo <fuzzy alias> | unison-annotation -F
  #4 by sequence id
- unison-annotation -U <pseq_id>
+ unison-annotation -U <pseq_id> (default)
     or echo <pseq_id> | unison-annotation -U
     or unison-annotation pseq_id
     or echo pseq_id | unison-annotation
     or unison-annotation <range>
- ex: unison-annotation 870-880
 
                annotation choices
                --------------
@@ -92,7 +93,7 @@ my $u = new Unison(username=>'PUBLIC');
 
 my %opts = parse_options();
 if ( $opts{version} ) {
-  print(STDERR '$Id: unison-annotation,v 1.1 2005/12/23 21:48:33 mukhyala Exp $ ', "\n");
+  print(STDERR '$Id: unison-annotation,v 1.2 2005/12/23 22:07:43 mukhyala Exp $ ', "\n");
   exit;
 }
 if ( $opts{help} ) {
@@ -283,7 +284,7 @@ sub show_results($$) {
       # distinguish these cases by checking the run_history table.
       my $z = $u->get_run_timestamp($pseq_id,$params_id,undef,undef);
       if (defined $z) {
-	print("  ran on $z; no hits with $cond for $table\n");
+	print("  ran on $z; no hits with $cond for $data\n");
       } else {
 	print("  not run using parameters '$_->[3]\n");
       }
