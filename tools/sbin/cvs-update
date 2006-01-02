@@ -1,0 +1,36 @@
+#!/bin/sh -e
+# cvs-update -- CVS update the Unison web tree
+
+if [ $# -ne 1 ]; then
+		echo "usage: cvs-update <tag>" 1>&2
+		exit 1
+fi
+
+if ! [ -e LICENSE -a -d cgi -a -d perl5 ]; then
+		echo "$0: this doesn't look like a Unson web tree" 1>&2
+		exit 2
+fi
+
+if ! [ -e "perl5/Unison/WWW/init.pm" ]; then
+		echo "$0: perl5/Unison/WWW/init.pm doesn't exist!" 1>&2
+		exit 3
+fi
+
+if ! [ -e "perl5-prereq/Unison/common.pm" ]; then
+		echo "$0: perl5-prereq/Unison/common.pm doesn't exist!" 1>&2
+		exit 4
+fi
+
+set -x
+
+/bin/rm -f perl5/Unison/WWW/init.pm perl5-prereq/Unison/common.pm
+
+cvs -q up -r "$1"
+
+(
+cd perl5-prereq;
+cvs -q up;
+cvs -q up -r "$1" Unison Unison.pm
+)
+
+grep rel_ perl5/Unison/WWW/init.pm perl5-prereq/Unison/common.pm
