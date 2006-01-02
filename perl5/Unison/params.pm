@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.13 2005/05/13 19:14:23 rkh Exp $>
+S<$Id: params.pm,v 1.14 2005/05/17 01:20:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -147,6 +147,24 @@ sub get_params_id_by_name($$) {
   goto &params_id_by_name;
 }
 
+######################################################################
+## current_params_id_by_pftype()
+
+=pod
+
+=item B<< $u->current_params_id_by_pftype( C<pfeature_name> ) >>
+
+Returns the current params_id for a pfeature type.
+
+=cut
+
+sub current_params_id_by_pftype($$) {
+  my ($self,$pfeature_name) = @_;
+  $self->is_open()
+  || croak("Unison connection not established");
+  my $id = $self->selectrow_array('select current_params_id_by_pftype_id( pftype_id(?) )',undef,uc($pfeature_name));
+  return $id;
+}
 
 ######################################################################
 ## get_p2options_by_params_id()
