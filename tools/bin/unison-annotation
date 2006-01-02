@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id: unison-annotation,v 1.2 2005/12/23 22:07:43 mukhyala Exp $
+# $Id: unison-annotation,v 1.3 2005/12/23 22:13:49 mukhyala Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id: unison-annotation,v 1.2 2005/12/23 22:07:43 mukhyala Exp $>
+S<$Id: unison-annotation,v 1.3 2005/12/23 22:13:49 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -93,7 +93,7 @@ my $u = new Unison(username=>'PUBLIC');
 
 my %opts = parse_options();
 if ( $opts{version} ) {
-  print(STDERR '$Id: unison-annotation,v 1.2 2005/12/23 22:07:43 mukhyala Exp $ ', "\n");
+  print(STDERR '$Id: unison-annotation,v 1.3 2005/12/23 22:13:49 mukhyala Exp $ ', "\n");
   exit;
 }
 if ( $opts{help} ) {
@@ -104,7 +104,7 @@ if ( $opts{help} ) {
 my @short_table_defs =
   (
    ['signalp','pfsignalpnn', [qw(signal_peptide)], 'SignalP 3.0 (euk)'],
-   ['tm_count','pftmhmm_tm_count_v', [qw(count)], 'TMHMM 2.0c'],
+   ['transmembrane','pftmhmm_tm_count_v', [qw(count)], 'TMHMM 2.0c'],
    ['localization','psprotcomp_reliable_v', [qw(loc)], 'protcomp default'],
    ['pfam','pahmm_v',[qw(name eval)], 'Pfam_ls 18.0', 'eval <= 1e-5']
   );
@@ -293,8 +293,11 @@ sub show_results($$) {
     printf(STDERR "# $pseq_id : params = $_->[3] (params_id = $params_id : %d result(s)\n",$#results+1) if $opts{verbose} and !$opts{summary};
     if($opts{summary}) {
       foreach my $a (@results) {
-	if($table eq 'pahmm_v') {
+	if($data eq 'pfam') {
 	  $summary .= sprintf("%-20s","$a->[0]($a->[1]),");
+	}
+	elsif($data eq 'signalp') {
+	  $summary .= sprintf("%-20s",yes_no($a->[0]));
 	}
 	else {
 	  $summary .= sprintf("%-20s",$a->[0]);
@@ -307,6 +310,7 @@ sub show_results($$) {
       printf(STDERR "#$data\n");
       printf(STDERR "#".join "\t",@{$_->[2]},"\n");
       foreach my $a (@results) {
+	$a->[$#{$a}] = yes_no($a->[$#{$a}]) if($data eq 'signalp');
 	printf(join "\t", @{$a},"\n");
       }
       print "\n";
@@ -371,4 +375,8 @@ sub parse_options() {
     die("$0: may only specify one of {", join(',',@opts), "}.\n");
   }
   return %opts;
+}
+
+sub yes_no {
+  return ( (shift) ?'yes':'no');
 }
