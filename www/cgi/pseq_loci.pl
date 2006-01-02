@@ -13,12 +13,12 @@ use Unison::Exceptions;
 use Error qw(:try);
 
 
-my $margin = 5000;						# margin around gene for geode
+my $margin = 5000;						# margin around gene for genome map
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.20 2005/12/07 07:27:57 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.21 2005/12/07 23:21:02 rkh Exp $ ');
 
 
 my @ps = $u->get_params_info_by_pftype('pmap');
@@ -40,21 +40,21 @@ if (not defined $v->{params_id}) {
 
 
 my $sql = <<EOSQL;
-SELECT pstart,pstop,pct_ident,pct_cov,L.genasm_id,G.tax_id,T.latin,G.name as genome_name,chr,(case plus_strand when true then '+' else '-' end) as strand,gstart,gstop
+SELECT params_id,pstart,pstop,pct_ident,pct_cov,L.genasm_id,G.tax_id,T.latin,G.name as genome_name,chr,(case plus_strand when true then '+' else '-' end) as strand,gstart,gstop
 FROM pmap_v L
 JOIN genasm G ON L.genasm_id=G.genasm_id
 JOIN tax.spspec T on G.tax_id=T.tax_id
-WHERE L.genasm_id=G.genasm_id AND L.params_id=? AND L.pseq_id=?
+WHERE L.genasm_id=G.genasm_id AND L.params_id=$v->{params_id} AND L.pseq_id=$v->{pseq_id}
 ORDER BY tax_id,genasm_id,chr
 EOSQL
 
-my @cols = ('pstart-pstop', '% ident', '% cov', 'species', 'genome name', 'locus', 'links' );
+my @cols = ('pstart-pstop', '% ident', '% cov', 'species', 'genome name', 'locus', 'inset' ); #, 'links' );
 
 
 try {
   my @data;
   my $sth = $u->prepare($sql);
-  $sth->execute($v->{params_id},$v->{pseq_id});
+  $sth->execute();
 
   while ( my $r = $sth->fetchrow_hashref() ) {
 	my (%row_data) = map { $_ => '' } @cols;
@@ -64,15 +64,38 @@ try {
 	$row_data{'species'} = $r->{latin};
 	$row_data{'genome name'} = $r->{genome_name};
 	$row_data{'locus'} = sprintf('%s%s:%d-%d',$r->{chr},$r->{strand},$r->{gstart},$r->{gstop});
-	$row_data{'links'} = genome_links($r);
+	$row_data{'inset'} = sprintf('<a href="javascript:update_emb_genome_map(%d,\'%s\',%d,%d,%d)">show</a>',
+								 $r->{genasm_id},$r->{chr},$r->{gstart}-$margin,$r->{gstop}+$margin,$v->{params_id});
+	#$row_data{'links'} = genome_links($r);
 	push(@data, [map {$row_data{$_}} @cols]);
   }
 
+  my $js = <<EOJS;
+<script type="text/javascript" language="javascript">
+function update_emb_genome_map(genasm_id,chr,gstart,gstop,params_id) {
+var emb_elem = document.getElementById('emb_genome_map');
+if (emb_elem) {
+  var emb_url = 'emb_genome_map.pl?';
+  emb_url += 'genasm_id='+genasm_id;
+  emb_url += ';chr='+chr;
+  emb_url += ';gstart='+gstart+';gstop='+gstop;
+  emb_url += ';params_id='+params_id;
+  emb_elem.setAttribute('src', emb_url);
+  }
+}
+</script>
+EOJS
+
   print $p->render("Loci of Unison:$v->{pseq_id}",
 				   $p->best_annotation($v->{pseq_id}),
-				   '<p>',
 				   $p->group("Loci",
-							 Unison::WWW::Table::render(\@cols,\@data)),
+							 '<div>',		# div solely so that
+							 $js,			# js is in block element
+							 Unison::WWW::Table::render(\@cols,\@data),
+							'</div>'),
+				   '<p><iframe id="emb_genome_map" width="100%" height="300px" scrolling="yes">',
+				   'Sorry. I cannot display alignments because your browser does not support iframes.',
+				   '</iframe>',
 
 				   $p->sql($sql)
 				  );
