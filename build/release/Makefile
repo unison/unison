@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.10 2005/12/01 06:05:02 rkh Exp $
+# $Id: Makefile,v 1.11 2005/12/09 04:39:40 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -68,7 +68,7 @@ stage.log:
 .PHONY: dump
 dump: unison-${DATE}-schema.psql.gz unison-${DATE}-data.psql.gz
 unison-${DATE}-data.psql.gz:
-	(pg_dump csb-stage $< | ../../sbin/publicize -dcsb-dev | gzip >$@.tmp) 2>$@.err
+	(pg_dump csb $< | ../../sbin/publicize | gzip >$@.tmp) 2>$@.err
 	/bin/mv $@.err $@.log
 	/bin/mv $@.tmp $@
 unison-${DATE}-schema.psql.gz:

@@ -119,7 +119,8 @@ sub get_pseq_id_from_alias {
 
   # RefSeq
   if ($alias =~ s/^RefSeq://i or $alias =~ m/^[NXZAY]P_\d+/) {
-	# looks like a RefSeq alias
+	# looks like a RefSeq alias.  This requires special handling because
+	# we want to account for versioned identifier
 	# official protein sequence prefixes are listed in
 	# ftp://ftp.ncbi.nih.gov/refseq/release/release-notes/RefSeq-release4.txt
 	# and http://www.ncbi.nih.gov/RefSeq/key.html#accessions
