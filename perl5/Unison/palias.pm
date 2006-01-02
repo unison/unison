@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.20 2005/06/18 00:22:01 rkh Exp $>
+S<$Id: palias.pm,v 1.21 2005/12/07 23:21:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -117,10 +117,18 @@ sub get_pseq_id_from_alias {
 	return $1;
   }
 
-  # Genentech-only: if it looks like an Genentech UNQ, DNA, or PRO, 
-  # do that search only.
-  ## THIS DOESN'T BELONG HERE, BUT IT'S USEFUL.
-  if ($alias =~ m%^(UNQ|DNA|PRO|FAM)(\d+)$%i) {
+  # RefSeq
+  if ($alias =~ s/^RefSeq://i or $alias =~ m/^[NXZAY]P_\d+/) {
+	# looks like a RefSeq alias
+	# official protein sequence prefixes are listed in
+	# ftp://ftp.ncbi.nih.gov/refseq/release/release-notes/RefSeq-release4.txt
+	# and http://www.ncbi.nih.gov/RefSeq/key.html#accessions
+	(@ids) = $u->get_pseq_id_from_alias_regexp( "^$alias",'RefSeq' );
+	return(@ids);
+  }
+
+  # Genentech UNQ, DNA, or PRO ids
+  if ($alias =~ m%^(?:GenenGenes:)?(UNQ|DNA|PRO|FAM)(\d+)$%i) {
 	my ($type,$id) = (uc($1),$2);
 	my $sql;
 
@@ -144,21 +152,11 @@ sub get_pseq_id_from_alias {
 
   if (not $alias =~ m%^[~/^]%) {
 	# doesn't smell like a regexp
-
 	(@ids) = $u->get_pseq_id_from_alias_casefolded( $alias,$ori );
 	return(@ids) if @ids;
-
-	if ($alias =~ m/^[NXZAY]P_\d+$/) {
-	  # looks like an unversioned RefSeq alias; official protein sequence
-	  # prefixes are listed in
-	  # ftp://ftp.ncbi.nih.gov/refseq/release/release-notes/RefSeq-release4.txt
-	  # and http://www.ncbi.nih.gov/RefSeq/key.html#accessions
-	  (@ids) = $u->get_pseq_id_from_alias_regexp( "^$alias",'RefSeq' );
-	  return(@ids) if @ids;
-	}
   }
 
-  if (length($alias) >= 5 or $alias =~ /^[~^]/) {
+  if ($alias =~ /^[~^]/) {
 	# looks like a regexp OR exact match above failed
 	(@ids) = $u->get_pseq_id_from_alias_regexp( $alias,$ori );
 	return(@ids);

@@ -28,5 +28,5 @@ endif
 
 
 .done.ids:
-	psql -Atc 'select pseq_id from run_history where params_id=${PSPROTCOMP_PARAMS_ID}' >$@.tmp
+	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${PSPROTCOMP_PARAMS_ID}' >$@.tmp
 	/bin/mv -f $@.tmp $@

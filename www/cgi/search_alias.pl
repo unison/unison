@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# search_alias -- search Unison by alias
 
 use warnings;
 use strict;
@@ -13,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_alias.pl,v 1.9 2005/08/19 00:08:29 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_by_alias.pl,v 1.10 2005/11/20 23:22:42 rkh Exp $ ');
 
 print $p->render("Search by Alias"
 				 . (defined $v->{alias} ? ": $v->{alias}" : ''),
@@ -36,7 +37,7 @@ print $p->render("Search by Alias"
 
 sub do_search {
   my $q = shift;
-  my $max_seqs = 100;
+  my $max_seqs = 1000;
   my (@pseq_ids) = $u->get_pseq_id_from_alias( $q );
 
   if ($#pseq_ids == -1) {

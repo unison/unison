@@ -19,7 +19,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.16 2005/09/16 04:46:20 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.17 2006/01/01 00:36:10 rkh Exp $ ');
 
 
 try {
@@ -34,12 +34,27 @@ try {
 
   my ($cref,$rref,$sql) = _fetch($p);
 
-  print $p->render (
-					"HMM alignments for Unison:$v->{pseq_id}",
+  my $js = <<EOJS;
+<script type="text/javascript" language="javascript">
+function update_emb_hmm_alignment(pseq_id, params_id, acc) {
+var emb_elem = document.getElementById('emb_hmm_alignment');
+if (emb_elem) {
+  var emb_url = 'emb_hmm_alignment.pl?';
+  emb_url += 'pseq_id='+pseq_id;
+  emb_url += ';params_id='+params_id;
+  emb_url += ';profiles='+acc;
+  emb_elem.setAttribute('src', emb_url);
+  }
+}
+</script>
+EOJS
+
+  print $p->render ("HMM alignments for Unison:$v->{pseq_id}",
 					$p->best_annotation($v->{pseq_id}),
 
 					'<!-- parameters -->',
 					$p->start_form(-method=>'GET'),
+					$js,
 					$p->hidden('pseq_id',$v->{pseq_id}),
 					'<br>parameters: ', $p->popup_menu(-name => 'params_id',
 													   -values => [map {$_->[0]} @ps],
@@ -53,10 +68,17 @@ try {
 					$p->hidden('pseq_id',$v->{pseq_id}),
 					$p->hidden('params_id',$v->{params_id}),
 
-					( $p->is_public() ? '' : ('<p>', $p->submit(-value=>'align checked')) ),
-
 					$p->group("HMM alignments",
 							  Unison::WWW::Table::render($cref,$rref)),
+
+					( $p->is_public()
+					  ? ''
+					  : ( '<p>', $p->submit(-value=>'align checked'),
+						  '<p><iframe id="emb_hmm_alignment" width="100%" height="300px" scrolling="yes">',
+						  'Sorry. I cannot display alignments because your browser does not support iframes.',
+						  '</iframe>'
+						)
+					),
 
 					'<!-- sql -->',
 					$p->sql($sql)
@@ -83,7 +105,7 @@ EOSQL
 
   my @cols = ('name', 'start-stop', 'mstart-mstop', 'ends', 'score', 'eval');
   if ( not $p->is_public_instance() ) {
-	unshift(@cols, 'aln?');
+	unshift(@cols, 'align');
   }
   my @rows;
 
@@ -93,7 +115,10 @@ EOSQL
 	my @row;
 
 	if ( not $p->is_public_instance() ) {
-	  push(@row, sprintf('<input type="checkbox" name="profiles" value="%s">', $r->{name}))
+	  my $ckbox = "<input type=\"checkbox\" name=\"profiles\" value=\"$r->{name}\">";
+	  my $aln = sprintf('<a href="javascript:update_emb_hmm_alignment(%d,%d,\'%s\')">show</a>', 
+						$v->{pseq_id}, $v->{params_id}, $r->{name});
+	  push( @row, "$ckbox &nbsp; &nbsp; $aln" );
 	}
 
 	push(@row,

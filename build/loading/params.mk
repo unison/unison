@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.7 2005/12/07 07:27:57 rkh Exp $
+## $Id: params.mk,v 1.8 2005/12/18 07:49:54 rkh Exp $
 
 
 
@@ -27,7 +27,7 @@ PAPROSPECT_PMODELSET_ID:=20
 ############################################################################
 #### PAHMM
 PAHMM_PARAMS_ID:=27
-PAHMM_PORIGIN_ID:=$(shell ${PSQL} -UPUBLIC -Atc 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
+PAHMM_PORIGIN_ID:=$(shell ${PSQL_DCMD} 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
 
 
 ############################################################################
@@ -59,7 +59,7 @@ PFSIGNALP_SEQS_PER_RUN:=100
 
 ############################################################################
 #### PMAP
-PMAP_PARAMS_ID:=30
+PMAP_PARAMS_ID:=32
 
 
 ############################################################################

@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id$
+S<$Id: EmbPage.pm,v 1.1 2005/07/29 22:18:39 mukhyala Exp $
 
 =head1 SYNOPSIS
 
@@ -30,8 +30,8 @@ use base Unison::WWW::Page;
 
 =item B<< $p->render( C<title>, C<body elems, ...> ) >>
 
-Generates a Unison web page without Unison's header tabs with title given C<title> and with the
-page-specific content provided by an array of C<body elems>.
+Generates a Unison web page intended to be embedded in an iframe or object
+block element.
 
 =cut
 
@@ -41,19 +41,19 @@ sub render {
   my $title = shift;
 
   return ($self->header(),
-	  $self->start_html(-title=>"Unison: $title")," \n\n\n",
-	  '<center>',
-	  '<tr>', "\n",
-	  "\n<!-- ========== begin page content ========== -->\n",
-	  '  <td class="body">', "\n",
-	  "  <b>$title</b><br>", "\n", 
-	  '  ', @_, "\n",
-	  '  </td>', "\n",
-	  "\n<!-- ========== end page content ========== -->\n",
-	  '</tr>', "\n",
-	  '</table>', "\n",
-	  '</center>',
-	  "\n", $self->end_html(),"\n"
+		  $self->start_html(-title=>"Unison: $title"),
+		  '<table width="100%">', "\n",
+		  '<tr>', "\n",
+		  "\n<!-- ========== begin page content ========== -->\n",
+		  '  <td class="body">', "\n",
+		  "  <b>$title</b><br>", "\n", 
+		  '  ', @_, "\n",
+		  '  </td>', "\n",
+		  "\n<!-- ========== end page content ========== -->\n",
+		  '</tr>', "\n",
+		  '</table>', "\n",
+		  $self->end_html(),
+		  "\n"
 	 );
 }
 

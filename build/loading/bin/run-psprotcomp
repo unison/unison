@@ -11,7 +11,6 @@ use IO::Pipe;
 use Bio::SeqIO;
 use Data::Dumper;
 
-
 sub _parseBlock( $ );
 sub _fetch_sequences ($$@);
 
@@ -122,6 +121,7 @@ while( @Q ) {
 	my ($pseq_id) = $blk =~ m/Unison:(\d+)/;
 	if (not defined $pseq_id) {
 	  warn("! WARNING: couldn't parse Unison pseq_id from block; skipping remaining block\n");
+	  $u->commit();
 	  last;
 	}
 
@@ -131,6 +131,7 @@ while( @Q ) {
 	if (not ref $pb) {
 	  # error message in $pb
 	  warn("Couldn't parse block for Unison:$pseq_id: $pb\n$blk\n\n");
+	  $u->commit();
 	  last;
 	}
 

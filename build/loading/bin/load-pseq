@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.20 2005/10/09 09:39:31 rkh Exp $
+# $Id: load-pseq,v 1.21 2005/11/07 23:43:07 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -123,7 +123,6 @@ if ($totals{nadded} > 0) {
 } else {
   warn("! WARNING: No sequences loaded; origin.last_updated NOT tickled\n");
 }
-
 
 
 

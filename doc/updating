@@ -153,8 +153,6 @@ typeII
 
 * Post-loading tasks
 
-** move blast database files to common location
-
 ** generate schema docs
 
 ** best_annotation_mv
@@ -164,6 +162,11 @@ typeII
 ** load new scop
 scop2pmodel 
 
+** release / stats
+
+** move blast database files to common location
+
+
 
 
 * database flow and backups
@@ -171,11 +174,12 @@ scop2pmodel
 web:    8080              8040              80                  8000    
 db:   csb-dev  -------->  stage  -------->  csb                unison
          |     dev2stage         stage2prd   |                   ^
-         |backup (cron)                      |backup (manual)    |restore
+         |backup (cron)                      |publicize    |restore
          v                                   v                   |
 bu:   csb-dev-<ts>                        csb-<ts>  ------->  unison-<ts>
-                                                  make-public-db
+                                                  
 
 bu = backup
 ts = timestamp
+
 

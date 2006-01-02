@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.20 2005/12/07 23:21:02 rkh Exp $
+## $Id: common.mk,v 1.21 2005/12/18 07:49:54 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE FORCED_BUILD
@@ -9,7 +9,7 @@ SHELL:=/bin/bash
 
 PSQL:=psql
 PSQL_VCMD:=${PSQL} -c
-PSQL_DCMD:=${PSQL} -At -c
+PSQL_DCMD:=${PSQL} -UPUBLIC -At -c
 
 
 #CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
@@ -71,13 +71,13 @@ vpath %.ids .:..
 .PHONY: ids
 ids: runA.ids runB.ids runC.ids
 .runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
-	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
+	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
 .runA-human.ids .runB-human.ids .runC-human.ids .uniA-human.ids .uniB-human.ids .uniC-human.ids .uniD-human.ids: .%-human.ids:
-	psql -Atc "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('Human')" >$@
+	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('Human')" >$@
 .pset%.ids:
-	psql -Atc 'select pseq_id from pseqset where pset_id=$*' >$@
+	${PSQL_DCMD} 'select pseq_id from pseqset where pset_id=$*' >$@
 .porigin%.ids:
-	psql -Atc 'select distinct pseq_id from palias where porigin_id=$*' >$@
+	${PSQL_DCMD} 'select distinct pseq_id from palias where porigin_id=$*' >$@
 
 # generic set-todo.ids is anything which hasn't been done already
 # The top-level makefile which included this one must
@@ -87,23 +87,23 @@ ids: runA.ids runB.ids runC.ids
 
 # 'O-': sequence ids by origin
 .O-%.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@
 
 # sequence lists by origin
 .genengenes.ids .sugen.ids .pdb.ids: %.ids:
-	psql -Atc "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@
+	${PSQL_DCMD} "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@
 .ggi.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@
 .ggi1.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1/'" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1/'" >$@
 .ggi-se1.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@
 .ggi-me1.ids:
-	psql -Atc "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@
 
 # sequence lists by other info
 .fam%.ids:
-	psql -Atc 'select distinct pseq_id from unison.gg_famid_pseq_id_v where famid=$*' >$@
+	${PSQL_DCMD} 'select distinct pseq_id from unison.gg_famid_pseq_id_v where famid=$*' >$@
 
 
 # -Nn rules: split .ids files into N sets, w/ approximately the same number

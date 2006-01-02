@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.34 2005/12/07 07:27:57 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.35 2005/12/07 23:21:03 rkh Exp $ ');
 
 
 my @cols;
@@ -139,8 +139,9 @@ foreach my $row ( @{$feats} ) {
   my $strxlink = $row->{acc};
   if ( -f "$pdbDir/pdb".substr($row->{acc},0,4).".ent" ) {
 	my $url = "p2cm.pl?pseq_id=$v->{pseq_id};viewer=$v->{viewer};params_id=$v->{params_id};templates=$row->{acc}";
-    $strxlink = sprintf('<a href="%s" tooltip="%s">%s</a>',
-						$url, "show threading alignment with $v->{viewer}",
+    $strxlink = sprintf('<span tooltip="%s"><a href="%s">%s</a><span>',
+						"show threading alignment with $v->{viewer}",
+						$url, 
 						$row->{acc});
   }
 

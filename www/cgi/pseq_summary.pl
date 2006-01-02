@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.41 2005/11/21 18:00:26 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.42 2005/12/07 23:21:03 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -34,7 +34,7 @@ if (defined $v->{plugin_id}) {
 try {
   $p->is_valid_pseq_id($v->{pseq_id});
 } catch Unison::Exception with {
-  $p->die_with_exception(shift, <<EOT);
+  $p->die(shift, <<EOT);
 You've provided a bogus pseq_id. Please verify the
 id an try again, or consider <a href="search_alias.pl">searching for it by name</a>.
 EOT
@@ -207,27 +207,19 @@ sub features_group ($) {
   my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
   $opts{features}{$_}++ foreach qw(psipred tmhmm signalp hmm );
 
-  my $panel = Unison::Utilities::pseq_features::pseq_features_panel($u,%opts);
-  
-  # write the png to the temp file
-  $png_fh->print( $panel->gd()->png() );
-  $png_fh->close();
-  
-  # assemble the imagemap as a string
-  foreach my $box ( $panel->boxes() ) {
-	my ($feature, $x1, $y1, $x2, $y2) = @$box;
-	my $attr = $feature->{attributes};
-	next unless defined $attr;				# if no tooltip or href, then no need for map
-	$imagemap .= sprintf("<AREA SHAPE=\"RECT\" COORDS=\"%d,%d,%d,%d\" %s %s>\n",
-						 $x1,$y1,$x2,$y2,
-						 ($attr->{tooltip} ? "TOOLTIP=\"$attr->{tooltip}\"" : ''),
-						 ($attr->{href} ? "HREF=\"$attr->{href}\"" : '') );
-  }
+  my $panel = new Unison::Utilities::pseq_features($u,%opts);
 
-  $p->group('Features&nbsp;' . $p->tooltip('?','a selection of precomputed results for this sequence.'),
-			"<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
-			"\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n",
-			'See also: <a href="pseq_features.pl?pseq_id=', $v->{pseq_id}, '">a summary of all features</a>',
-			' and <a href="pseq_history.pl?pseq_id=', $v->{pseq_id}, '">run history</a>'
-		   );
+  # write the png to the temp file
+  $png_fh->print( $panel->as_png() );
+  $png_fh->close();
+
+  $p->group('Features&nbsp;'.$p->tooltip('?','a selection of precomputed results for this sequence.'),
+			sprintf(<<EOT,$png_urn,$panel->imagemap_body(),$v->{pseq_id},$v->{pseq_id}));
+<center><img src="%s" usemap="#FEATURE_MAP"></center>
+<MAP NAME="FEATURE_MAP">
+%s
+</MAP>
+See also: <a href="pseq_features.pl?pseq_id=%d">a summary of all features</a>
+and <a href="pseq_history.pl?pseq_id=%d">run history</a>.
+EOT
 }

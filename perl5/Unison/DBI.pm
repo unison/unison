@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.21 2005/09/13 17:05:37 rkh Exp $>
+S<$Id: DBI.pm,v 1.22 2005/12/01 06:05:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -48,8 +48,9 @@ our %opts =
    attr => {
 			PrintError => 0,
 			RaiseError => 0,
-			AutoCommit => 0,
-			# XXX: does the following work?
+			AutoCommit => 1,
+			# Does the following work as an alternative to
+			# setting HandleError explicitly below?
 			# HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
 		   },
   );
@@ -160,7 +161,9 @@ sub connect {
   }
 
   # this causes ALL DBI errors to be handled by Unison::Exception::DBIError (yea!)
-  $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
+  $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) };
+
+  $dbh->do('set search_path = unison,tax');
 
   $self->{dbh} = $dbh;
 
@@ -249,10 +252,13 @@ sub AUTOLOAD {
   if (defined $self->dbh()
 	  and $self->dbh()->can($method)) {
 	warn("AUTOLOAD $AUTOLOAD ($self)\n") if $ENV{DEBUG};
+	my $tracer = '';
+	#$tracer = 'print($method,"\n");' if ($method =~ m/^(?:begin_work|commit|end|rollback)$/);
 	## REMINDER: errors are caught by the HandleError setting above
 	my $sub = <<EOF;
     sub $AUTOLOAD {
 		my \$u = shift;
+        $tracer
 		\$u->is_open() or throw Unison::Exception::NotConnected;
 		my \$dbh = \$u->dbh();
         \$dbh->$method(\@_);
@@ -272,19 +278,60 @@ EOF
 ######################################################################
 =pod
 
-=item B<< is_public( ) >>
+=item B<< is_public_instance( ) >>
 
 returns 1 if this is a public database, per meta table
 
 =cut
 
-sub is_public ($) {
+sub is_public_instance ($) {
   my $self = shift;
-  if (not defined $self->{is_public}) {
-	$self->{is_public} = $self->selectrow_array(
+  if (not defined $self->{is_public_instance}) {
+	$self->{is_public_instance} = $self->selectrow_array(
       "select case when exists (select * from meta where key='publicized by') then 1 else 0 end;" );
   }
-  return $self->{is_public};
+  return $self->{is_public_instance};
+}
+sub is_public { goto &is_public_instance; }
+
+
+
+######################################################################
+=pod
+
+=item B<< is_prd_instance( ) >>
+
+returns 1 if this is a production database, per meta table
+
+=cut
+
+sub is_prd_instance ($) {
+  my $self = shift;
+  if (not defined $self->{is_prd_instance}) {
+	$self->{is_prd_instance} = $self->selectrow_array(
+      "select case when exists (select * from meta where key='released on') then 1 else 0 end;" );
+  }
+  return $self->{is_prd_instance};
+}
+
+
+######################################################################
+=pod
+
+=item B<< release_timestamp( ) >>
+
+returns the release timestamp for this database, or undef if this
+database hasn't been released.
+
+=cut
+
+sub release_timestamp ($) {
+  my $self = shift;
+  if (not defined $self->{release_timestamp}) {
+	$self->{release_timestamp} = 
+	  $self->selectrow_array('select value::date from meta where key=\'release timestamp\'');
+  }
+  return $self->{release};
 }
 
 
