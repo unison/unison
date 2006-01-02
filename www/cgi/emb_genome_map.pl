@@ -1,12 +1,7 @@
 #!/usr/bin/env perl
+## emb_genome_map.pl -- genome features as a Unison embeddable page
+## $Id$
 
-#-------------------------------------------------------------------------------
-# NAME: genome_features.pl
-# PURPOSE: web script to output pseq aligned to a genome
-# USAGE: genome_features.pl?genasm_id=<genasm_id>;[(chr=<chr>;gstart=<gstart>;gstop=<gstop>)||(pseq_id=<pseq_id>)]
-#
-# $Id: genome_features.pl,v 1.16 2005/11/21 19:13:32 mukhyala Exp $
-#-------------------------------------------------------------------------------
 
 use strict;
 use warnings;

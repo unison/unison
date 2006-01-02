@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.16 2005/12/07 23:21:02 rkh Exp $
+## $Id: Makefile,v 1.17 2005/12/18 07:49:54 rkh Exp $
 
 ## most subdirectories of ./ correspond to table names
 ## auxiliary schemas are handled in ../aux/
@@ -44,7 +44,7 @@ pseq.log: aux.log
 ######################################################################
 # 2. UPDATE INTRINSIC SETS AND OTHER DATA
 FX:=update_tax_ids update_psets_intrinsic
-MV:=best_annotation pmprospect_scop pseq_gene
+MV:=best_annotation pmprospect_scop pseq_gene gg_famid_pseq_id_mv gg_proid_pseq_id_mv gg_unq_pro_dna_pseq_mv
 .PHONY: phase2
 phase2: $(addsuffix .log,${FX}) $(addsuffix _mv.log,${MV})
 

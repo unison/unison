@@ -12,7 +12,7 @@ use Unison::WWW::Page;
 sub _conn_info_html($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines('$Id: about_unison.pl,v 1.15 2005/12/09 00:46:34 rkh Exp $ ');
+$p->add_footer_lines('$Id: about_unison.pl,v 1.16 2005/12/09 00:48:31 rkh Exp $ ');
 
 
 print $p->render("About Unison", <<EOHTML, _conn_info_html($p) );
@@ -38,17 +38,18 @@ EOHTML
 
 sub _conn_info_html ($) {
   my $p = shift;
+  my $u = $p->{unison};
   my $info = 'not connected to the Unison database';
 
-  if (ref $p and defined $p->{unison} and $p->{unison}->is_open()) {
-	my $dev_str = '<span style="color: red">development</span>';
+  if (ref $p and defined $u and $u->is_open()) {
+	my $dev_str = '<span style="color: red">development</span> (no release tag)';
 	my $pub_str = '<span style="color: green">public</span>';
-	my $www_rel = $Unison::WWW::RELEASE || $dev_str;
+	my $www_rel = ($p->is_public_instance ? $pub_str : '') . ' ' . ($Unison::WWW::RELEASE || $dev_str);
 	my $api_rel = $Unison::RELEASE || $dev_str;
-	my $db_rel = $p->{unison}->selectrow_array('select value::date from meta where key=\'release timestamp\'') || $dev_str;
-	$db_rel .= $pub_str if $p->{unison}->is_public();
-	my $db_host = $p->{unison}->{host}
-	  ? sprintf("%s:%s",$p->{unison}->{host},$p->{unison}->{port}||'&lt;default&gt;')
+	my $db_rel = ($u->is_public_instance ? $pub_str : '') . ' ' . ($u->release_timestamp() || $dev_str);
+
+	my $db_host = $u->{host}
+	  ? sprintf("%s:%s",$u->{host},$u->{port}||'&lt;default&gt;')
 	  : 'local';
 
 	$info = <<EOHTML;
@@ -68,8 +69,8 @@ sub _conn_info_html ($) {
 
 <tr><th rowspan=4>database</th>	<td><b>release:</b></td>	<td>$db_rel</td></tr>
 <tr>							<td><b>host:port:</b></td>	<td>$db_host</td></tr>
-<tr>							<td><b>database:</b></td>	<td>$p->{unison}->{dbname}</td></tr>
-<tr>							<td><b>username:</b></td>	<td>$p->{unison}->{username}</td></tr>
+<tr>							<td><b>database:</b></td>	<td>$u->{dbname}</td></tr>
+<tr>							<td><b>username:</b></td>	<td>$u->{username}</td></tr>
 
 </table>
 </center>

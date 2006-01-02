@@ -16,7 +16,6 @@ use Unison::Exceptions;
 
 use Bio::SeqIO;
 use Bio::SearchIO;
-use Bio::SearchIO::Writer::HTMLResultWriter;
 
 use IO::Pipe;
 
@@ -31,7 +30,7 @@ $p->ensure_required_params(qw(pseq_id params_id profiles));
 
 try {
   my $html = _run_sequence($p);
-  print $p->render("HMMER alignments of selected profiles with Unison:$v->{pseq_id}", 
+  print $p->render("Unison:$v->{pseq_id} aligned to $v->{profiles}", 
 				   $html
 				  );
 } catch Unison::Exception with {
@@ -71,34 +70,22 @@ sub _run_sequence() {
 
 
   my $clo = $u->run_commandline_by_params_id($v->{params_id});
-  my @cl = (split(' ',$clo), '--acc', $hmmfn, $seqfn);
-
-
+  my @cl = (split(' ',$clo), $hmmfn, $seqfn);
   my $hmmerpipe = new IO::Pipe;
   $hmmerpipe->reader( @cl )
 	|| $p->die("couldn't do @cl\n");
-  my $in = new Bio::SearchIO(-format => 'hmmer',-fh => $hmmerpipe);
-
-
-  my $writer = new Bio::SearchIO::Writer::HTMLResultWriter();
-  $writer->title( sub {''} );
-  $writer->introduction( sub {''} );
-  $writer->remote_database_url('N',$pfamURL);
-
-  my $out = new Bio::SearchIO(-writer => $writer, -fh => $htmlfh);
-  $out->write_result($in->next_result);
-
-  $hmmerpipe->close();
-
-
-  # get rid of statistics info from html
-  seek($htmlfh,0,0);
-  my $html = '';
-  while( my $line = <$htmlfh> ) {
-	last if $line =~ /Search Parameters/;
+  my $html = "<pre>\ncommand line: $clo\n\n\n";
+  my $print = 0;
+  while( my $line = <$hmmerpipe> ) {
+	if ($line =~ m/^Alignments of top-scoring domains/) {
+	  $print++;
+	  next;
+	}
+	next unless $print;
 	$html .= $line;
   }
-  close($htmlfh);
+  $html .= '</pre>';
+  close($hmmerpipe);
 
   return $html;
 }

@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.76 2005/12/11 19:51:55 rkh Exp $>
+S<$Id: Page.pm,v 1.77 2005/12/21 22:51:49 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -111,15 +111,15 @@ sub new {
 	}
 	_page_connect($self);
   } catch Unison::Exception with {
-	$self->die_with_exception($_[0],
-							  # plus some addition stuff to tack on...
-							  'Relevant environment settings:',
-							  join('', map( { "<br><code>$_: "
-											  .(defined $ENV{$_} ? 
-												$ENV{$_} : '<i>undef</i>')
-											  ."</code>\n" }
-											qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT) ))
-							 );
+	$self->die($_[0],
+			   # plus some addition stuff to tack on...
+			   'Relevant environment settings:',
+			   join('', map( { "<br><code>$_: "
+							   .(defined $ENV{$_} ? 
+								 $ENV{$_} : '<i>undef</i>')
+							   ."</code>\n" }
+							 qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT) ))
+			  );
   };
 
 
@@ -144,7 +144,11 @@ sub new {
 				 sprintf('You provided criteria for %d terms (%s)',
 						 $#st+1, join(',',@st) ));
 	}
-	$v->{pseq_id} = _infer_pseq_id($self);
+	try {
+	  $v->{pseq_id} = _infer_pseq_id($self);
+	} catch Unison::Exception with {
+	  $self->die($_[0]);
+	};
 	if (not defined $v->{pseq_id}) {
 	  $self->die("couldn't infer pseq_id from arguments");
 	}
@@ -490,8 +494,21 @@ format C<text> as a SQL block on the web page
 sub sql {
   my $self = shift;
   #return '' unless $self->{userprefs}->{'show_sql'};
-  return( "\n", '<p><div class="sql"><b>SQL query:</b> ',
-		  (map {CGI::escapeHTML($_)} text_wrap(@_)),
+
+  # poor man's SQL pretty-printer.  This is not a bulletproof general
+  # reformatter, but it seems to suffice for most Unison queries.
+  my $sql =  join( '', map {CGI::escapeHTML($_)} text_wrap(@_) );
+  $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
+  $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
+  $sql =~ s/\s+JOIN\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JOIN /ixg;
+  $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
+  $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
+  $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
+  $sql =~ s/\s+LIMIT\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LIMIT /ix;
+  $sql =~ s/\s+OFFSET\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;OFFSET /ix;
+
+  return( "\n", '<p><div class="sql"><b>SQL query:</b>',
+		  $sql,
 		  '</div>', "\n" );
 }
 
@@ -560,8 +577,9 @@ sub tooltip {
   return $text unless defined $tooltip;
   local $Text::Wrap::columns = 80;
   $tooltip =~ s/\s+/ /g;
+  # NOTE: wrap() doesn't work correctly on HTML (e.g., embedded <br> tags)
   $tooltip = Text::Wrap::wrap('','',$tooltip);
-  $tooltip =~ s/\n/<br>/g;
+  $tooltip =~ s/\n+/<br>/g;
   $class = 'tooltip' unless defined $class;
   my $cltag = $class eq '' ? '' : "class=\"$class\"" ;
   return( "<span $cltag tooltip=\"$tooltip\">$text</span>" );
@@ -599,7 +617,16 @@ exits with status 0 (so that webservers will actually return the page).
 
 =cut
 
+
 sub die {
+  if ( ref($_[1]) and $_[1]->isa('Unison::Exception') ) {
+	goto &_die_with_exception;
+  }
+  goto &_die;
+}
+
+
+sub _die {
   my $self = shift;
   my $t = shift;
   print $self->render("Error: $t",
@@ -610,14 +637,17 @@ sub die {
   exit(0);
 }
 
-sub die_with_exception {
+sub _die_with_exception {
   my $self = shift;
   my $ex = shift;
-  $self->die(__FILE__.':'.__LINE__.": die_with_exception called without an exception\n",
-			 '(instead it was called with a '.(ref($ex)||'non-reference').').') 
-	unless (ref $ex and $ex->isa('Unison::Exception'));
+
+  if (not defined $ex or not ref $ex or not $ex->isa('Exception')) {
+	$self->_die(__FILE__.':'.__LINE__.": die_with_exception called without an exception\n",
+				'(instead it was called with a '.(ref($ex)||'non-reference').').') 
+  }
+
   my $ex_text = ( defined $ex->{error} ? CGI::escapeHTML($ex->{error}) : '(no exception summary)' );
-  $self->die($ex->error(),'<pre>'.$ex.'</pre>', (@_ ? ('<hr>', @_) : '') );
+  $self->_die($ex->error(),'<pre>'.$ex.'</pre>', (@_ ? ('<hr>', @_) : '') );
   # no return
 }
 
@@ -796,7 +826,7 @@ sub _genentech_connection_params ($) {
   my $self = shift;
 
   defined $ENV{SERVER_PORT}
-	|| die("_genentech_connection_params: called outside of web environment");
+	|| CORE::die("_genentech_connection_params: called outside of web environment");
 
   my $v = $self->Vars();
   if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
@@ -812,7 +842,7 @@ sub _genentech_connection_params ($) {
 	$v->{host} = 'csb';
   } else {
 	$v->{username} = 'PUBLIC';
-	warn("_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user.");
+	CORE::warn("_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user.");
   }
 
   return;
@@ -885,7 +915,7 @@ sub _infer_pseq_id ($) {
 	my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
 	if ($#ids == -1) {
 	  $self->die('alias not found',
-				 'The alias you provided wasn\'t found in Unison (case insensitive).');
+				 'The alias you provided wasn\'t found in Unison (exact search, case insensitive).');
 	} elsif ($#ids > 0) {
 	  print CGI::redirect("search_alias.pl?alias=$v->{alias}");
 	  exit(0);
@@ -1046,16 +1076,18 @@ sub __format_tab_labels(@) {
 	for (my $j=0; $j<=$#{$navs[$i]}; $j++) {
 	  my @tooltip_tags = ();
 	  if (not $navs[$i]->[$j]->[1]) {
-		$navs[$i]->[$j]->[2] = "<i>$navs[$i]->[$j]->[2]</i>";
+		$navs[$i]->[$j]->[2] = "<i>$navs[$i]->[$j]->[2]</i>" if defined $navs[$i]->[$j]->[2];
 		push(@tooltip_tags,'proprietary');
 	  }
 	  if (not $navs[$i]->[$j]->[0]) {
-		$navs[$i]->[$j]->[2] = "<span style=\"color: red;\">$navs[$i]->[$j]->[2]</span>";
+		$navs[$i]->[$j]->[2] = "<span style=\"color: red;\">$navs[$i]->[$j]->[2]</span>" if defined $navs[$i]->[$j]->[2];
 		push(@tooltip_tags,'development');
 	  }
 	  if (@tooltip_tags) {
 		$navs[$i]->[$j]->[3] = '' unless $navs[$i]->[$j]->[3];
-		$navs[$i]->[$j]->[3] .= '<br>NOTE: ' . join(', ',@tooltip_tags);
+		$navs[$i]->[$j]->[3] .= ( '<hr>NOTE: This tab contains '
+								  . join(' and ', @tooltip_tags)
+								  . ' data that will not appear in the released public version of Unison.' );
 	  }
 	}
   }

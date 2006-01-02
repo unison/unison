@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.36 2005/12/13 18:02:37 rkh Exp $
+# $Id: publicize,v 1.37 2005/12/15 22:59:45 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -23,7 +23,7 @@ sub col_match($$@);
 sub load_public_ids($);
 sub log(@);
 
-my $CVSId = '$Id: publicize,v 1.36 2005/12/13 18:02:37 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.37 2005/12/15 22:59:45 rkh Exp $ ';
 
 my %opts =
   (
@@ -290,8 +290,8 @@ foreach my $tbl (sort keys %skipped) {
 $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
 my $msg = sprintf("%12d printed / %12d lines total (%6.2f%%)",
 				  $printed, $nlines, $printed/$nlines*100,$timestamp);
-print(STDERR "# $msg\n# $0 finished at %s\n");
-print(       "-- $msg\n-- $0 finished at %s\n");
+print(STDERR "# $msg\n# $0 finished at $timestamp\n");
+print(       "-- $msg\n-- $0 finished at $timestamp\n");
 
 
 exit(0);
@@ -395,15 +395,14 @@ EOT
   $ids{p2gblataln}[$_]++	for @public_p2gblataln_ids;
 
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.36 $ ';
+  $ids{CVSRevision} = '$Revision: 1.37 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
-  $timestamp = `/bin/date '+%Y-%m-%d %H:%M:%S %Z'`; chomp $timestamp;
   if (not store(\%ids, $s_fn)) {
     warn("! store($s_fn) failed: $!\n");
   }
-  print(STDERR "# stored public_ids in $s_fn at $timestamp\n");
+  print(STDERR "# stored public_ids in $s_fn\n");
 
   return %ids;
 }

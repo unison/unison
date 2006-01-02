@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.32 2005/12/06 22:04:42 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.33 2005/12/09 00:47:27 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -58,6 +58,7 @@ TABLE.nav TD.selected {
  background: #150067;
  font-weight: bold;
  color: white;
+ white-space: nowrap;
 }
 TABLE.nav TD.unselected:hover {
  background: lightgrey;
@@ -134,7 +135,6 @@ TABLE.group TD {
 
 /* Quick Links */
 table.quicklinks {
-  white-space: nowrap;
   /* border:  #150067 thin solid; */
 }
 TD.quicklinks_title {
@@ -149,9 +149,6 @@ TD.quicklinks {
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
-}
-TD TABLE.quicklinks {
-  white-space: nowrap;
 }
 
 
@@ -251,7 +248,7 @@ SPAN.tooltip {
  margin: 0px;
 }
 SPAN.tooltip:hover {
- cursor:pointer;cursor:hand;
+ cursor:pointer;cursor:help;
 }
 
 
