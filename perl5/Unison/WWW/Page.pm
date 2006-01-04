@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.77 2005/12/21 22:51:49 rkh Exp $>
+S<$Id: Page.pm,v 1.78 2006/01/02 05:41:11 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -1295,7 +1295,7 @@ sub iframe {
 div.iframe { text-align:center;}
 </style>
 <div class="iframe"><iframe name="$title" src="$src" 
-     frameborder="0" width=750 height=750/></iframe></div>
+     frameborder="0" width=750 height=1000/></iframe></div>
 EOHTML
 }
 
