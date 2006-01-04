@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: emb_pseq_structure.pl,v 1.5 2005/12/09 00:49:39 rkh Exp $:
+#$ID = q$Id: emb_pseq_structure.pl,v 1.6 2006/01/04 00:10:46 mukhyala Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -62,11 +62,13 @@ try {
     $parent_url .= "&userfeatures=$v->{userfeatures}" if($v->{userfeatures});
     $parent_url .= "&highlight=$v->{highlight}" if($v->{highlight});
 
-    print $p->render("Unison:$v->{pseq_id}: Structural Features<center>",
+    print $p->render("<center>",
+		     (defined($ENV{HTTP_REFERER}) ? '' :"<b>Unison:$v->{pseq_id}: Structural Features"),
 		     ($jmol->initialize("pdb$pdb_id.ent",$pseq_structure->{'loaded_structure'},$pseq_structure,$structures_ar,$templates_ar)),
-		     "<img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
+		     "<img src=\"$png_urn\" usemap=\"#FEATURE_MAP\">",
 		     "\n<MAP NAME=\"FEATURE_MAP\">\n", $imagemap, "</MAP>\n",
-		     (defined($ENV{HTTP_REFERER}) ? '' :"<a href=$parent_url>Unison Main Page</a>")
+		     (defined($ENV{HTTP_REFERER}) ? '' :"<a href=$parent_url>Unison Main Page</a>"),
+		     "</center>"
 		    );
 } catch Unison::Exception with {
     $p->die($_[0]);
