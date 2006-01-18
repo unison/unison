@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.21 2005/11/07 23:43:07 rkh Exp $
+# $Id: load-pseq,v 1.22 2006/01/02 05:41:02 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -178,6 +178,7 @@ sub process_stream ($$) {
 ## NOTES: sequences loaded into the "refseq" origin are loaded with sequence
 ##		version numbers; all others origins ignore sequence version, if any.
 ## RETURNS: nada
+my %tax_id_warning;
 sub process_seq ($$$$) {
   my ($u,$bs,$rv,$allowed_tax_ids) = @_;
   my ( %alias, %md5 );
@@ -225,14 +226,13 @@ sub process_seq ($$$$) {
   $descr =~ s/(\S)\n(\S)/$1$2/;				# newline amid non-whitespace
   $descr =~ s/\s*\n\s*/ /;					# \s on either side
 
-  # see if there's species info and make sure that the tax_id is in the set of allowable
-  # tax_ids (see description of process_stream method for more info).  If so, get the 
-  # tax_id to insert with the # alias
-  if (    defined $bs->species
-	  and defined $bs->species->ncbi_taxid()
-	  and defined $allowed_tax_ids->{$bs->species->ncbi_taxid()}
-	 ) {
-    $tax_id = $bs->species->ncbi_taxid();
+  if ( defined $bs->species and defined $bs->species->ncbi_taxid() ) {
+	$tax_id = $bs->species->ncbi_taxid();
+	if (not $allowed_tax_ids->{$tax_id}) {
+	  $tax_id_warning{$tax_id}++
+		|| warn("!! WARNING: tax_id=$tax_id not defined in Unison\n");
+	  undef $tax_id;
+	}
   }
 
   # origin-specific loading
@@ -297,7 +297,7 @@ sub process_seq ($$$$) {
 	$rv->{naliases}++;
   }
 
-  printf(STDERR "## processed pseq_id=$pseq_id$frommd5, len=%d, aliases={@aliases}, descr=%s\n",
+  printf(STDERR "## processed pseq_id=$pseq_id$frommd5, len=%d, aliases={@aliases}, tax_id=$tax_id, descr=%s\n",
 		 length($seq), $descr) if $opts{verbose};
 
   return;
