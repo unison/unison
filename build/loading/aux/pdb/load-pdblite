@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pdblite,v 1.1 2005/06/15 17:15:15 mukhyala Exp $
+# $Id: load-pdblite,v 1.2 2005/10/10 18:42:02 mukhyala Exp $
 # load-pdblite -- load pdb data
 
 use warnings;
@@ -43,35 +43,35 @@ GetOptions(\%opts,
 	   'dbname|db'
 )  || die("$0: Incorrect Usage\n");
 
-if($opts{format} eq 'PDB') { 
-  defined $ENV{PDB_PATH} || die("$0: Format is $opts{format} therefore PDB_PATH needs to be defined \n");
+if($opts{format} eq 'PDB') {
+  defined $ENV{PDB_PATH}
+	|| die("$0: Format is $opts{format} therefore PDB_PATH needs to be defined \n");
 }
 
-if($opts{format} eq 'XML') { 
-  defined $ENV{PDBXML_PATH} || die("$0: Format is $opts{format} therefore PDBXML_PATH needs to be defined\n");
+if($opts{format} eq 'XML') {
+  defined $ENV{PDB_XML_PATH}
+	|| die("$0: Format is $opts{format} therefore PDB_XML_PATH needs to be defined\n");
 }
 
-my @pdbids;
-push @pdbids, (@ARGV ? map {$_} @ARGV : map { chomp;$_ } <> );
-
-my %to_load;  #pdbids to load
-foreach my $pdbid (@pdbids) {$to_load{ $pdbid }++;}
+my @pdbids = ( @ARGV ? @ARGV : map { chomp;$_ } <> );
+my %pdbids = map {$_=>1} @pdbids;
 
 # exit unless you have pdbids to parse
-if ( scalar(keys %to_load) == 0 ) {
+if ( scalar(keys %pdbids) == 0 ) {
   warn("no pdbid's to load!\n");
   exit(0);
 }
 
+
 select(STDERR); $|++;
 select(STDOUT); $|++;
 
-my $pdbDir = ($opts{format} eq 'XML' ? $ENV{PDBXML_PATH} : $ENV{PDB_PATH});
+my $pdbDir = ($opts{format} eq 'XML' ? $ENV{PDB_XML_PATH} : $ENV{PDB_PATH});
 
-my $dbh = dbconnect() || die "Cannot get a database handle\n";
+my $dbh = dbconnect()
+  || die "Cannot get a database handle\n";
 
 foreach my $pdb (@pdbids ) {
-
   print STDERR "\r Parsing :$pdb" if($opts{verbose});
   my $fn = getfilename($pdb.".".$opts{ext});
   if(!-e $fn) {
@@ -94,7 +94,7 @@ foreach my $pdb (@pdbids ) {
   }
   print STDERR "\r Loading :$pdb" if($opts{verbose});
   if(insert_data($data)) {
-    delete $to_load{$pdb};
+    delete $pdbids{$pdb};
   $dbh->commit if(!$opts{sql});
   }
   else {
@@ -102,8 +102,8 @@ foreach my $pdb (@pdbids ) {
   }
 }
 
-print "following pdbs could not be parsed:\n" if(scalar keys %to_load > 0);
-foreach my $pdb(keys %to_load) {
+print "following pdbs could not be parsed:\n" if(scalar keys %pdbids > 0);
+foreach my $pdb(keys %pdbids) {
   print "$pdb\n";
 }
 
