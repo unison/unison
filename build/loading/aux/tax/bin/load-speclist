@@ -1,15 +1,13 @@
 #!/usr/bin/env perl
-# load-speclist -- load Swiss-Prot species list into Unison
-# get it from ftp://us.expasy.org/databases/swiss-prot/release/speclist.txt
-
+# load-speclist -- load UniProt species list into Unison
 
 use warnings;
 use strict;
 use Unison;
+use Unison::Exceptions;
 use Data::Dumper;
 
-my $u = new Unison;
-#my $del = $u->prepare_cached('delete from tax.spspec where tax_id=?');
+my $u = new Unison( );
 my $dep = $u->prepare_cached("update tax.spspec set gs=gs||' [deprecated]',latin=latin||' [deprecated]' where tax_id=?");
 my $upd = $u->prepare_cached('update tax.spspec set k=?,gs=?,latin=?,common=?,synonyms=? 
 								where tax_id=? and not (k=? and gs=? and latin=? and common=? and synonyms=?)');
@@ -63,52 +61,67 @@ while( my $line = <> ) {
 }
 
 
-
 my @cur_ids = sort {$a<=>$b} keys %recs;
 my @uni_ids = map {@$_} @{ $u->selectall_arrayref("select tax_id from tax.spspec where latin !~ '\\\\[deprecated\\\\]'") };
-my @dep_ids = grep {not exists $recs{$_}} @uni_ids;
-printf(STDERR "# %d tax_ids read; %d in unison; %d now deprecated\n",
-	   $#cur_ids+1, $#uni_ids+1, $#dep_ids+1);
+my %uni_ids = map {$_=>1} @uni_ids;
 
-for(my $i=0; $i<=$#dep_ids; $i++) {
-  my $tax_id = $dep_ids[$i];
-  eval { $dep->execute($tax_id) };
-  if ($@) {
-	warn("couldn't deprecate tax_id $tax_id\n");
-	next;
-  }
-  print(STDERR "deprecated tax_id $tax_id\n");
-}
+my @dep_ids = grep {not exists $recs{$_}} @uni_ids;
+my @upd_ids = grep {    exists $uni_ids{$_}} @cur_ids;
+my @ins_ids = grep {not exists $uni_ids{$_}} @cur_ids;
+
+printf(STDERR "# in: %d unison tax_ids, %d current ids => %d dep, %d upd, %d ins\n",
+	   $#uni_ids+1, $#cur_ids+1,
+	   $#dep_ids+1, $#upd_ids+1, $#ins_ids+1);
 
 
 for(my $i=0; $i<=$#cur_ids; $i++) {
   my $tax_id = $cur_ids[$i];
-  my %rec = %{ $recs{$tax_id} };
-
-  $rec{common} = exists $rec{common} ? join('; ',@{$rec{common}}) : undef;
-  $rec{synonyms} = exists $rec{synonyms} ? join('; ',@{$rec{synonyms}}) : undef;
-  my @args = map {$rec{$_}} qw(k gs latin common synonyms);
-  my @pargs = map {defined $_ ? $_ : 'undef>'} @args;
-
-  my $nr = eval { $upd->execute(@args,$rec{tax_id},@args) };
-  if ($@) {
-	# update failed: the row may not exist, try inserting
-	warn("! update ($rec{tax_id} @pargs): ", DBI->errstr, "\n");
-	eval { $ins->execute(@args,$rec{tax_id}) };
-	if ($@) {
-	  # latin and gs are occasionally moved to new tax_ids; insertion of a
-	  # new tax_id may fail if its name is the same as that of an existing
-	  # tax_id which hasn't yet been renamed. Thjs merely an order of
-	  # operations problem, which I don't handle except by telling the user to rerun
-	  # the script to convergence.
-	  warn("! insert ($rec{tax_id} @pargs): ", DBI->errstr, "; may need to rerun\n");
-	  next;
-	}
-	print(STDERR "inserted $rec{tax_id} ($rec{gs}; $rec{latin})\n");
-	next;
-  }
-
-  if ($nr != 0) {
-	print(STDERR "updated $rec{tax_id} (@pargs)\n");
-  }
+  my $rec = $recs{$tax_id};
+  $rec->{common} = exists $rec->{common} ? join('; ',sort @{$rec->{common}}) : undef;
+  $rec->{synonyms} = exists $rec->{synonyms} ? join('; ',sort @{$rec->{synonyms}}) : undef;
 }
+
+
+$u->begin_work();
+
+try {
+  # 1. deprecate old entries
+  for(my $i=0; $i<=$#dep_ids; $i++) {
+	my $tax_id = $dep_ids[$i];
+	$dep->execute($tax_id);
+	print(STDERR "deprecated tax_id $tax_id\n");
+  }
+
+  # 2. update potentially changed entries
+  for(my $i=0; $i<=$#upd_ids; $i++) {
+	my $tax_id = $upd_ids[$i];
+	my %rec = %{ $recs{$tax_id} };
+	my @args = map {$rec{$_}} qw(k gs latin common synonyms);
+	my @pargs = map {defined $_ ? $_ : 'undef'} @args;
+	my ($nr) = $upd->execute(@args,$rec{tax_id},@args);
+	print(STDERR "update ($rec{tax_id} @pargs) [$nr]\n") if $nr+0;
+  }
+
+  # 3. insert new entries
+  for(my $i=0; $i<=$#ins_ids; $i++) {
+	my $tax_id = $ins_ids[$i];
+	my %rec = %{ $recs{$tax_id} };
+	my @args = map {$rec{$_}} qw(k gs latin common synonyms);
+	my @pargs = map {defined $_ ? $_ : 'undef'} @args;
+	my ($nr) = $ins->execute(@args,$rec{tax_id});
+	print(STDERR "insert ($rec{tax_id} @pargs) [$nr]\n") if $nr;
+  }
+
+} catch Unison::Exception with {
+
+  my $ex = shift;
+  if ($ex->error() =~ m/duplicate key/) {
+	warn($ex);
+  } else {
+	die($ex);
+  }
+
+};
+
+
+$u->commit();
