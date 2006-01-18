@@ -1,26 +1,23 @@
-include ../../loading/common.mk
+include ../../common.mk
 
-PDB_ROOT:=/gne/compbio/share/pdb/
-export PDBXML_PATH:=${PDB_ROOT}all.xml.gz
-PDB_INHOUSE:=${PDB_ROOT}all.pdb
 
-default:
-	@echo no $@ target; exit 1
+PDB_ROOT:=${COMPBIO_PREFIX}/share/pdb
+export PDB_XML_PATH:=${PDB_ROOT}/all.xml.gz
+
+
+update default all: allxml-todo.load
+
 
 %.load: %.ids
 	(time -p ./load-pdblite < $<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
-pdbext.ids:
-	for i in `ls ${PDBXML_PATH}`; do echo $${i:0:4}; done > $@.tmp
+allxml.ids: exclude.ids FORCE
+	find ${PDB_XML_PATH}/ -name \*.gz | perl -lne 'print $$1 if m%/(\w{4})\.xml\.gz%' >$@.tmp
 	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
-	@wc -l $@
-
-inhouse.ids:
-	for i in `ls ${PDB_INHOUSE}`; do echo $$i; done > $@.tmp
-	sort -u -o $@.tmp $@.tmp
-	/bin/mv $@.tmp $@
+	comm -23 $@.tmp $< >$@.tmp2
+	/bin/mv -f $@.tmp2 $@
+	/bin/rm $@.tmp
 	@wc -l $@
 
 done.ids:
