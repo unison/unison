@@ -1,34 +1,24 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.17 2005/12/18 07:49:54 rkh Exp $
+## $Id: Makefile,v 1.18 2006/01/02 05:41:02 rkh Exp $
 
-## most subdirectories of ./ correspond to table names
-## auxiliary schemas are handled in ../aux/
-
+default all: update
 
 include common.mk
 include local.mk
 include params.mk
+
+update: phase0 phase1 phase2 phase3
 
 
 CLEANUP_DIRS=
 
 
 ######################################################################
-# 0. "AUXILIARY" DATABASES
-# The following rule merely tests whether one table
-# from each schema may be selected from.  Errors are
-# reported to stderr.  The existence of aux.log 
-# signifies that these schemas exist.
+# 0. "AUXILIARY" DATABASES AND SCHEMAS
 .PHONY: phase0
 phase0: aux.log
 aux.log:
-	${PSQL} -c 'select version()' >/dev/null
-	${PSQL} -c 'select * from go.association limit 1' >/dev/null
-	${PSQL} -c 'select * from gong.alias limit 1' >/dev/null
-	${PSQL} -c 'select * from pdb.chain limit 1' >/dev/null
-	${PSQL} -c 'select * from scop.cla limit 1' >/dev/null
-	${PSQL} -c 'select * from tax.spspec limit 1' >/dev/null
-	@echo 'aux schemas exist' >aux.log
+	time -p make -Caux >$@
 
 
 ######################################################################
@@ -43,8 +33,13 @@ pseq.log: aux.log
 
 ######################################################################
 # 2. UPDATE INTRINSIC SETS AND OTHER DATA
+# FIXME: mvs/dvs are potentially interdependent and therefore order
+# is important.  These should all be moved to the db itself
+# for updating.
 FX:=update_tax_ids update_psets_intrinsic
-MV:=best_annotation pmprospect_scop pseq_gene gg_famid_pseq_id_mv gg_proid_pseq_id_mv gg_unq_pro_dna_pseq_mv
+MVV:=best_annotation pseq_gene gg_famid_pseq_id gg_unq_pro_dna_pseq
+MVDV:=pmprospect_scop gg_proid_pseq_id
+MV:= ${MVDV} ${MVV}
 .PHONY: phase2
 phase2: $(addsuffix .log,${FX}) $(addsuffix _mv.log,${MV})
 
@@ -56,8 +51,11 @@ update_tax_ids.log: pseq.log
 update_psets_intrinsic.log: update_tax_id.log
 
 # materialized views
-$(addsuffix _mv.log,${MV}): %_mv.log:
-	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $* select * from $*_dv;') >$@.err 2>&1
+$(addsuffix _mv.log,${MVV}): %_mv.log:
+	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $*_mv select * from $*_v;') >$@.err 2>&1
+	/bin/mv -f $@.err $@
+$(addsuffix _mv.log,${MVDV}): %_mv.log:
+	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $*_mv select * from $*_dv;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 best_annotation_mv.log: update_psets_intrinsic.log
 pmprospect_scop_mv.log: aux.log
@@ -84,7 +82,7 @@ pseq_gene_mv.log: aux.log
 
 COMPUTE_DIRS:=
 COMPUTE_DIRS+=pahmm #paprospect
-COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm
+COMPUTE_DIRS+=pfantigenic pfbigpi pfpsipred pfsignalp pftmhmm
 COMPUTE_DIRS+=pmap
 #GENELAND only: psprotcomp
 #NEEDS ATTENTION: papseq papssm pfregexp
@@ -94,7 +92,7 @@ CLEANUP_DIRS+=${COMPUTE_DIRS}
 phase3: $(addsuffix .log,${COMPUTE_DIRS})
 
 $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
-	make -C $* run >$@.err 2>&1
+	make -C $* update >$@.err 2>&1
 	/bin/mv $@.err $@
 
 #paprospect2.log: pmprospect2.log
@@ -143,7 +141,8 @@ cleanup.log:
 # a silly rule to push .cvsignore patterns into the subdirectories
 .PHONY: push-cvsignore
 push-cvsignore:
-	@for f in */.cvsignore; do (set -x; sort -u -o "$$f" .cvsignore "$$f"); done
+	find . -name .cvsignore \
+	| while read f; do (set -x; sort -u -o "$$f" .cvsignore "$$f"); done
 
 
 clean cleaner cleanest::

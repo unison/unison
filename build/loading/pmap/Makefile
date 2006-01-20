@@ -1,3 +1,5 @@
+default: update
+
 include ../common.mk
 include ../local.mk
 include ../params.mk
@@ -10,10 +12,7 @@ SHELL=bash
 CMDLINE:=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PMAP_PARAMS_ID}')
 
 
-default all:
-	@echo "no default target" 1>&2; exit 1
-
-run:
+update:
 	make cleanest
 	make done.ids ${RUNSET}-todo.ids
 	make ${RUNSET}-todo.load
