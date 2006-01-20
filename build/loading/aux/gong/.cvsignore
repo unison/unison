@@ -12,3 +12,4 @@ load.sql
 qsub
 run*
 schema.sql
+*.tmp

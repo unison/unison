@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.18 2006/01/02 05:41:02 rkh Exp $
+## $Id: Makefile,v 1.19 2006/01/20 00:49:47 rkh Exp $
 
 default all: update
 
@@ -142,6 +142,7 @@ cleanup.log:
 .PHONY: push-cvsignore
 push-cvsignore:
 	find . -name .cvsignore \
+	| sort \
 	| while read f; do (set -x; sort -u -o "$$f" .cvsignore "$$f"); done
 
 

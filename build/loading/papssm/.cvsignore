@@ -9,5 +9,6 @@ error.log
 *.log
 qsub
 run*
+*.tmp
 u36*
 wf

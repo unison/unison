@@ -4,8 +4,7 @@ ensembl-*
 *.fa
 *.ids
 *.log
+*.psl
 qsub
 run*
-scop.load
-scop.sql
 *.tmp

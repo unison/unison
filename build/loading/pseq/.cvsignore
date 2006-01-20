@@ -10,6 +10,8 @@ geneseq
 log
 *.log
 logs
+*.proids
 qsub
 refseq
 run*
+*.tmp

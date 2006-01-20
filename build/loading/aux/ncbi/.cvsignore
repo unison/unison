@@ -7,3 +7,4 @@ ensembl-*
 logs
 qsub
 run*
+*.tmp
