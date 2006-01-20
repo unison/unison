@@ -23,10 +23,7 @@ my @table_defs =
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '$Id: sst-import,v 1.7 2005/06/15 03:49:03 rkh Exp $ ', "\n");
-
-#(defined $ENV{SSTPASS})
-#  || die("$0: SSTPASS not defined\n");
+print(STDERR '$Id: sst-import,v 1.8 2005/12/01 06:05:02 rkh Exp $ ', "\n");
 
 my $sql;
 my $sth;
@@ -34,6 +31,8 @@ my $dsn = 'dbi:Oracle:bioprd1';
 my $dbh = DBI->connect($dsn) #, 'rkh', $ENV{SSTPASS}) 
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
+print(STDERR "# connected to $dsn\n");
+print("-- $0 ($dsn)\n");
 
 for(my $ti=0; $ti<=$#table_defs; $ti++) {
   my ($table,@cols) = @{$table_defs[$ti]};

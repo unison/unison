@@ -1,0 +1,13 @@
+unison/loading/aux/ README
+==========================
+
+Unison depends on a variety of third-party data such as PDB, SCOP, etc.
+Each of these dependencies is represented by a subdirectory which contains
+code to download, parse, and build a database representation of that data.
+
+Our intention is only to represent these data in a way which permits
+access within the Unison environment. We do not modify these data in any
+way during loading.
+
+Currently, only Unison uses these schemas. However, some users may find
+them useful by themselves (for instance, the PDB seqres-to-resid mapping).

@@ -1,11 +1,14 @@
-default all:
-	@echo "make what, dude?  There ain't no stinkin' default" 1>&2; exit 1
+include ../../common.mk
 
-ncbi/taxdump.tar.gz:
-	@mkdir -p ${@D}
-	wget -P${@D} -nd ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
-ncbi/readme.txt: ncbi/taxdump.tar.gz
-	cd ${@D}; tar -xvzf ${<F}
 
-speclist.txt:
-	wget -nd ftp://us.expasy.org/databases/swiss-prot/release/speclist.txt
+update default all: load-speclist.log; 
+
+load-speclist.log: ${COMPBIO_PREFIX}/share/uniprot/docs/speclist.txt
+	./bin/load-speclist $<
+
+
+# ncbi/taxdump.tar.gz:
+# 	@mkdir -p ${@D}
+# 	wget -P${@D} -nd ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
+# ncbi/readme.txt: ncbi/taxdump.tar.gz
+# 	cd ${@D}; tar -xvzf ${<F}
