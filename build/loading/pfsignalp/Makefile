@@ -1,3 +1,5 @@
+default: update
+
 include ../common.mk
 include ../local.mk
 include ../params.mk
@@ -8,10 +10,7 @@ RUNSET=runC
 NPER:=250
 
 
-default:
-	@echo no $@ target; exit 1
-
-run:
+update:
 	make cleanest
 	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N$N
 	make ${RUNSET}-todo-N$N-qload

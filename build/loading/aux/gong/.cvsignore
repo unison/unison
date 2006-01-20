@@ -1,6 +1,14 @@
+ensembl-*
+*.[eo][0-9][0-9][0-9]*
+*.err
+*.fa
 go_2*
-go.pgdump.gz
 godb.sql
-load.sql
-schema.sql
+go.pgdump.gz
+*.ids
 load-go.sql
+load.sql
+*.log
+qsub
+run*
+schema.sql

@@ -1,4 +1,12 @@
-ncbi
-speclist.txt
 *.dmp
+ensembl-*
+*.[eo][0-9][0-9][0-9]*
+*.err
+*.fa
 gc.prt
+*.ids
+*.log
+ncbi
+qsub
+run*
+speclist.txt

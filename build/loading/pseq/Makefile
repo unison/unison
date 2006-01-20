@@ -1,27 +1,31 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.15 2005/11/09 03:24:56 rkh Exp $
+# $Id: Makefile,v 1.16 2005/11/18 04:20:02 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
 # Genentech's internal GenenGenes/SST.
 
+default all: update
 
 include ../common.mk
 include ../local.mk
 include ../params.mk
 
-
 ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq
-ifeq "$(shell hostname -d)" "gene.com"
+
+ifeq "${GNE}" "1"
+ORIGINS+=genengenes
+include genentech.mk
+
+ifeq "$(shell test -d ${GENESEQ_DIR}; echo $$?)" "0"
+$(warning NOTICE: enabling Geneseq/Derwent loading from ${GENESEQ_DIR})
 ORIGINS+=geneseq
 endif
 
-default all: $(addsuffix .load,${ORIGINS})
-ifeq "$(shell hostname -d)" "gene.com"
-	@echo ##########################################################
-	@echo ## REMINDER: you must make GenenGenes.load manually.    ##
-	@echo ##########################################################
 endif
+
+
+update: $(addsuffix .load,${ORIGINS})
 
 
 
@@ -120,16 +124,13 @@ uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
 
 
 
-## TODO: develop fall-through to download files as needed.  Presumably
-## this would happen via a vpath to existing files.
-
-
 ########################################################################
 ## PROPRIETARY SOURCES FOLLOW
 ########################################################################
 
 
 ## DERWENT/GENESEQ
+## loaded directly from derwent tar'd, gzip'd fasta files
 GENESEQs:=$(notdir $(wildcard ${GENESEQ_DIR}/GENESEQP*.tar.gz) $(wildcard ${GENESEQ_DIR}/AA-GENESEQ*))
 .PHONY: geneseq.load
 geneseq.load: $(addprefix geneseq/, $(addsuffix .load,${GENESEQs}))
@@ -139,9 +140,6 @@ geneseq/%.load: ${GENESEQ_DIR}/%
 geneseq/AA-GENESEQ.update.gz.load: ${GENESEQ_DIR}/AA-GENESEQ.update.gz
 	(time -p gzip -cdq <$< | geneseq2fa - | load-pseq -ffasta -oGeneseq -v -) >$@.err 2>&1
 	/bin/mv -f $@.err $@
-#geneseq/%.load: ${GENESEQ_DIR}/%.DAT
-#	(time -p geneseq2fa $? | load-pseq -ffasta -oGeneseq -v -) >$@.err 2>&1
-#	/bin/mv -f $@.err $@
 
 
 
@@ -173,8 +171,3 @@ proteome.load: /usr/seqdb/blast/proteome
 
 sugen.load: /home/skelly/geneland/seq/kinase/sugen/sugen_kinase_all.fasta
 	load-pseq --verbose -oSugen -ffasta $< >$@.err 2>&1
-
-# swiss-prot is subsumed by uniprot and I no longer load this
-sprot%.load : ${COMPBIO}/share/swiss-prot/sprot%.dat
-	load-pseq --verbose -oSwiss-Prot -fswiss $< >$@.err 2>&1
-	/bin/mv -f $@.err $@

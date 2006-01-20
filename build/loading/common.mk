@@ -1,18 +1,9 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.21 2005/12/18 07:49:54 rkh Exp $
+## $Id: common.mk,v 1.22 2006/01/02 05:41:02 rkh Exp $
 
 .SUFFIXES:
-.PHONY: FORCE FORCED_BUILD
+.PHONY: FORCE
 .DELETE_ON_ERROR:
-
-SHELL:=/bin/bash
-
-PSQL:=psql
-PSQL_VCMD:=${PSQL} -c
-PSQL_DCMD:=${PSQL} -UPUBLIC -At -c
-
-
-#CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PARAMS_ID}')
 
 
 # Calling Makefiles are expected to define a 'default' rule This rule
@@ -20,49 +11,21 @@ PSQL_DCMD:=${PSQL} -UPUBLIC -At -c
 # is included before defining other rules.
 commonmk_default: default
 
+SHELL:=/bin/bash
 
-### QSUB arguments and command
-# -V is necessary since we'll pass passwords in the env.
-# eg$ make PBSARCH=xeon
-QPPN:=2
-QNODES:=nodes=1:ppn=${QPPN}
-ifdef Q
-Q=-q${Q}
-endif
-ifdef PBSARCH
-QNODES:=${QNODES}:${PBSARCH}
-endif
-QTIME:=120000:00
-#QOE:=-ogoose.gene.com:${PWD}/$@.out -egoose.gene.com:${PWD}/$@.err
-QSUB:=qsub ${Q} -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
-
-
-ifdef DEBUG
-$(warning UNISON_HOME=${UNISON_HOME} )
-$(warning PGUSER=${PGUSER} )
-$(warning PGDATABASE=${PGDATABASE} )
-$(warning PERL5LIB=${PERL5LIB} )
-$(warning QSUB=${QSUB} )
-endif
-
-ifndef PGPASSWORD
-$(warning PGPASSWORD isn't set ) 	#'
-endif
-
-FORCE=
-ifdef FORCE
-# if FORCE is defined (e.g., make target FORCE=1), then reset FORCE to be the 
-# phony target FORCED_BUILD, which does what you'd guess (unless you're dense)
-override FORCE=FORCED_BUILD
-endif
+PSQL:=psql -X
+PSQL_VCMD:=${PSQL} -c
+PSQL_DCMD:=${PSQL} -UPUBLIC -At -c
 
 
 
-# SEQUENCE SET HANDLING
+############################################################################
+#########################  SEQUENCE SET HANDLING  ##########################
 # id sets are built in two phases:
 # 1) select sequences into filenames like '.set.ids';
 # 2) sort them in this rule into a file like 'set.ids'
 # (sorted locally to ensure consistent LANG sorting rules)
+############################################################################
 %.ids: .%.ids
 	sort -u -o $@ $<; wc -l $@
 
@@ -89,8 +52,10 @@ ids: runA.ids runB.ids runC.ids
 .O-%.ids:
 	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@
 
-# sequence lists by origin
-.genengenes.ids .sugen.ids .pdb.ids: %.ids:
+# genentech sequence lists by origin
+# FIXME: genentech stuff still in this common file... it'd be nice to move this
+# elsewhere.
+.genengenes.ids .sugen.ids .pdb.ids: .%.ids:
 	${PSQL_DCMD} "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@
 .ggi.ids:
 	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@
@@ -100,6 +65,8 @@ ids: runA.ids runB.ids runC.ids
 	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@
 .ggi-me1.ids:
 	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@
+.rungga.ids:
+	${PSQL_DCMD} "select pseq_id * from pset_rungga_dv" >$@
 
 # sequence lists by other info
 .fam%.ids:
@@ -108,6 +75,8 @@ ids: runA.ids runB.ids runC.ids
 
 # -Nn rules: split .ids files into N sets, w/ approximately the same number
 # of ids in each set (+/-1)
+### FIXME: I don't like the dependency of this rule on RENAME outside of this
+### scope.
 %-N2 %-N3 %-N4 %-N5 %-N10 %-N15 %-N20 %-N25 %-N50 %-N100: %.ids
 	@mkdir "$@"
 	@N=`expr "$@" : '.*-N\([0-9][0-9]*\)$$'`; \
@@ -123,6 +92,27 @@ ids: runA.ids runB.ids runC.ids
 	@l=`expr "$@" : '.*-l\([0-9][0-9]*\)$$'`; \
 	set -x; split -l$$l "$<" "$@/"
 	${RENAME} 's/$$/.ids/' "$@"/??
+
+
+
+############################################################################
+###########################	 PBS QUEUING SETUP  ############################
+############################################################################
+
+# -V is necessary since we'll pass passwords in the env.
+# eg$ make PBSARCH=xeon
+QPPN:=2
+QNODES:=nodes=1:ppn=${QPPN}
+ifdef Q
+QUEUE=-q${Q}
+endif
+ifdef PBSARCH
+QNODES:=${QNODES}:${PBSARCH}
+endif
+QTIME:=120000:00
+#QOE:=-ogoose.gene.com:${PWD}/$@.out -egoose.gene.com:${PWD}/$@.err
+QSUB:=qsub ${QUEUE} -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
+
 
 
 # Any target can be farmed to PBS by preceeding it with 'qsub/'
@@ -158,6 +148,11 @@ PATTERN=*
 	@for f in $*/${PATTERN}.ids; do echo "qsub/$${f%ids}load"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
 
 
+
+############################################################################
+##########################	MISCELLANEOUS RULES  ###########################
+############################################################################
+
 # gzip
 %.gz:: %
 	gzip $<
@@ -171,9 +166,6 @@ PATTERN=*
 # get a sequence
 %.fa:
 	get-seq $* >$@
-
-
-
 
 # make env -- write env to file `env' for debugging
 env:
