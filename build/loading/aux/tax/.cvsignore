@@ -1,2 +1,4 @@
 ncbi
 speclist.txt
+*.dmp
+gc.prt
