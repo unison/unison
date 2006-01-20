@@ -15,6 +15,7 @@ ns*
 qsub
 run
 run*
+*.tmp
 u36
 u42
 *.var

@@ -7,3 +7,4 @@ go_*
 *.log
 qsub
 run*
+*.tmp

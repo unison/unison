@@ -10,3 +10,4 @@ ncbi
 qsub
 run*
 speclist.txt
+*.tmp
