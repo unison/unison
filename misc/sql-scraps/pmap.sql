@@ -2,7 +2,7 @@
 -- Name: pmap.sql
 -- Purpose: sql code for generating tables for storing PMAP results
 --
--- $Id: pmap.sql,v 1.1 2005/09/14 22:38:32 mukhyala Exp $
+-- $Id: pmap.sql,v 1.2 2005/11/17 17:10:51 mukhyala Exp $
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
@@ -31,9 +31,9 @@ GRANT SELECT ON TABLE pmap_hsp TO PUBLIC;
 REVOKE ALL ON TABLE pmap_hsp_hsp_id_seq FROM PUBLIC;
 GRANT INSERT,UPDATE ON TABLE pmap_hsp_hsp_id_seq TO loader;
 
-CREATE UNIQUE INDEX pmap_hsp_unq ON pmap_hsp USING btree (genasm_id, chr, plus_strand, gstart, gstop, pseq_id, pstart, pstop);
-CREATE INDEX pmap_hsp_p_lookup ON pmap_hsp USING btree (pseq_id, pstart, pstop);
-CREATE INDEX pmap_hsp_g_lookup ON pmap_hsp USING btree (genasm_id, chr, plus_strand, gstart, gstop);
+CREATE UNIQUE INDEX pmap_hsp_unq ON pmap_hsp USING btree (params_id,genasm_id, chr, plus_strand, gstart, gstop, pseq_id, pstart, pstop);
+CREATE INDEX pmap_hsp_p_lookup ON pmap_hsp USING btree (params_id,pseq_id, pstart, pstop);
+CREATE INDEX pmap_hsp_g_lookup ON pmap_hsp USING btree (params_id,genasm_id, chr, plus_strand, gstart, gstop);
 
 
 ALTER TABLE ONLY pmap_hsp
@@ -197,6 +197,9 @@ DECLARE
   rec RECORD;
 BEGIN
 
+  IF length(v_hsp_str) = 0 THEN
+	RAISE EXCEPTION ''Length hsp_str cannot be 0'';
+  END IF;
   -- check whether hsp_str is already in the database
   SELECT INTO v_aln_id aln_id FROM pmap_aln WHERE hsp_str=v_hsp_str;
   IF v_aln_id is null THEN
@@ -290,11 +293,11 @@ CREATE CONSTRAINT TRIGGER pseq_genasm_params_trigger
 
 
 --------------------------------------------------------------------------------
--- Name: v_pmap
+-- Name: pmap_v
 -- Purpose: summary of PMAP alignments
 -- 
 
-CREATE OR REPLACE VIEW V_PMAP AS
+CREATE OR REPLACE VIEW PMAP_V AS
 	SELECT a.params_id, a.genasm_id, h.pseq_id, ah.aln_id, min(h.pstart) AS pstart, max(h.pstop) AS pstop, count(*) AS exons, sum(h.pstop - h.pstart + 1) AS aln_length, (sum(h.pstop - h.pstart + 1)::double precision / q.len::double precision * 100::double precision)::integer AS pct_cov, a.ident, ((a.ident / sum(h.pstop - h.pstart + 1))::double precision * 100::double precision)::integer AS pct_ident, h.chr, h.plus_strand, min(h.gstart) AS gstart, max(h.gstop) AS gstop
    FROM pmap_hsp h
    JOIN pmap_alnhsp ah ON h.hsp_id = ah.hsp_id
@@ -303,4 +306,13 @@ CREATE OR REPLACE VIEW V_PMAP AS
   GROUP BY a.params_id, a.genasm_id, h.pseq_id, ah.aln_id, h.chr, h.plus_strand, a.ident, q.len
   ORDER BY h.pseq_id, (sum(h.pstop - h.pstart + 1)::double precision / q.len::double precision * 100::double precision)::integer DESC, (a.ident::double precision / sum(h.pstop - h.pstart + 1)::double precision * 100::double precision)::integer DESC;
 
-GRANT SELECT ON V_PMAP TO PUBLIC;
+GRANT SELECT ON PMAP_V TO PUBLIC;
+
+CREATE OR REPLACE VIEW PMAP_ALN_V AS
+	SELECT a.params_id, ah.aln_id, h.pseq_id, h.pstart, h.pstop, h.gstart, h.gstop, a.ident, h.genasm_id, h.chr, h.plus_strand
+   FROM pmap_hsp h
+   JOIN pmap_alnhsp ah ON h.hsp_id = ah.hsp_id
+   JOIN pmap_aln a ON ah.aln_id = a.aln_id
+  ORDER BY ah.aln_id, h.gstart;
+
+GRANT SELECT ON PMAP_ALN_V TO PUBLIC;
