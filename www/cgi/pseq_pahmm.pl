@@ -19,7 +19,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.17 2006/01/01 00:36:10 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.18 2006/01/02 05:41:11 rkh Exp $ ');
 
 
 try {
@@ -44,6 +44,7 @@ if (emb_elem) {
   emb_url += ';params_id='+params_id;
   emb_url += ';profiles='+acc;
   emb_elem.setAttribute('src', emb_url);
+  emb_elem.style.display = 'block';
   }
 }
 </script>
@@ -74,7 +75,7 @@ EOJS
 					( $p->is_public()
 					  ? ''
 					  : ( '<p>', $p->submit(-value=>'align checked'),
-						  '<p><iframe id="emb_hmm_alignment" width="100%" height="300px" scrolling="yes">',
+						  '<p><iframe style="display: none" id="emb_hmm_alignment" width="100%" height="300px" scrolling="yes">',
 						  'Sorry. I cannot display alignments because your browser does not support iframes.',
 						  '</iframe>'
 						)

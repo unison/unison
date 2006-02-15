@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.14 2005/05/17 01:20:48 rkh Exp $>
+S<$Id: params.pm,v 1.15 2006/01/02 23:16:08 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -24,7 +24,7 @@ use strict;
 use warnings;
 use Unison::Exceptions;
 use Bio::Prospect::Options;
-
+use Unison::Utilities::misc qw( warn_deprecated unison_logo );
 
 =pod
 
@@ -148,23 +148,29 @@ sub get_params_id_by_name($$) {
 }
 
 ######################################################################
-## current_params_id_by_pftype()
+## preferred_params_id_by_pftype()
 
 =pod
 
-=item B<< $u->current_params_id_by_pftype( C<pfeature_name> ) >>
+=item B<< $u->preferred_params_id_by_pftype( C<pfeature_name> ) >>
 
-Returns the current params_id for a pfeature type.
+Returns the preferred params_id for a pfeature type.
 
 =cut
 
-sub current_params_id_by_pftype($$) {
+sub preferred_params_id_by_pftype($$) {
   my ($self,$pfeature_name) = @_;
   $self->is_open()
   || croak("Unison connection not established");
-  my $id = $self->selectrow_array('select current_params_id_by_pftype_id( pftype_id(?) )',undef,uc($pfeature_name));
+  my $id = $self->selectrow_array('select preferred_params_id_by_pftype( ? )',undef,$pfeature_name);
   return $id;
 }
+
+sub current_params_id_by_pftype($$) {
+  warn_deprecated();
+  goto &preferred_params_id_by_pftype;
+}
+
 
 ######################################################################
 ## get_p2options_by_params_id()

@@ -18,7 +18,7 @@ my $margin = 5000;						# margin around gene for genome map
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.21 2005/12/07 23:21:02 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.22 2006/01/02 05:32:11 rkh Exp $ ');
 
 
 my @ps = $u->get_params_info_by_pftype('pmap');
@@ -81,6 +81,7 @@ if (emb_elem) {
   emb_url += ';gstart='+gstart+';gstop='+gstop;
   emb_url += ';params_id='+params_id;
   emb_elem.setAttribute('src', emb_url);
+  emb_elem.style.display = 'block';
   }
 }
 </script>
@@ -93,7 +94,7 @@ EOJS
 							 $js,			# js is in block element
 							 Unison::WWW::Table::render(\@cols,\@data),
 							'</div>'),
-				   '<p><iframe id="emb_genome_map" width="100%" height="300px" scrolling="yes">',
+				   '<p><iframe style="display:none" id="emb_genome_map" width="100%" height="300px" scrolling="yes">',
 				   'Sorry. I cannot display alignments because your browser does not support iframes.',
 				   '</iframe>',
 

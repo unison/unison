@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.78 2006/01/02 05:41:11 rkh Exp $>
+S<$Id: Page.pm,v 1.79 2006/01/04 00:08:04 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -641,9 +641,12 @@ sub _die_with_exception {
   my $self = shift;
   my $ex = shift;
 
-  if (not defined $ex or not ref $ex or not $ex->isa('Exception')) {
-	$self->_die(__FILE__.':'.__LINE__.": die_with_exception called without an exception\n",
-				'(instead it was called with a '.(ref($ex)||'non-reference').').') 
+  if (not defined $ex or not ref $ex or not $ex->isa('Unison::Exception')) {
+	$self->_die(__FILE__.':'.__LINE__
+				. ": die_with_exception called without an exception\n"
+				. '(instead it was called with a '
+				. (ref($ex)||'non-reference')
+				. ').');
   }
 
   my $ex_text = ( defined $ex->{error} ? CGI::escapeHTML($ex->{error}) : '(no exception summary)' );
@@ -839,7 +842,7 @@ sub _genentech_connection_params ($) {
   if (defined $ENV{KRB5CCNAME}) {
 	$v->{username} = $ENV{REMOTE_USER};
 	$v->{username} =~ s/@.+//;				# strip realm from krb identity
-	$v->{host} = 'csb';
+	$v->{host} = $ENV{SERVER_NAME};			# 'localhost' breaks krb auth
   } else {
 	$v->{username} = 'PUBLIC';
 	CORE::warn("_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user.");

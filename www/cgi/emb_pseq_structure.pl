@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: emb_pseq_structure.pl,v 1.6 2006/01/04 00:10:46 mukhyala Exp $:
+#$ID = q$Id: emb_pseq_structure.pl,v 1.7 2006/01/04 00:39:29 mukhyala Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -32,7 +32,7 @@ $v->{width}=605;
 $p->ensure_required_params(qw(pseq_id));
 
 # these files are for the image map
-my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png' );
+my ($png_fh, $png_fn, $png_urn) = $p->tempfile( SUFFIX => '.png' );
 
 my $pseq_structure = new Unison::Utilities::pseq_structure($v->{pseq_id});
 $pseq_structure->unison($u);
@@ -44,7 +44,6 @@ my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 
 get_user_specs($jmol);
 try {
-
     my $structures_ar=$pseq_structure->find_structures();
     my $templates_ar=$pseq_structure->find_templates();
     $p->die("Sorry no structures/templates found\n") if($pseq_structure->{'num_structures'} == 0 and $pseq_structure->{'num_templates'} == 0);
@@ -53,7 +52,6 @@ try {
 
     $p->add_html($jmol->script_header());
 
-    #for structure view
     my ($pdb_id) = substr($pseq_structure->{'loaded_structure'},0,4);
 
     my $imagemap = generate_imagemap() || $p->die("pseq_structure.pl couldn't generate imagemap");
@@ -74,11 +72,9 @@ try {
     $p->die($_[0]);
 };
 
+
 #=================================================================================================
-
-
 sub generate_imagemap {
-
   my $imagemap;
   $opts{features}{$_}++ foreach qw(template hmm snp user);
   $opts{view}=1;
@@ -100,12 +96,11 @@ sub generate_imagemap {
   }
 
   return $imagemap;
-
 }
+
 
 #=================================================================================================
 sub get_user_specs {
-
   if(defined($v->{userfeatures})) {
     foreach (split(/,/,$v->{userfeatures})) {
       $p->die("wrong userfeatures format expecting :: name@\coord[-coord]\n") unless (/(\S+)\@(\S+)/);

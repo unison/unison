@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.21 2005/12/08 00:58:06 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.22 2005/12/21 17:57:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -13,6 +13,10 @@ S<$Id: pseq_features.pm,v 1.21 2005/12/08 00:58:06 mukhyala Exp $>
 =head1 DESCRIPTION
 
 =cut
+
+
+## XXX: Many of the feature selections below don't use params_id.  Shame
+## shame shame.
 
 
 package Unison::Utilities::pseq_features;
@@ -28,6 +32,7 @@ our @EXPORT_OK = qw( pseq_features_panel %opts );
 
 use Bio::Graphics;
 use Bio::Graphics::Feature;
+use Unison::params;
 use Unison::Utilities::misc qw( warn_deprecated unison_logo );
 use Unison::Utilities::pseq_structure;
 
@@ -165,7 +170,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.21 2005/12/08 00:58:06 mukhyala Exp $',
+			  '$Id: pseq_features.pm,v 1.22 2005/12/21 17:57:37 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -443,8 +448,8 @@ sub add_paprospect {
   my ($svm_thr,$topN) = (7,5);
   my $params_name;
   my $nadded = 0;
-  $params_id = 1 unless defined $params_id;
-  $params_name = $u->get_params_name_by_params_id($params_id);
+  my $params_id = $u->preferred_params_id_by_pftype('Prospect');
+  my $params_name = $u->get_params_name_by_params_id($params_id);
   my $sth = $u->prepare(<<EOT);
 SELECT *
 FROM paprospect_scop_v
@@ -579,8 +584,8 @@ sub add_pahmm {
   my ($eval_thr,$topN) = (1,4);
   my $nadded = 0;
   ## XXX: don't hardwire the following
-  my (@params_info) = $u->get_params_info_by_pftype_id(7);
-  my ($params_id,$params_name) = @{$params_info[0]};
+  my $params_id = $u->preferred_params_id_by_pftype('HMM');
+  my $params_name = $u->get_params_name_by_params_id($params_id);
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
 FROM pahmm_v
@@ -639,12 +644,16 @@ sub add_papssm {
   my ($u, $panel, $q) = @_;
   my ($eval_thr,$topN) = (5,4);
   my $nadded = 0;
-  my $sql =
-	'select A.start,A.stop,M.acc as "model",A.score,A.eval
-   from papssm A join pmpssm M on A.pmodel_id=M.pmodel_id
-   where pseq_id='.$q.' and eval<='.$eval_thr.' order by eval';
+  my $params_id = $u->preferred_params_id_by_pftype('PSSM');
+  my $params_name = $u->get_params_name_by_params_id($params_id);
+  my $sql = <<EOSQL;
+SELECT A.start,A.stop,M.acc as "model",A.score,A.eval
+  FROM papssm A
+  JOIN pmpssm M on A.pmodel_id=M.pmodel_id
+ WHERE pseq_id=? AND params_id=? AND eval<=? ORDER BY eval';
+EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $featref = $u->selectall_arrayref( $sql );
+  my $featref = $u->selectall_arrayref( $sql, undef, $q, $params_id, $eval_thr );
   my $nfeat = $#$featref+1;
   splice(@$featref,$topN) if $#$featref>$topN;
   my $track = $panel->add_track( -glyph => 'graded_segments',

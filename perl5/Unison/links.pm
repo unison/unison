@@ -10,13 +10,18 @@ use Unison;
 
 use Unison::Exceptions;
 
-
 sub _fetch_formats($);
 
 my %origin_link_fmt;
 
 
-sub origin_alias_url($$$) {
+sub link_url($$$) {
+  my ($u,$o,$a) = @_;
+  my $sth = $u->prepare_cached('select link_url(?,?)');
+  return $u->selectrow_array($sth,undef,$o,$a);
+}
+
+sub origin_accession_url($$$) {
   my ($u,$o,$a) = @_;
   if (not %origin_link_fmt) {
 	$u->_fetch_formats();
@@ -31,11 +36,10 @@ sub origin_alias_url($$$) {
 }
 
 
-
-
 sub _fetch_formats($) {
   my ($u) = @_;
-  (%origin_link_fmt) = %{ $u->selectall_hashref('select origin,link_url from porigin','origin') };
+  return if %origin_link_fmt;
+  %origin_link_fmt = %{ $u->selectall_hashref('select origin,link_url from porigin','origin') };
   return;
 }
 

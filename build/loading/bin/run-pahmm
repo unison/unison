@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.20 2005/10/09 09:39:31 rkh Exp $
+# $Id: run-pahmm,v 1.21 2005/11/09 03:24:01 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -54,7 +54,7 @@ my %opts =
    pmodelset_id => undef,
    verbose => 0,
    'seqs-per-run' => 50,
-   'max-length' => 3000,					# works, but probably too low
+   'max-length' => 5000,					# works, but probably too low
   );
 GetOptions(\%opts,
 		   'force|f+',

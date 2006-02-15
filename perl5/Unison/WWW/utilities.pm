@@ -11,6 +11,11 @@ our @EXPORT = ();
 
 use Text::Wrap;
 
+#### NOTE:
+#### The URL formats /should/ come from the porigin table (porigin.url)
+#### using Unison::links.  However, those need a Unison ref and these
+#### functions don't provide such.
+
 
 
 sub alias_link {
@@ -51,11 +56,6 @@ sub alias_proteome_link {
 }
 
 
-
-#### NOTE:
-#### The URL formats /should/ come from the porigin table (porigin.url),
-#### but they don't currently.
-#### See Unison::links... we're getting close
 
 sub alias_gglink {
   $_[0] =~ s%^(UNQ|PRO|DNA)(\d+)$%<a tooltip=\"link to GenenGenes:$_[0]\" href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;

@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.38 2006/01/02 05:41:02 rkh Exp $
+# $Id: publicize,v 1.39 2006/01/03 18:28:46 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -23,7 +23,7 @@ sub col_match($$@);
 sub load_public_ids($);
 sub log(@);
 
-my $CVSId = '$Id: publicize,v 1.38 2006/01/02 05:41:02 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.39 2006/01/03 18:28:46 rkh Exp $ ';
 
 my %opts =
   (
@@ -172,8 +172,6 @@ EOT
       @{$id_cols{porigin}}	= grep {$cols[$_]=~$porigin_id_re} 0..$#cols;
       @{$id_cols{palias}}	= grep {$cols[$_]=~$palias_id_re } 0..$#cols;
       @{$id_cols{pmodel}}   = grep {$cols[$_]=~m/pmodel_id/} 0..$#cols;
-#      @{$id_cols{p2gblathsp}} = grep {$cols[$_]=~m/p2gblathsp/} 0..$#cols;
-#      @{$id_cols{p2gblataln}} = grep {$cols[$_]=~m/p2gblataln/} 0..$#cols;
 	  @{$id_cols{pmap_aln}} = ();
 	  @{$id_cols{pmap_hsp}} = ();
 	  if ($tbl =~ m/^pmap/) {
@@ -188,10 +186,8 @@ EOT
 	      or @{$id_cols{pmodel}}
 	      or @{$id_cols{pmap_aln}}
 	      or @{$id_cols{pmap_hsp}}
-#	      or @{$id_cols{p2gblataln}}
-#	      or @{$id_cols{p2gblathsp}}
 		 ) {
-		printf(STDERR "# table $tbl: filtering on o(%s), q(%s), a(%s), p(%s), m(%s)\n# pmap(aln:%s,hsp:%s)\n",
+		printf(STDERR "# table $tbl: filtering on o(%s), q(%s), a(%s), p(%s), m(%s), pmap(aln:%s,hsp:%s)\n",
 			   join(',',@{$id_cols{porigin}}),
 			   join(',',@{$id_cols{pseq}}),
 			   join(',',@{$id_cols{palias}}),
@@ -199,8 +195,6 @@ EOT
 			   join(',',@{$id_cols{pmodel}}),
 			   join(',',@{$id_cols{pmap_aln}}),
 			   join(',',@{$id_cols{pmap_hsp}}),
-#			   join(',',@{$id_cols{p2gblataln}}),
-#			   join(',',@{$id_cols{p2gblathsp}}),
 			  );
 		$table = $tbl;
       } else {
@@ -251,8 +245,6 @@ EOT
 				and col_match(\@{$public_ids{pmodel}},		\@F, @{$id_cols{pmodel}}  )
 				and col_match(\@{$public_ids{pmap_aln}},  	\@F, @{$id_cols{pmap_aln}}  )
 				and col_match(\@{$public_ids{pmap_hsp}},  	\@F, @{$id_cols{pmap_hsp}}  )
-#				and col_match(\@{$public_ids{p2gblathsp}},  \@F, @{$id_cols{p2gblathsp}}  )
-#				and col_match(\@{$public_ids{p2gblataln}},  \@F, @{$id_cols{p2gblataln}}  )
 			   ) ) {
 		$skipped{$table}++;
 		next;
@@ -322,13 +314,13 @@ sub load_public_ids($) {
   }
 
 
-  print(STDERR "# building public ids for set '$pset_name'. This takes 1-15 minutes...\n");
+  print(STDERR "# building public ids for set '$pset_name'. This takes ~15 minutes...\n");
 
   my $u = new Unison();
 
   my %ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.38 $ ';
+  $ids{CVSRevision} = '$Revision: 1.39 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
@@ -401,30 +393,6 @@ EOT
   $ids{pmap_aln}[$_]++		for @public_pmap_aln_ids;
   printf(STDERR "%10d public_pmap_aln_ids\n", $#public_pmap_aln_ids+1);
   undef @public_pmap_aln_ids;
-
-
-### blat no longer supported
-###
-#  my @public_p2gblathsp_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-#SELECT DISTINCT p2gblathsp_id
-#  FROM p2gblathsp H
-#  JOIN pseqset SS on H.pseq_id=SS.pseq_id
-# WHERE SS.pset_id=pset_id(?)
-#EOT
-#  $ids{p2gblathsp}[$_]++	for @public_p2gblathsp_ids;
-#  undef @public_p2gblathsp_ids;
-#
-#  my @public_p2gblataln_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-#SELECT DISTINCT A.p2gblataln_id
-#  FROM p2gblataln A
-#  JOIN p2gblatalnhsp AH on A.p2gblataln_id=AH.p2gblataln_id
-#  JOIN p2gblathsp H on AH.p2gblathsp_id=H.p2gblathsp_id
-#  JOIN pseqset SS on H.pseq_id=SS.pseq_id
-# WHERE SS.pset_id=pset_id(?)
-#EOT
-#  $ids{p2gblataln}[$_]++	for @public_p2gblataln_ids;
-#  undef @public_p2gblataln_ids;
-
 
 
   if (not store(\%ids, $s_fn)) {

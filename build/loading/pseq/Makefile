@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.16 2005/11/18 04:20:02 rkh Exp $
+# $Id: Makefile,v 1.17 2006/01/20 00:49:47 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -93,8 +93,15 @@ rouge.load: %.load: ${ROUGE_DIR}/peplib_050401
 	/bin/mv -f $@.err $@
 
 
+## PATAA
+pataa.load: ${PATAA_DIR}/pataa.psq
+	(time -p fastacmd -d ${PATAA_DIR}/pataa -DT \
+	| load-pseq --verbose -opataa -ffasta - ) >$@.err 2>&1 2>&1 
+	/bin/mv -f $@.err $@
+
+
 ## PDB
-PDB.load:
+PDB.load: /gne/compbio/share/blast/aa/pataa.psq
 	(time -p find ${PDB_DIR} -type f -name \*.pdb \
 	| pdb2fa 2>/dev/null \
 	| load-pseq --verbose -oPDB -ffasta - ) >$@.err 2>&1 2>&1 
