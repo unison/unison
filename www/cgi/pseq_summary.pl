@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.42 2005/12/07 23:21:03 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.43 2006/01/02 05:41:11 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -51,7 +51,7 @@ try {
 				   '<p>', homologs_group($p),
 				  );
 } catch Unison::Exception with {
-  $p->die_with_exception(shift);
+  $p->die(shift);
 };
 
 

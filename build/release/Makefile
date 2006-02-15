@@ -1,16 +1,20 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.11 2005/12/09 04:39:40 rkh Exp $
+# $Id: Makefile,v 1.12 2006/01/02 20:19:52 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
 # eg$ make upload-1.0.0
+
+.PHONY: FORCE
+.SUFFIXES:
+.DELETE_ON_ERROR:
 
 export CVSROOT=/srv/cvs
 export GZIP:=
 DATE:=$(shell date +%Y%m%d)
 
 export PGUSER:=postgres
-export PGHOST:=localhost
+#export PGHOST:=localhost
 unexport PGDATABASE
 
 
@@ -67,12 +71,24 @@ stage.log:
 # build public database dumps
 .PHONY: dump
 dump: unison-${DATE}-schema.psql.gz unison-${DATE}-data.psql.gz
-unison-${DATE}-data.psql.gz:
-	(pg_dump csb $< | ../../sbin/publicize | gzip >$@.tmp) 2>$@.err
+.PRECIOUS: csb-${DATE}.pgdump
+%-${DATE}.pgdump:
+	(time -p pg_dump -Fc $* >$@.tmp) 2>$@.err
 	/bin/mv $@.err $@.log
 	/bin/mv $@.tmp $@
-unison-${DATE}-schema.psql.gz:
-	(pg_dump -s csb $< | gzip >$@.tmp) 2>$@.err
+.PRECIOUS: csb-${DATE}.psql
+csb-%.psql.gz: csb-%.pgdump
+	(pg_restore <$< | gzip -cq >$@.tmp) 2>$@.err
+	/bin/mv $@.err $@.log
+	/bin/mv $@.tmp $@
+.PRECIOUS: unison-%-schema.psql.gz
+unison-%-schema.psql.gz: csb-%.pgdump
+	(pg_restore -s <$< | gzip >$@.tmp) 2>$@.err
+	/bin/mv $@.err $@.log
+	/bin/mv $@.tmp $@
+.PRECIOUS: unison-%-data.psql.gz
+unison-%-data.psql.gz: csb-%.psql.gz
+	(time -p gzip -cdq <$< | ../../sbin/publicize | gzip >$@.tmp) 2>$@.err
 	/bin/mv $@.err $@.log
 	/bin/mv $@.tmp $@
 unison-%-restore.log: unison-%-data.psql.gz
@@ -80,6 +96,7 @@ unison-%-restore.log: unison-%-data.psql.gz
 	createdb unison
 	gzip -cdq $< | time psql -dunison -qaf- >$@.err 2>&1
 	/bin/mv $@.err $@
+
 
 .PRECIOUS: %.md5
 %.md5: %

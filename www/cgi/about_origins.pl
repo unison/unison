@@ -15,7 +15,9 @@ use Unison::SQL;
 sub porigin_group($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.41 2005/11/21 18:00:26 rkh Exp $ ');
+$p->add_footer_lines('$Id: about_origins.pl,v 1.2 2005/11/21 20:24:18 rkh Exp $ ');
+
+# FIXME: make * red, as in about_params
 
 print $p->render("Data Sources (Origins)",
 				 '* indicates proprietary data',

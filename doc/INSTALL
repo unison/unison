@@ -24,17 +24,17 @@ $ pg_ctl -l $PGDATA/log -D $PGDATA restart
   [NOTE: some distributions have other startup wrappers]
 
 * add unison C functions
+$ mkdir $PGDATA/lib
+(manually add $PGDATA/lib to lib_dir in postgresql.conf)
 $ cd unison/src
 $ make unison.so
 $ make install
-NOTE: installs into $PGDATA, and this requires fiddling with lib_dir in postgresql.conf.
 
 * create users
-NOTE1: The PUBLIC user isn't required by Unison itself.
-NOTE2: The users "unison" and "loader" ARE required, but the sysids are immaterial.
-$ createuser -i2 -A -D    PUBLIC
-$ createuser -i3 -A -D -P unison
-$ createuser -i4 -A -D -P loader
+NOTE: the following is 8.1-specific.
+$ createuser -A -R    PUBLIC
+$ createuser -A -R -P unison
+$ createuser -A -R -P loader
 
 * Genentech users:
 $ sbin/passwd2sql </etc/passwd -g1279,100,227,199,136,140,201,202,984,81 \

@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.22 2006/01/02 05:41:02 rkh Exp $
+## $Id: common.mk,v 1.23 2006/01/20 00:49:47 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE
@@ -13,10 +13,10 @@ commonmk_default: default
 
 SHELL:=/bin/bash
 
-PSQL:=psql -X
-PSQL_VCMD:=${PSQL} -c
-PSQL_DCMD:=${PSQL} -UPUBLIC -At -c
 
+PSQL=psql -h${PGHOST} -d${PGDATABASE} -U${PGUSER} -X
+PSQL_VCMD=${PSQL} -c
+PSQL_DCMD=${PSQL} -At -c
 
 
 ############################################################################

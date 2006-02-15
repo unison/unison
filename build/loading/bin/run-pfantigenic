@@ -1,10 +1,10 @@
 #!/usr/bin/env perl
 # run-pfantigenic -- run EMBOSS antigenic and load into unison
-# $Id: run-pfantigenic,v 1.6 2005/03/22 05:44:23 rkh Exp $
+# $Id: run-pfantigenic,v 1.7 2005/05/11 21:53:41 rkh Exp $
 
 
 use Unison;
-use Unison::utils;
+use Unison::Utilities::misc qw(range_to_enum);
 use Bio::SeqIO;
 use Bio::PrimarySeq;
 use IPC::Open2;
@@ -30,14 +30,14 @@ my $temp_fn = "/tmp/run-pfantigenic-$$.fa";
 
 sub run1($$$);
 
-my $u = new Unison;
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
 my @cmd = ('antigenic', split(' ',$u->run_commandline_by_params_id( $params_id )));
 print(STDERR "# running with @cmd\n");
 
 my $sth = $u->prepare( 'insert into pfantigenic(pseq_id,start,stop,score,max_pos,params_id) values (?,?,?,?,?,?)' );
 
-my @list = Unison::utils::range_to_enum(@ARGV);
+my @list = range_to_enum(@ARGV);
 for(my $i=0; $i<=$#list; $i++) {
   my $pseq_id = $list[$i];
 

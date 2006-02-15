@@ -1,0 +1,71 @@
+#!/usr/bin/env perl
+# Usage: rename perlexpr [files]
+# Reece Hart <reece@harts.net>
+
+
+use strict;
+use warnings;
+
+my $opt_dryrun = 0;
+my $opt_verbose = 0;
+my $opt_backup;
+my $opt_force = 0;
+
+use Getopt::Long qw(:config gnu_getopt);
+GetOptions  ( 'force|f' => \$opt_force,
+			  'backup|b:s' => \$opt_backup,
+			  'dryrun|n' => \$opt_dryrun,
+			  'verbose|v' => \$opt_verbose 
+			)
+  || die "Usage: rerename [opts] perlexpr [filenames]\n";
+
+my $op;
+($op = shift)
+  || die "Usage: rerename [opts] perlexpr [filenames]\n";
+if (defined $opt_backup and $opt_backup eq '') {
+  $opt_backup = '~';
+}
+
+
+
+if (!@ARGV) {
+  @ARGV = <STDIN>;
+  chop(@ARGV);
+}
+
+for (@ARGV) {
+  my $old = $_;
+  eval $op;
+  die $@ if $@;
+  my $new = $_;
+
+  if ($old eq $new) {
+	warn("name unchanged for $old\n") if ($opt_verbose or $opt_dryrun);
+	next;
+  }
+
+  if ( -e $new ) {
+	if (defined $opt_backup) {
+	  my $backup = "$new$opt_backup";
+	  if (not $opt_dryrun and not rename($new,$backup))	{
+		warn("couldn't rename $new to $backup: $!\n");
+		next;
+	  }
+	  if ($opt_dryrun or $opt_verbose) {
+		warn("$new -> $backup\n");
+	  }
+	} elsif (not $opt_force) {
+	  warn("$new exists -- no overwrite without --force or --backup\n");
+	  next; 
+	}
+  }
+
+  if (not $opt_dryrun and not rename($old,$new)) {
+	warn("couldn't rename $old to $new: $!\n");
+	next;
+  }
+
+  if ($opt_dryrun or $opt_verbose) {
+	warn("$old -> $new\n"); 
+  }
+}

@@ -53,7 +53,8 @@ while(<>) {
 	   or (%wanted_groups and exists $wanted_groups{$F[3]})
 	   or (not %wanted_groups and not %wanted_logins and $F[2]>=$opts{min_default_uid}) ) {
 	$F[2] += 1000000  if $F[2] < $opts{min_sysid};	# avoid low-numbered uids
-	printf("create user $F[0] with sysid $F[2] nocreatedb nocreateuser;\n");
+	# printf("create user $F[0] with sysid $F[2] nocreatedb nocreateuser;\n"); # sysid unsupported in pg >=8.1
+	printf("create user $F[0] nocreatedb nocreaterole;\n");
 	delete $wanted_logins{$F[0]};
   }
 }

@@ -36,6 +36,7 @@ Loading occurs in these phases:
   or associated data (origin, tax_id). This includes building sets of
   sequences for which results should be precomputed.
 - Compute and load results.
+- Manually drop obsolete params and/or update pftype(preferred_params_id)
 - Compute statistics.
 - Build sequence sets based on computed results.
 
@@ -166,6 +167,7 @@ scop2pmodel
 
 ** move blast database files to common location
 
+** Manually drop obsolete params and/or update pftype(preferred_params_id)
 
 
 
