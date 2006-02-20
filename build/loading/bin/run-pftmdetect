@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-pftmdetect,v 1.11 2005/12/07 07:06:07 rkh Exp $
+# $Id: run-pftmdetect,v 1.12 2005/12/07 07:11:50 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -32,28 +32,19 @@ my %opts = (
 			'params_id' => 9,
 			'pmodelset_id' => undef,
 			'porigin_id' => undef,
-			'update' => 0,          # try update before insert
+			'update' => 0,					# try update before insert
 			'verbose' => 0,
 		   );
 
-die( "$0 is broken\n", <<'EOM' );
-The schema was so that pftmdetect has one pftype_id and a new type column
-(M, N, or S).  This script was not updated appropriately.  You'll need to
-do that before running.
 
-2005-12-06 23:03 Reece Hart reece@harts.net, rkh@gene.com
-EOM
-
-__END__
-
-print(STDERR '$Id: run-pftmdetect,v 1.11 2005/12/07 07:06:07 rkh Exp $ ', "\n");
+print(STDERR '$Id: run-pftmdetect,v 1.12 2005/12/07 07:11:50 rkh Exp $ ', "\n");
 
 GetOptions(\%opts,
-       'debug+',
-       'params_id=i',
-       'update',
-       'verbose!',
-      )
+		   'debug+',
+		   'params_id=i',
+		   'update',
+		   'verbose!',
+		  )
   or die("$0: bad usage\n");
 
 
@@ -67,7 +58,7 @@ if ($opts{debug}) {
   print Dumper(\%opts);
 }
 
-my %run_me;  #pseqs to tmdetect
+my %run_me;									#pseqs to tmdetect
 my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 
 
@@ -83,25 +74,17 @@ my $seqio = new Bio::SeqIO( -fh => $fa_fh,
 							-format => 'Fasta' );
 
 
-my $u = new Unison ( dbname=>'csb-dev' );
+my $u = new Unison ( dbname=>'csb-dev', username=>'loader' );
 
 
 # get command line
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
 my @cl = (split(' ',$clo),$fa_fn,">$out_fn");
-$cl[0] = "/home/rkh/opt/i686-linux-2.4/bin/tmdetect"; # FIX: this is sloppy
-
-# get pftype_ids for tmdetect output types (i.e. signal, N-TM, M-TM)
-my $tmds_id = &get_pftype_id( $u, 'tmdetect/signal' );
-my $tmdm_id = &get_pftype_id( $u, 'tmdetect/M (in->out)' );
-my $tmdn_id = &get_pftype_id( $u, 'tmdetect/N (out->in)' );
-die( "Can't retrieve all of the pftype_ids for tmdetect" ) if 
-  ( ! ( defined $tmds_id && defined $tmdm_id && defined $tmdn_id ) ); 
 
 
 # fetch sequences
 PSEQ_ID:
-while( my $pseq_id = shift(@pseq_ids) ) {
+while ( my $pseq_id = shift(@pseq_ids) ) {
   my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
   if (defined $ran_on and not $opts{update}) {
     print(STDERR "Unison:$pseq_id: run with these options on $ran_on; skipping\n");
@@ -142,48 +125,45 @@ $pipe->reader( @cl )
   || die("couldn't do @cl\n");
 
 
-
-# parse the results
-# we should do this in a pipe without the temp file...
-#Unison:291 1 (S) 7 0 17 0.999933
-my %tickled;								# pseq_ids which have been r_h tickled
-my $sql = 'insert into pftmdetect (pseq_id,pftype_id,start,stop,prob,params_id) '.
+my %tickled;						# pseq_ids which have been r_h tickled
+my $sql = 'insert into pftmdetect (params_id,pseq_id,start,stop,type,prob) '.
   'values (?,?,?,?,?,?)';
 my $sth = $u->prepare( $sql );
+
+
+# parse the results
 open(FP,$out_fn)
   or die("can't open $out_fn for parsing tmdetect results");
-while(<FP>) {
+while (<FP>) {
   my @tmd = split;
   my $pseq_id;
 
   if (not (($pseq_id) = $tmd[0] =~ m/^Unison:(\d+)$/)) {
 	die("$tmd[0]: looks like query sequences aren't from Unison!\n");
   }
-  delete $run_me{ $pseq_id };				# keys remaining after loading have
-											# no tmdetect results; see below
+  delete $run_me{ $pseq_id };		   # keys remaining after loading have
+									   # no tmdetect results; see below
 
-  my $pft;									# feature type
-  if ( $tmd[2] eq '(S)' ) {
-	$pft = $tmds_id;
-  } elsif ( $tmd[2] eq '(M)' ) {
-	$pft = $tmdm_id;
-  } elsif ( $tmd[2] eq '(N)' ) {
-	$pft = $tmdn_id;
-  } else {
+  my ($pft) = $tmd[2] =~ m/\(([SMN])\)/;
+  if (not defined $pft) {
 	die("I don't understand feature type `$tmd[2]'\n  line $.: $_\n");
   }
 
   my $start = $tmd[3]-10 < 1 ? 1 : $tmd[3]-10;
+  my $stop = $tmd[3]+10;
+  my $prob = $tmd[6];
 
   try {
-	$sth->execute( $pseq_id, $pft, $start, $tmd[3]+10,
-				   $tmd[6],$opts{params_id});
+	warn("inserting ($opts{params_id},$pseq_id,$start,$stop,$pft,$prob)\n");
+	$sth->execute($opts{params_id},$pseq_id,$start,$stop,$pft,$prob);
   } catch Unison::Exception with {
 	die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
   };
 
-  my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef) if not $tickled{$pseq}++;
-  print("Unison:$pseq_id: run_history tickled $z\n");
+  if (not $tickled{$pseq_id}++) {
+	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+	print("Unison:$pseq_id: run_history tickled $z\n");
+  }
 }
 
 
