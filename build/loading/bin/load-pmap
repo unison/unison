@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.6 2005/12/01 06:05:03 rkh Exp $
+# $Id: load-pmap,v 1.7 2006/01/02 05:41:02 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -88,7 +88,7 @@ sub load_seq_alns ($@) {
   my ($u,@alns) = @_;
   return unless @alns;
   my ($pseq_id) = $alns[0]->seq_id =~ m/Unison:(\d+)/; # error-checked in calling loop
-  my $aln_sth = $u->prepare_cached( 'select ins_pmap_aln( NULL, ?, ?, ?, ?, ?, ?, ?, ? )' );
+  my $aln_sth = $u->prepare_cached( 'select ins_pmap_aln( ?, ?, ?, ?, ?, ?, ?, ?, ? )' );
 
   printf(STDERR "# Unison:%d (<=%d alignments):\n", $pseq_id, $#alns+1);
 
@@ -119,7 +119,8 @@ sub load_seq_alns ($@) {
 	  }
 
 	  my ($chr,@hsp_ids) = load_aln_hsps($u,$pseq_id,$aln);
-	  $aln_sth->execute( $pseq_id, $ident[0],
+	  my $hsp_str = join (':', sort {$a<=>$b} @hsp_ids); # DB SHOULD BE DOING THIS!
+	  $aln_sth->execute( $hsp_str,$pseq_id, $ident[0],
 						 $qgap_cnt[0], $qgap_bases[0],
 						 $tgap_cnt[0], $tgap_bases[0],
 						 $opts{params_id}, $opts{genasm_id} );
@@ -140,14 +141,14 @@ sub load_seq_alns ($@) {
 
     my $e = shift;
 	if ($e->error() =~ m/deadlock detected/) {
-      warn("$e; retrying.\n");
-      goto RETRY;
+	warn("$e; retrying.\n");
+	goto RETRY;
     } elsif ( $e->error() =~ m/unique constraint/ ) {
 	  warn($e);
 	} else {
 	  die("$e");
-	}
-
+      }
+	
   };
 
   $aln_sth->finish();
