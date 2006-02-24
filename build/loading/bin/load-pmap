@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.7 2006/01/02 05:41:02 rkh Exp $
+# $Id: load-pmap,v 1.8 2006/02/23 22:18:27 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -124,7 +124,6 @@ sub load_seq_alns ($@) {
 						 $qgap_cnt[0], $qgap_bases[0],
 						 $tgap_cnt[0], $tgap_bases[0],
 						 $opts{params_id}, $opts{genasm_id} );
-
 	  if ( $opts{verbose} ) {
 		printf(STDERR "  loaded aln %d: chr %s, ident: %d, %%ident: %d, score: %4.2f, exons: %d\n",
 			   $i,$chr,$ident[0],$pct_ident[0],$aln->score,($#hsp_ids+1));
@@ -143,6 +142,9 @@ sub load_seq_alns ($@) {
 	if ($e->error() =~ m/deadlock detected/) {
 	warn("$e; retrying.\n");
 	goto RETRY;
+    } 	if ($e->error() =~ m/already exists/) {
+	warn("$e; not loading $pseq_id.\n");
+	return;
     } elsif ( $e->error() =~ m/unique constraint/ ) {
 	  warn($e);
 	} else {
