@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.24 2005/11/08 05:27:48 rkh Exp $
+# $Id: get-seq,v 1.25 2005/11/08 05:50:24 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.24 2005/11/08 05:27:48 rkh Exp $>
+S<$Id: get-seq,v 1.25 2005/11/08 05:50:24 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -40,13 +40,14 @@ use Pod::Usage;
 sub parse_options();
 sub map_args_to_pseq_ids($@);
 sub process1($);
+sub process_set($$);
 
 
 # We begin...
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.24 2005/11/08 05:27:48 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.25 2005/11/08 05:50:24 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -61,6 +62,16 @@ my $u = new Unison();
   || die( "! couldn't open a connection to unison\n" );
 
 
+if ($opts{'select-by-pset'} == 2) {
+  # undocumented feature: if set to 2, bypass all
+  # kruft below to get a single set by name.
+  # This is a huge speed win.
+  # Only Unison pseq_ids are output.
+  # Use with care.
+  process_set($u, $ARGV[0]);
+  exit(0);
+}
+
 if ($opts{'select-all'}) {
   my ($e) = $u->selectrow_array('select max(pseq_id) from pseq');
   for (my $q=1; $q<=$e; $q++) {
@@ -74,7 +85,9 @@ my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
 @args = map_args_to_pseq_ids( \%opts, @args );
 for(my $i=0; $i<=$#args; $i++) {
   process1($args[$i]);
-  if ( $opts{verbose} and (0 == $i % $opts{verbose_frequency}) ) {
+  if ( $opts{verbose} 
+	   and ( ($i = $#args) 
+			 or (0 == ($i+1) % $opts{verbose_frequency}) ) ) {
 	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
 		   $i+1,$#args+1, ($i+1)/($#args+1)*100, $args[$i]);
   }
@@ -106,7 +119,7 @@ sub parse_options() {
 
 	 # generic options
 	 'verbose' => 0,
-	 'verbose_frequency' => 10,
+	 'verbose_frequency' => 10000,
 	 'help' => 0,
 	 'version' => 0,
 	);
@@ -131,7 +144,6 @@ sub parse_options() {
 			  'version|V',
 			)
 	|| die("$0: you got usage issues, homey\n");
-
 
   @opts = qw(select-all select-by-alias select-by-alias-fuzzy
 			 select-by-pset select-by-porigin select-by-unison-id);
@@ -177,7 +189,7 @@ sub map_args_to_pseq_ids($@) {
   }
 
   elsif ($or->{'select-by-pset'}) {
-	my $sth_psetid_from_name = $u->prepare('select pset_id from pset where name=?');
+	my $sth_psetid_from_name = $u->prepare('select pset_id(?)');
 	my $sth_name_from_psetid = $u->prepare('select name from pset where pset_id=?');
 	my $sth_pseqid_from_psetid = $u->prepare('select pseq_id from pseqset where pset_id=?');
 
@@ -291,4 +303,50 @@ sub process1($) {
 	{ $rv .= substr($seq,0,60,'') . "\n"; }
 
   print $rv;
+}
+
+
+sub process_set($$) {
+  my $u = shift;
+  my $set_name = shift;
+  my $rv;
+  my $N = $u->selectrow_array("select count(*) from pseqset where pset_id=pset_id('$set_name')");
+  if ($N==0) {
+	die("no sequences in $set_name\n");
+  }
+  my $sth = $u->prepare(<<EOSQL);
+  SELECT Q.pseq_id,Q.seq,BA.origin,BA.alias,BA.descr,BA.gs
+    FROM pseq Q
+    JOIN pseqset QS on Q.pseq_id=QS.pseq_id
+    JOIN best_annotation_mv BA on Q.pseq_id=BA.pseq_id
+   WHERE QS.pset_id=pset_id(?)
+ORDER BY Q.pseq_id
+EOSQL
+  $sth->execute($set_name);
+  my $i = 0;
+  while( my @row = $sth->fetchrow_array() ) {
+	my ($pseq_id,$seq,$origin,$alias,$descr,$gs) = @row;
+	$descr =~ s/\t/ /g;
+	$descr =~ s/\x08//g; 					# yes, it /is/ BS
+
+	my @out;
+	push(@out, ">Unison:$pseq_id");
+	push(@out, " $origin:$alias") if defined $origin and defined $alias;
+	push(@out, " $descr") if defined $descr;
+	push(@out, " [$gs]") if defined $gs;
+	push(@out, "\n");
+	while( length($seq) ) {
+	  push(@out, substr($seq,0,60,'') . "\n");
+	}
+	print @out;
+
+	$i++;
+	if ( $opts{verbose} 
+		 and ( (0 == $i % $opts{verbose_frequency})
+			   or ($i == $N) ) ) {
+	  printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
+			 $i, $N, $i/$N*100, $pseq_id);
+	}
+  }
+  print(STDERR "\n");
 }
