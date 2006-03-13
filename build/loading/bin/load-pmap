@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.8 2006/02/23 22:18:27 mukhyala Exp $
+# $Id: load-pmap,v 1.9 2006/02/24 18:33:38 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -65,6 +65,16 @@ while ( my $aln = $psl_in->next_result() ) {
     die( "ERROR: can't parse pseq_id from seq_id=",$aln->seq_id,"\n",
 		 "Source sequences aren't from Unison!\n");
   }
+
+  my $leader = "\rUnison:$pseq_id";
+  print(STDERR $leader);
+
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  if (defined $ran_on) {
+      print(STDERR "$leader: loaded with these options on $ran_on; skipping\n");
+      next;
+  }
+
 
   if ( $pseq_id != $last_pseq_id ) {
 	load_seq_alns($u,@alns);
