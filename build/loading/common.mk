@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.23 2006/01/20 00:49:47 rkh Exp $
+## $Id: common.mk,v 1.24 2006/02/15 04:06:37 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE
@@ -16,7 +16,7 @@ SHELL:=/bin/bash
 
 PSQL=psql -h${PGHOST} -d${PGDATABASE} -U${PGUSER} -X
 PSQL_VCMD=${PSQL} -c
-PSQL_DCMD=${PSQL} -At -c
+PSQL_DCMD=${PSQL} -UPUBLIC -At -c
 
 
 ############################################################################
@@ -32,7 +32,7 @@ PSQL_DCMD=${PSQL} -At -c
 # sequences by from unison's psets
 vpath %.ids .:..
 .PHONY: ids
-ids: runA.ids runB.ids runC.ids
+ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids
 .runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
 .runA-human.ids .runB-human.ids .runC-human.ids .uniA-human.ids .uniB-human.ids .uniC-human.ids .uniD-human.ids: .%-human.ids:
@@ -179,11 +179,11 @@ clean::
 	/bin/rm -f *.tmp
 	/bin/rm -fr *.err
 cleaner:: clean
-	/bin/rm -f .*.ids *.ids
 	/bin/rm -f *.load *.log
 	/bin/rm -f *.[eo][0-9][0-9]*[0-9]
 	/bin/rm -fr qsub todo
 cleanest:: cleaner
+	/bin/rm -f .*.ids *.ids
 	/bin/rm -f *.load *.log
 	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
 	/bin/rm -fr          *-l[1-9][0-9] *-l[1-9][0-9][0-9] *-l[1-9][0-9][0-9][0-9]

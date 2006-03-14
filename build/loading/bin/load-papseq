@@ -8,7 +8,7 @@ use Bio::Tools::BPlite;
 use IO::Scalar;
 use vars qw( $loaded );
 
-my $pct_identity_cutoff = 90;
+my $pct_identity_cutoff = 80;
 my $hsp_len_cutoff = 50;
 my $remainder_cutoff = 1;
 

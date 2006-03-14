@@ -12,7 +12,7 @@
 
 <h2>Exploring the Unison Schema</h2>
 <p>For a thorough introduction to psql, you should consult the psql manual
-(try <a
+(try <a target="_blank"
 href="http://www.postgresql.org/docs/8.1/static/app-psql.html">here</a>).  To
 get you started, here are a few of the most important commands:
 
@@ -54,7 +54,7 @@ respectively.  The example below shows a listing of protein feature tables,
 and inspection of the BIG-PI results table in detail.
 
 <pre class="code">
-unison=>unison=> \dt+ unison.pf*
+unison=> \dt+ unison.pf*
                                                List of relations
  Schema |     Name      | Type  | Owner  |                             Description
 --------+---------------+-------+--------+----------------------------------------------------------------------
@@ -73,19 +73,19 @@ unison=>unison=> \dt+ unison.pf*
 
 
 unison=> \d+ unison.pfbigpi
-                                         Table "unison.pfbigpi" //
-   Column    |     Type     |            Modifiers              //  |                 Description
--------------+--------------+---------------------------------- // -+----------------------------------------------
- pfeature_id | integer      | not null default nextval('unison. //  |
- pseq_id     | integer      | not null                          //  |
- pftype_id   | integer      | not null default pftype_id('BIG-P //  |
- start       | integer      | not null                          //  | omega site
- stop        | integer      | not null default 0                //  | 0
- confidence  | real         | not null                          //  | BIG-PI Pv value
- params_id   | integer      | not null                          //  |
- site_no     | smallint     | not null                          //  |
- quality     | character(1) | not null                          //  | A-D are good sites; S,N,I are rejected sites
- score       | real         | not null                          //  |
+                       Table "unison.pfbigpi" / /
+   Column    |     Type     | Modifiers       / /  |                 Description
+-------------+--------------+-----------------/ / -+----------------------------------------------
+ pfeature_id | integer      | not null default/ /  |
+ pseq_id     | integer      | not null        /B/  |
+ pftype_id   | integer      | not null default/R/  |
+ start       | integer      | not null        /E/  | omega site
+ stop        | integer      | not null default/A/  | 0
+ confidence  | real         | not null        /K/  | BIG-PI Pv value
+ params_id   | integer      | not null        / /  |
+ site_no     | smallint     | not null        / /  |
+ quality     | character(1) | not null        / /  | A-D are good sites; S,N,I are rejected sites
+ score       | real         | not null        / /  |
 Indexes:
     "pfbigpi_redundant_feature" UNIQUE, btree (pseq_id, "start", params_id)
     "pfbigpi_gpi_proteins" btree (pseq_id) WHERE quality = 'A'::bpchar OR

@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.43 2006/01/02 05:41:11 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.44 2006/02/15 04:06:57 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -205,7 +205,7 @@ sub features_group ($) {
   my $imagemap = '';
   my ($png_fh, $png_fn, $png_urn) = $p->tempfile(SUFFIX => '.png');
   my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
-  $opts{features}{$_}++ foreach qw(psipred tmhmm signalp hmm );
+  $opts{features}{$_}++ foreach qw(psipred tmdetect tmhmm signalp hmm );
 
   my $panel = new Unison::Utilities::pseq_features($u,%opts);
 

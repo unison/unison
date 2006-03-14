@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+## XXX: Should have pulldowns to select params for each pftype (or all params for a pftype?)
+
 use strict;
 use warnings;
 
@@ -19,7 +21,7 @@ my $v = $p->Vars();
 
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile( SUFFIX => '.png' );
 $p->die("Couldn't create a temporary file: $!\n") unless defined $png_urn;
-$p->add_footer_lines('$Id: pseq_features.pl,v 1.19 2005/07/25 22:15:33 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_features.pl,v 1.20 2006/01/02 05:41:11 rkh Exp $ ');
 
 my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 
@@ -42,7 +44,7 @@ try {
 
 				   $p->group("Unison:$v->{pseq_id} Secondary Structure",
 							 "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
-							 "\n<MAP NAME=\"FEATURE_MAP\">\n", 
+							 "\n<MAP NAME=\"FEATURE_MAP\">\n",
 							 $panel->imagemap_body(),
 							 "</MAP>\n" ),
 				  );

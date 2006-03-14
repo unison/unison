@@ -19,5 +19,5 @@ update:
 	/bin/mv -f $@.err $@.log; touch $@
 
 .done.ids:
-	${PSQL} -UPUBLIC -Atc 'select pseq_id from run_history where params_id=${PFTMHMM_PARAMS_ID}' >$@
+	${PSQL} -Atc 'select pseq_id from run_history where params_id=${PFTMHMM_PARAMS_ID}' >$@
 

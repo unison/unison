@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-pftmdetect,v 1.12 2005/12/07 07:11:50 rkh Exp $
+# $Id: run-pftmdetect,v 1.13 2006/02/20 20:49:09 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -37,7 +37,7 @@ my %opts = (
 		   );
 
 
-print(STDERR '$Id: run-pftmdetect,v 1.12 2005/12/07 07:11:50 rkh Exp $ ', "\n");
+print(STDERR '$Id: run-pftmdetect,v 1.13 2006/02/20 20:49:09 rkh Exp $ ', "\n");
 
 GetOptions(\%opts,
 		   'debug+',
@@ -149,12 +149,10 @@ while (<FP>) {
 	die("I don't understand feature type `$tmd[2]'\n  line $.: $_\n");
   }
 
-  my $start = $tmd[3]-10 < 1 ? 1 : $tmd[3]-10;
-  my $stop = $tmd[3]+10;
-  my $prob = $tmd[6];
+  my ($mid,$start,$stop,$prob) = @tmd[3,4,5,6];
+  $start=1 if $start<1;						# sometimes 0
 
   try {
-	warn("inserting ($opts{params_id},$pseq_id,$start,$stop,$pft,$prob)\n");
 	$sth->execute($opts{params_id},$pseq_id,$start,$stop,$pft,$prob);
   } catch Unison::Exception with {
 	die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
