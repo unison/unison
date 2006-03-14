@@ -19,7 +19,7 @@ use Unison::SQL;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: search_sets.pl,v 1.21 2005/11/21 00:13:09 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_sets.pl,v 1.22 2005/11/21 07:20:06 rkh Exp $ ');
 
 
 my @hmm_ps = $u->get_params_info_by_pftype('hmm');
@@ -226,7 +226,7 @@ my @ms = @{ $u->selectall_arrayref('select pmodelset_id,name from pmodelset wher
 my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render("Sequence Mining Summary",
-				 '$Id: search_sets.pl,v 1.21 2005/11/21 00:13:09 rkh Exp $',
+				 '$Id: search_sets.pl,v 1.22 2005/11/21 07:20:06 rkh Exp $',
 
 				 '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
@@ -462,7 +462,7 @@ sub _get_prospect_hits {
   my $sql;
   my @hits;
   @models = sort { $a<=>$b }
-	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect where pmodelset_id=$v->{pmodelset_id}" ) });
+	(map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmprospect where pmodelset_id=$v->{pmodelset_id}" ) });
   if (@models) {
 	$sql = Unison::SQL->new()
 	  ->table('paprospect A')

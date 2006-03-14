@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.35 2005/12/07 23:21:03 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.36 2006/01/02 05:41:11 rkh Exp $ ');
 
 
 my @cols;
@@ -97,7 +97,7 @@ $sql->columns('*')
   ->order($ob,($sc eq 'acc'?'':'acc,').'clid,cfid,sfid,dmid');
 if (defined $v->{pmodelset_id}
 	and $v->{pmodelset_id} !~ m/\D/) {
-  $sql->where("pmodel_id in (select pmodel_id from pmsm_prospect where pmodelset_id=$v->{pmodelset_id})");
+  $sql->where("pmodel_id in (select pmodel_id from pmsm_pmprospect where pmodelset_id=$v->{pmodelset_id})");
 }
 
 # count number of rows from query

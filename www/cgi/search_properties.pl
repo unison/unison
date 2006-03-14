@@ -20,12 +20,12 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_by_properties.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_properties.pl,v 1.15 2005/11/20 23:34:16 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_by_properties.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $',
+				   '$Id: search_properties.pl,v 1.15 2005/11/20 23:34:16 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Complex searches may take several minutes!'),
 				   spit_form($p));
@@ -83,7 +83,7 @@ if (exists $v->{al_papssm}) {
 }
 
 if (exists $v->{al_prospect}) {
-  my @models = map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_prospect where pmodelset_id=$v->{al_ms_sel}" ) };
+  my @models = map { $_->[0] } @{ $u->selectall_arrayref( "select pmodel_id from pmsm_pmprospect where pmodelset_id=$v->{al_ms_sel}" ) };
   @models = sort { $a<=>$b } @models;
   $s_sql->join('paprospect T on A.pseq_id=T.pseq_id')
 	->where("T.svm>=$v->{al_prospect_svm}::real")
@@ -92,7 +92,7 @@ if (exists $v->{al_prospect}) {
 
 #  $s_sql->join('paprospect T on A.pseq_id=T.pseq_id')
 #	->where("T.svm>=$v->{al_prospect_svm}::real")
-#	->join('pmsm_prospect PT on T.pmodel_id=PT.pmodel_id')
+#	->join('pmsm_pmprospect PT on T.pmodel_id=PT.pmodel_id')
 #	->where("PT.pmodelset_id=$v->{al_ms_sel}");
 }
 
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Feature Based Mining Results",
-				 '$Id: search_by_properties.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $',
+				 '$Id: search_properties.pl,v 1.15 2005/11/20 23:34:16 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
