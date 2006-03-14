@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.39 2006/01/03 18:28:46 rkh Exp $
+# $Id: publicize,v 1.40 2006/02/15 04:06:37 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -23,7 +23,7 @@ sub col_match($$@);
 sub load_public_ids($);
 sub log(@);
 
-my $CVSId = '$Id: publicize,v 1.39 2006/01/03 18:28:46 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.40 2006/02/15 04:06:37 rkh Exp $ ';
 
 my %opts =
   (
@@ -57,14 +57,14 @@ print("-- $0\n",
 my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
 			   pmpssm pmregexp
 			   pmsm pmsm_pmhmm pmsm_pmpssm
-			   pmsm_regexp porigin);
+			   pmsm_pmregexp porigin);
 
 my $eodata_re = qr/^\\\./;
 my $pseq_id_re = qr/^(pseq_id|[qt]_pseq_id|query|target)$/;
 my $params_id_re = qr/^params_id$/;
 my $porigin_id_re = qr/^porigin_id$/;
 my $palias_id_re = qr/^palias_id$/;
-my $truncate_tables_re = qr/p2gblat|pmprospect|paprospect|pmsm_prospect|pnote/;
+my $truncate_tables_re = qr/p2gblat|pmprospect|paprospect|pmsm_pmprospect|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
 
 
@@ -320,7 +320,7 @@ sub load_public_ids($) {
 
   my %ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.39 $ ';
+  $ids{CVSRevision} = '$Revision: 1.40 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
