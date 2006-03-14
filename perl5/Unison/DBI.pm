@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.23 2006/01/02 05:41:02 rkh Exp $>
+S<$Id: DBI.pm,v 1.24 2006/01/02 20:19:52 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -166,7 +166,10 @@ sub connect {
   # this causes ALL DBI errors to be handled by Unison::Exception::DBIError (yea!)
   $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) };
 
-  $dbh->do('set search_path = unison,tax');
+## 2006-02-23: do not override search path
+## this guarantees the same behavior wrt to search_path with psql and DBI
+##  $dbh->do('set search_path = unison,tax');
+## remove this section when all's well
 
   $self->{dbh} = $dbh;
 

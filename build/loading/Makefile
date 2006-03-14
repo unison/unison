@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.19 2006/01/20 00:49:47 rkh Exp $
+## $Id: Makefile,v 1.20 2006/01/20 00:53:50 rkh Exp $
 
 default all: update
 
@@ -48,7 +48,7 @@ $(addsuffix .log,${FX}): %.log:
 	(time -p ${PSQL_VCMD} 'select $*();') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 update_tax_ids.log: pseq.log
-update_psets_intrinsic.log: update_tax_id.log
+update_psets_intrinsic.log: update_tax_ids.log
 
 # materialized views
 $(addsuffix _mv.log,${MVV}): %_mv.log:
@@ -57,7 +57,7 @@ $(addsuffix _mv.log,${MVV}): %_mv.log:
 $(addsuffix _mv.log,${MVDV}): %_mv.log:
 	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $*_mv select * from $*_dv;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
-best_annotation_mv.log: update_psets_intrinsic.log
+best_annotation_mv.log: update_tax_ids.log
 pmprospect_scop_mv.log: aux.log
 pseq_gene_mv.log: aux.log
 

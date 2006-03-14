@@ -11,7 +11,7 @@ function unison_activateTooltips() {
 			var content = elements[i].getAttribute("tooltip");
 			content = content.replace(new RegExp('\'', 'g'), '\\\'');
 			elements[i].onmouseover = new Function('in_event', "domTT_activate(this, in_event, 'content', '" + content + "')");
-			elements[i].onmouseout = function(in_event) { domTT_mouseout(this, inevent); };
+/*			elements[i].onmouseout = function(in_event) { domTT_mouseout(this, inevent); }; */
 		}
 	}
 }

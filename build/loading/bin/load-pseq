@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.22 2006/01/02 05:41:02 rkh Exp $
+# $Id: load-pseq,v 1.23 2006/01/18 04:04:04 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -225,6 +225,7 @@ sub process_seq ($$$$) {
   $descr =~ s/\.$//;
   $descr =~ s/(\S)\n(\S)/$1$2/;				# newline amid non-whitespace
   $descr =~ s/\s*\n\s*/ /;					# \s on either side
+  $descr =~ s/\02//g;						# remove ^B (some Proteome entries)
 
   if ( defined $bs->species and defined $bs->species->ncbi_taxid() ) {
 	$tax_id = $bs->species->ncbi_taxid();

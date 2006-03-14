@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.22 2005/12/21 17:57:37 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.23 2006/02/15 04:06:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -36,8 +36,9 @@ use Unison::params;
 use Unison::Utilities::misc qw( warn_deprecated unison_logo );
 use Unison::Utilities::pseq_structure;
 
-my @default_panel_features = qw( psipred tmdetect tmhmm signalp sigcleave
-  antigenic bigpi regexp pssm hmm prospect );
+my @default_panel_features = qw ( antigenic bigpi hmm psipred 
+ prospect signalp tmdetect tmhmm );
+# pssm regexp sigcleave
 
 our %opts = 
   (
@@ -105,8 +106,7 @@ sub imagemap_body($) {
 sub pseq_features_panel($%) {
   my $u = shift;
   my %opts = (%opts, @_);
-
-  my ($tick) = (1);
+  my $tick = 1;
 
   my $len = $u->selectrow_array( "select len from pseq where pseq_id=$opts{pseq_id}" );
   if (not defined $len) {
@@ -114,19 +114,24 @@ sub pseq_features_panel($%) {
 	return undef;
   }
 
-  if(!defined($opts{features})) {
+  if ( not defined($opts{features}) ) {
     $opts{features}{$_}++ foreach @default_panel_features;
   }
 
-  if(defined($opts{track_length})) {
+  if ( defined($opts{track_length} )) {
+	# This is an opaque conditional which should be rewritten.
+	# Kiran's attempting to say that "when track length is set,
+	# we're doing the detailed psipred prediction display and
+	# we'll turn off everything but psipred".
     $opts{features}{$_} = 0 foreach (keys %{$opts{features}});
     $opts{features}{psipred} = 1;
     $tick = 2;
   } else {
-    $opts{track_length} = int($len / 100 + 1) * 100;
+    $opts{track_length} = int($len / 10 + 1) * 10;
   }
 
-  my $panel = Bio::Graphics::Panel->new( -length => $opts{track_length},
+  my $panel = Bio::Graphics::Panel->new( -spacing => 10,
+										 -length => $opts{track_length},
 										 -width => $opts{width},
 										 -pad_top => $opts{pad},
 										 -pad_left => $opts{pad},
@@ -147,14 +152,19 @@ sub pseq_features_panel($%) {
 				   );
 
   add_pftemplate   ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
+
+  add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
+  add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
+  add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
+
   add_pfpsipred    ( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
+
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pftmhmm      ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmhmm});
-  add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
-  add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
   add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
-  add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
+
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
+
   add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
   add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{hmm});
   add_paprospect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect});
@@ -170,7 +180,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.22 2005/12/21 17:57:37 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.23 2006/02/15 04:06:37 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -356,7 +366,7 @@ sub add_pftmdetect {
 								 -max_score => 1,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'blue',
-								 -key => 'tmdetect',
+								 -key => 'tmdetect (may overlap)',
 								 -bump => +1,
 								 -label => 1,
 								 -fgcolor => 'black',
@@ -374,7 +384,7 @@ sub add_pftmdetect {
 									 -end => $r->[1],
 									 -name => $r->[2],
 									 -score => $r->[3],
-									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
+									 -attributes => { tooltip => "$r->[0]-$r->[1]; p=$r->[3]" }
 								   ) );
 	$nadded++;
   }
@@ -401,7 +411,7 @@ sub add_pftmhmm {
 								 -max_score => 1,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'purple',
-								 -key => 'tmhmm',
+								 -key => 'TMHMM (o=out, i=in, N=o->i, M=i->i)',
 								 -bump => +1,
 								 -label => 1,
 								 -fgcolor => 'black',
@@ -446,9 +456,8 @@ Add paprospect features to a panel and return the number of features added.
 sub add_paprospect {
   my ($u, $panel, $q, $params_id) = @_;
   my ($svm_thr,$topN) = (7,5);
-  my $params_name;
   my $nadded = 0;
-  my $params_id = $u->preferred_params_id_by_pftype('Prospect');
+  $params_id = $u->preferred_params_id_by_pftype('Prospect') unless defined $params_id;
   my $params_name = $u->get_params_name_by_params_id($params_id);
   my $sth = $u->prepare(<<EOT);
 SELECT *
@@ -650,7 +659,7 @@ sub add_papssm {
 SELECT A.start,A.stop,M.acc as "model",A.score,A.eval
   FROM papssm A
   JOIN pmpssm M on A.pmodel_id=M.pmodel_id
- WHERE pseq_id=? AND params_id=? AND eval<=? ORDER BY eval';
+ WHERE pseq_id=? AND params_id=? AND eval<=? ORDER BY eval;
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql, undef, $q, $params_id, $eval_thr );
@@ -723,7 +732,7 @@ sub add_pfantigenic {
 									 -end => $r->[1],
 									 -score => $r->[2],
 									 -name => $r->[3],
-									 -attributes => { tooltip => "$r->[0]-$r->[1]" }
+									 -attributes => { tooltip => "$r->[0]-$r->[1]; score=$r->[2]" }
 								   ) );
 	$nadded++;
   }

@@ -99,7 +99,8 @@ while( @Q ) {
 
 
   my $fh = new IO::Pipe;
-  $fh->reader( split(' ',$cl), $seqfn );
+  $fh->reader( split(' ',$cl), $seqfn )
+	|| die("$cl: $!\n");
 
   local $/ = "\n\n";
   my $blk = $fh->getline();					# version line

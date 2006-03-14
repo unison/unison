@@ -36,7 +36,9 @@ $ createuser -A -R    PUBLIC
 $ createuser -A -R -P unison
 $ createuser -A -R -P loader
 
-* Genentech users:
+
+* Genentech only::
+$ psql -c "create user genengenes encrypted password 'md5e53dad8a14764ab29bee595757cf3b1d'"
 $ sbin/passwd2sql </etc/passwd -g1279,100,227,199,136,140,201,202,984,81 \
   | psql -Upostgres -hcsb -dtemplate1 -qaf-
 $ or perhaps: -g43,52,55,57,63,69,71,82,83,85,91,100,136,138,139,140,141,154,173,176,199,201,202,227,228,234,239,280,285,286,289,440,463,984,1279

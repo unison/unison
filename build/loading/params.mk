@@ -1,5 +1,7 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.10 2006/01/20 00:49:47 rkh Exp $
+## $Id: params.mk,v 1.11 2006/02/15 04:06:37 rkh Exp $
+
+## XXX: We should get more params_id from pftype(preferred_params_id).
 
 
 ############################################################################
@@ -37,7 +39,13 @@ PAPROSPECT_PMODELSET_ID:=20
 #### PAHMM
 PFAM_DIR=${COMPBIO_PREFIX}/share/pfam-19.0
 PAHMM_PARAMS_ID:=34
-PAHMM_PORIGIN_ID:=$(shell ${PSQL_DCMD} 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
+PAHMM_PORIGIN_ID=$(shell ${PSQL_DCMD} 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
+
+
+############################################################################
+#### PAPSEQ
+PAPSEQ_PARAMS_ID:=3
+PAPSEQ_CMDLINE=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PAPSEQ_PARAMS_ID}')
 
 
 ############################################################################
@@ -58,6 +66,11 @@ PFREGEXP_PARAMS_ID:=12
 ############################################################################
 #### PFPSIPRED
 PFPSIPRED_PARAMS_ID=17
+
+
+############################################################################
+#### PFTMDETECT
+PFTMDETECT_PARAMS_ID:=9
 
 
 ############################################################################

@@ -4,7 +4,7 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=5
+N:=50
 RUNSET=runC-human
 
 PATH:=/usr/local/tools/bin:/usr/local/seq/bin/:${PATH}
@@ -20,10 +20,11 @@ update:
 
 .PRECIOUS: %.psl
 %.psl: %.fa
-	(time -p ${CMDLINE} $< >>$@.tmp) 2>>$@.err \
-	&& /bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
+	(time -p ${CMDLINE} $< >$@.tmp) 2>$@.err
+	/bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
 
 %.load: %.psl
+	# FIXME: genasm_id is hardwired at 2.
 	(time -p load-pmap -p ${PMAP_PARAMS_ID} -v --genasm_id=2 $<) >$@.err 2>&1
 	/bin/mv $@.err $@
 

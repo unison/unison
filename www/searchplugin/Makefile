@@ -9,7 +9,12 @@ unison-dev.src: unison.src Makefile
 
 # warning: gratuitous use of ImageMagick ahead...
 unison-dev.png: unison.png Makefile
-	convert -font helvetica-oblique -pointsize 12 -fill blue -draw "text 8,16 d" $< $@
+	convert -font helvetica-oblique -pointsize 12 -fill blue \
+		-draw "text 7,15 d" \
+		-draw "text 7,16 d" \
+		-draw "text 8,15 d" \
+		-draw "text 8,16 d" \
+	$< $@
 
 install: unison.src unison.png unison-dev.src unison-dev.png
 	for d in ${DIRS}; do \
