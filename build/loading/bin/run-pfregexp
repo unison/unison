@@ -135,7 +135,7 @@ sub get_regexps($$$) {
   $sql->columns('M.pmodel_id,M.regexp')
       ->table('pmregexp M');
   if (defined $m) {
-	$sql->join('pmsm_regexp S on M.pmodel_id=S.pmodel_id')
+	$sql->join('pmsm_pmregexp S on M.pmodel_id=S.pmodel_id')
 	    ->where('S.pmodelset_id in (' . join(',',@$m) . ')');
   }
   if (defined $opts{porigin_id}) {
