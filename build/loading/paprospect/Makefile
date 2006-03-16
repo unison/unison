@@ -4,10 +4,13 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
+PSIPRED_PATH:=${UNISON_HOME}/loading/pfpsipred/
+
+export PSIPRED_PATH
+
 N:=5
 QNAME=${SUBDIR}p${PAPROSPECT_PARAMS_ID}
 RUNSET=runB
-
 
 update:
 	make cleanest
@@ -17,7 +20,7 @@ update:
 %.load: %-M${PAPROSPECT_PMODELSET_ID}.load;
 %-M${PAPROSPECT_PMODELSET_ID}.load: %.ids
 	(time -p xargs -n10 <$< run-paprospect -p${PAPROSPECT_PARAMS_ID} -M${PAPROSPECT_PMODELSET_ID}) >$@.err 2>&1
-	/bin/mv -f $@.err $@
+	/bin/mv -f $@.err $@.log
 
 .done.ids:
 	psql -Atc 'select pseq_id from run_history where params_id=${PAPROSPECT_PARAMS_ID} and pmodelset_id=${PAPROSPECT_PMODELSET_ID}' >$@
