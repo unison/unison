@@ -12,20 +12,20 @@ use Bio::SeqIO;
 # connect with defaults. See Unison::DBI. Typically, the connection is made
 # to the csb production host ('csb'), csb production database (also 'csb'),
 # as the calling user id, authenticated by kerberos.
-my $u = new Unison( );
+my $u = new Unison(username=>'PUBLIC');
 
 # Unison stores multiple versions of all results 
 # params must be listed in the
 # unison.params table.
 my @table_defs =
   (
-   ['v_pahmm',[qw(start stop ends score eval acc name descr)], 'Pfam_fs 17.0', 'eval <= 1e-5'],
-   ['pfsignalpnn', [qw(start stop confidence)], 'SignalP-2.0'],
-   ['pftmhmm', [qw(start stop)], 'tmhmm default', 'type = \'M\''],
-   ['pfpsipred', [qw(start stop type)],'Psipred v2.45']
+   ['pahmm_v',[qw(start stop ends score eval acc name descr)], 'Pfam_ls 19.0', 'eval <= 1e-5'],
+   ['pfsignalpnn', [qw(start stop d_score)], 'SignalP 3.0 (euk)'],
+   ['pftmhmm', [qw(start stop)], 'TMHMM 2.0c', '(type = \'M\' or type = \'N\')'],
+#   ['pfssp_psipred', [qw(start stop type)],'Psipred v2.45']
   );
 
-print "# ".'$Id: annotate-from-fasta,v 1.1 2005/08/17 20:09:41 mukhyala Exp $'."\n";
+print "# ".'$Id: annotate-from-fasta,v 1.2 2005/12/07 07:27:57 rkh Exp $'."\n";
   my $in = new Bio::SeqIO( -fh => \*STDIN,
 			   -format => 'fasta' );
 my $sno = 0;
@@ -71,7 +71,7 @@ while ( my $bs = $in->next_seq() ) {
       # distinguish these cases by checking the run_history table.
       my $z = $u->get_run_timestamp($pseq_id,$params_id,undef,undef);
       if (defined $z) {
-	print("  run on $z; no hits with $cond\n");
+	print("  ran on $z; no hits with $cond\n");
       } else {
 	print("  not run using parameters '$_->[2]\n");
       }
