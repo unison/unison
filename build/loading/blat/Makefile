@@ -12,11 +12,11 @@ psls loads : %s : $(subst .fa,.%,$(wildcard *.fa))
 
 .PRECIOUS: %.psl
 %.psl: %.fa
-	(time -p /usr/local/seq/bin/gfClient -minIdentity=80 -t=dnax -q=prot localhost 17701 /usr/seqdb2_nb/blat/nhgd $< $@.tmp) 2>$@.err \
+	(time -p /usr/local/seq/bin/gfClient -minIdentity=80 -t=dnax -q=prot trp 17701 /usr/seqdb2_nb/blat/nhgd $< $@.tmp) 2>$@.err \
 	&& /bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
 
 %.load: %.psl
-	(time -p load-blat -v --genasm_id=1 -Uloader -dcsb-dev $< >$@.tmp) 2>$@.err \
+	(time -p load-blat -v --genasm_id=2 -Uloader -dcsb-dev $< >$@.tmp) 2>$@.err \
 	&& /bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
 
 
