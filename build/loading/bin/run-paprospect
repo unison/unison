@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect,v 1.18 2005/05/11 21:53:41 rkh Exp $
+# $Id: run-paprospect,v 1.19 2005/10/09 09:39:31 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -14,13 +14,14 @@ use strict;
 
 use Unison;
 use Unison::SQL;
-use Bio::Prospect::Options;
-use Bio::Prospect::LocalClient;
+use Bio::Prospect::File;
+use Bio::Prospect::ThreadSummary;
 use Bio::Prospect::Exceptions;
+use Bio::SeqIO;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use Error qw(:try);
-
+use File::Temp qw/tempfile/;
 
 
 my %opts = 
@@ -45,7 +46,7 @@ GetOptions
    'template-file|tfile|T=s',
    'templates|t=s@',
    'update',
-   'verbose!',
+   'verbose|v',
    'dry-run|n'
   )
   or die("$0: bad usage\n");
@@ -72,16 +73,14 @@ my $N = $#pseq_ids+1;
 
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
-
-my $po = $u->get_p2options_by_params_id($opts{params_id});
-
+my @cl = (@{$u->selectall_arrayref("select commandline from params where params_id=$opts{params_id}")->[0]});
 if (defined $opts{'pmodelset_id'} or defined $opts{'porigin_id'}) {
   # given pmodelset_id and/or porigin_id, shove list of models in $opts{templates}
   my $sql = new Unison::SQL;
   $sql->columns('acc')
 	->table('pmprospect M');
   if (defined $opts{pmodelset_id}) {
-	$sql->join('pmsm_prospect S on M.pmodel_id=S.pmodel_id')
+	$sql->join('pmsm_pmprospect S on M.pmodel_id=S.pmodel_id')
 	  ->where('S.pmodelset_id in (' . join(',',@{$opts{pmodelset_id}}) . ')');
   }
   if (defined $opts{porigin_id}) {
@@ -92,18 +91,17 @@ if (defined $opts{'pmodelset_id'} or defined $opts{'porigin_id'}) {
 }
 
 if (defined $opts{'templates'}) {
-  $po->{templates} = $opts{templates};
-  printf(STDERR "threading against %d templates\n", 1+$#{$opts{templates}});
-} elsif (defined $opts{'template-file'}) {
-  $po->{tfile} = $opts{'template-file'}
-} else {
-  $po->{tfile} = '/gne/compbio/share/prospect/tfiles/all';
-}
 
-my $temproot = $ENV{TMPDIR} || '/tmp/';
-my $pc = new Bio::Prospect::LocalClient(options => $po,
-										temproot => $temproot
-									   );
+  my ($fh,$fn) = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.lst' );
+  $fh->print(join("\n",@{$opts{templates}}),"\n");
+  $fh->close();
+  push(@cl, '--tfile ', $fn);
+  printf(STDERR "threading against %d templates\n", 1+$#{$opts{templates}});
+
+} elsif (defined $opts{'template-file'}) {
+  push(@cl, '--tfile ', $opts{'template-file'});
+  printf(STDERR "threading against templates in %s\n", $opts{'template-file'});
+}
 
 
 
@@ -134,19 +132,22 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   $leader .= " (" . length($seq) . " AA)";
 
+  my ($seqfh,$seqfn) = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.fasta' );
+  my $so = new Bio::SeqIO( -format => 'fasta',
+			   -file => ">$seqfn" )
+    || die("! couldn't open $seqfn for writing\n");
+  $so->write_seq( new Bio::PrimarySeq( -seq => $seq,
+				       -id => "Unison:$pseq_id" ) );
+  my @cmd = @cl;
   my (@summaries);
-  try {
-	print(STDERR "$leader: threading...");
-    (@summaries) = $pc->thread_summary( $seq );
-  } catch Bio::Prospect::RuntimeError with {
-	print(STDERR $_[0]);
-    print STDERR "Skipping this pseq_id ($pseq_id)\n";
-    next PSEQ_ID;
-  } catch Bio::Prospect::Exception with {
-	print(STDERR $_[0]);
-    print STDERR "Skipping this pseq_id ($pseq_id)\n";
-    next PSEQ_ID;
-  };
+
+
+  print(STDERR "$leader: threading...");
+  push(@cmd,$seqfn);
+  print STDERR "@cmd\n" if($opts{verbose});
+  system( join " ",@cmd );
+  $? && die("FAILED: @cmd: $!\n");
+  (@summaries) = xml2threadsummaries( "$seqfn.xml");
 
   if ($opts{'dry-run'}) {
 	print(STDERR "done\n");
@@ -173,9 +174,23 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
   print(STDERR "done; history tickled ($z)\n");
 }
 
+sub xml2threadsummaries {
+  my $xfn = shift || die "xml2threads expects an xml file\n";
+
+  my $pf = new Bio::Prospect::File;
+  $pf->open( "<$xfn" ) || die("could not open $xfn\n");
+  my @ts;
+  while( my $t = $pf->next_thread() ) {
+    push @ts, new Bio::Prospect::ThreadSummary( $t );;
+  }
+  return( @ts );
+}
 
 ############################################################################
 # $Log: run-paprospect,v $
+# Revision 1.19  2005/10/09 09:39:31  rkh
+# s/prospect2/prospect/
+#
 # Revision 1.18  2005/05/11 21:53:41  rkh
 # periodic sync
 #
