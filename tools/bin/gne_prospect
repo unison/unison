@@ -6,8 +6,8 @@ my $usage = <<'EOU';
 # PURPOSE: run propsect with various options
 # USAGE: gne_prospect OPTIONS <seq file>
 # OPTIONS:
-#   --global      |  :   global alignment mode (default)
-#   --global_local|  :   global-local alignment mode
+#   --global         :   global alignment mode (default)
+#   --global_local   :   global-local alignment mode
 #   --psiblast    |-b:   use profile information in threading
 #   --psipred     |-p:   use Psired secondary structure in threading
 #   --db          |-d:   blast database (psiblast)
@@ -16,12 +16,13 @@ my $usage = <<'EOU';
 #   --cpus        |-a:   cpus (psiblast)
 #   --verbose     |-v:   output more processing information
 #   --tfile       |-t <file_name>: file containing list of templates (default is FSSP)
-#   --scop        |  :   use SCOP templates
+#   --scop           :   use SCOP templates
 #   --sort        |-s <n>: sort and output top n templates. Creates .raw and .svm files
 #   --save        |-x:   output in XML format. Creates a .xml file
 #   --3d                 create backbone coordinates of sequences
+#   --pids           :   print percentage identities(col:4) on stdout for each template
 #   --help               this output
-# $Id: gne_prospect,v 1.5 2005/09/19 21:07:26 mukhyala Exp $
+# $Id: gne_prospect,v 1.6 2005/11/29 16:56:38 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -184,7 +185,7 @@ sub output {
     printf(STDERR "%8s (%4d/%4d %3d%%)...\n", 
 	   $ts->tname(), ($i+1), ($#summaries+1), ($i+1)/($#summaries+1)*100 ) if($opts->{verbose});
     my $pid = ((defined $ts->{$uf{nident}}  and defined $ts->{$uf{nalign}}) and ($ts->{$uf{nident}} > 0 and $ts->{$uf{nalign}} > 0) ? (100*$ts->{$uf{nident}}/$ts->{$uf{nalign}}) : -1);
-    printf(STDOUT $ts->tname(),"\t",$ts->{$uf{raw}},"\t",$ts->{$uf{svm}},"\t",$pid,"\n");
+    printf("%s\t%.2f\t%.2f\t%.2f\n",$ts->tname,$ts->{$uf{raw}},$ts->{$uf{svm}},$pid);
   }
 }
 
@@ -337,6 +338,7 @@ sub run {
   print STDERR "$cmd\n" if($opts{verbose});
   system( $cmd );
   $? && die("FAILED: $cmd: $!\n");
+  print STDERR "Finished.\n" if($opts{verbose});
 }
 
 
