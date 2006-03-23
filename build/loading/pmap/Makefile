@@ -25,7 +25,7 @@ update:
 
 %.load: %.psl
 	# FIXME: genasm_id is hardwired at 2.
-	(time -p load-pmap -p ${PMAP_PARAMS_ID} -v --genasm_id=2 $<) >$@.err 2>&1
+	(time -p load-pmap -p ${PMAP_PARAMS_ID} -v --genasm_id=${GENASM_ID} $<) >$@.err 2>&1
 	/bin/mv $@.err $@
 
 .done.ids:
