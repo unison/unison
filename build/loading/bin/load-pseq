@@ -1,4 +1,4 @@
-#! /usr/bin/env perl
+#!/usr/bin/env perl
 
 my $usage = <<'EOU';
 #-------------------------------------------------------------------------------
@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.23 2006/01/18 04:04:04 rkh Exp $
+# $Id: load-pseq,v 1.24 2006/03/14 01:26:25 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -25,38 +25,39 @@ use Getopt::Long qw(:config gnu_getopt);
 use Unison;
 use Unison::Exceptions;
 use Unison::Utilities::misc qw(clean_sequence sequence_md5);
-use IO::Zlib;
 use IO::File;
 use Benchmark ':hireswallclock';
+use Data::Dumper;
 
 
 sub tally ($%);
 sub process_stream ($$);
-sub process_seq ($$$$);
+sub process_seq ($$$);
 
 
-# acceptable file formats (courtesy of Bioperl)
-my @af = qw(fthelper multifile abi ace alf asciitree bsml chadoxml ctf
-		   embl exp fasta fastq game gcg genbank kegg largefasta locuslink
-		   metafasta phd pir pln qual raw scf swiss tab tigr ztr);
+# acceptable file formats (subset of Bioperl)
+my @af = qw(embl fasta fastq genbank locuslink phd pir swiss);
 my %af = map { $_=>1 } @af;
 
 
 my %opts = (
 			origin => undef,
 			format => undef,
-			'start-after' => undef,
-			'include-subex' => 0,
 			'verbose' => 0,
-			tax_id => undef
+			tax_id => undef,
+			'allow-anonymous-sequences' => 0,
+			'infer-tax-id' => 0,
+			'dry-run' => 0
 );
 GetOptions( \%opts,
 			'origin|o=s',
 			'format|f=s',
-			'start-after|startafter|A=s',
-			'verbose|v',
+			'verbose|v+',
 			'tax_id|t=i',
-			'incl-subex|inclsubex' )
+			'allow-anonymous-sequences+',
+			'infer-tax-id+',
+			'dry-run|n+',
+		  )
   || die("$0: bad usage:\n$usage\n");
 
 
@@ -69,31 +70,43 @@ GetOptions( \%opts,
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
-#$u->do("update pg_settings set setting='debug' where name='client_min_messages'");
-
-$opts{porigin_id} = $u->porigin_si_porigin_id($opts{origin});
+my %origin_to_porigin_id = map {$_->[0] => $_->[1]}
+  @{$u->selectall_arrayref( 'select origin,porigin_id from porigin' )};
+$opts{porigin_id} = $origin_to_porigin_id{$opts{origin}};
 (defined $opts{porigin_id})
-  || die("couldn't lookup or insert origin $opts{origin}\n");
+  || die("$0: origin $opts{origin} doesn't exist\n");
+
+my %latin_to_tax_id = map  {$_->[0] => $_->[1]}
+  @{$u->selectall_arrayref( 'select lower(latin),tax_id from tax.spspec' )};
+my %gs_to_tax_id = map  {$_->[0] => $_->[1]}
+  @{$u->selectall_arrayref( 'select upper(gs),tax_id from tax.spspec' )};
+my %known_tax_ids = map {$_ => 1} values %latin_to_tax_id;
+
+(defined $opts{tax_id} and defined $opts{'infer-tax-id'})
+  && die("$0: you may not specify a tax_id and request infer-tax-id\n");
+
+(defined $opts{tax_id} and not exists $known_tax_ids{$opts{tax_id}})
+  && die("$0: you specified an invalid tax_id\n");
+
+($opts{origin} =~ m/^RefSeq/ and $opts{format} !~ m/genbank/i)
+  && die("$0: $opts{origin} sequences should be loaded from genbank format files\n");
+
+($opts{origin} =~ m/^UniProt/ and $opts{format} !~ m/sprot/i)
+  && die("$0: $opts{origin} sequences should be loaded from sprot format files\n");
 
 
-my %totals = map { $_=>0 } qw(nseen nadded nskipped nfailed naliases);
+
+my %warnings;					  # hash of warnings to prevent duplicates
+my @tally_bins = qw(nseen nadded nskipped nfailed naliases);
+my %totals = map { $_=>0 } @tally_bins;
 my $tts = new Benchmark;
+
 
 foreach my $fn ( @ARGV ) {
   my $fh;
-  if ($fn =~ m/\.gz$/) {
-	# die("Reading from gzipped files is currently broken. Sorry.\n");
-	# dang, I can't remember why this is broken!
-	# okay, I uncommented this and I think it works.
-	# Perhaps it appeared broken because IO::Zlib didn't honor $/ ?
-	$fh = new IO::Zlib;
-	$fh->open($fn,'rb')
-	  || die("$fn: $!\n");
-  } else {
-	$fh = new IO::File;
-	$fh->open($fn)
-	  || die("$fn: $!\n");
-  }
+  $fh = new IO::File;
+  $fh->open($fn)
+	|| die("$fn: $!\n");
 
   my $stream = Bio::SeqIO->new(-fh => $fh, 
 							   -format => $opts{format});
@@ -103,7 +116,7 @@ foreach my $fn ( @ARGV ) {
   my $tidelta = @{timediff($tie, $tis)}[0];
   print(STDERR tally($fn,$tidelta,%$stats), "\n");
 
-  $totals{$_} += $stats->{$_} for keys %$stats;
+  $totals{$_} += $stats->{$_} for @tally_bins;
   $fh->close();
 }
 
@@ -111,12 +124,11 @@ my $tte = new Benchmark;
 my $ttdelta = @{timediff($tte, $tts)}[0];
 print(STDERR tally('totals',$ttdelta,%totals), "\n");
 
-
 if ($totals{nfailed} > 0) {
   die("! WARNING: Some sequence and/or aliases failed; origin.last_updated NOT tickled\n");
 }
 
-if ($totals{nadded} > 0) {
+if ($totals{nadded} > 0 and not $opts{'dry-run'}) {
   print( "update porigin set last_updated='",
 		 $u->porigin_last_updated($opts{porigin_id},1),
 		 "' where porigin_id=$opts{porigin_id}\n");
@@ -124,10 +136,209 @@ if ($totals{nadded} > 0) {
   warn("! WARNING: No sequences loaded; origin.last_updated NOT tickled\n");
 }
 
+exit(0);
+
+
+
 
 
 ###########################################################################
 ## INTERNALS
+
+## NAME: process_stream
+## PURPOSE: parse Bio::SeqIO stream and load sequences into Unison
+## ARGUMENTS: Bio::SeqIO object, option hashref:
+##'origin' => name of porigin (REQUIRED)
+##  'verbose' => boolean for whether to output more information
+## RETURNS: hash with process info keys: nseen, nskipped, nadded, nfailed
+sub process_stream ($$) {
+  my ($u,$in) = @_;
+  my %stats = map {$_=>0} @tally_bins;
+  while ( my $bs = $in->next_seq() ) {
+	try {
+	  process_seq($u,$bs,\%stats);
+	} catch Unison::Exception with {
+	  warn($_[0]);
+	};
+  }
+  return(\%stats);
+}
+
+
+## NAME: process_seq
+## PURPOSE: parse Bio::Seq object and load seq and alia into Unison
+## ARGUMENTS: Bio::Seq object, option hashref, process info hashref (keys:
+##  nseen, nskipped, nadded), hashref of allowable tax_ids
+## NOTES: sequences loaded into the "refseq" origin are loaded with sequence
+##		version numbers; all others origins ignore sequence version, if any.
+## RETURNS: nada
+sub process_seq ($$$) {
+  my ($u,$bs,$stats) = @_;
+
+  my %md5;
+  my $pseq_id;
+  my $frommd5;
+  my @anno = ();				 # @ of [porigin_id, alias, descr]
+
+  my $seq = clean_sequence( $bs->seq() );
+  my $md5 = sequence_md5($seq);
+  my $id = $bs->display_id();
+  my $descr = $bs->desc();
+  my $tax_id = ( (defined $bs->species and defined $bs->species->ncbi_taxid())
+				 ? $bs->species->ncbi_taxid()
+				 : $opts{tax_id} );
+
+  $stats->{nseen}++;
+
+  # attend to some of the vagaries of human curation and folly...
+  $descr = '' unless defined $descr;
+  $descr =~ s/\02//g;						# remove ^B (some Proteome)
+  $descr =~ s/\s{2,}/ /gm;					# including \s\n\s
+  $descr =~ s/(\S)\n(\S)/$1$2/;				# newline amid non-whitespace
+
+
+  # split ctrl-A delimited entries into explict entries for this sequence
+  # this is effectively a no-op for single-entry deflines.  It's necessary to
+  # deal with NCBI fasta files which contain collect non-redundant annotations into
+  # one defline.  Also try to infer the tax_id from the descr
+  foreach my $ad ( split(/\01/, "$id $descr") ) {
+	my ($a,$d) = $ad =~ m/^(\S+)\s+(.*)/g;
+	(defined $a and defined $d)
+	  || die("couldn't parse alias and/or descr from '$ad'\n");
+	push(@anno, [$opts{origin},$a,$d,$tax_id]);
+  }
+
+
+  # add tax_ids and origin-specific processing of @anno
+  my @secondary_anno = ();
+  for ( my $i=0; $i<=$#anno; $i++ ) {
+	my ($o,$a,$d,$t) = @{$anno[$i]};
+
+	# infer tax from descr [<latin>] at the end of an annotation I don't
+	# enable this by default because I'm concerned about descriptions like
+	# 'ortholog of hsp70 [homo sapiens]' for a non- human sequence.
+	if ( $opts{'infer-tax-id'}
+		 and my ($latin) = $d =~ m/\[([^\]]+)\]\W*$/ ) {
+	  $latin = lc($latin);
+	  if (defined $latin_to_tax_id{$latin}) {
+		$t = $latin_to_tax_id{$latin};
+		if (defined $tax_id and $t != $tax_id) {
+		  warn("! Unison:$pseq_id: changed tax_id from $tax_id to $t ($latin)\n");
+		}
+	  } else {
+		$warnings{'unknown latin species'}{$latin}++
+		  || warn("! no species found for $latin\n");
+	  }
+	}
+
+	if ( $o =~ m/^RefSeq/i ) {
+	  if ($opts{format} =~ m/genbank/i) {
+		push( @secondary_anno, [ "$o gi", $bs->primary_id(), $d, $t ] );
+	  } elsif ( $a =~ m/^gi\|(\d+)/ ) {
+		push( @secondary_anno, [ "$o gi", $1, $d, $t ] );
+	  }
+	  $a =~ s/^.*ref\|([^\|]+).*/$1/;		# refseq alias only
+	  (defined $a)
+		|| die("! Unison:$pseq_id ($id) doesn't contain a RefSeq accession!\n");
+
+	} elsif ( $o =~ m/^(?:pataa)/i ) {
+	  # the accession mess in pataa deflines isn't necessarily unique.  E.g.,
+	  # Unison:1795309, len=11, 2 annotations
+	  #    + pataa:gi|998068|gb|AAA76369.1| Sequence 32 from patent US 5451499 [NULL]
+	  #    + pataa:gi|998068|gb|AAA76369.1| Sequence 13 from patent US 5451499 [NULL]
+	  # So, we'll uniquify it with meaningful text from the descr
+	  if ($d =~ m/^Sequence (\d+) from Patent (.+)/) {
+		my $PSn = "$2#$1";
+		$PSn =~ s/\s+//g;
+		$a .= "|$PSn";
+	  }
+
+	} elsif ($o =~ m/^Uniprot|Swiss-Prot/i) {
+	  if (not defined $t) {
+		my ($gs) = $a =~ m/_(\w+)/;
+		if (defined $gs) {
+		  my $newt = $gs_to_tax_id{uc($gs)};
+		}
+	  }
+	  push(@anno, [$o,$bs->accession(),$d,$t] );
+
+	} elsif ($o =~ m/^CCDS/i) {
+	  $d = $a;
+	  ($a) = $d =~ m/^([^|]+)/;
+
+	} elsif ($o =~ m/GenenGenes/i) {
+	  $d =~ s/\[(?:min|full)\]\s+//;
+	  $d =~ s/\# converted.+//;
+
+	} elsif ($o =~ m/^TNF6F/i) {
+	  $d =~ s%/coords.+trans=[FR]\d %%;
+	}
+
+	$anno[$i] = [$o,$a,$d,$t];
+  }
+
+  if ($#anno == -1 and not $opts{'allow-anonymous-sequences'}) {
+	die("Unison:$pseq_id has no primary annotations and allow-anonymous-sequences is not set\n",
+		"id=$id; descr=$descr\n")
+  }
+
+  push(@anno, @secondary_anno);
+
+
+  # select/insert sequence to get a pseq_id or get it by md5 hash from
+  # identical sequences already inserted in this session
+  if (%md5 and defined $md5{ $md5 }) {
+    $frommd5 = '*';
+    $pseq_id = $md5{ $md5 };
+  } else {
+	$frommd5 = '';
+	try {
+	  $pseq_id = $opts{'dry-run'} ? 0 : $u->pseq_si_pseq_id( $seq );
+	  $md5{ $md5 } = $pseq_id;
+	  $stats->{nadded}++;
+	} catch Unison::Exception with {
+	  $stats->{nfailed}++;
+	  warn("! Failed to load sequence $id ($descr)\n", $_[0]);
+	  return;
+	};
+  }
+  printf(STDERR "* Unison:$pseq_id$frommd5, len=%d, %d annotations\n",
+		 length($seq), $#anno+1) if $opts{verbose};
+
+
+  # load [o,a,d,t] triplets for this pseq_id
+  foreach my $anno (@anno)  {
+	my ($o,$a,$d,$t) = @$anno;
+
+	if ($a =~ m/\|/ and not $warnings{alias_pipe}++) {
+	  warn("! You're loading aliases with `|' (e.g., `$a')\n");
+	}
+
+	my $o_id = $origin_to_porigin_id{$o};
+	(defined $o_id)
+	  || die("$0: couln't find origin $o\n");
+
+	# Sequences are tagged with the tax_id only if the tax_id is found in
+	# known_tax_ids.  This is necessary to handle discrepancies.
+	if (defined $t and not exists $known_tax_ids{$t}) {
+	  $warnings{'missing tax_id'}{$t}++
+		|| warn("! tax_id=$t not defined in Unison\n");
+	  undef $t;
+	}
+	$t = 'NULL' unless defined $t;
+
+	try {
+	  $u->add_palias($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
+	} catch Unison::Exception with {
+	  warn("! Failed to load alias $a for Unison:$pseq_id\n",$_[0]);
+	};
+	printf(STDERR "   + $o:$a $d [$t]\n") if $opts{verbose}>1;
+	$stats->{naliases}++;
+  }
+
+  return;
+}
+
 
 sub tally ($%) {
   my ($src,$delta,%stats) = @_;
@@ -141,165 +352,25 @@ sub tally ($%) {
 
 
 
-## NAME: process_stream
-## PURPOSE: parse Bio::SeqIO stream and load sequences into Unison
-## ARGUMENTS: Bio::SeqIO object, option hashref:
-##'origin' => name of porigin (REQUIRED)
-##  'start-after' => skip seqs until this accession
-##  'incl-subex' => boolean for whether to include subex gene predictions
-##  'verbose' => boolean for whether to output more information
-## RETURNS: hash with process info keys: nseen, nskipped, nadded, nfailed
-sub process_stream ($$) {
-  my ($u,$in) = @_;
-  my %rv = ( nseen => 0, nskipped => 0, nfailed => 0, nadded => 0, naliases => 0 );
-
-  # build a hash of tax_ids in tax.spspec
-  # Sequences are tagged with the tax_id only if the tax_id is found in
-  # this hash.  This is necessary to handle the fact that swissprot
-  # doesn't have all of the tax_ids in their schema.
-
-  my %allowed_tax_ids = map {$_->[0]=>1}
-	@{$u->selectall_arrayref( 'select distinct tax_id from tax.spspec' )};
-  while ( my $bs = $in->next_seq() ) {
-	try {
-	  process_seq($u,$bs,\%rv,\%allowed_tax_ids);
-	} catch Unison::Exception with {
-	  warn($_[0]);
-	};
-  }
-  return(\%rv);
-}
+##  # split ctrl-A delimited entries into explict entries for this sequence
+##  # this is effectively a no-op for single-entry deflines
+##  foreach my $ad ( split(/\01/, "$id $descr") ) {
+##	my ($a,$d) = $ad =~ m/^(\S+)\s+(.*)/g;
+##	if (not defined $a or not defined $d) {
+##	  die("couldn't parse alias and descr from '$ad'\n");
+##	}
+##	$d =~ s/^\s+|\s+$|\.$//;
+##	my $t = $tax_id;						# default or from $bs->speciees
+##	# infer tax_id from descr
+##	if (my ($latin) = $d =~ m/\[([^\]]+)\]/) {
+##	  if (exists $latin_to_tax_id{$latin}) {
+##		$t = $latin_to_tax_id{$latin};
+##	  } else {
+##		$warnings{'unknown latin species'}{$latin}++
+##		  || warn("no species found for $latin\n");
+##	  }
+##	  push(@anno, [$a,$d,$t]);
+##	}
+##  }
 
 
-## NAME: process_seq
-## PURPOSE: parse Bio::Seq object and load seq and alia into Unison
-## ARGUMENTS: Bio::Seq object, option hashref, process info hashref (keys:
-##  nseen, nskipped, nadded), hashref of allowable tax_ids
-## NOTES: sequences loaded into the "refseq" origin are loaded with sequence
-##		version numbers; all others origins ignore sequence version, if any.
-## RETURNS: nada
-my %tax_id_warning;
-sub process_seq ($$$$) {
-  my ($u,$bs,$rv,$allowed_tax_ids) = @_;
-  my ( %alias, %md5 );
-  my $id = $bs->display_id();
-  my $descr = $bs->desc();
-  my $seq = clean_sequence( $bs->seq() );
-  my $md5 = sequence_md5($seq);
-  my @aliases = ();						  # aliases to be loaded for this sequence
-  my $tax_id = $opts{'tax_id'};
-
-  (defined $seq)
-	|| die("$id: sequence not defined");
-
-  $rv->{nseen}++;
-
-  # skip sequences in various conditions
-  my $skip;
-  if (not defined $id) {
-    $skip = "sequence id isn't defined?!";
-  } elsif ($id !~ m/\w/) {
-    $skip = "doesn't look like a valid sequence id"; 
-  } elsif (defined $opts{'start-after'}) {
-    $skip = "haven't reached $opts{'start-after'} yet";
-    undef $opts{'start-after'} if ($id eq $opts{'start-after'});
-  } elsif (%alias and exists $alias{$id}) {
-    $skip = 'extant alias';
-  } elsif (length($seq) == 0) {
-    $skip = "zero-length";
-  } elsif (not $opts{'incl-subex'} 
-		   and defined $descr and $descr =~ m%/type=(\w+)% and $1 ne 'gene') {
-    $skip = "non-gene genescan transcript";
-  }
-  if (defined $skip) {
-    warn("# skipping $id: $skip ($descr)\n") if $opts{verbose};
-    $rv->{nskipped}++;
-    return;
-  }
-
-  # prepare aliases and description text
-  $descr = '' unless defined $descr;
-  $descr =~ s/\s{2,}/ /g;
-  $descr =~ s/^\s+//;
-  $descr =~ s/\s+$//;
-  $descr =~ s/\.$//;
-  $descr =~ s/(\S)\n(\S)/$1$2/;				# newline amid non-whitespace
-  $descr =~ s/\s*\n\s*/ /;					# \s on either side
-  $descr =~ s/\02//g;						# remove ^B (some Proteome entries)
-
-  if ( defined $bs->species and defined $bs->species->ncbi_taxid() ) {
-	$tax_id = $bs->species->ncbi_taxid();
-	if (not $allowed_tax_ids->{$tax_id}) {
-	  $tax_id_warning{$tax_id}++
-		|| warn("!! WARNING: tax_id=$tax_id not defined in Unison\n");
-	  undef $tax_id;
-	}
-  }
-
-  # origin-specific loading
-  @aliases = ( $id );
-  if (uc($opts{origin}) eq 'REFSEQ') {
-	my $v = $bs->seq_version();
-	if (defined $v) {
-	  $id .= ".$v";
-	  @aliases = ( $id );
-	}
-  } elsif ($opts{origin} =~ m/^Uniprot|Swiss-Prot/i) {
-	# load S-P accession as well
-  	push( @aliases, $bs->accession() );
-  } elsif ($opts{origin} =~ m/GenenGenes/i) {
-	$descr =~ s/\[(?:min|full)\]\s+//;
-	$descr =~ s/\# converted.+//;
-  } elsif ($opts{origin} =~ m/^TNF6F/i) {
-	# this is a hack to remove extraneous comments from the tnf-filter
-	# it should really be addressed there...
-	$descr =~ s%/coords.+trans=[FR]\d %%;
-	$tax_id = 9606;
-  } elsif ($opts{origin} =~ m/^CCDS/i) {
-	# Dear God-
-	#   Please send a fasta standard that people use.
-	# Thanks, Reece
-	$descr = $id;
-	@aliases = $descr =~ m/^([^|]+)/;
-  } else {
-	# intentionally blank
-  }
-
-
-  # select/insert sequence to get a pseq_id
-  my $pseq_id;
-  my $frommd5='';
-  if (%md5 and defined $md5{ $md5 }) {
-    $pseq_id = $md5{ $md5 };
-    $frommd5='*';
-  } else {
-	try {
-	  $pseq_id = $u->pseq_si_pseq_id( $seq );
-	} catch Unison::Exception with {
-	  $rv->{nfailed}++;
-	  warn("Failed to load sequence $aliases[0] ($descr)\n",
-		   $_[0] );
-	  return;
-	};
-    $md5{ $md5 } = $pseq_id;
-	$rv->{nadded}++;
-  }
-
-  # load unique aliases for this pseq_id
-  my %aliases = map {$_=>1} @aliases;
-  $tax_id = 'NULL' unless defined $tax_id;
-  foreach my $alias (keys %aliases)  {
-	try {
-	  $u->add_palias($pseq_id,$opts{porigin_id},$alias,$descr,$tax_id);
-	} catch Unison::Exception with {
-	  warn("Failed to load alias $alias for Unison:$pseq_id\n",
-		   $_[0]);
-	};
-	$rv->{naliases}++;
-  }
-
-  printf(STDERR "## processed pseq_id=$pseq_id$frommd5, len=%d, aliases={@aliases}, tax_id=$tax_id, descr=%s\n",
-		 length($seq), $descr) if $opts{verbose};
-
-  return;
-}
