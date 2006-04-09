@@ -18,7 +18,7 @@ my $margin = 5000;						# margin around gene for genome map
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.22 2006/01/02 05:32:11 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.23 2006/02/15 04:06:57 rkh Exp $ ');
 
 
 my @ps = $u->get_params_info_by_pftype('pmap');
@@ -40,7 +40,7 @@ if (not defined $v->{params_id}) {
 
 
 my $sql = <<EOSQL;
-SELECT params_id,pstart,pstop,pct_ident,pct_cov,L.genasm_id,G.tax_id,T.latin,G.name as genome_name,chr,(case plus_strand when true then '+' else '-' end) as strand,gstart,gstop
+SELECT params_id,pstart,pstop,pct_ident,pct_cov,L.genasm_id,G.tax_id,T.latin,G.name as genome_name,chr,strand,gstart,gstop
 FROM pmap_v L
 JOIN genasm G ON L.genasm_id=G.genasm_id
 JOIN tax.spspec T on G.tax_id=T.tax_id

@@ -21,7 +21,7 @@ my $v = $p->Vars();
 
 my ($png_fh, $png_fn, $png_urn) = $p->tempfile( SUFFIX => '.png' );
 $p->die("Couldn't create a temporary file: $!\n") unless defined $png_urn;
-$p->add_footer_lines('$Id: pseq_features.pl,v 1.20 2006/01/02 05:41:11 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_features.pl,v 1.21 2006/03/14 01:27:31 rkh Exp $ ');
 
 my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 
@@ -42,7 +42,7 @@ try {
 				   'See also: <a href="pseq_history.pl?pseq_id=', $v->{pseq_id}, '">run history</a> for ',
 				   'a list of analyses run on this sequence.',
 
-				   $p->group("Unison:$v->{pseq_id} Secondary Structure",
+				   $p->group("Unison:$v->{pseq_id} $title",
 							 "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",
 							 "\n<MAP NAME=\"FEATURE_MAP\">\n",
 							 $panel->imagemap_body(),

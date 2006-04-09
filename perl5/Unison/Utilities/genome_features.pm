@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.4 2005/11/21 19:18:04 mukhyala Exp $>
+S<$Id: genome_features.pm,v 1.5 2005/12/07 23:21:02 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -140,7 +140,7 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.4 2005/11/21 19:18:04 mukhyala Exp $',
+					-key => '$Id: genome_features.pm,v 1.5 2005/12/07 23:21:02 rkh Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
@@ -218,27 +218,13 @@ sub add_pmaploci {
 										   -height => 4,
 										  );
 
-# [rkh] The following is original:
-#  my $sql = "select p2gblataln_id,pseq_id,ident,gstart,gstop,plus_strand from p2gblataln_v where "
-#	. "genasm_id=$opts{genasm_id} and "
-#	. "chr='$opts{chr}' and "
-#    . "gstart>=$opts{gstart} and "
-#    . "gstop<=$opts{gstop}";
-# [rkh] Incorporating pct ident will require looking at the whole alignment.
-# The following code is knowingly (a little) broken because it uses pct
-# ident over the hsp; it's possible that we'll have dangling hsps (i.e., some
-# with PI>=threshold and some with PE<threshold). Oh well.  
-# At overhaul:
-# -- shade based on %IDE.
-# -- indicate ambiguity of hsp locations
-# -- restrict aliases to species
   my $sql = <<EOSQL;
-SELECT aln_id,pseq_id,ident,gstart,gstop,plus_strand
-FROM pmap_aln_v
+SELECT aln_id,pseq_id,ident,gstart,gstop,strand
+FROM pmap_v
 WHERE genasm_id=$opts{genasm_id}
   AND params_id=$opts{params_id}
   AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}
-  AND ident/(pstop-pstart+1)*100>=$opts{min_pct_ident}
+  AND pct_ident>=$opts{min_pct_ident}
 EOSQL
   if (defined $opts{pseq_id} and not $opts{show_all}) {
 	$sql .= " and pseq_id=$opts{pseq_id}";
@@ -248,20 +234,20 @@ EOSQL
   $sth->execute();
 
   my $pmap_aln_id = -1;
-  my ($plus_strand,$feat);
+  my ($strand,$feat);
   while ( my $r = $sth->fetchrow_hashref ) {
     # new BLAT alignment - create a new feature
     if ( $r->{aln_id} != $pmap_aln_id ) {
       # if we have a feat defined, then add it to the appropriate strand track
       if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
-        if ( $plus_strand ) {
+        if ( $strand eq '+' ) {
           $plus_strand_track->add_feature($feat);
         } else {
           $rev_strand_track->add_feature($feat);
         }
       }
       $pmap_aln_id = $r->{aln_id};
-      $plus_strand = $r->{plus_strand};
+      $strand = $r->{strand};
       print STDERR "Get a new feature\n" if $opts{verbose};
       $feat = new Bio::Graphics::Feature->new(-name=>sprintf('Unison:%d (%s)',
 															 $r->{pseq_id},
@@ -279,7 +265,7 @@ EOSQL
 
   # add remaining feature
   if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
-    if ( $plus_strand ) {
+    if ( $strand eq '+' ) {
       $plus_strand_track->add_feature($feat);
     } else {
       $rev_strand_track->add_feature($feat);

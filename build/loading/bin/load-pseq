@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.24 2006/03/14 01:26:25 rkh Exp $
+# $Id: load-pseq,v 1.25 2006/03/25 20:36:14 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -214,16 +214,17 @@ sub process_seq ($$$) {
   for ( my $i=0; $i<=$#anno; $i++ ) {
 	my ($o,$a,$d,$t) = @{$anno[$i]};
 
-	# infer tax from descr [<latin>] at the end of an annotation I don't
+	# infer tax from descr [<latin>] at the end of an annotation.  I don't
 	# enable this by default because I'm concerned about descriptions like
 	# 'ortholog of hsp70 [homo sapiens]' for a non- human sequence.
-	if ( $opts{'infer-tax-id'}
-		 and my ($latin) = $d =~ m/\[([^\]]+)\]\W*$/ ) {
+	if ( not defined $t
+		 and $opts{'infer-tax-id'}
+		 and my ($latin) = $d =~ m/\[([^\]]+?)\]\W*$/ ) {
 	  $latin = lc($latin);
 	  if (defined $latin_to_tax_id{$latin}) {
 		$t = $latin_to_tax_id{$latin};
 		if (defined $tax_id and $t != $tax_id) {
-		  warn("! Unison:$pseq_id: changed tax_id from $tax_id to $t ($latin)\n");
+		  warn("! $id ($descr): changed tax_id from $tax_id to $t ($latin)\n");
 		}
 	  } else {
 		$warnings{'unknown latin species'}{$latin}++

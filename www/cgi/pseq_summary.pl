@@ -23,7 +23,7 @@ my $p = new Unison::WWW::Page();
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.44 2006/02/15 04:06:57 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.45 2006/03/14 01:27:31 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -43,6 +43,7 @@ EOT
 try {
   print $p->render("Summary of Unison:$v->{pseq_id}",
 				   $p->best_annotation($v->{pseq_id}),
+#				   $p->entrez_annotation($v->{pseq_id}),
 				   '<p><b>Protcomp Localization:</b> ',
 				       ($p->{unison}->is_public() ? '' : protcomp_info($p)),
 				   '<p>', sequence_group($p),
