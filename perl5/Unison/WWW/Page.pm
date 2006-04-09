@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.79 2006/01/04 00:08:04 mukhyala Exp $>
+S<$Id: Page.pm,v 1.80 2006/02/15 04:06:57 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -676,8 +676,52 @@ A best annotation is a guess about the most informative and reliable
 annotation for this sequence from all source databases.
 <br>Click the Aliases tab to see all annotations
 EOT
-  return( '<b>"best" annotation</b>&nbsp;', $self->tooltip( '?', $tooltip ), ': ',
+  return( '<b>"best" annotation</b>&nbsp;',
+		  $self->tooltip( '?', $tooltip ), ': ',
 		  $self->{unison}->best_annotation($pseq_id,1) );
+}
+
+
+######################################################################
+## entrez_annotation()
+
+=pod
+
+=item B<< $p->entrez_annotation( C<pseq_id> ) >>
+
+render the entrez_annotation of the sequence identified by pseq_id
+C<pseq_id>
+
+=cut
+
+sub entrez_annotation {
+  my $self = shift;
+  my $pseq_id = shift;
+  my $u = $self->{unison};
+  my $sth = $u->prepare_cached(<<EOSQL);
+    SELECT distinct T.common,E.symbol,E.map_loc,E.descr
+      FROM pseq_gene_v PG
+      JOIN ncbi.gene_info E on PG.gene_id=E.gene_id
+ LEFT JOIN tax.spspec T on E.tax_id=T.tax_id
+     WHERE PG.pseq_id=?;
+EOSQL
+
+  my $entrez = '<br><b>Entrez annotation</b>&nbsp;'
+	. $self->tooltip( '?', 'Entrez Gene annotation' )
+	. ': ';
+
+  my (@entrez) = @{$u->selectall_arrayref($sth,undef,$pseq_id)};
+  if (@entrez) {
+	$entrez .= '<table width=100% border=0>';
+	foreach my $res (@entrez) {
+	  $entrez .= '<tr>' . (join('',map {"<td>$_</td>"} @$res)) . '</tr>';
+	}
+	$entrez .= "</table>\n";
+  } else {
+	$entrez .= 'no Entrez Gene information for this sequence';
+  }
+
+  return $entrez;
 }
 
 

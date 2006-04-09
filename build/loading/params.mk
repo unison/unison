@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.13 2006/03/16 17:05:14 mukhyala Exp $
+## $Id: params.mk,v 1.14 2006/03/23 22:29:58 mukhyala Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
@@ -23,7 +23,8 @@ HUGE_DIR:=${KAZUSA_DIR}/huge
 ROUGE_DIR:=${KAZUSA_DIR}/rouge
 CCDS_HUMAN_PATH:=${COMPBIO_PREFIX}/share/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/current/CCDS_protein.03032005.faa.gz
 UNIPROT_DIR:=${COMPBIO_PREFIX}/share/uniprot
-PATAA_DIR:=${COMPBIO_PREFIX}/share/pataa/
+PATAA_FA:=${COMPBIO_PREFIX}/share/seqdb/aa/pataa.fa
+NR_FA:=${COMPBIO_PREFIX}/share/seqdb/aa/nr.fa
 
 
 
