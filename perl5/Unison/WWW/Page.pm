@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.80 2006/02/15 04:06:57 rkh Exp $>
+S<$Id: Page.pm,v 1.81 2006/04/09 09:01:22 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -842,10 +842,9 @@ sub _page_connect ($) {
 
   # These are the defaults expected for public versions of Unison
   # Some or all may have been preset in new()
-  $v->{host}	 = undef	unless defined $v->{host};
   $v->{dbname} 	 = 'unison'	unless defined $v->{dbname};
   $v->{username} = 'PUBLIC'	unless defined $v->{username};
-  $v->{password} = undef	unless defined $v->{password};
+  # $v->{host}, $v->{password}->{host} may be undef
 
   $self->{unison} = new Unison( host => $v->{host},
 								dbname => $v->{dbname},
@@ -876,21 +875,21 @@ sub _genentech_connection_params ($) {
 	|| CORE::die("_genentech_connection_params: called outside of web environment");
 
   my $v = $self->Vars();
-  if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
-  elsif ($ENV{SERVER_PORT} == 8000)  { $v->{dbname} = 'csb-pub'   }
-  elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
-  elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
-  # else: not set => use _page_connect defaults
 
   # If KRB5CCNAME is set, we're doing kerberos authentication.
   if (defined $ENV{KRB5CCNAME}) {
 	$v->{username} = $ENV{REMOTE_USER};
 	$v->{username} =~ s/@.+//;				# strip realm from krb identity
-	$v->{host} = $ENV{SERVER_NAME};			# 'localhost' breaks krb auth
+	$v->{host} = 'csb';
   } else {
 	$v->{username} = 'PUBLIC';
 	CORE::warn("_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user.");
   }
+
+  if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
+  elsif ($ENV{SERVER_PORT} == 8000)  { $v->{dbname} = 'csb-pub'   }
+  elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
+  elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
 
   return;
 }
