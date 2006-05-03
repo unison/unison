@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.25 2005/11/08 05:50:24 rkh Exp $
+# $Id: get-seq,v 1.26 2006/03/06 19:49:34 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.25 2005/11/08 05:50:24 rkh Exp $>
+S<$Id: get-seq,v 1.26 2006/03/06 19:49:34 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -47,7 +47,7 @@ sub process_set($$);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.25 2005/11/08 05:50:24 rkh Exp $ ', "\n");
+  print(STDERR '$Id: get-seq,v 1.26 2006/03/06 19:49:34 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -86,7 +86,7 @@ my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
 for(my $i=0; $i<=$#args; $i++) {
   process1($args[$i]);
   if ( $opts{verbose} 
-	   and ( ($i = $#args) 
+	   and ( ($i == $#args) 
 			 or (0 == ($i+1) % $opts{verbose_frequency}) ) ) {
 	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
 		   $i+1,$#args+1, ($i+1)/($#args+1)*100, $args[$i]);
