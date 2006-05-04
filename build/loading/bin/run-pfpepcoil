@@ -1,0 +1,95 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Unison;
+use File::Temp qw(tempfile tempdir);
+use Bio::SeqIO;
+use IO::Pipe;
+
+
+sub fetch_sequences ($$@);
+
+my %opts =
+  (
+   params_id => 37,
+   'seqs-per-run' => 50,
+  );
+
+my $tmpdir = tempdir( CLEANUP => 1 );
+my $tmp_fa_fn= "$tmpdir/in.fa";
+
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+my $insert_sth = $u->prepare(<<EOSQL);
+INSERT INTO pfpepcoil (params_id,pseq_id,start,stop,score,prob) VALUES ($opts{params_id},?,?,?,?,?)
+EOSQL
+
+my $cl = $u->run_commandline_by_params_id($opts{params_id});
+my @cl = split(' ',$cl);
+
+my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
+
+while ( @pseq_ids ) {
+  my (@ids) = splice(@pseq_ids,0,$opts{'seqs-per-run'});
+  my $nseq = fetch_sequences($u,$tmp_fa_fn,@ids);
+  next if ($nseq == 0);
+
+  my $pipe = new IO::Pipe;
+  $pipe->reader( @cl, $tmp_fa_fn )
+	|| die("couldn't do @cl\n");
+
+  local $/ = "\nPEPCOIL";
+  while ( my $block = <$pipe> ) {
+	$block = $/ . $block unless $.==1;
+	my ($pseq_id) = $block =~ m/PEPCOIL of (\d+)/;
+
+	my @data;
+	while ( $block =~ m/probable coiled-coil from (\d+) to (\d+).+\n\s+Max score: (\S+) \(probability ([\d.]+)\)/g ) {
+	  push( @data, [$1,$2,$3,$4] );
+	}
+	if (@data) {
+	  $u->begin_work();
+	  for(my $i=0; $i<=$#data; $i++) {
+		$insert_sth->execute($pseq_id,@{$data[$i]});
+	  }
+	  $u->commit();
+	}
+
+	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+	printf(STDERR "Unison:$pseq_id: %d coiled-coil regions; $z\n", $#data+1);
+
+  }
+}
+
+exit(0);
+
+
+sub fetch_sequences ($$@) {
+  # fetch sequences to temp file
+  my $u = shift;
+  my $seqfn = shift;
+  my @pseq_ids = @_;
+  my $nseq = 0;
+
+  my $so = new Bio::SeqIO( -format => 'fasta',
+						   -file => ">$seqfn" )
+	|| die("! couldn't open $seqfn for writing\n");
+
+  foreach my $pseq_id (@pseq_ids) {
+	if ($u->already_ran($pseq_id,$opts{params_id},undef,undef)) {
+	  warn("Unison:$pseq_id already run with these parameters\n");
+	  next;
+	}
+	my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+	if (not defined $seq) {
+	  warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+	  next;
+	}
+
+	$so->write_seq( new Bio::PrimarySeq( -seq => $seq,
+										 -id => "Unison:$pseq_id" ) );
+	$nseq++;
+  }
+  $so->close();
+  return $nseq;
+}
