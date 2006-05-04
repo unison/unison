@@ -6,14 +6,14 @@ use Unison;
 use File::Temp qw(tempfile tempdir);
 use Bio::SeqIO;
 use IO::Pipe;
-
+use Unison::Exceptions;
 
 sub fetch_sequences ($$@);
 
 my %opts =
   (
    params_id => 37,
-   'seqs-per-run' => 50,
+   'seqs-per-run' => 500,
   );
 
 my $tmpdir = tempdir( CLEANUP => 1 );
@@ -43,21 +43,30 @@ while ( @pseq_ids ) {
 	$block = $/ . $block unless $.==1;
 	my ($pseq_id) = $block =~ m/PEPCOIL of (\d+)/;
 
+	$u->begin_work();
 	my @data;
 	while ( $block =~ m/probable coiled-coil from (\d+) to (\d+).+\n\s+Max score: (\S+) \(probability ([\d.]+)\)/g ) {
 	  push( @data, [$1,$2,$3,$4] );
 	}
 	if (@data) {
-	  $u->begin_work();
 	  for(my $i=0; $i<=$#data; $i++) {
-		$insert_sth->execute($pseq_id,@{$data[$i]});
+		try {
+		  $insert_sth->execute($pseq_id,@{$data[$i]});
+		} catch Unison::Exception with {
+		  my $e = shift;
+		  $e->detail(sprintf("Unison:$pseq_id; coiled-coil $i at [%d,%d]\n",@{$data[$i]}[0,1]));
+		  if ( $e->error() =~ m/duplicate key/ ) {
+			die($e);
+			$u->rollback();
+			next;							# next block / pseq_id
+		  }
+		};
 	  }
-	  $u->commit();
 	}
-
 	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
-	printf(STDERR "Unison:$pseq_id: %d coiled-coil regions; $z\n", $#data+1);
+	$u->commit();
 
+	printf(STDERR "Unison:$pseq_id: %d coiled-coil regions; $z\n", $#data+1);
   }
 }
 
@@ -76,13 +85,17 @@ sub fetch_sequences ($$@) {
 	|| die("! couldn't open $seqfn for writing\n");
 
   foreach my $pseq_id (@pseq_ids) {
-	if ($u->already_ran($pseq_id,$opts{params_id},undef,undef)) {
-	  warn("Unison:$pseq_id already run with these parameters\n");
+	if (my $z = $u->already_ran($pseq_id,$opts{params_id},undef,undef)) {
+	  warn("Unison:$pseq_id run with these parameters on $z\n");
 	  next;
 	}
 	my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
 	if (not defined $seq) {
 	  warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+	  next;
+	}
+	if ($seq =~ '[BZUX\*]') {
+	  warn("pepcoil will choke on sequences containing any of [BZUX*]; skipping Unison:$pseq_id\n");
 	  next;
 	}
 
