@@ -71,7 +71,11 @@ my $N = $#pseq_ids+1;
 # to fetch.
 my %hits;
 if ($N >= 10000) {
+  print(STDERR "# using server-side expression matching...\n");
   %hits = map {$_=>1} get_matching_pseq_ids($u,values %regexps);
+  my $nhits = scalar(keys %hits);
+  printf(STDERR "# matched %d/$N (%5.1f %%) sequences\n",
+		 $nhits, $nhits/$N*100);
 }
 
 
@@ -113,13 +117,17 @@ for(my $i=0; $i<=$#pseq_ids; $i++) {
 	}
 
 	printf(STDERR "%4d features...", $#mbe+1);
-	try {
-	  foreach my $mbe (@mbe) {
+	foreach my $mbe (@mbe) {
+	  try {
 		$insert_sth->execute($opts{params_id},$pseq_id,@$mbe);
-	  }
-	} catch Unison::Exception::DBIError with {
-	  print(STDERR "$leader: $_[0]\n!! skipping remaining features for this sequence\n");
-	};
+	  } catch Unison::Exception::DBIError with {
+		my $e = $_[0];
+		if ("$e" !~ m/duplicate key/) {
+		  die("$leader\n$e\n");
+		};
+		# else, ignore it
+	  };
+	}
   }
 
   $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_ids},$opts{pmodelset_id});

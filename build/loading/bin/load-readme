@@ -1,10 +1,10 @@
 #!/bin/sh
 # load-readme -- shove a readme into the dev database
-# $Id$
+# $Id: load-readme,v 1.1 2005/06/17 04:28:11 rkh Exp $
 
 (
-echo 'truncate readme;'
-echo "insert into readme values ('"
+echo 'truncate _readme;'
+echo "insert into _readme values ('"
 sed -e "s/'/''/g" README
 
 echo
@@ -15,4 +15,4 @@ sed -e "s/'/''/g" LICENSE
 
 echo -n 'Date: '; date -u '+%Y-%m-%d %H:%M:%S %Z'
 echo "');"
-) | psql -Uunison -dcsb-dev
+) | psql -Uunison -dcsb-dev -hcsb
