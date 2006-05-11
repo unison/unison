@@ -108,8 +108,8 @@ foreach my $YYYY_MM (sort keys %files) {
   my $YxM = YxM($Y,$M);
   my $age = $curYxM - $YxM;
   my $nkeep =
-	    $age >= 6 ? 1						# keep 1/mo if >=6 mos old,
-  	  : $age >= 3 ? 2						# 2/mo if >=3 mos old
+	    $age >= 4 ? 1						# keep 1/mo if >=6 mos old,
+  	  : $age >= 2 ? 2						# 2/mo if >=3 mos old
 	  : $age >= 1 ? 4						# 4/mo if 1 or 2 mos old
 	  : undef;								# else all
 
