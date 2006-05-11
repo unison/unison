@@ -1,27 +1,30 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id: unison-annotation,v 1.4 2006/01/02 21:39:35 mukhyala Exp $
+# $Id: unison-annotation,v 1.5 2006/03/16 17:23:03 mukhyala Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id: unison-annotation,v 1.4 2006/01/02 21:39:35 mukhyala Exp $>
+S<$Id: unison-annotation,v 1.5 2006/03/16 17:23:03 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
   unison-annotation 1234
   unison-annotation -A TNFA_HUMAN
   unison-annotation -F NP_004439
+  unison-annotation -F UNQ2109
   unison-annotation -S seqs.fa
+  unison-annotation -G 1956
+  unison-annotation -G 1956-1970
   unison-annotation 100-110
 
 =head1 OPTIONS
 
 
-unison-annotation [-S|-A|-F|-U  -s|-v  |--pfam|--signalp|--transmembrane|--localization  -h|-V]
+unison-annotation [-S|-A|-F|-P|-G  -s|-v|-f table  |--pfam|--signalp|--tm|--protcomp|--regexp|--bigpi|--patents|--alias  -h|-V]
 
                input choices
                -------------
@@ -35,38 +38,55 @@ unison-annotation [-S|-A|-F|-U  -s|-v  |--pfam|--signalp|--transmembrane|--local
  unison-annotation -F <fuzzy alias>
     or echo <fuzzy alias> | unison-annotation -F
  #4 by sequence id
- unison-annotation -U <pseq_id> (default)
-    or echo <pseq_id> | unison-annotation -U
-    or unison-annotation pseq_id
+ unison-annotation -P <pseq_id>
+    or echo <pseq_id> | unison-annotation -P
+    or unison-annotation pseq_id (default)
     or echo pseq_id | unison-annotation
-    or unison-annotation <range>
+    or unison-annotation <range-of-pseq_ids>
+ #5 by NCBI gene id
+ unison-annotation -G <gi>
+    or echo <gi> | unison-annotation -G
+    or unison-annotation -G <range-of-gis>
+
 
                annotation choices
                --------------
  #1 specific annotation
  unison-annotation --pfam
  unison-annotation --signalp
- unison-annotation --localization
- unison-annotation --transmembrane
+ unison-annotation --tm
+ unison-annotation --protcomp
+ unison-annotation --bigpi
+ unison-annotation --regexp
+ unison-annotation --patents
+ unison-annotation --alias
+
  #2 all annotations (default)
  unison-annotation ...
 
                output format choices
                --------------
  #1 summary (one line per protein)
- unison-annotation -s [-S|-A|-F|-U] <input>
- #2 detailed (default)
- unison-annotation [-S|-A|-F|-U] <input>
- #3 verbose
- unison-annotation -v [-S|-A|-F|-U] <input>
- #4 help and Version
+ unison-annotation -s [-S|-A|-F|-P] <input>
+ #2 tabular (same as summary)
+ unison-annotation -ftable [-S|-A|-F|-P] <input>
+ #3 detailed (default)
+ unison-annotation [-S|-A|-F|-P] <input>
+ #4 verbose
+ unison-annotation -v [-S|-A|-F|-P] <input>
+ #5 help and Version
  perldoc unison-annotation
  unison-annotation -V
 
+
+               filtering choices
+               --------------
+ #1 human sequences only
+ unison-annotation --human [-S|-A|-F|-P] <input>
+
 =head1 DESCRIPTION
 
-B<unison-annotation> outputs annotations from Unison in tabular format to
-STDOUT
+B<unison-annotation> outputs annotations from Unison
 
 =cut
 
@@ -86,65 +106,54 @@ sub show_results($$);
 
 # connect with defaults. See Unison::DBI. Typically, the connection is made
 # to the csb production host ('csb'), csb production database (also 'csb'),
-# as a 'public' user
-my $u = new Unison(username=>'PUBLIC');
+# as the calling user id, authenticated by kerberos.
+my $u = new Unison();
 (defined $u)
   || die( "! couldn't open a connection to unison\n" );
 
 my %opts = parse_options();
-if ( $opts{version} ) {
-  print(STDERR '$Id: unison-annotation,v 1.4 2006/01/02 21:39:35 mukhyala Exp $ ', "\n");
-  exit;
-}
-if ( $opts{help} ) {
-  pod2usage( { -verbose=>2 } )
-}
 
-#data_type table/view columns params condition
+#data_type table/view columns condition
 my @short_table_defs =
   (
-   ['signalp',      'pfsignalpnn',           [qw(signal_peptide)],   'SignalP 3.0 (euk)'],
-   ['transmembrane','pftmhmm_tm_count_v',    [qw(count)],            'TMHMM 2.0c'],
-   ['localization', 'psprotcomp_reliable_v', [qw(loc)],              'protcomp default'],
-   ['pfam',         'pahmm_v',               [qw(name eval)],        'Pfam_ls 18.0', 'eval <= 1e-5'],
-   ['pmap',         'pmap_v',                [qw(chr gstart gstop plus_strand)], 'PMAP 2005-11-30']
+   ['signalp',      'pseq_features_signalpnn_v',     [qw(feature)]],
+   ['tm',           'pseq_features_tmhmm_v',         [qw(feature)]],
+   ['regexp',       'pseq_features_regexp_v',        [qw(feature)]],
+   ['bigpi',        'pseq_features_bigpi_v',         [qw(feature)]],
+   ['pfam',         'pseq_features_hmm_v',           [qw(feature)], 'eval < 1e-2'],
+   ['protcomp',     'psprotcomp_reliable_v',         [qw(loc)]],
   );
 
 my @long_table_defs =
   (
-   ['signalp',       'pfsignalpnn',           [qw(start stop d_score signal_peptide)],         'SignalP 3.0 (euk)'],
-   ['transmembrane', 'pftmhmm_tms_v',         [qw(start stop type)],                           'TMHMM 2.0c'],
-   ['localization',  'psprotcomp_reliable_v', [qw(loc)],                                       'protcomp default'],
-   ['pfam',          'pahmm_v',               [qw(start stop ends score eval acc name descr)], 'Pfam_ls 18.0', 'eval <= 1e-5'],
-   ['pmap',          'pmap_v',                [qw(chr exons gstart gstop plus_strand pct_ident pct_cov)], 'PMAP 2005-11-30']
+   ['signalp',       'pseq_features_signalpnn_v',     [qw(start stop)]],
+   ['tm',            'pseq_features_tmhmm_v',         [qw(start stop)]],
+   ['regexp',        'pseq_features_regexp_v',        [qw(start stop feature)]],
+   ['bigpi',         'pseq_features_bigpi_v',         [qw(start score eval details)]],
+   ['patents',       'patent_count_v',                [qw(count)]],
+   ['pfam',          'pseq_features_hmm_v',           [qw(start stop score eval acc feature descr)]],
+   ['protcomp',      'psprotcomp_reliable_v',         [qw(loc)]],
+   ['alias',         'current_annotations_unsorted_v',[qw(alias descr origin)], 'ann_pref < 21000']
   );
+
 
 # args from command line or stdin, but not both
 my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
-@args = map_args_to_pseq_ids( \%opts, @args );
-my @outcols = map {$_->[0]} @short_table_defs;
+my @pseq_ids = map_args_to_pseq_ids( \%opts, @args );
+my @outcols = map {$_->[0]} @long_table_defs;
 my $optsum = eval join('+', map {$opts{$_}?1:0} @outcols);
 
+my ($params,$id_alias,$fmt);
+my $ba_sth = $u->prepare_cached( 'select best_annotation(?)' );
+my $rh_sth = $u->prepare_cached( 'select params_id,params,ran_on from run_history_v where pseq_id=? and params_id=?' );
 
-#create the right column headers for --summary option
-if($opts{summary}) {
-  if($optsum) {
-    undef @outcols;
-    foreach (@short_table_defs) {
-      push @outcols, $_->[0] if($opts{$_->[0]});
-    }
-  }
-  my $summary_header = sprintf("%-40s\t".'%-24s'x($#outcols+1),"alias",@outcols);
-  printf(STDERR "#$summary_header\n");
+print_headers();
+foreach my $pseq_id(@pseq_ids) {
+  show_results(get_data($pseq_id),$pseq_id);
 }
 
-
-my %id_alias;
-for(my $i=0; $i<=$#args; $i++) {
-  show_results(get_data($args[$i]),$args[$i]);
-}
+#all done
 exit(0);
-
 
 #########################################
 #
@@ -155,6 +164,7 @@ sub map_args_to_pseq_ids($@) {
   my $or = shift;
   my (@pseq_ids);
   my $sno = 0;
+  my $sth = $u->prepare_cached( 'select best_annotation(?)' );
   if ($or->{'select-by-unison-id'}) {
 	# expand ranges like 1..5 to (1,2,3,4,5)
 	# This is in part to sanitize the expressions which will be
@@ -163,8 +173,7 @@ sub map_args_to_pseq_ids($@) {
 	  die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
 	}
 	@pseq_ids = map { s/-/../; eval "$_" } @_;
-	%id_alias= map {$_ => $u->best_alias($_)} @pseq_ids;
-	printf(STDERR "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
+	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
   }
   elsif ($or->{'select-by-seq'}) {
 
@@ -190,11 +199,10 @@ sub map_args_to_pseq_ids($@) {
 	warn( "#! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
 	next;
       }
-      printf(STDERR "#* %s (Unison:%d; %s);\n",
+      printf(STDOUT "#* %s (Unison:%d; %s);\n",
 	     $bs->display_id(), $pseq_id,
-	     $u->best_alias($pseq_id) || '<no alias>');
+	     $u->best_alias($pseq_id) || '<no alias>') if $opts{verbose};
       push @pseq_ids, $pseq_id;
-      $id_alias{$pseq_id} = $u->best_alias($pseq_id);
     }
   }
   elsif ($or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'}) {
@@ -218,9 +226,30 @@ sub map_args_to_pseq_ids($@) {
 	    @Q=@ids;
 	  }
 	  push(@pseq_ids, @Q);
-	  %id_alias= map {$_ => $arg} @pseq_ids;
 	}
-	printf(STDERR "# %d sequences selected by alias\n", $#pseq_ids+1) if $opts{verbose};
+	printf(STDOUT "# %d sequences selected by alias\n", $#pseq_ids+1) if $opts{verbose};
+  }
+  elsif ($or->{'select-by-gi'}) {
+	# expand ranges like 1..5 to (1,2,3,4,5)
+	# This is in part to sanitize the expressions which will be
+	# eval'd next
+	if (my @bad = grep {not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/} @_) {
+	  die("'$bad[0]' doesn't specify a gi or a range of gi\n");
+	}
+	my @gis = map { s/-/../; eval "$_" } @_;
+
+	my @ids;
+	foreach my $gi(@gis) {
+	      my @Q = @{$u->selectall_arrayref("select distinct(pseq_id) from pseq_gene_mv where gene_id=$gi")};
+	      push @ids,@Q if($#Q>=0);
+	      if (not @Q) {
+		warn("#$0: no sequences found for gi '$gi'\n");
+	      } elsif ($#Q > 0) {
+		warn("#$0: multiple sequences found for gi '$gi'\n");
+	      }
+	    }	
+	push(@pseq_ids, map {$_->[0]} @ids);
+	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
   }
   return @pseq_ids;
 }
@@ -232,36 +261,43 @@ sub map_args_to_pseq_ids($@) {
 sub get_data($) {
   my $pseq_id = shift;
   my $r;
-  my @table_defs = ( $opts{'summary'} ? @short_table_defs : @long_table_defs );
-  my $summary = $id_alias{$pseq_id};
 
+  my @table_defs = ( $opts{'summary'} ? @short_table_defs : @long_table_defs );
   foreach (@table_defs) {
 
     my $data = $_->[0];
+
     if ($optsum != 0) {
       my $ans = grep {/$data/}map {$opts{$_}?$_:''}@outcols;
       next if not $ans;
     }
 
-    # get the numeric params_id corresponding to the desired $params
-    my $params_id = $u->params_id_by_name($_->[3]);
-    (defined $params_id)
-      || die($_->[3].": No such parameter set name\n");
-
     my $table=$_->[1];
     my $cols = join(',',@{$_->[2]});
-    my $cond = ($_->[4] ? $_->[4] : '');
-    my $sql = "select $cols from $table where pseq_id=? and params_id=?";
-    $sql .= " and $cond" if($_->[4]);
-    $ sql .= " order by start" if($cols =~ /\bstart\b/);
+    my $cond = ($_->[3] ? $_->[3] : '');
+    my $sql = "select $cols from $table where pseq_id=?";
+    $sql .= " and $cond" if($_->[3]);
 
     # prepare the lookup
     my $sth = $u->prepare($sql);
-
     my @results = @{ $u->selectall_arrayref($sth,undef,
-					    $pseq_id, $params_id) };
-
+					    $pseq_id) };
     $r->{$data}=\@results;
+
+    #alias will have best_alias and annot will have best_annotation
+    $id_alias->{$pseq_id}{annot} = $u->selectrow_array($ba_sth,undef,$pseq_id);
+    $id_alias->{$pseq_id}{alias} = $u->best_alias($pseq_id);
+
+    if($data ne 'patents' and $data ne 'alias') {
+
+      #tie annotation choice to pftype to get the latest params(->preferred_params_id_by_pftype)
+      my %pftypes=('signalp'=>'SignalP','tm'=>'TMHMM','protcomp'=>'Protcomp','pfam'=>'hmm','regexp'=>'regexp','bigpi'=>'BIG-PI');
+
+      my $params_id=$u->selectrow_array("select preferred_params_id_by_pftype('".$pftypes{$_->[0]}."')");
+      (defined $params_id)
+	|| die($pftypes{$_->[0]}.": No such parameter set name\n");
+      $params->{$data} = $u->selectrow_hashref($rh_sth,undef,$pseq_id,$params_id);
+    }
   }
   return ($r);
 }
@@ -271,63 +307,69 @@ sub get_data($) {
 #
 #########################################
 sub show_results($$) {
+
   my ($r,$pseq_id) = @_;
-
   my @table_defs = ( $opts{'summary'} ? @short_table_defs : @long_table_defs );
-  my $alias= sprintf("%s\t",$id_alias{$pseq_id});
-  my $summary = sprintf("%-40s\t",$id_alias{$pseq_id});
-
+  printf(STDOUT "*Unison:$pseq_id:$id_alias->{$pseq_id}{annot}\n") if !$opts{summary} ;
+  my @data;
+  my $data_str;
   foreach (@table_defs) {
 
-    my $data = $_->[0];
+    my $table = $_->[0];
+
     if ($optsum != 0) {
-      my $ans = grep {/$data/}map {$opts{$_}?$_:''}@outcols;
+      my $ans = grep {/$table/}map {$opts{$_}?$_:''}@outcols;
       next if not $ans;
     }
 
-    my $params_id = $u->params_id_by_name($_->[3]);
-    my $table=$_->[1];
-    my $cols = join(',',@{$_->[2]});
-    my $cond = ($_->[4] ? $_->[4] : '');
     my @results = @{$r->{$_->[0]}};
-    if (not @results and not $opts{summary}) {
-      # !!! no results => either 1) never run or 2) no results given criteria
-      # distinguish these cases by checking the run_history table.
-      my $z = $u->get_run_timestamp($pseq_id,$params_id,undef,undef);
-      if (defined $z) {
-	printf(STDERR "#  ran on $z; no hits with $cond for $data\n");
-      } else {
-	printf(STDERR "#  not run using parameters '$_->[3]\n");
-      }
-      next;
-    }
-    printf(STDERR "# $pseq_id : params = $_->[3] (params_id = $params_id : %d result(s)\n",$#results+1) if $opts{verbose} and !$opts{summary};
+
     if($opts{summary}) {
-      foreach my $a (@results) {
-	if($data eq 'pfam') {
-	  $summary .= sprintf("%-20s","$a->[0]($a->[1]),");
-	} elsif($data eq 'signalp') {
-	  $summary .= sprintf("%-20s",yes_no($a->[0]));
-	} elsif($data eq 'localization') {
-	  $summary .= sprintf("%-25s",$a->[0]);
-	} else {
-	  $summary .= sprintf("%-20s",$a->[0]);
+	if (not @results) {
+	  if ($table eq 'protcomp') {
+	    push @data, '';
+	  } else {
+	    $data_str .= '';
+	  }
+	}
+	else {
+	  foreach my $a (@results) {
+	    if ($table eq 'protcomp') {
+	      push @data, $a->[0];
+	    } else {
+	      $data_str .= "$a->[0],";
+	    }
+	  }
+	  $data_str .= " ";
 	}
       }
-      $summary .= "-\t\t" if $#results == -1;
-      $summary .= "\t";
-    }
     else {
-      printf(STDERR "#$data\n#alias\t\t\t");
-      printf(STDERR join "\t",@{$_->[2]},"\n");
-      printf($alias);
+      printf(STDOUT "*$table");
+
+      if ($table ne 'patents' and $table ne 'alias') {
+	my $ran_on;
+	$ran_on = (defined($params->{$table}{ran_on}) ? 'ran on '.$params->{$table}{ran_on} : 'not run') ;
+	printf(STDOUT " ($params->{$table}{params}, $ran_on)\n");
+	printf(STDOUT "#$pseq_id : (params_id = $params->{$table}{params_id} : %d result(s))\n#",$#results+1) if $opts{verbose};
+      }
+      else  {
+	printf(STDOUT "\n");
+      }
+      printf(STDOUT "#".join "\t",@{$_->[2]},"\n") if(@results);
       foreach my $a (@results) {
-	$a->[$#{$a}] = yes_no($a->[$#{$a}]) if($data eq 'signalp');
 	printf(join "\t", @{$a},"\n");
       }
+      print "\n";
     }
   }
-  print "$summary\n" if($opts{summary});
+  if($opts{summary}) {
+    push @data, $data_str;
+      my $header .= "format OUT$pseq_id =\n$fmt\n".'$pseq_id,$id_alias->{$pseq_id}{alias},'.'@data'."\n";
+      $header .= ".\n";
+      eval $header;
+      $~ = "OUT$pseq_id";
+      write;
+  }
 }
 #########################################
 #
@@ -341,16 +383,20 @@ sub parse_options() {
 	 'select-by-alias' => 0,
 	 'select-by-alias-fuzzy' => 0,
 	 'select-by-unison-id' => 0,
+	 'select-by-gi' => 0,
 
 	 #data type
 	 'pfam' => 0,
 	 'signalp' => 0,
-	 'transmembrane' => 0,
-	 'localization' => 0,
-	 'pmap' => 0,
+	 'tm' => 0,
+	 'protcomp' => 0,
+	 'bipig' => 0,
+	 'regexp' => 0,
+	 'patents' => 0,
+	 'alias'=> 0,
 
 	 #output options
-	 'summary' => 0,
+	 'format' => undef,
 
 	 #filtering options
 	 'human' => 0,
@@ -365,17 +411,21 @@ sub parse_options() {
 	      'select-by-seq|S+',
 	      'select-by-alias|A+',
 	      'select-by-alias-fuzzy|F+',
-	      'select-by-unison-id|unison|U+',
+	      'select-by-unison-id|P+',
+	      'select-by-gi|G+',
 
 	      'pfam',
 	      'signalp',
-	      'transmembrane',
-	      'localization',
-	      'pmap',
+	      'tm',
+	      'protcomp',
+	      'bigpi',
+	      'regexp',
+	      'patents',
+	      'alias',
 
 	      'human',
 
-	      'summary|s+',
+	      'format|f=s',
 	      'verbose|v+',
 	      'help|h+',
 	      'version|V',
@@ -385,16 +435,66 @@ sub parse_options() {
   my $optsum;
   my @opts;
   @opts = qw(select-by-seq select-by-alias select-by-alias-fuzzy
-	     select-by-unison-id);
+	     select-by-unison-id select-by-gi);
   $optsum = eval join('+', map {$opts{$_}?1:0} @opts);
   if ($optsum == 0) {
     $opts{'select-by-unison-id'}++;
   } elsif ($optsum > 1) {
     die("$0: may only specify one of {", join(',',@opts), "}.\n");
   }
+
+  if ( $opts{version} ) {
+    print(STDOUT '$Id: unison-annotation,v 1.5 2006/03/16 17:23:03 mukhyala Exp $ ', "\n");
+    exit;
+  }
+  if ( $opts{help} ) {
+    pod2usage( { -verbose=>2 } )
+  }
+  if ( $opts{format}) {
+    if ($opts{format} ne 'summary') {
+      print(STDERR "$opts{format} not supported, try -f table\n");
+      exit (-1);
+    }
+    else {$opts{summary}++;}
+  }
   return %opts;
 }
 
-sub yes_no {
-  return ( (shift) ?'yes':'no');
+
+#########################################
+#
+#
+#########################################
+sub print_headers {
+
+  $fmt = "@<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ";
+  my @fmt_each =  qw(@<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<);
+
+  my @table_defs = ( $opts{'summary'} ? @short_table_defs : @long_table_defs );
+  my $header;
+  if($opts{summary}) {
+    if($optsum) {
+      undef @outcols;
+      my $i=0;
+      foreach (@table_defs) {
+	if($opts{$_->[0]}) {
+	  push @outcols, $_->[0] ;
+	  $fmt .= $fmt_each[$i]." ";
+	}
+	$i++;
+      }
+    }
+    else {$fmt .= join " ",@fmt_each;}
+    $header = "$fmt\n";
+    $header .= 'pseq_id,alias,';
+    $header .= 'protcomp,' if(grep {/protcomp/} @outcols);
+    $header .= 'features';
+    $header .= "\n";
+  }
+  else {
+    $header .= "";
+  }
+  my $main_header = "format STDOUT =\n".$header."\n.\n";
+  eval $main_header;
+  write;
 }
