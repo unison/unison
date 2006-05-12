@@ -19,7 +19,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.18 2006/01/02 05:41:11 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.19 2006/02/15 04:06:57 rkh Exp $ ');
 
 
 try {
@@ -28,7 +28,7 @@ try {
 
   if (not defined $v->{params_id}) {
 	$v->{params_id} = 
-	  $u->get_current_params_id_by_pftype($v->{pseq_id},'hmm')
+	  $u->preferred_params_id_by_pftype('HMM')
 		|| $ps[0]->[0];
   }
 
