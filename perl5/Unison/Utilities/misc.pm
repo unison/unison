@@ -2,7 +2,7 @@
 
 Unison::Utilities::misc -- general Unison utilities
 
-S<$Id: misc.pm,v 1.4 2005/05/17 01:20:48 rkh Exp $>
+S<$Id: misc.pm,v 1.5 2005/08/02 22:54:43 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -24,7 +24,7 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use base Exporter;
 @EXPORT = ();
 @EXPORT_OK = qw/ warn_deprecated range_to_enum clean_sequence
-				 sequence_md5 wrap unison_logo /;
+				 sequence_md5 wrap unison_logo elide_sequence /;
 
 use strict;
 use warnings;
@@ -200,7 +200,22 @@ sub unison_logo () {
 }
 
 
+######################################################################
+=pod
 
+=item B<< elide_sequence( seq, clip, gap ) >>
+
+returns sequence, perhaps gapped with gap if longer that 2*clip+|gap|.
+
+=cut
+
+sub elide_sequence ($$$) {
+  my ($seq,$clip,$gap) = @_;
+  if (length($seq) > $clip*2+length($gap)) {
+	$seq = substr($seq,0,$clip) . $gap . substr($seq,-$clip);
+  }
+  return $seq;
+}
 
 
 =pod

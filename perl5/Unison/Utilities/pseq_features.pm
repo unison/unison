@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.23 2006/02/15 04:06:37 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.24 2006/03/14 01:26:25 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -15,8 +15,11 @@ S<$Id: pseq_features.pm,v 1.23 2006/02/15 04:06:37 rkh Exp $>
 =cut
 
 
-## XXX: Many of the feature selections below don't use params_id.  Shame
+## FIXME: Many of the feature selections below don't use params_id.  Shame
 ## shame shame.
+
+## FIXME: put run_history timestamp in track label (or, instead, just
+## indicate when it hasn't been run)
 
 
 package Unison::Utilities::pseq_features;
@@ -33,11 +36,11 @@ our @EXPORT_OK = qw( pseq_features_panel %opts );
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::params;
-use Unison::Utilities::misc qw( warn_deprecated unison_logo );
+use Unison::Utilities::misc qw( warn_deprecated unison_logo elide_sequence );
 use Unison::Utilities::pseq_structure;
+use Data::Dumper;
 
-my @default_panel_features = qw ( antigenic bigpi hmm psipred 
- prospect signalp tmdetect tmhmm );
+my @default_panel_features = qw ( antigenic bigpi disprot hmm psipred pepcoil prospect signalp tmdetect tmhmm );
 # pssm regexp sigcleave
 
 our %opts = 
@@ -134,7 +137,7 @@ sub pseq_features_panel($%) {
 										 -length => $opts{track_length},
 										 -width => $opts{width},
 										 -pad_top => $opts{pad},
-										 -pad_left => $opts{pad},
+										 -pad_left => $opts{pad}*2,
 										 -pad_right => $opts{pad},
 										 -pad_bottom => $opts{pad},
 										 -key_style => 'between'
@@ -158,10 +161,12 @@ sub pseq_features_panel($%) {
   add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
 
   add_pfpsipred    ( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
+  add_psdisprot    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{disprot});
 
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pftmhmm      ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmhmm});
   add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
+  add_pfpepcoil	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pepcoil});
 
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
 
@@ -180,7 +185,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.23 2006/02/15 04:06:37 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.24 2006/03/14 01:26:25 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -723,7 +728,7 @@ sub add_pfantigenic {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,stop,score,subseq from pfantigenic_v where pseq_id=$q limit 10";
+  my $sql = "select start,stop,score,subseq from pfantigenic_v where pseq_id=$q order by score limit 20";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
@@ -741,6 +746,53 @@ sub add_pfantigenic {
 
 
 
+######################################################################
+## add_pfpepcoil
+
+=pod
+
+=item B<< add_pfpepcoil( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pfpepcoil features to a panel and return the number of features added.
+
+=cut
+
+sub add_pfpepcoil {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 0.5,
+								 -max_score => 1,
+								 -sort_order => 'high_score',
+								 -bgcolor => 'purple',
+								 -key => 'EMBOSS/pepcoil',
+								 -bump => +1,
+								 -label => 1,
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $sql = <<EOSQL;
+  SELECT F.start,F.stop,F.score,F.prob,substr(Q.seq,F.start,F.stop-F.start+1) as subseq
+    FROM pfpepcoil F
+    JOIN pseq Q on F.pseq_id=Q.pseq_id
+   WHERE F.pseq_id=$q
+         AND F.params_id=preferred_params_id_by_pftype('EMBOSS/pepcoil')
+EOSQL
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref( $sql );
+  foreach my $r (@$featref) {
+	my $seq = elide_sequence($r->[4],7,'...');
+	$track->add_feature
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
+									 -end => $r->[1],
+									 -score => $r->[3],	# prob!
+									 -name => $seq,
+									 -attributes => { tooltip => "$r->[0]-$r->[1]; score=$r->[2]; prob=$r->[3]; seq=$seq" }
+								   ) );
+	$nadded++;
+  }
+  return $nadded;
+}
 ######################################################################
 ## add_pfsigcleave
 
@@ -809,7 +861,7 @@ sub add_pfbigpi {
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,quality from bigpi_v where pseq_id=$q";
+  my $sql = "select start,quality from pfbigpi_v where pseq_id=$q";
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
@@ -863,6 +915,57 @@ sub add_pfregexp {
   }
   return $nadded;
 }
+
+
+######################################################################
+## add_psdisprot
+
+=pod
+
+=item B<< add_psdisprot( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add disprot protein disorder track
+
+=cut
+
+sub add_psdisprot {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+
+  my $sql = <<EOSQL;
+SELECT array_to_string(probs,',')
+  FROM psdisorder
+ WHERE pseq_id=$q AND params_id=params_id(?)
+EOSQL
+  my @features;
+
+  {
+	my @pd = split( /,/ , $u->selectrow_array($sql,undef,'disprot VL3H') );
+	my @subfeat = map { Bio::Graphics::Feature->new
+		(-start => $_+1, -end => $_+1, -score => $pd[$_]*100) } 0..$#pd;
+	push(@features, Bio::Graphics::Feature->new(-segments=>\@subfeat));
+  }
+
+# Dispro features
+#  {
+#	my @pd = split( /,/ , $u->selectrow_array($sql,undef,'dispro') );
+#	my @subfeat = map { Bio::Graphics::Feature->new(-start => $_+1, -end => $_+1, -score => $pd[$_]*100) } 0..$#pd;
+#	push(@features, Bio::Graphics::Feature->new(-segments=>\@subfeat));
+#  }
+
+  my $track = $panel->add_track( \@features,
+								 -key => 'disprot protein disorder',
+								 -glyph => 'xyplot',
+								 -graph_type => 'line',
+								 -height => 50,
+								 -scale => 'both',
+								 -min_score => 0, -max_score => 100,
+								 -bgcolor => 'black', -fgcolor => 'black'
+							   );
+  return $#features+1;
+}
+
+
 
 sub add_pfsnp {
     my ($u, $panel, $q, $view, $pseq_structure) = @_;

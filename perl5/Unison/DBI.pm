@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.24 2006/01/02 20:19:52 rkh Exp $>
+S<$Id: DBI.pm,v 1.25 2006/03/14 01:26:25 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -46,7 +46,7 @@ our %opts =
 									 chomp $tmp; $tmp},
    password => $ENV{PGPASSWORD},
    attr => {
-			# I wan't to migrate to AutoCommit => 0, but this requires
+			# I want to migrate to AutoCommit => 0, but this requires
 			# coordination with loading clients
 			AutoCommit => 1,
 

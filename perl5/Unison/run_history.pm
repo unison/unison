@@ -2,7 +2,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: run_history.pm,v 1.8 2005/05/11 21:53:41 rkh Exp $>
+S<$Id: run_history.pm,v 1.9 2005/09/16 04:45:11 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -93,12 +93,13 @@ sub already_ran ($$$$$) {
 
   foreach my $o (@O) {
 	foreach my $m (@M) {
-	  if ($u->get_run_timestamp($pseq_id,$params_id,$o,$m)) {
-		return 1;
+	  if (defined( my $z = $u->get_run_timestamp($pseq_id,$params_id,$o,$m ))) {
+		# arbitrarily return this timestamp (others might have matched)
+		return $z ;
 	  }
 	}
   }
-  return 0;
+  return undef;
 }
 
 
@@ -131,6 +132,11 @@ on the run history for the specified sequence.
 =cut
 
 sub get_current_params_id_by_pftype(@) {
+
+  # deprecated on 2006-05-04
+  # use preferred_params_id_by _pftype
+  warn_deprecated();
+
   my $u = shift;
   my $a = $u->selectrow_array(<<EOSQL,undef,@_);
 SELECT	RH.params_id
