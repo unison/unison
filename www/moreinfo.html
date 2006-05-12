@@ -125,7 +125,7 @@ superset of all available sequences. Sequences are stored
 <i>non-redundandtly</i> and are given a permanent identifier, a
 <code>pseq_id</code>.  Sequences are never deleted or modified, and the
 corresponding <code>pseq_id</code> is never changed. [<a
-href="pseq_summary.pl?pseq_id=76">example</a>]
+href="cgi/pseq_summary.pl?pseq_id=76">example</a>]
 
 <p>Although sequences in Unison are stored non-redundantly, they came from
 many highly redundant databases. Each of those databases typically
@@ -135,7 +135,7 @@ sequence was loaded from each source database and this provides a record
 of when a sequence was loaded. Furthermore, each origin is ranked for its
 reliability and informative content, and this is used to provide a
 heuristic "best annotation" for each sequence as seen in the example.  [<a
-href="pseq_paliases.pl?pseq_id=76">example</a>]
+href="cgi/pseq_paliases.pl?pseq_id=76">example</a>]
 
 <p>After sequences are loaded, a set of reliable sequences is built based
 on origin, species, and other properties.  These sequences are subjected
@@ -145,10 +145,10 @@ anchoring, antigenicity, and alignments from BLAST, HMM (Pfam) alignments,
 and threading, and many others.  Unison's bookkeeping about which
 algorithms have been run (and how) provides a powerful mechanism for
 keeping Unison sequences and results up to date [<a
-href="pseq_history.pl?pseq_id=76">example</a>].
+href="cgi/pseq_history.pl?pseq_id=76">example</a>].
 
 <p>All precomputed results are linked directly to the <code>pseq_id</code> [<a
-href="pseq_features.pl?pseq_id=76">example</a>].  And because precomputed
+href="cgi/pseq_features.pl?pseq_id=76">example</a>].  And because precomputed
 results are linked to immutable sequences, there's no issue about results
 being "stale" with respsect to a changed sequence.  Unison also
 distinguishes results by algorighm parameters, and this permits users to

@@ -23,12 +23,43 @@ results.</b> The params table contains all of the parameters available in
 Unison; try <code>select * from params</code>.
 
 <p>For example, let's say you want to look up Pfam_fs 17.0 results for
-TNFB_HUMAN.  First, you'll need the pseq_id as described above (it's 98).
-Then you'll need the params_id (<code>select params_id from params where
-name='Pfam_fs 17.0'</code>).  Then:
+TNFB_HUMAN.  You'll need the pseq_id as described above (it's pseq_id 98
+and the params_id (<code>select params_id from params where name='Pfam_fs
+17.0'</code>).
+
+<p>First, you should ensure that the the analysis you seek has been run by
+consulting the run_history table:
 
 <pre class="code">
-unison=> select pseq_id,start,stop,pmodel_id,mstart,mstop,score,eval from pahmm where pseq_id=98 and params_id=21;
+unison=> select * from run_history_v where pseq_id=98 order by params;
+ pseq_id | params_id |      params       | porigin_id |    origin    | pmodelset_id |    modelset    |      ran_on      | failed
+---------+-----------+-------------------+------------+--------------+--------------+----------------+------------------+--------
+      98 |        19 | BIG-PI default    |            |              |              |                | 2005-02-06 01:50 | f
+      98 |         4 | EMBOSS/antigenic  |            |              |              |                | 2003-10-08 00:08 | f
+      98 |         5 | EMBOSS/sigcleave  |            |              |              |                | 2003-10-13 16:12 | f
+      98 |        11 | Genome BLAT       |            |              |              |                | 2004-02-11 10:48 | f
+      98 |        38 | PMAP 2006-03-20   |            |              |              |                | 2006-03-23 15:11 | f
+      98 |        21 | Pfam 17.0 fs      |      15038 | Pfam 17.0 fs |              |                | 2005-03-26 12:17 | f
+      98 |        33 | Pfam 19.0 fs      |      15038 | Pfam 19.0 fs |              |                | 2006-01-12 08:34 | f
+      98 |        34 | Pfam 19.0 ls      |      15039 | Pfam 19.0 ls |              |                | 2006-01-13 21:30 | f
+      98 |         1 | Prospect2 default |            |              |            5 | Death Domains  | 2004-02-25 15:15 | f
+      98 |         1 | Prospect2 default |            |              |           10 | Prospect2 FSSP | 2004-02-20 08:03 | f
+      98 |        17 | Psipred v2.45     |            |              |              |                | 2005-06-17 07:05 | f
+      98 |        28 | SignalP 3.0 (euk) |            |              |              |                | 2005-11-03 16:40 | f
+      98 |        29 | TMHMM 2.0c        |            |              |              |                | 2005-11-16 14:05 | f
+      98 |        20 | protcomp default  |            |              |              |                | 2005-08-10 05:40 | f
+      98 |        12 | regexp            |            |              |           19 | Bcl-2 domains  | 2005-11-16 11:26 | f
+      98 |        12 | regexp            |            |              |           11 | ITxM           | 2006-04-13 04:47 | f
+      98 |         9 | tmdetect default  |            |              |              |                | 2006-02-21 17:47 | f
+</pre>
+
+
+<p>To start, select the raw features for this <code>pseq_id</code> and
+<code>params_id</code> from <code>pahmm<code> table:
+
+<pre class="code">
+unison=> select pseq_id,start,stop,pmodel_id,mstart,mstop,score,eval
+         from pahmm where pseq_id=98 and params_id=21;
  pseq_id | start | stop | pmodel_id | mstart | mstop | score | eval
 ---------+-------+------+-----------+--------+-------+-------+-------
       98 |    19 |   43 |  13606812 |      1 |    26 |     4 |  0.22
@@ -56,6 +87,13 @@ unison=> select * from pahmm_v where pseq_id=98 and params_id=21;
 (5 rows)
 </pre>
 
+<div class="important">
+<b>IMPORTANT!</b> If Unison returns no precomputed results where you
+expected otherwise, it is possible that the algorithm has not been run on
+the query sequence.  You should always check the run_history table (or
+run_history_v view) to determine which predictive methods have been run on
+the query sequence.
+</div>
 
 Unison's real power, however, is in the inverse problem: given some criteria,
 find matching sequences.  Feature-based mining requires precomputed data and

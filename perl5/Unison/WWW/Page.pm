@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.81 2006/04/09 09:01:22 rkh Exp $>
+S<$Id: Page.pm,v 1.82 2006/04/13 17:31:33 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -1123,17 +1123,16 @@ sub __format_tab_labels(@) {
 	  my @tooltip_tags = ();
 	  if (not $navs[$i]->[$j]->[1]) {
 		$navs[$i]->[$j]->[2] = "<i>$navs[$i]->[$j]->[2]</i>" if defined $navs[$i]->[$j]->[2];
-		push(@tooltip_tags,'proprietary');
+		push(@tooltip_tags,'public');
 	  }
 	  if (not $navs[$i]->[$j]->[0]) {
 		$navs[$i]->[$j]->[2] = "<span style=\"color: red;\">$navs[$i]->[$j]->[2]</span>" if defined $navs[$i]->[$j]->[2];
-		push(@tooltip_tags,'development');
+		push(@tooltip_tags,'production');
 	  }
 	  if (@tooltip_tags) {
 		$navs[$i]->[$j]->[3] = '' unless $navs[$i]->[$j]->[3];
-		$navs[$i]->[$j]->[3] .= ( '<hr>NOTE: This tab contains '
-								  . join(' and ', @tooltip_tags)
-								  . ' data that will not appear in the released public version of Unison.' );
+		$navs[$i]->[$j]->[3] .= ( '<hr>NOTE: This tab contains data that will not appear in '
+								  . join(' or ', @tooltip_tags) . ' versions of Unison.' );
 	  }
 	}
   }
