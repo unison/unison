@@ -10,7 +10,7 @@ export PSIPRED_PATH
 
 N:=5
 QNAME=${SUBDIR}p${PAPROSPECT_PARAMS_ID}
-RUNSET=runB
+RUNSET=runA-human
 
 update:
 	make cleanest

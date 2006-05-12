@@ -9,7 +9,7 @@ GVOPTS:=-Goverlap=false
 update: $(foreach t,dot neato twopi fdp,${PGDATABASE}-$t.ps)
 
 %.log:
-	postgresql_autodoc -d $* -u PUBLIC -s unison >$@.tmp 2>&1
+	postgresql_autodoc -h csb -d $* -u PUBLIC -s unison >$@.tmp 2>&1
 	/bin/mv $@.tmp $@
 
 %.dot: %.log;
@@ -23,3 +23,9 @@ update: $(foreach t,dot neato twopi fdp,${PGDATABASE}-$t.ps)
 	twopi -Tps ${GVOPTS} -o $@ $<
 %-fdp.ps: %.neato
 	fdp -Tps ${GVOPTS} -o $@ $<
+
+
+clean::
+cleaner:: clean
+cleanest:: cleaner
+	/bin/rm *.ps *.html *.dia *.xml
