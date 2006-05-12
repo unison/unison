@@ -6,7 +6,7 @@ include ../params.mk
 
 N:=5
 QNAME=${SUBDIR}p${PFANTIGENIC_PARAMS_ID}
-RUNSET=runA
+RUNSET=runC-human
 NPER:=250
 
 update:

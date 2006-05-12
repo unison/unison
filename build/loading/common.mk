@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.24 2006/02/15 04:06:37 rkh Exp $
+## $Id: common.mk,v 1.25 2006/03/14 01:26:25 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE
@@ -161,11 +161,11 @@ PATTERN=*
 
 # get sequences for a set of ids
 %.fa: %.ids
-	get-seq -v <$< >$@
+	unison-get-seq -v <$< >$@
 
 # get a sequence
 %.fa:
-	get-seq $* >$@
+	unison-get-seq $* >$@
 
 # make env -- write env to file `env' for debugging
 env:

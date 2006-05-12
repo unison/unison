@@ -6,7 +6,7 @@ include ../params.mk
 
 N:=5
 QNAME=${SUBDIR}p${PFBIGPI_PARAMS_ID}
-RUNSET=runC
+RUNSET=runB
 
 default:
 	@echo no $@ target; exit 1
