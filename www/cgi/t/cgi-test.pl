@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.13 2005/12/09 18:42:37 mukhyala Exp $
+# $Id: cgi-test.pl,v 1.14 2006/01/02 22:59:44 rkh Exp $
 
 use warnings;
 use strict;
@@ -9,6 +9,10 @@ use Getopt::Long;
 use Benchmark ':hireswallclock';
 use Term::ANSIScreen qw/:color/;
 
+my %params =
+  (
+   hmm => 34,
+  );
 
 my $usage = <<'EOU';
 #-------------------------------------------------------------------------------
@@ -20,7 +24,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.13 2005/12/09 18:42:37 mukhyala Exp $
+# $Id: cgi-test.pl,v 1.14 2006/01/02 22:59:44 rkh Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -85,11 +89,11 @@ my @cgi_scripts =
    ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Range"],
    ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Clustered"],
    ['../emb_genome_map.pl','genasm_id=2 chr=6 gstart=31646498 gstop=31658288 params_id=32'],
-   ['../emb_hmm_alignment.pl','pseq_id=98 params_id=27 profiles=TNF'],
+   ['../emb_hmm_alignment.pl',"pseq_id=98 params_id=$params{hmm} profiles=TNF"],
    ['../nph-pdb-fetch.sh','1jtz'],
    ['../genome_features.pl',"genasm_id=2 chr=15 gstart=39562512 gstop=39591527 params_id=32"],
    ['../get_fasta.pl',"pseq_id=$pseq_id"],
-   ['../hmm_alignment.pl',"pseq_id=$pseq_id profiles=TNF params_id=27"],
+   ['../hmm_alignment.pl',"pseq_id=$pseq_id profiles=TNF params_id=$params{hmm}"],
    ['../p2alignment.pl',"pseq_id=76 params_id=1 templates=1jtzx"],
    ['../p2cm.pl',"pseq_id=$pseq_id viewer=rasmol params_id=1 templates=1jtzx"],
    ['../pseq_blast.pl',"pseq_id=$pseq_id"],
@@ -125,7 +129,7 @@ my %dir_scripts = map {$_=>1} grep {not m%(?:CVS|t|~)$%} glob('./* ../*');
 my @badwords = ('Server Error', 'Object not found', 'DBIError', 'Exception', 'Error');
 my $npassed =  0;
 
-print('$Id: cgi-test.pl,v 1.13 2005/12/09 18:42:37 mukhyala Exp $ ', "\n\n");
+print('$Id: cgi-test.pl,v 1.14 2006/01/02 22:59:44 rkh Exp $ ', "\n\n");
 
 printf("%-30.30s\tstatus\t%7s\tmessage\n",'script','time');
 print('='x76,"\n");
@@ -170,7 +174,18 @@ foreach my $cgi (@cgi_scripts) {
   my $time = @{timediff($t1, $t0)}[0];
 
   printf("\t%s\t%6.1fs\t$message\n", ($failed ? $FAIL : $PASS), $time);
-  print("\t$cmd $ENV{QUERY_STRING}\n") if ($failed);
+  if ($failed) {
+	print <<EOT;
+</pre>
+<div style="background: pink; margin-left: 50px; overflow: auto; height: 15%;">
+<b>command:</b> $cmd $ENV{QUERY_STRING}
+<pre>
+$output
+</pre>
+</div>
+<pre>
+EOT
+  }
   $npassed++ unless $failed;
 }
 
