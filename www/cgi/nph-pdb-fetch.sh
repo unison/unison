@@ -1,6 +1,6 @@
 #!/bin/sh
 # pdb-fetch -- http non-parsed header PDB gateway
-# $Id: nph-fetch_pdb.sh,v 1.1 2005/07/19 01:50:23 rkh Exp $
+# $Id: nph-pdb-fetch.sh,v 1.1 2005/07/19 01:51:35 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 # Given a PDB id (e.g., 2tnf), this script returns the PDB file on STDOUT
@@ -37,7 +37,7 @@ export PATH=/usr/bin:/bin
 
 # ID should be just the 4-letter ID
 if [ $# -ne 1 ]; then
-		echo "$0: need exactly 1 argument, a PDB id" 1>&2
+		echo "$0: need exactly 1 argument, a PDB id (got $#: $*)" 1>&2
 		exit 1
 fi
 ID="$1"
