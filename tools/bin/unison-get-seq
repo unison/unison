@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: get-seq,v 1.26 2006/03/06 19:49:34 rkh Exp $
+# $Id: unison-get-seq,v 1.27 2006/05/03 03:13:00 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: get-seq,v 1.26 2006/03/06 19:49:34 rkh Exp $>
+S<$Id: unison-get-seq,v 1.27 2006/05/03 03:13:00 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -47,7 +47,7 @@ sub process_set($$);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: get-seq,v 1.26 2006/03/06 19:49:34 rkh Exp $ ', "\n");
+  print(STDERR '$Id: unison-get-seq,v 1.27 2006/05/03 03:13:00 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -110,6 +110,7 @@ sub parse_options() {
 	 'select-by-porigin' => 0,
 	 'select-by-pset' => 0,
 	 'select-by-unison-id' => 0,
+	 'iupac20' => 0,						# only IUPAC real AA (no ambiguity)
 
 	 # what to display with sequences
 	 'best-alias' => 0,
@@ -133,6 +134,7 @@ sub parse_options() {
 			  'select-by-porigin|porigin|origin|O+',
 			  'select-by-pset|pset|set|S+',
 			  'select-by-unison-id|unison|U+',
+			  'iupac20+',
 
 			  'best-alias|best-oa|b+',
 			  'best-annotation|best-oad|B+',
@@ -281,6 +283,11 @@ sub process1($) {
 
   if (not defined $seq) {
 	warn("! Unison:$pseq_id not found\n");
+	return;
+  }
+
+  if ($opts{iupac20} and $seq =~ m/[^ACDEFGHIKLMNPQRSTVWY]/) {
+	warn("Unison:$pseq_id: contains non-IUPAC20 amino acids\n") if $opts{verbose};
 	return;
   }
 
