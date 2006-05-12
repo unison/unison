@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.5 2005/12/07 23:21:02 rkh Exp $>
+S<$Id: genome_features.pm,v 1.6 2006/04/09 09:00:59 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -140,7 +140,7 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.5 2005/12/07 23:21:02 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.6 2006/04/09 09:00:59 rkh Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
@@ -218,13 +218,16 @@ sub add_pmaploci {
 										   -height => 4,
 										  );
 
+  # if opts{pseq_id} is specified, ensure that it too is show in the panel
+  my $q_pred = defined $opts{pseq_id} ? "pseq_id=$opts{pseq_id}" : 'TRUE';
+
   my $sql = <<EOSQL;
 SELECT aln_id,pseq_id,ident,gstart,gstop,strand
 FROM pmap_v
 WHERE genasm_id=$opts{genasm_id}
   AND params_id=$opts{params_id}
   AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}
-  AND pct_ident>=$opts{min_pct_ident}
+  AND (pct_ident>=$opts{min_pct_ident} OR $q_pred)
 EOSQL
   if (defined $opts{pseq_id} and not $opts{show_all}) {
 	$sql .= " and pseq_id=$opts{pseq_id}";
