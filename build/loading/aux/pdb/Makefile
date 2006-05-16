@@ -1,4 +1,5 @@
 include ../../common.mk
+include ../../local.mk
 
 
 PDB_ROOT:=${COMPBIO_PREFIX}/share/pdb
