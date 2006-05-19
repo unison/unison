@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-pfpsipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
 #
-# $Id: run-pfpsipred,v 1.2 2005/06/15 18:32:58 mukhyala Exp $
+# $Id: run-pfpsipred,v 1.3 2005/12/07 07:27:57 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -71,7 +71,7 @@ if ( scalar(keys %run_me) == 0 ) {
 
 
 # get pftype_ids for psipred
-my $pftype_id = &get_pftype_id( $u, 'Psipred' );
+my $pftype_id = &get_pftype_id( $u, 'PSIPRED' );
 die( "Can't retrieve pftype_id for psipred" ) if ( ! defined $pftype_id );
 
 
