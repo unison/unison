@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.25 2006/03/25 20:36:14 rkh Exp $
+# $Id: load-pseq,v 1.26 2006/04/09 09:00:59 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -26,7 +26,7 @@ use Unison;
 use Unison::Exceptions;
 use Unison::Utilities::misc qw(clean_sequence sequence_md5);
 use IO::File;
-use Benchmark ':hireswallclock';
+use Benchmark;
 use Data::Dumper;
 
 
@@ -82,7 +82,7 @@ my %gs_to_tax_id = map  {$_->[0] => $_->[1]}
   @{$u->selectall_arrayref( 'select upper(gs),tax_id from tax.spspec' )};
 my %known_tax_ids = map {$_ => 1} values %latin_to_tax_id;
 
-(defined $opts{tax_id} and defined $opts{'infer-tax-id'})
+(defined $opts{tax_id} and $opts{'infer-tax-id'})
   && die("$0: you may not specify a tax_id and request infer-tax-id\n");
 
 (defined $opts{tax_id} and not exists $known_tax_ids{$opts{tax_id}})
@@ -91,8 +91,8 @@ my %known_tax_ids = map {$_ => 1} values %latin_to_tax_id;
 ($opts{origin} =~ m/^RefSeq/ and $opts{format} !~ m/genbank/i)
   && die("$0: $opts{origin} sequences should be loaded from genbank format files\n");
 
-($opts{origin} =~ m/^UniProt/ and $opts{format} !~ m/sprot/i)
-  && die("$0: $opts{origin} sequences should be loaded from sprot format files\n");
+($opts{origin} =~ m/^UniProt/ and $opts{format} !~ m/swiss/i)
+  && die("$0: $opts{origin} sequences should be loaded from swiss format files\n");
 
 
 
@@ -261,7 +261,7 @@ sub process_seq ($$$) {
 		  my $newt = $gs_to_tax_id{uc($gs)};
 		}
 	  }
-	  push(@anno, [$o,$bs->accession(),$d,$t] );
+	  #push(@anno, [$o,$bs->accession(),$d,$t] );
 
 	} elsif ($o =~ m/^CCDS/i) {
 	  $d = $a;
@@ -276,7 +276,7 @@ sub process_seq ($$$) {
 	}
 
 	$anno[$i] = [$o,$a,$d,$t];
-  }
+      }
 
   if ($#anno == -1 and not $opts{'allow-anonymous-sequences'}) {
 	die("Unison:$pseq_id has no primary annotations and allow-anonymous-sequences is not set\n",
