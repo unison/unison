@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.26 2006/06/06 18:41:48 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.27 2006/06/06 19:33:14 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -20,6 +20,8 @@ S<$Id: pseq_features.pm,v 1.26 2006/06/06 18:41:48 rkh Exp $>
 
 ## FIXME: put run_history timestamp in track label (or, instead, just
 ## indicate when it hasn't been run)
+
+## FIXME: standardize tooltip format as: <start>-<stop> (elided subseq)<br>score, etc
 
 
 package Unison::Utilities::pseq_features;
@@ -186,7 +188,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.26 2006/06/06 18:41:48 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.27 2006/06/06 19:33:14 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -901,6 +903,7 @@ Add pfregexp features to a panel and return the number of features added.
 
 sub add_pfregexp {
   my ($u, $panel, $q) = @_;
+  my $subseq_len = 15;
   my $nadded = 0;
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -bgcolor => 'blue',
@@ -911,9 +914,10 @@ sub add_pfregexp {
 								 -height => 4,
 							   );
   my $sql = <<EOSQL;
-SELECT start,stop,acc,name,descr,link_url(porigin_id,acc)
-  FROM pfregexp_v
- WHERE pseq_id=$q
+SELECT start,stop,acc,name,descr,substr(Q.seq,F.start,F.stop-F.start+1) as subseq,link_url(porigin_id,acc)
+  FROM pfregexp_v F
+  JOIN pseq Q on F.pseq_id=Q.pseq_id
+ WHERE F.pseq_id=$q
 EOSQL
   my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
@@ -921,9 +925,12 @@ EOSQL
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
 									 -name => $r->[3],
-									 -attributes => { tooltip => sprintf("%d-%d: %s (%s); %s",
-																		 @{$r}[0,1,3,2,4]),
-													  href => $r->[5]},
+									 -attributes => { tooltip => sprintf("%d-%d (%s)<br>%s; %s; %s",
+																		 @{$r}[0,1],
+																		 elide_sequence($r->[5],$subseq_len,'...'),
+																		 @{$r}[3,2,4],
+																		),
+													  href => $r->[6]},
 								   ) );
 	$nadded++;
   }
