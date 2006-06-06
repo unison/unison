@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.24 2006/03/14 01:26:25 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.25 2006/05/12 03:39:07 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -38,10 +38,10 @@ use Bio::Graphics::Feature;
 use Unison::params;
 use Unison::Utilities::misc qw( warn_deprecated unison_logo elide_sequence );
 use Unison::Utilities::pseq_structure;
-use Data::Dumper;
 
-my @default_panel_features = qw ( antigenic bigpi disprot hmm psipred pepcoil prospect signalp tmdetect tmhmm );
-# pssm regexp sigcleave
+my @default_panel_features = qw ( antigenic bigpi disprot hmm psipred
+pepcoil prospect regexp signalp tmdetect tmhmm );
+# pssm sigcleave
 
 our %opts = 
   (
@@ -185,7 +185,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.24 2006/03/14 01:26:25 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.25 2006/05/12 03:39:07 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -717,12 +717,14 @@ Add pfantigenic features to a panel and return the number of features added.
 sub add_pfantigenic {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
+  my $p = $u->preferred_params_id_by_pftype('EMBOSS/antigenic');
+  my $z = $u->get_run_timestamp($q,$p,undef,undef) || 'NEVER RUN';
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 1,
 								 -max_score => 1.2,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'green',
-								 -key => 'EMBOSS/antigenic',
+								 -key => "EMBOSS/antigenic -- $z",
 								 -bump => +1,
 								 -label => 1,
 								 -description => 1,
@@ -760,12 +762,14 @@ Add pfpepcoil features to a panel and return the number of features added.
 sub add_pfpepcoil {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
+  my $p = $u->preferred_params_id_by_pftype('EMBOSS/pepcoil');
+  my $z = $u->get_run_timestamp($q,$p,undef,undef) || 'NOT RUN';
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 0.5,
 								 -max_score => 1,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'purple',
-								 -key => 'EMBOSS/pepcoil',
+								 -key => "EMBOSS/pepcoil (ran on $z)"
 								 -bump => +1,
 								 -label => 1,
 								 -description => 1,
@@ -776,7 +780,7 @@ sub add_pfpepcoil {
     FROM pfpepcoil F
     JOIN pseq Q on F.pseq_id=Q.pseq_id
    WHERE F.pseq_id=$q
-         AND F.params_id=preferred_params_id_by_pftype('EMBOSS/pepcoil')
+         AND F.params_id=$p
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $featref = $u->selectall_arrayref( $sql );
@@ -932,36 +936,34 @@ sub add_psdisprot {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
 
+  my $p;
   my $sql = <<EOSQL;
 SELECT array_to_string(probs,',')
   FROM psdisorder
- WHERE pseq_id=$q AND params_id=params_id(?)
+ WHERE pseq_id=$q AND params_id=?
 EOSQL
   my @features;
 
-  {
-	my @pd = split( /,/ , $u->selectrow_array($sql,undef,'disprot VL3H') );
+  # NOTE: the following layout is intended to facilitate looping over
+  # disorder types (disprot VL3H, dispro, disembl, etc)
+  $p = $u->preferred_params_id_by_pftype('disorder');
+  my ($pname,$pdesc) = $u->selectrow_array('select name,descr from params where params_id=?',undef,$p);
+  if (defined $u->get_run_timestamp($q,$p,undef,undef)) {
+	my @pd = split( /,/ , $u->selectrow_array($sql,undef,$p) );
 	my @subfeat = map { Bio::Graphics::Feature->new
 		(-start => $_+1, -end => $_+1, -score => $pd[$_]*100) } 0..$#pd;
 	push(@features, Bio::Graphics::Feature->new(-segments=>\@subfeat));
+	my $track = $panel->add_track( \@features,
+								   -key => "disorder ($pname)",
+								   -glyph => 'xyplot',
+								   -graph_type => 'line',
+								   -height => 50,
+								   -scale => 'both',
+								   -min_score => 0, -max_score => 100,
+								   -bgcolor => 'black', -fgcolor => 'black'
+								 );
   }
 
-# Dispro features
-#  {
-#	my @pd = split( /,/ , $u->selectrow_array($sql,undef,'dispro') );
-#	my @subfeat = map { Bio::Graphics::Feature->new(-start => $_+1, -end => $_+1, -score => $pd[$_]*100) } 0..$#pd;
-#	push(@features, Bio::Graphics::Feature->new(-segments=>\@subfeat));
-#  }
-
-  my $track = $panel->add_track( \@features,
-								 -key => 'disprot protein disorder',
-								 -glyph => 'xyplot',
-								 -graph_type => 'line',
-								 -height => 50,
-								 -scale => 'both',
-								 -min_score => 0, -max_score => 100,
-								 -bgcolor => 'black', -fgcolor => 'black'
-							   );
   return $#features+1;
 }
 
