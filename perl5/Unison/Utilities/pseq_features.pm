@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.25 2006/05/12 03:39:07 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.26 2006/06/06 18:41:48 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -156,16 +156,17 @@ sub pseq_features_panel($%) {
 
   add_pftemplate   ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
 
-  add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
-  add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
-  add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
-
   add_pfpsipred    ( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
   add_psdisprot    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{disprot});
 
+  add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
+  add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
+
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pftmhmm      ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmhmm});
+
   add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
+  add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
   add_pfpepcoil	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pepcoil});
 
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
@@ -185,7 +186,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.25 2006/05/12 03:39:07 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.26 2006/06/06 18:41:48 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -464,6 +465,7 @@ sub add_paprospect {
   my $nadded = 0;
   $params_id = $u->preferred_params_id_by_pftype('Prospect') unless defined $params_id;
   my $params_name = $u->get_params_name_by_params_id($params_id);
+  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef) || 'NOT RUN';
   my $sth = $u->prepare(<<EOT);
 SELECT *
 FROM paprospect_scop_v
@@ -480,8 +482,8 @@ EOT
   my $track = $panel->add_track( 
 								-glyph => 'graded_segments',
 								-bgcolor => 'green',
-								-key => sprintf('Prospect Threading (%s); top %d hits of %d w/svm>=%s',
-												$params_name,($#$feats+1),$nfeat,$svm_thr),
+								-key => sprintf('Prospect Threading (%s, run on %s); top %d hits of %d w/svm>=%s',
+												$params_name, $z,($#$feats+1),$nfeat,$svm_thr),
 								-bump => +1,
 								-label => 1,
 								-fgcolor => 'black',
@@ -594,12 +596,12 @@ Add pahmm features to a panel and return the number of features added.
 
 sub add_pahmm {
   my ($u, $panel, $q, $view, $pseq_structure) = @_;
-
   my ($eval_thr,$topN) = (1,4);
   my $nadded = 0;
   ## XXX: don't hardwire the following
   my $params_id = $u->preferred_params_id_by_pftype('HMM');
   my $params_name = $u->get_params_name_by_params_id($params_id);
+  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef) || 'NOT RUN';
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
 FROM pahmm_v
@@ -611,8 +613,8 @@ EOSQL
 								 -min_score => 1,
 								 -max_score => 25,
 								 -sort_order => 'high_score',
-								 -key => sprintf('HMM (%s); %d w/eval<=%s',
-												 $params_name, ($#$featref+1),$eval_thr),
+								 -key => sprintf('HMM (%s; ran on %s); %d w/eval<=%s',
+												 $params_name, $z, ($#$featref+1),$eval_thr),
 								 -bgcolor => 'blue',
 								 -bump => +1,
 								 -label => 1,
@@ -626,7 +628,10 @@ EOSQL
   foreach my $r (@$featref) {
 	next unless defined $r->[0];
 	#printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
-	my $href = ($view ? $pseq_structure->region_script($r->[0],$r->[1],$r->[6]):"http://pfam.wustl.edu/cgi-bin/getdesc?name=$r->[6]");	
+	### FIX: should use link_url
+	my $href = ($view
+				? $pseq_structure->region_script($r->[0],$r->[1],$r->[6])
+				:"http://pfam.wustl.edu/cgi-bin/getdesc?name=$r->[6]");	
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
@@ -635,7 +640,7 @@ EOSQL
 													  @$r[6,2,3,4]),
 									 -attributes => { tooltip => sprintf("%d-%d: %s [%s]", @$r[0,1,6,7]),
 													  href => $href
-											}
+											},
 								   ) );
 	$nadded++;
   }
@@ -660,6 +665,7 @@ sub add_papssm {
   my $nadded = 0;
   my $params_id = $u->preferred_params_id_by_pftype('PSSM');
   my $params_name = $u->get_params_name_by_params_id($params_id);
+  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef) || 'NOT RUN';
   my $sql = <<EOSQL;
 SELECT A.start,A.stop,M.acc as "model",A.score,A.eval
   FROM papssm A
@@ -718,13 +724,13 @@ sub add_pfantigenic {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
   my $p = $u->preferred_params_id_by_pftype('EMBOSS/antigenic');
-  my $z = $u->get_run_timestamp($q,$p,undef,undef) || 'NEVER RUN';
+  my $z = $u->get_run_timestamp_ymd($q,$p,undef,undef) || 'NOT RUN';
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 1,
 								 -max_score => 1.2,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'green',
-								 -key => "EMBOSS/antigenic -- $z",
+								 -key => "EMBOSS/antigenic (ran on $z)",
 								 -bump => +1,
 								 -label => 1,
 								 -description => 1,
@@ -763,14 +769,14 @@ sub add_pfpepcoil {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
   my $p = $u->preferred_params_id_by_pftype('EMBOSS/pepcoil');
-  my $z = $u->get_run_timestamp($q,$p,undef,undef) || 'NOT RUN';
+  my $z = $u->get_run_timestamp_ymd($q,$p,undef,undef) || 'NOT RUN';
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 0.5,
 								 -max_score => 1,
 								 -sort_order => 'high_score',
 								 -bgcolor => 'purple',
-								 -key => "EMBOSS/pepcoil (ran on $z)"
-								 -bump => +1,
+								 -key => "EMBOSS/pepcoil (ran on $z)",
+								 -bump => 1,
 								 -label => 1,
 								 -description => 1,
 								 -height => 4,
@@ -898,22 +904,26 @@ sub add_pfregexp {
   my $nadded = 0;
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -bgcolor => 'blue',
-								 -key => 'Sequence motif (regexp)',
-								 -bump => +1,
+								 -key => 'Regular Expression Sequence Motifs',
+								 -bump => 1,
 								 -label => 1,
 								 -description => 1,
 								 -height => 4,
 							   );
-  my $sql = "select start,stop,acc,descr from pfregexp F  join pmregexp M on F.pmodel_id=M.pmodel_id  where F.pseq_id=$q";
+  my $sql = <<EOSQL;
+SELECT start,stop,acc,name,descr,link_url(porigin_id,acc)
+  FROM pfregexp_v
+ WHERE pseq_id=$q
+EOSQL
   my $featref = $u->selectall_arrayref( $sql );
   foreach my $r (@$featref) {
-	my %attr;
-	$attr{tooltip} = sprintf("[%d-%d]: %s (%s)", @$r);
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
-									 -name => $r->[2],
-									 -attributes => \%attr
+									 -name => $r->[3],
+									 -attributes => { tooltip => sprintf("%d-%d: %s (%s); %s",
+																		 @{$r}[0,1,3,2,4]),
+													  href => $r->[5]},
 								   ) );
 	$nadded++;
   }
@@ -935,8 +945,8 @@ Add disprot protein disorder track
 sub add_psdisprot {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
-
   my $p;
+  my $z;
   my $sql = <<EOSQL;
 SELECT array_to_string(probs,',')
   FROM psdisorder
@@ -945,8 +955,10 @@ EOSQL
   my @features;
 
   # NOTE: the following layout is intended to facilitate looping over
-  # disorder types (disprot VL3H, dispro, disembl, etc)
+  # disorder types (disprot VL3H, dispro, disembl, etc), even though this
+  # isn't currently used.
   $p = $u->preferred_params_id_by_pftype('disorder');
+  $z = $u->get_run_timestamp_ymd($q,$p,undef,undef) || 'NEVER RUN';
   my ($pname,$pdesc) = $u->selectrow_array('select name,descr from params where params_id=?',undef,$p);
   if (defined $u->get_run_timestamp($q,$p,undef,undef)) {
 	my @pd = split( /,/ , $u->selectrow_array($sql,undef,$p) );
@@ -1107,7 +1119,6 @@ sub glyph_color{
 }
 
 sub avg_confidence {
-
   my ($start, $end, $string) = @_;
   my ($total, $avg);
   for(my $i=$start; $i <= $end; $i++) {
