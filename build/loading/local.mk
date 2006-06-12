@@ -1,5 +1,5 @@
 ## local.mk -- site-local definitions for Unison loading
-## $Id: local.mk,v 1.4 2006/01/20 00:49:47 rkh Exp $
+## $Id: local.mk,v 1.5 2006/05/12 03:37:17 rkh Exp $
 
 
 # Unison connection details
@@ -33,7 +33,7 @@ RENAME=${UNISON_HOME}/sbin/rerename
 # This will require a lot of code and data that are
 # not publicly available. 
 GNE:=0
-ifeq "$(shell /bin/hostname|cut -d. -f2-)" "gene.com"
+ifeq "$(shell /bin/dnsdomainname)" "gene.com"
 $(warning NOTICE: enabling Genentech-specific configuration)
 GNE:=1
 endif
