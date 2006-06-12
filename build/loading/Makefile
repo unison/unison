@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.21 2006/03/14 01:26:25 rkh Exp $
+## $Id: Makefile,v 1.22 2006/04/09 09:00:59 rkh Exp $
 
 default all: update
 
@@ -71,7 +71,7 @@ pseq_gene_mv.log: aux.log
 
 COMPUTE_DIRS:=
 COMPUTE_DIRS+=pahmm #paprospect
-COMPUTE_DIRS+=pfantigenic pfbigpi pfpsipred pfsignalp pftmhmm
+COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm
 COMPUTE_DIRS+=pmap
 #GENELAND only: psprotcomp
 #NEEDS ATTENTION: papseq papssm pfregexp
@@ -155,11 +155,11 @@ $(addsuffix .log,${FX}): %.log:
 	/bin/mv -f $@.err $@
 # materialized views from _v views
 $(addsuffix _mv.log,${MVV}): %_mv.log:
-	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $*_mv select * from $*_v; analyze $_mv;') >$@.err 2>&1
+	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $*_mv select * from $*_v; analyze $*_mv;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 # materialized views from _dv views
 $(addsuffix _mv.log,${MVDV}): %_mv.log:
-	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $*_mv select * from $*_dv; analyze $_mv;') >$@.err 2>&1
+	(time -p ${PSQL_VCMD} 'truncate $*_mv; insert into $*_mv select * from $*_dv; analyze $*_mv;') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
