@@ -1,8 +1,8 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.18 2006/02/15 04:06:37 rkh Exp $
+# $Id: Makefile,v 1.19 2006/04/08 02:16:40 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
-# table for UniProt, PDB, RefSeq, Derwent/Geneseq (proprietary), and
+# table for UniProt, Ensembl, PDB, RefSeq, Derwent/Geneseq (proprietary), and
 # Genentech's internal GenenGenes/SST.
 
 default all: update
@@ -25,9 +25,9 @@ endif
 endif
 
 
-update: $(addsuffix .load,${ORIGINS})
-
-
+update: 
+	make cleanest
+	$(addsuffix .load,${ORIGINS})
 
 
 ## CCDS
