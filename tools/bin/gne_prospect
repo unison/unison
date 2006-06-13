@@ -22,7 +22,7 @@ my $usage = <<'EOU';
 #   --3d                 create backbone coordinates of sequences
 #   --pids           :   print percentage identities(col:4) on stdout for each template
 #   --help               this output
-# $Id: gne_prospect,v 1.6 2005/11/29 16:56:38 mukhyala Exp $
+# $Id: gne_prospect,v 1.7 2006/03/16 18:06:37 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -84,11 +84,11 @@ my $opts=\%opts;
 die("\n$usage\n") if ($opts{help});
 
 # The root of the BLAST data bank
-my $dbroot = " /gne/compbio/share/blast/aa";
+my $dbroot = " /gne/research/share/blast/aa";
 
 $opts->{db} = 'nr' unless(defined($opts->{db}));
 $ENV{BLASTPGP_DB} = "$dbroot/".$opts->{db} if (not defined $ENV{BLASTPGP_DB});
-$ENV{BLASTPGP_EXE} = '/gne/compbio/i686-linux-2.6/opt/blast/bin/blastpgp'  if (not defined $ENV{BLASTPGP_DB});
+$ENV{BLASTPGP_EXE} = '$ENV{RESEARCH_PREFIX}/i686-linux-2.6/bin/blastpgp'  if (not defined $ENV{BLASTPGP_DB});
 
 foreach my $e('PSIPRED_PATH') {
   if (($opts{psiblast} or $opts{psipred}) and not defined($ENV{$e})) {
