@@ -1,5 +1,5 @@
 ## local.mk -- site-local definitions for Unison loading
-## $Id: local.mk,v 1.5 2006/05/12 03:37:17 rkh Exp $
+## $Id: local.mk,v 1.6 2006/06/12 22:21:49 mukhyala Exp $
 
 
 # Unison connection details
@@ -15,7 +15,7 @@ UNISON_HOME:=${HOME}/unison
 
 # where to find executables
 PATH:=${UNISON_HOME}/sbin:${UNISON_HOME}/bin:${UNISON_HOME}/misc
-PATH:=${PATH}:${COMPBIO_PREFIX}/i686-linux-2.6/bin:${COMPBIO_PREFIX}/i686-linux-2.6/bin
+PATH:=${PATH}:${RESEARCH_PREFIX}/i686-linux-2.6/bin:${COMPBIO_PREFIX}/i686-linux-2.6/bin
 PATH:=${PATH}:/usr/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
 export PATH
 
