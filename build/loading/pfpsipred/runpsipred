@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$Id$
+#$Id: runpsipred,v 1.4 2006/06/15 16:39:50 mukhyala Exp $
 #-------------------------------------------------------------------------------
 # NAME runpsipred.pl
 # PURPOSE: run psipred programs for secondary structure prediction
@@ -51,7 +51,7 @@ my $fasta = $ARGV[0] || die "Usage: runpsipred.pl <fasta-file>\n";
 my $dbroot = " /gne/research/share/blast/aa";
 
 # Where the NCBI programs have been installed
-my $ncbidir = "/gne/research/env/prd/i686-linux-2.6/bin";
+my $ncbidir = "/gne/research/apps/blast/current/i686-linux-2.6/bin";
 
 # Where the PSIPRED V2 programs have been installed
 my $execdir = "/gne/research/env/prd/opt/psipred/current/bin";
@@ -73,7 +73,7 @@ run("cp -f $fasta $fa_fn");
 #bank files.
 print STDERR "Running PSI-BLAST with sequence $ARGV[0] ...\n";
 # btw following are default options recommended by psipred installation
-run("$ncbidir/blastpgp -a $opts{'cpus'} -b $opts{'alignments'} -j $opts{'iterations'} -h $opts{'eval'} -d $dbroot/$opts{'database'} -i $fa_fn -C $basename.chk > $basename.blast &");
+run("$ncbidir/blastpgp -a $opts{'cpus'} -b $opts{'alignments'} -j $opts{'iterations'} -h $opts{'eval'} -d $dbroot/$opts{'database'} -i $fa_fn -C $basename.chk > $basename.blast");
 
 print STDERR "Predicting secondary structure...\n";
 
