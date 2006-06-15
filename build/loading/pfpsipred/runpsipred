@@ -48,7 +48,7 @@ my ($base,$dir) = fileparse($fa_fn,qr{\.fa});
 my $fasta = $ARGV[0] || die "Usage: runpsipred.pl <fasta-file>\n";
 
 # The name of the BLAST data bank
-my $dbroot = " /gne/compbio/share/blast/aa";
+my $dbroot = " /gne/research/share/blast/aa";
 
 # Where the NCBI programs have been installed
 my $ncbidir = "/gne/compbio/i686-linux-2.6/opt/blast/bin";
