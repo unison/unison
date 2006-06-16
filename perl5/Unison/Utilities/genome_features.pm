@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.6 2006/04/09 09:00:59 rkh Exp $>
+S<$Id: genome_features.pm,v 1.7 2006/05/12 03:39:07 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -46,7 +46,7 @@ our %opts =
    pseq_id => undef,
    width => 750,
    verbose => 0,
-   margin => 0,
+   margin => 20000,
    logo_margin => 10,
    min_pct_ident => 99,
    min_pct_cov => 90,
@@ -140,7 +140,7 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.6 2006/04/09 09:00:59 rkh Exp $',
+					-key => '$Id: genome_features.pm,v 1.7 2006/05/12 03:39:07 rkh Exp $',
 					-key_font => 'gdSmallFont',
 					-bump => +1,
 				   );
@@ -288,8 +288,8 @@ sub add_pmap_aln {
   my ($u, $panel, $pmap_aln_id) = @_;
   my $nadded = 0;
 
-  my $sql = "select * from pmap_alnhsp natural join pmap_hsp where " .
-    "aln_id=? order by gstart";
+  my $sql = "select * from pmap_alnhsp AH join pmap_hsp H on AH.hsp_id=H.hsp_id where " .
+    "AH.aln_id=? order by gstart";
 
   my $sth = $u->prepare($sql);
   $sth->execute($pmap_aln_id);

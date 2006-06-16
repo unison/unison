@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id: unison-annotation,v 1.5 2006/03/16 17:23:03 mukhyala Exp $
+# $Id: unison-annotation,v 1.6 2006/05/11 16:27:32 mukhyala Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id: unison-annotation,v 1.5 2006/03/16 17:23:03 mukhyala Exp $>
+S<$Id: unison-annotation,v 1.6 2006/05/11 16:27:32 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -133,7 +133,7 @@ my @long_table_defs =
    ['patents',       'patent_count_v',                [qw(count)]],
    ['pfam',          'pseq_features_hmm_v',           [qw(start stop score eval acc feature descr)]],
    ['protcomp',      'psprotcomp_reliable_v',         [qw(loc)]],
-   ['alias',         'current_annotations_unsorted_v',[qw(alias descr origin)], 'ann_pref < 21000']
+   ['alias',         'current_annotations_unsorted_v',[qw(alias origin descr)], 'ann_pref < 20000']
   );
 
 
@@ -148,7 +148,7 @@ my $ba_sth = $u->prepare_cached( 'select best_annotation(?)' );
 my $rh_sth = $u->prepare_cached( 'select params_id,params,ran_on from run_history_v where pseq_id=? and params_id=?' );
 
 print_headers();
-foreach my $pseq_id(@pseq_ids) {
+foreach my $pseq_id (@pseq_ids) {
   show_results(get_data($pseq_id),$pseq_id);
 }
 
@@ -174,38 +174,35 @@ sub map_args_to_pseq_ids($@) {
 	}
 	@pseq_ids = map { s/-/../; eval "$_" } @_;
 	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
-  }
-  elsif ($or->{'select-by-seq'}) {
+  } elsif ($or->{'select-by-seq'}) {
 
     my $file= shift;
     my $in;
-    if($file =~ /^\>/) {
+    if ($file =~ /^\>/) {
       my ($fh, $fn) = tempfile();
       if (defined $fh) {
-	print $fh join "\n",@args;
-	$fh->close;
-	$in = new Bio::SeqIO( -file => $fn,
-			      -format => 'fasta' );
+		print $fh join "\n",@args;
+		$fh->close;
+		$in = new Bio::SeqIO( -file => $fn,
+							  -format => 'fasta' );
       }
-    }
-    else {
+    } else {
       $in = new Bio::SeqIO( -file => $file,
-			    -format => 'fasta' );
+							-format => 'fasta' );
     }
     while ( my $bs = $in->next_seq() ) {
       $sno++;
       my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
       if (not defined $pseq_id) {
-	warn( "#! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
-	next;
+		warn( "#! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
+		next;
       }
       printf(STDOUT "#* %s (Unison:%d; %s);\n",
-	     $bs->display_id(), $pseq_id,
-	     $u->best_alias($pseq_id) || '<no alias>') if $opts{verbose};
+			 $bs->display_id(), $pseq_id,
+			 $u->best_alias($pseq_id) || '<no alias>') if $opts{verbose};
       push @pseq_ids, $pseq_id;
     }
-  }
-  elsif ($or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'}) {
+  } elsif ($or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'}) {
 	foreach my $arg (@_) {
 	  my (@Q) = ( $or->{'select-by-alias'} 
 				  ? $u->get_pseq_id_from_alias_exact( $arg )
@@ -216,10 +213,10 @@ sub map_args_to_pseq_ids($@) {
 		# no warning for fuzzy searches
 		# this can only happen for aliases in multiple origins
 		warn("#$0: multiple sequences found for alias '$arg'\n") if ($or->{'select-by-alias'});
-	      }
-	  if($or->{'select-by-alias-fuzzy'} and $or->{'human'}) {
+	  }
+	  if ($or->{'select-by-alias-fuzzy'} and $or->{'human'}) {
 	    my @ids;
-	    foreach my $q(@Q) {
+	    foreach my $q (@Q) {
 	      my ($e) = $u->selectrow_array("select pseq_id from pseqset where pseq_id=$q and pset_id=1");
 	      push @ids,$q if($e);
 	    }
@@ -228,8 +225,7 @@ sub map_args_to_pseq_ids($@) {
 	  push(@pseq_ids, @Q);
 	}
 	printf(STDOUT "# %d sequences selected by alias\n", $#pseq_ids+1) if $opts{verbose};
-  }
-  elsif ($or->{'select-by-gi'}) {
+  } elsif ($or->{'select-by-gi'}) {
 	# expand ranges like 1..5 to (1,2,3,4,5)
 	# This is in part to sanitize the expressions which will be
 	# eval'd next
@@ -239,15 +235,15 @@ sub map_args_to_pseq_ids($@) {
 	my @gis = map { s/-/../; eval "$_" } @_;
 
 	my @ids;
-	foreach my $gi(@gis) {
-	      my @Q = @{$u->selectall_arrayref("select distinct(pseq_id) from pseq_gene_mv where gene_id=$gi")};
-	      push @ids,@Q if($#Q>=0);
-	      if (not @Q) {
+	foreach my $gi (@gis) {
+	  my @Q = @{$u->selectall_arrayref("select distinct(pseq_id) from pseq_gene_mv where gene_id=$gi")};
+	  push @ids,@Q if($#Q>=0);
+	  if (not @Q) {
 		warn("#$0: no sequences found for gi '$gi'\n");
-	      } elsif ($#Q > 0) {
+	  } elsif ($#Q > 0) {
 		warn("#$0: multiple sequences found for gi '$gi'\n");
-	      }
-	    }	
+	  }
+	}	
 	push(@pseq_ids, map {$_->[0]} @ids);
 	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
   }
@@ -281,21 +277,20 @@ sub get_data($) {
     # prepare the lookup
     my $sth = $u->prepare($sql);
     my @results = @{ $u->selectall_arrayref($sth,undef,
-					    $pseq_id) };
+											$pseq_id) };
     $r->{$data}=\@results;
 
     #alias will have best_alias and annot will have best_annotation
     $id_alias->{$pseq_id}{annot} = $u->selectrow_array($ba_sth,undef,$pseq_id);
     $id_alias->{$pseq_id}{alias} = $u->best_alias($pseq_id);
 
-    if($data ne 'patents' and $data ne 'alias') {
-
+    if ($data ne 'patents' and $data ne 'alias') {
       #tie annotation choice to pftype to get the latest params(->preferred_params_id_by_pftype)
       my %pftypes=('signalp'=>'SignalP','tm'=>'TMHMM','protcomp'=>'Protcomp','pfam'=>'hmm','regexp'=>'regexp','bigpi'=>'BIG-PI');
 
       my $params_id=$u->selectrow_array("select preferred_params_id_by_pftype('".$pftypes{$_->[0]}."')");
       (defined $params_id)
-	|| die($pftypes{$_->[0]}.": No such parameter set name\n");
+		|| die($pftypes{$_->[0]}.": No such parameter set name\n");
       $params->{$data} = $u->selectrow_hashref($rh_sth,undef,$pseq_id,$params_id);
     }
   }
@@ -324,51 +319,48 @@ sub show_results($$) {
 
     my @results = @{$r->{$_->[0]}};
 
-    if($opts{summary}) {
-	if (not @results) {
-	  if ($table eq 'protcomp') {
-	    push @data, '';
+    if ($opts{summary}) {
+	  if (not @results) {
+		if ($table eq 'protcomp') {
+		  push @data, '';
+		} else {
+		  $data_str .= '';
+		}
 	  } else {
-	    $data_str .= '';
+		foreach my $a (@results) {
+		  if ($table eq 'protcomp') {
+			push @data, $a->[0];
+		  } else {
+			$data_str .= "$a->[0],";
+		  }
+		}
+		$data_str .= " ";
 	  }
-	}
-	else {
-	  foreach my $a (@results) {
-	    if ($table eq 'protcomp') {
-	      push @data, $a->[0];
-	    } else {
-	      $data_str .= "$a->[0],";
-	    }
-	  }
-	  $data_str .= " ";
-	}
-      }
-    else {
+	} else {
       printf(STDOUT "*$table");
 
       if ($table ne 'patents' and $table ne 'alias') {
-	my $ran_on;
-	$ran_on = (defined($params->{$table}{ran_on}) ? 'ran on '.$params->{$table}{ran_on} : 'not run') ;
-	printf(STDOUT " ($params->{$table}{params}, $ran_on)\n");
-	printf(STDOUT "#$pseq_id : (params_id = $params->{$table}{params_id} : %d result(s))\n#",$#results+1) if $opts{verbose};
-      }
-      else  {
-	printf(STDOUT "\n");
+		my $ran_on;
+		$ran_on = (defined($params->{$table}{ran_on}) ? 'ran on '.$params->{$table}{ran_on} : 'not run') ;
+		printf(STDOUT " ($params->{$table}{params}, $ran_on)\n");
+		printf(STDOUT "#$pseq_id : (params_id = $params->{$table}{params_id} : %d result(s))\n#",$#results+1) if $opts{verbose};
+      } else {
+		printf(STDOUT "\n");
       }
       printf(STDOUT "#".join "\t",@{$_->[2]},"\n") if(@results);
       foreach my $a (@results) {
-	printf(join "\t", @{$a},"\n");
+		printf(join "\t", @{$a},"\n");
       }
       print "\n";
     }
   }
-  if($opts{summary}) {
+  if ($opts{summary}) {
     push @data, $data_str;
-      my $header .= "format OUT$pseq_id =\n$fmt\n".'$pseq_id,$id_alias->{$pseq_id}{alias},'.'@data'."\n";
-      $header .= ".\n";
-      eval $header;
-      $~ = "OUT$pseq_id";
-      write;
+	my $header .= "format OUT$pseq_id =\n$fmt\n".'$pseq_id,$id_alias->{$pseq_id}{alias},'.'@data'."\n";
+	$header .= ".\n";
+	eval $header;
+	$~ = "OUT$pseq_id";
+	write;
   }
 }
 #########################################
@@ -408,28 +400,28 @@ sub parse_options() {
 	 'version' => 0
 	);
   GetOptions( \%opts,
-	      'select-by-seq|S+',
-	      'select-by-alias|A+',
-	      'select-by-alias-fuzzy|F+',
-	      'select-by-unison-id|P+',
-	      'select-by-gi|G+',
+			  'select-by-seq|S+',
+			  'select-by-alias|A+',
+			  'select-by-alias-fuzzy|F+',
+			  'select-by-unison-id|P+',
+			  'select-by-gi|G+',
 
-	      'pfam',
-	      'signalp',
-	      'tm',
-	      'protcomp',
-	      'bigpi',
-	      'regexp',
-	      'patents',
-	      'alias',
+			  'pfam',
+			  'signalp',
+			  'tm',
+			  'protcomp',
+			  'bigpi',
+			  'regexp',
+			  'patents',
+			  'alias',
 
-	      'human',
+			  'human',
 
-	      'format|f=s',
-	      'verbose|v+',
-	      'help|h+',
-	      'version|V',
-	    )
+			  'format|f=s',
+			  'verbose|v+',
+			  'help|h+',
+			  'version|V',
+			)
 	|| die("$0: you got usage issues, homey\n");
 
   my $optsum;
@@ -444,7 +436,7 @@ sub parse_options() {
   }
 
   if ( $opts{version} ) {
-    print(STDOUT '$Id: unison-annotation,v 1.5 2006/03/16 17:23:03 mukhyala Exp $ ', "\n");
+    print(STDOUT '$Id: unison-annotation,v 1.6 2006/05/11 16:27:32 mukhyala Exp $ ', "\n");
     exit;
   }
   if ( $opts{help} ) {
@@ -454,8 +446,9 @@ sub parse_options() {
     if ($opts{format} ne 'summary') {
       print(STDERR "$opts{format} not supported, try -f table\n");
       exit (-1);
-    }
-    else {$opts{summary}++;}
+    } else {
+	  $opts{summary}++;
+	}
   }
   return %opts;
 }
@@ -472,26 +465,26 @@ sub print_headers {
 
   my @table_defs = ( $opts{'summary'} ? @short_table_defs : @long_table_defs );
   my $header;
-  if($opts{summary}) {
-    if($optsum) {
+  if ($opts{summary}) {
+    if ($optsum) {
       undef @outcols;
       my $i=0;
       foreach (@table_defs) {
-	if($opts{$_->[0]}) {
-	  push @outcols, $_->[0] ;
-	  $fmt .= $fmt_each[$i]." ";
-	}
-	$i++;
+		if ($opts{$_->[0]}) {
+		  push @outcols, $_->[0] ;
+		  $fmt .= $fmt_each[$i]." ";
+		}
+		$i++;
       }
-    }
-    else {$fmt .= join " ",@fmt_each;}
+    } else {
+	  $fmt .= join " ",@fmt_each;
+	}
     $header = "$fmt\n";
     $header .= 'pseq_id,alias,';
     $header .= 'protcomp,' if(grep {/protcomp/} @outcols);
     $header .= 'features';
     $header .= "\n";
-  }
-  else {
+  } else {
     $header .= "";
   }
   my $main_header = "format STDOUT =\n".$header."\n.\n";

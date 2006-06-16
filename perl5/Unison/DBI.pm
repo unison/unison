@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.25 2006/03/14 01:26:25 rkh Exp $>
+S<$Id: DBI.pm,v 1.26 2006/05/12 03:39:07 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -337,7 +337,7 @@ sub release_timestamp ($) {
 	$self->{release_timestamp} = 
 	  $self->selectrow_array('select value::date from meta where key=\'release timestamp\'');
   }
-  return $self->{release};
+  return $self->{release_timestamp};
 }
 
 

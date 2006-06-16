@@ -28,5 +28,9 @@ update:
 .done.ids:
 	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${DISPROT_PARAMS_ID}' >$@
 
-.todo.ids:
+.helicase.ids:
 	${PSQL_DCMD} 'select pseq_id from rkh.helicase_to_run' >$@
+
+helicase-todo.fa: helicase-todo.ids
+	unison-get-seq --iupac20 -v <$< >$@.tmp
+	/bin/mv $@.tmp $@
