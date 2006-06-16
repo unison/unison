@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$Id: runpsipred,v 1.4 2006/06/15 16:39:50 mukhyala Exp $
+#$Id: runpsipred,v 1.5 2006/06/15 17:22:56 mukhyala Exp $
 #-------------------------------------------------------------------------------
 # NAME runpsipred.pl
 # PURPOSE: run psipred programs for secondary structure prediction
@@ -54,10 +54,10 @@ my $dbroot = " /gne/research/share/blast/aa";
 my $ncbidir = "/gne/research/apps/blast/current/i686-linux-2.6/bin";
 
 # Where the PSIPRED V2 programs have been installed
-my $execdir = "/gne/research/env/prd/opt/psipred/current/bin";
+my $execdir = "/gne/research/apps/psipred/current/i686-linux-2.6/bin";
 
 # Where the PSIPRED V2 data files have been installed
-my $datadir = "/gne/research/env/prd/opt/psipred/current/data";
+my $datadir = "/gne/research/apps/psipred/current/i686-linux-2.6/data";
 
 my ($basename) = "$dir$base";
 
