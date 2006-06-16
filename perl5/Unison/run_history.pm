@@ -2,7 +2,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: run_history.pm,v 1.9 2005/09/16 04:45:11 rkh Exp $>
+S<$Id: run_history.pm,v 1.10 2006/05/12 03:39:07 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -116,6 +116,10 @@ sub already_ran ($$$$$) {
 sub get_run_timestamp(@) {
   my $u = shift;
   return $u->selectrow_array("select get_run_timestamp(?,?,?,?)",undef,@_);
+}
+sub get_run_timestamp_ymd(@) {
+  my $u = shift;
+  return $u->selectrow_array("select to_char(get_run_timestamp(?,?,?,?),'YYYY-MM-DD')",undef,@_);
 }
 
 
