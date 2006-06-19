@@ -1,11 +1,11 @@
+include ../../local.mk
 include ../../common.mk
-
+include ../../params.mk
 
 update default all: load-speclist.log; 
 
-load-speclist.log: ${COMPBIO_PREFIX}/share/uniprot/docs/speclist.txt
-	./bin/load-speclist $<
-
+load-speclist.log: ${RESEARCH_PREFIX}/share/uniprot/docs/speclist.txt
+	time -p ./bin/spspec2sql $< | ${PSQL} -f -
 
 # ncbi/taxdump.tar.gz:
 # 	@mkdir -p ${@D}
