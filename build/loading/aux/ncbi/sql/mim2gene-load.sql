@@ -1,6 +1,6 @@
 BEGIN;
 TRUNCATE ncbi.mim2gene;
-\copy ncbi.mim2gene FROM STDIN WITH NULL AS '-'
+\copy ncbi.mim2gene FROM PSTDIN WITH NULL AS '-'
 COMMIT;
 ANALYZE ncbi.mim2gene;
 
