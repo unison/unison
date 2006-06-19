@@ -1,6 +1,6 @@
 BEGIN;
 TRUNCATE ncbi.gene2unigene;
-\copy ncbi.gene2unigene FROM STDIN
+\copy ncbi.gene2unigene FROM PSTDIN
 COMMIT;
 ANALYZE ncbi.gene2unigene;
 
