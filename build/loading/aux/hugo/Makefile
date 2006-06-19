@@ -12,5 +12,5 @@ $(foreach t,${TABLES},logs/$t-create.log): logs/%.log: sql/%.sql
 	psql -Xf $< 2>&1 | tee $@
 
 $(foreach t,${TABLES},logs/$t-load.log): logs/%-load.log: %.dat logs/%-create.log
-	tail +2 $< | head -1 | psql -Xf sql/$*-load.sql | tee $@.err
+	tail +2 $< | psql -Xf sql/$*-load.sql | tee $@.err
 	/bin/mv -f $@.err $@
