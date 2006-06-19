@@ -16,6 +16,9 @@ _D:=$(shell mkdir -p logs)
 
 update: $(foreach t,${TABLES},logs/$t-load.log)
 
+# There are two types of operations: table create and table load.  Each
+# has a log file.
+
 
 # "create" logs
 $(foreach t,${TABLES},logs/$t-create.log): logs/%.log: sql/%.sql
