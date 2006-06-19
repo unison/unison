@@ -1,7 +1,13 @@
+include ../../local.mk
 include ../../common.mk
+include ../../params.mk
+
+default all: update
+
+update: scop.load
 
 
-SCOP_DIR:=${COMPBIO_PREFIX}/share/scop/parse
+SCOP_DIR:=${RESEARCH_PREFIX}/share/scop/parse
 SCOP_VERSION:=1.69
 CLA:=${SCOP_DIR}/dir.cla.scop.txt_${SCOP_VERSION}
 #COM:=${SCOP_DIR}/dir.com.scop.txt_${SCOP_VERSION}
