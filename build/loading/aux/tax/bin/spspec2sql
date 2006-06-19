@@ -1,0 +1,74 @@
+#!/usr/bin/env perl
+# spspec2sql -- pump sql to load UniProt species list into Unison
+
+use warnings;
+use strict;
+
+my $go = 0;
+my $id;
+my %recs;									# $recs{tax_id}{<key>}
+
+print(STDOUT "BEGIN;\n");
+print(STDOUT "DELETE FROM spspec;\n");
+print(STDOUT "\\copy spspec FROM STDIN\n");
+while( my $line = <> ) {
+  if (!$go) {
+	$go++ if $line =~ m/^__/;
+	next;
+  }
+
+  ## ABSGL E   4829: N=Absidia glauca
+  ##                 C=Pin mould
+  ## ABUPI E 211679: N=Aburria pipile
+  ##                 C=Common piping guan
+  ##                 S=Trinidad piping guan
+  ## ABUSA E  50731: N=Abudefduf saxatilis
+  ##                 C=Sergeant major
+
+  ## Group multiple lines like those above into a single data structure
+  ## for the species: 5letter, tax_id, kingdom, latin, common, and
+  ## synonyms.  There may be more than one common name or synonyms for
+  ## each species.
+  chomp($line);
+  if ( $line =~ m/^(\w+) \s+ ([ABEVP]) \s+ (\d+)[:;] \s N=(.*)/x ) {
+	$id = $3;
+	if (exists $recs{$id}) {
+	  warn("$.: $line: duplicate tax_id\n");
+	  undef $id;
+	  next;
+	}
+	$recs{$id}{gs} = $1;
+	$recs{$id}{k} = $2;
+	$recs{$id}{tax_id} = $3;
+	$recs{$id}{latin} = $4;
+  } elsif ( $line =~ m/C=(.*)/ ) {
+	die("$.: $line: tax_id not defined\n") unless defined $id;
+	push( @{$recs{$id}{common}}, $1 );		# more than one CN?
+  } elsif ( $line =~ m/S=(.*)/ ) {
+	die("$.: $line: tax_id not defined\n") unless defined $id;
+	push( @{$recs{$id}{synonyms}}, $1 );
+  } elsif ( $line =~ m/^\s*$/ ) {			# empty line; exit and ignore rest
+	last;
+  } else {
+	die("missed $.: $line");
+  }
+}
+
+my @cur_ids = sort {$a<=>$b} keys %recs;
+printf(STDERR "#%d current ids\n",$#cur_ids+1);
+
+
+for(my $i=0; $i<=$#cur_ids; $i++) {
+  my $tax_id = $cur_ids[$i];
+  my $rec = $recs{$tax_id};
+  $rec->{common} = exists $rec->{common} ? join(';',sort @{$rec->{common}}) : undef;
+  $rec->{synonyms} = exists $rec->{synonyms} ? join(';',sort @{$rec->{synonyms}}) : undef;
+
+  my @args = map {$recs{$tax_id}{$_}} qw(k gs latin common synonyms);
+  my @pargs = map {defined $_ ? $_ : ''} @args;
+  print(STDOUT "$tax_id");
+  foreach (@pargs) {print STDOUT "\t$_";}
+  print(STDOUT "\n");
+}
+print(STDOUT "\\.\n");
+print(STDOUT "COMMIT;\n");
