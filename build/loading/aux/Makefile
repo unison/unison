@@ -4,7 +4,7 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-DIRS:=ncbi pdb scop tax
+DIRS:=ncbi pdb scop tax sst
 ifeq "${GNE}" "1"
 DIRS+=sst
 endif
