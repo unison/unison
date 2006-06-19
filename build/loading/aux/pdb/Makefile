@@ -1,8 +1,10 @@
-include ../../common.mk
 include ../../local.mk
+include ../../common.mk
+include ../../params.mk
 
 
-PDB_ROOT:=${COMPBIO_PREFIX}/share/pdb
+
+PDB_ROOT:=${RESEARCH_PREFIX}/share/pdb
 export PDB_XML_PATH:=${PDB_ROOT}/all.xml.gz
 
 
