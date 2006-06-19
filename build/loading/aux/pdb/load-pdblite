@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pdblite,v 1.2 2005/10/10 18:42:02 mukhyala Exp $
+# $Id: load-pdblite,v 1.3 2006/01/18 03:05:24 rkh Exp $
 # load-pdblite -- load pdb data
 
 use warnings;
@@ -75,7 +75,7 @@ foreach my $pdb (@pdbids ) {
   print STDERR "\r Parsing :$pdb" if($opts{verbose});
   my $fn = getfilename($pdb.".".$opts{ext});
   if(!-e $fn) {
-    print STDERR "$pdb.$opts{ext} does not exist\n";
+    print STDERR "$fn does not exist\n";
     next;
   }
   my $p = new PDBML($fn) || next;
