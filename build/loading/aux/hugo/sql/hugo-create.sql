@@ -1,4 +1,4 @@
-create table unison.hugo (
+create table hugo.hugo (
 	hgnc_id				integer primary key,   -- HGNC ID						
 	approved_symbold	text not null,		   -- Approved Symbol				
 	approved_name		text not null,		   -- Approved Name				
@@ -26,5 +26,5 @@ create table unison.hugo (
 	uniprot_id_md		text not null		   -- UniProt ID (mapped data)    
 ) without oids;
 
-comment on table unison.hugo is 'Human Genome Organization official gene names';
-grant select on unison.hugo to PUBLIC;
+comment on table hugo.hugo is 'Human Genome Organization official gene names';
+grant select on hugo.hugo to PUBLIC;
