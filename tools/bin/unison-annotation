@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id: unison-annotation,v 1.6 2006/05/11 16:27:32 mukhyala Exp $
+# $Id: unison-annotation,v 1.7 2006/06/16 17:53:38 rkh Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id: unison-annotation,v 1.6 2006/05/11 16:27:32 mukhyala Exp $>
+S<$Id: unison-annotation,v 1.7 2006/06/16 17:53:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -342,7 +342,8 @@ sub show_results($$) {
       if ($table ne 'patents' and $table ne 'alias') {
 		my $ran_on;
 		$ran_on = (defined($params->{$table}{ran_on}) ? 'ran on '.$params->{$table}{ran_on} : 'not run') ;
-		printf(STDOUT " ($params->{$table}{params}, $ran_on)\n");
+		my $params_name = (defined($params->{$table}{params}) ? $params->{$table}{params} : '') ;
+		printf(STDOUT " ($params_name, $ran_on)\n");
 		printf(STDOUT "#$pseq_id : (params_id = $params->{$table}{params_id} : %d result(s))\n#",$#results+1) if $opts{verbose};
       } else {
 		printf(STDOUT "\n");
@@ -436,7 +437,7 @@ sub parse_options() {
   }
 
   if ( $opts{version} ) {
-    print(STDOUT '$Id: unison-annotation,v 1.6 2006/05/11 16:27:32 mukhyala Exp $ ', "\n");
+    print(STDOUT '$Id: unison-annotation,v 1.7 2006/06/16 17:53:38 rkh Exp $ ', "\n");
     exit;
   }
   if ( $opts{help} ) {
