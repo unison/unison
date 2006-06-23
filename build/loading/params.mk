@@ -1,8 +1,7 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.16 2006/05/12 03:37:17 rkh Exp $
+## $Id: params.mk,v 1.17 2006/06/13 18:20:51 mukhyala Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
-
 
 ############################################################################
 #### AUX DATA SOURCES
@@ -25,7 +24,7 @@ CCDS_HUMAN_PATH:=${RESEARCH_PREFIX}/share/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/
 UNIPROT_DIR:=${RESEARCH_PREFIX}/share/uniprot
 PATAA_FA:=${RESEARCH_PREFIX}/share/seqdb/aa/pataa.fa
 NR_FA:=${RESEARCH_PREFIX}/share/seqdb/aa/nr.fa
-
+COSMIC_DIR:=${RESEARCH_PREFIX}/share/mirrors/ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
 
 
 ############################################################################
