@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.19 2006/04/08 02:16:40 rkh Exp $
+# $Id: Makefile,v 1.20 2006/06/12 21:31:17 mukhyala Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, Ensembl, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -183,3 +183,7 @@ proteome.load: /usr/seqdb/blast/proteome
 
 sugen.load: /home/skelly/geneland/seq/kinase/sugen/sugen_kinase_all.fasta
 	load-pseq -vv -oSugen -ffasta $< >$@.err 2>&1
+
+cosmic.load: ${COSMIC_DIR}/cosmic.fa
+	time -p load-pseq -v -ffasta -oCosmic -v  -t9606 $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
