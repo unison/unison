@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-pfpsipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
 #
-# $Id: run-pfpsipred,v 1.3 2005/12/07 07:27:57 rkh Exp $
+# $Id: run-pfpsipred,v 1.4 2006/05/19 22:15:26 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -17,6 +17,7 @@ use Unison;
 use Error qw(:try);
 use File::Temp qw/tempfile/;
 use Getopt::Long;
+use Env qw(@PATH);
 
 my $MAXSEQLEN = 10000;
 
@@ -42,8 +43,9 @@ GetOptions( \%opts,
 (defined $opts{params_id})
   || die( "$0: --params_id|-p parameter missing\n" );
 
+unshift(@PATH, '/gne/research/apps/psipred/current/i686-linux-2.6/bin/');
 
-my $u = new Unison( dbname=>'csb-dev' );
+my $u = new Unison();
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
 
 my @pseq_ids;
