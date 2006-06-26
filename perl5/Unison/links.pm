@@ -39,7 +39,7 @@ sub origin_accession_url($$$) {
 sub _fetch_formats($) {
   my ($u) = @_;
   return if %origin_link_fmt;
-  %origin_link_fmt = %{ $u->selectall_hashref('select origin,link_url from porigin','origin') };
+  %origin_link_fmt = %{ $u->selectall_hashref('select origin,link_url from origin','origin') };
   return;
 }
 

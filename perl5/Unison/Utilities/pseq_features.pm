@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.27 2006/06/06 19:33:14 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.28 2006/06/06 20:33:27 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -188,7 +188,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.27 2006/06/06 19:33:14 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.28 2006/06/06 20:33:27 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -914,7 +914,7 @@ sub add_pfregexp {
 								 -height => 4,
 							   );
   my $sql = <<EOSQL;
-SELECT start,stop,acc,name,descr,substr(Q.seq,F.start,F.stop-F.start+1) as subseq,link_url(porigin_id,acc)
+SELECT start,stop,acc,name,descr,substr(Q.seq,F.start,F.stop-F.start+1) as subseq,link_url(origin_id,acc)
   FROM pfregexp_v F
   JOIN pseq Q on F.pseq_id=Q.pseq_id
  WHERE F.pseq_id=$q

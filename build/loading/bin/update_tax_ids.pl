@@ -10,8 +10,8 @@
 ## unison@csb-dev=> insert into paotax select
 ##   AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr) from
 ##   paliasorigin AO join (select * from pseqalias where added>='yesterday')
-##   SA on SA.palias_id=AO.palias_id join porigin O on
-##   O.porigin_id=AO.porigin_id;
+##   SA on SA.palias_id=AO.palias_id join origin O on
+##   O.origin_id=AO.origin_id;
 ## INSERT 0 111990
 ## Time: 53411.295 ms
 
@@ -42,7 +42,7 @@ my %opts =
    'nullify' => 0,
 
    'origin' => undef,
-   'porigin_id' => undef,
+   'origin_id' => undef,
   );
 
 
@@ -54,7 +54,7 @@ sub nullify_tax_ids ($);
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '# $Id: update_tax_ids.pl,v 1.9 2004/10/04 22:03:22 rkh Exp $ ', "\n");
+print(STDERR '# $Id: update_tax_ids.pl,v 1.10 2004/12/24 00:09:46 rkh Exp $ ', "\n");
 
 
 GetOptions(\%opts,
@@ -92,13 +92,13 @@ print(STDERR '# ', join(', ', grep { $opts{$_} } qw(drop-paotax
 my $u = new Unison( dbname=>'csb-dev' );
 
 if (defined $opts{origin}) {
-  $opts{porigin_id} = $u->selectrow_array("select porigin_id('$opts{origin}')");
-  print(STDERR "# porigin_id('$opts{origin}') = $opts{porigin_id}\n");
+  $opts{origin_id} = $u->selectrow_array("select origin_id('$opts{origin}')");
+  print(STDERR "# origin_id('$opts{origin}') = $opts{origin_id}\n");
 }
 
 if (not defined $opts{'palias-id-min'} or not defined $opts{'palias-id-max'}) {
   my $sql = 'select min(palias_id),max(palias_id) from paliasorigin';
-  $sql .= " WHERE porigin_id=$opts{porigin_id}" if (defined $opts{porigin_id});
+  $sql .= " WHERE origin_id=$opts{origin_id}" if (defined $opts{origin_id});
   my ($b,$e) = $u->selectrow_array( $sql );
   $opts{'palias-id-min'} = $b unless defined $opts{'palias-id-min'};
   $opts{'palias-id-max'} = $e unless defined $opts{'palias-id-max'};
@@ -146,12 +146,12 @@ sub create_paotax ($) {
 	INSERT INTO paotax
 	SELECT AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr)
     FROM paliasorigin AO
-    JOIN porigin O ON AO.porigin_id=O.porigin_id
+    JOIN origin O ON AO.origin_id=O.origin_id
     WHERE AO.palias_id>=? and AO.palias_id<?
 	/;
 
-  if (defined $opts{porigin_id}) {
-	$sql .= " AND AO.porigin_id=$opts{porigin_id}";
+  if (defined $opts{origin_id}) {
+	$sql .= " AND AO.origin_id=$opts{origin_id}";
   }
 
   my @cond;

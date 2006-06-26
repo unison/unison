@@ -10,16 +10,16 @@ END;
 comment on function params_id_exists(integer) is 'return true if params_id exists';
 
 
-create or replace function porigin_id_exists (integer)
+create or replace function origin_id_exists (integer)
 returns boolean
 strict immutable
 language plpgsql as '
 BEGIN
-	perform * from porigin where porigin_id=$1;
+	perform * from origin where origin_id=$1;
 	return FOUND;
 END;
 ';
-comment on function porigin_id_exists(integer) is 'return true if porigin_id exists';
+comment on function origin_id_exists(integer) is 'return true if origin_id exists';
 
 
 create or replace function pmodel_id_exists (integer)

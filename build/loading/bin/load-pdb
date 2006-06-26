@@ -10,8 +10,8 @@ $|++; select(STDERR); $|++; select(STDOUT);
 
 my $udb = new Unison;
 my $origin = 'pdb';
-my $porigin_id = $udb->si_porigin_id($origin);
-printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+my $origin_id = $udb->si_origin_id($origin);
+printf(STDERR "# loading sequences into $origin (origin_id=$origin_id)\n");
 
 
 my %ONECODE =
@@ -39,7 +39,7 @@ while (my $fn = shift)
 	if ( length($sr->{$c}) < 20 )
 	  { warn("! $id$c: discarding short sequence (",length($sr->{$c})," AA)\n"); next; }
 	my $dc = $c ne ' ' ? $c : '';
-	add1($udb,$porigin_id,$sr->{$c},"$id$dc",$desc);
+	add1($udb,$origin_id,$sr->{$c},"$id$dc",$desc);
 	}
   }
 

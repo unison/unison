@@ -1,4 +1,4 @@
--- $Id: best_annotation-2.sql,v 1.1 2005/04/04 18:18:09 rkh Exp $
+-- $Id: best_annotation-2.sql,v 1.2 2005/10/09 20:13:57 rkh Exp $
 
 -- NOTE: the sort by strpos(alias,...) bits below guarantee that
 -- Swiss-Prot/UniProt ids (TNFA_HUMAN) sort before the accessions
@@ -19,11 +19,11 @@
 
 
 create or replace view unison.v_all_annotations as 
-SELECT sa.pseq_id, sa.iscurrent, o.ann_pref,ao.porigin_id, o.origin, ao.tax_id, t.gs,
+SELECT sa.pseq_id, sa.iscurrent, o.ann_pref,ao.origin_id, o.origin, ao.tax_id, t.gs,
 ao.alias, ao.descr, ao.palias_id, sa.added as assigned
 FROM paliasorigin ao
 JOIN pseqalias sa ON ao.palias_id = sa.palias_id
-JOIN porigin o ON o.porigin_id=ao.porigin_id
+JOIN origin o ON o.origin_id=ao.origin_id
 LEFT JOIN spspec t on ao.tax_id=t.tax_id
 ORDER BY sa.pseq_id, sa.iscurrent DESC, o.ann_pref, strpos(alias, '_'::text) = 0, ao.alias;
 comment on view v_all_annotations is 'all annotations by pseq_id';

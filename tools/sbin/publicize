@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.40 2006/02/15 04:06:37 rkh Exp $
+# $Id: publicize,v 1.41 2006/03/14 01:29:58 mukhyala Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -23,7 +23,7 @@ sub col_match($$@);
 sub load_public_ids($);
 sub log(@);
 
-my $CVSId = '$Id: publicize,v 1.40 2006/02/15 04:06:37 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.41 2006/03/14 01:29:58 mukhyala Exp $ ';
 
 my %opts =
   (
@@ -57,12 +57,12 @@ print("-- $0\n",
 my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
 			   pmpssm pmregexp
 			   pmsm pmsm_pmhmm pmsm_pmpssm
-			   pmsm_pmregexp porigin);
+			   pmsm_pmregexp origin);
 
 my $eodata_re = qr/^\\\./;
 my $pseq_id_re = qr/^(pseq_id|[qt]_pseq_id|query|target)$/;
 my $params_id_re = qr/^params_id$/;
-my $porigin_id_re = qr/^porigin_id$/;
+my $origin_id_re = qr/^origin_id$/;
 my $palias_id_re = qr/^palias_id$/;
 my $truncate_tables_re = qr/p2gblat|pmprospect|paprospect|pmsm_pmprospect|pnote/;
 my $unfiltered_tables_re = join('|',@unfiltered_tables);
@@ -169,7 +169,7 @@ EOT
 	  # standard cols for all tables
       @{$id_cols{pseq}} 	= grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
       @{$id_cols{params}}	= grep {$cols[$_]=~$params_id_re } 0..$#cols;
-      @{$id_cols{porigin}}	= grep {$cols[$_]=~$porigin_id_re} 0..$#cols;
+      @{$id_cols{origin}}	= grep {$cols[$_]=~$origin_id_re} 0..$#cols;
       @{$id_cols{palias}}	= grep {$cols[$_]=~$palias_id_re } 0..$#cols;
       @{$id_cols{pmodel}}   = grep {$cols[$_]=~m/pmodel_id/} 0..$#cols;
 	  @{$id_cols{pmap_aln}} = ();
@@ -181,14 +181,14 @@ EOT
 
       if (   @{$id_cols{pseq}}
 	      or @{$id_cols{params}}
-	      or @{$id_cols{porigin}}
+	      or @{$id_cols{origin}}
 	      or @{$id_cols{palias}}
 	      or @{$id_cols{pmodel}}
 	      or @{$id_cols{pmap_aln}}
 	      or @{$id_cols{pmap_hsp}}
 		 ) {
 		printf(STDERR "# table $tbl: filtering on o(%s), q(%s), a(%s), p(%s), m(%s), pmap(aln:%s,hsp:%s)\n",
-			   join(',',@{$id_cols{porigin}}),
+			   join(',',@{$id_cols{origin}}),
 			   join(',',@{$id_cols{pseq}}),
 			   join(',',@{$id_cols{palias}}),
 			   join(',',@{$id_cols{params}}),
@@ -239,7 +239,7 @@ EOT
       # Note: if @{$id_cols{x}} is empty, we're not filtering on that column 
       # and col_match returns match
       if ( not (    col_match(\@{$public_ids{pseq}},    	\@F, @{$id_cols{pseq}}    )
-				and col_match(\@{$public_ids{porigin}}, 	\@F, @{$id_cols{porigin}} )
+				and col_match(\@{$public_ids{origin}}, 	\@F, @{$id_cols{origin}} )
 				and col_match(\@{$public_ids{params}},  	\@F, @{$id_cols{params}}  )
 				and col_match(\@{$public_ids{palias}}, 		\@F, @{$id_cols{palias}}  )
 				and col_match(\@{$public_ids{pmodel}},		\@F, @{$id_cols{pmodel}}  )
@@ -320,7 +320,7 @@ sub load_public_ids($) {
 
   my %ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.40 $ ';
+  $ids{CVSRevision} = '$Revision: 1.41 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
@@ -331,13 +331,13 @@ sub load_public_ids($) {
   undef @public_pseq_ids;
 
 
-  my @public_porigin_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT)};
-select porigin_id from porigin where is_public
+  my @public_origin_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT)};
+select origin_id from origin where is_public
 EOT
-  $ids{porigin}[$_]++		for @public_porigin_ids;
-  printf(STDERR "%10d public_porigin_ids\n", $#public_porigin_ids+1);
-  my $ppis = join(',',@public_porigin_ids);
-  undef @public_porigin_ids;
+  $ids{origin}[$_]++		for @public_origin_ids;
+  printf(STDERR "%10d public_origin_ids\n", $#public_origin_ids+1);
+  my $ppis = join(',',@public_origin_ids);
+  undef @public_origin_ids;
 
 
   my @public_params_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT)};
@@ -351,7 +351,7 @@ EOT
   my @public_palias_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
 SELECT DISTINCT AO.palias_id
   FROM paliasorigin AO
-  JOIN porigin O on AO.porigin_id=O.porigin_id and O.is_public=TRUE
+  JOIN origin O on AO.origin_id=O.origin_id and O.is_public=TRUE
   JOIN pseqalias SA on AO.palias_id=SA.palias_id and SA.is_current=TRUE
   JOIN pseqset SS ON SA.pseq_id=SS.pseq_id and SS.pset_id=pset_id(?)
 EOT

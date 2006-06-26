@@ -21,7 +21,7 @@ sub fetch_sequences ($$$@) {
 
   foreach my $pseq_id (@$pseq_ids) {
 	if ($u->already_ran($pseq_id,$optsr->{params_id},
-						$optsr->{model_porigin_id},$optsr->{pmodelset_id})) {
+						$optsr->{model_origin_id},$optsr->{pmodelset_id})) {
 	  warn("Unison:$pseq_id: already run with these parameters\n");
 	  next;
 	}

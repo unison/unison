@@ -94,7 +94,7 @@ sub _run_sequence() {
 
 sub _get_model_file {
   my $data_url;
-  my $sql = "select o.data_url from porigin o,run_history h where o.porigin_id=h.porigin_id and h.params_id=".$v->{params_id}." and h.pseq_id=".$v->{pseq_id};
+  my $sql = "select o.data_url from origin o,run_history h where o.origin_id=h.origin_id and h.params_id=".$v->{params_id}." and h.pseq_id=".$v->{pseq_id};
   try {
     $data_url = $u->selectrow_array($sql);
   };

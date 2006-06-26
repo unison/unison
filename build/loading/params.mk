@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.17 2006/06/13 18:20:51 mukhyala Exp $
+## $Id: params.mk,v 1.18 2006/06/23 17:05:35 mukhyala Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
@@ -39,7 +39,7 @@ PAPROSPECT_PMODELSET_ID:=20
 #### PAHMM
 PFAM_DIR=${RESEARCH_PREFIX}/share/pfam-20.0
 PAHMM_PARAMS_ID:=43
-PAHMM_PORIGIN_ID:=$(shell ${PSQL_DCMD} 'select model_porigin_id from params where params_id=${PAHMM_PARAMS_ID}')
+PAHMM_ORIGIN_ID:=$(shell ${PSQL_DCMD} 'select model_origin_id from params where params_id=${PAHMM_PARAMS_ID}')
 
 
 ############################################################################

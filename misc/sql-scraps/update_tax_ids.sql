@@ -2,34 +2,34 @@ create or replace view _v_infer_tax_id_GenenGenes as
 SELECT	A.palias_id,A.tax_id,T.tax_id as inferred_tax_id
   FROM	paliasorigin A
   JOIN	tax.spspec T on upper(substring(descr from '/species=''([^\\'']+)''' ))=T.gs
- WHERE	A.porigin_id=porigin_id('GenenGenes');
+ WHERE	A.origin_id=origin_id('GenenGenes');
 
 create or replace view _v_infer_tax_id_Geneseq as 
 SELECT	A.palias_id,A.tax_id,T.tax_id as inferred_tax_id
   FROM	paliasorigin A
   JOIN	tax.spspec T on substring(descr from '\\[OS: ([^\\]]+)' )=T.latin
- WHERE	A.porigin_id=porigin_id('Geneseq');
+ WHERE	A.origin_id=origin_id('Geneseq');
 
 create or replace view _v_infer_tax_id_Refseq as 
 SELECT	A.palias_id,A.tax_id,T.tax_id as inferred_tax_id
   FROM	paliasorigin A
   JOIN	tax.spspec T on substring(descr from '\\[([^\\]]+)\\]$' )=T.latin
- WHERE	A.porigin_id=porigin_id('Refseq');
+ WHERE	A.origin_id=origin_id('Refseq');
 
 create or replace view _v_infer_tax_id_UniProt as 
 SELECT	A.palias_id,A.tax_id,T.tax_id as inferred_tax_id
   FROM	paliasorigin A
   JOIN	tax.spspec T on substr(A.alias,strpos(A.alias,'_')+1)=T.gs
- WHERE	A.porigin_id=porigin_id('UniProt') AND A.alias ~ '_';
+ WHERE	A.origin_id=origin_id('UniProt') AND A.alias ~ '_';
 
 create or replace view _v_infer_tax_id as
-select porigin_id('GenenGenes'),* from _v_infer_tax_id_GenenGenes
+select origin_id('GenenGenes'),* from _v_infer_tax_id_GenenGenes
 UNION
-select porigin_id('Geneseq'),* from _v_infer_tax_id_Geneseq
+select origin_id('Geneseq'),* from _v_infer_tax_id_Geneseq
 UNION
-select porigin_id('Refseq'),* from _v_infer_tax_id_Refseq
+select origin_id('Refseq'),* from _v_infer_tax_id_Refseq
 UNION
-select porigin_id('UniProt'),* from _v_infer_tax_id_UniProt
+select origin_id('UniProt'),* from _v_infer_tax_id_UniProt
 ;
 
 create or replace view _v_infer_tax_id_changed as

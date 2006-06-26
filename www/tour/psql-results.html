@@ -32,25 +32,25 @@ consulting the run_history table:
 
 <pre class="code">
 unison=> select * from run_history_v where pseq_id=98 order by params;
- pseq_id | params_id |      params       | porigin_id |    origin    | pmodelset_id |    modelset    |      ran_on      | failed
----------+-----------+-------------------+------------+--------------+--------------+----------------+------------------+--------
-      98 |        19 | BIG-PI default    |            |              |              |                | 2005-02-06 01:50 | f
-      98 |         4 | EMBOSS/antigenic  |            |              |              |                | 2003-10-08 00:08 | f
-      98 |         5 | EMBOSS/sigcleave  |            |              |              |                | 2003-10-13 16:12 | f
-      98 |        11 | Genome BLAT       |            |              |              |                | 2004-02-11 10:48 | f
-      98 |        38 | PMAP 2006-03-20   |            |              |              |                | 2006-03-23 15:11 | f
-      98 |        21 | Pfam 17.0 fs      |      15038 | Pfam 17.0 fs |              |                | 2005-03-26 12:17 | f
-      98 |        33 | Pfam 19.0 fs      |      15038 | Pfam 19.0 fs |              |                | 2006-01-12 08:34 | f
-      98 |        34 | Pfam 19.0 ls      |      15039 | Pfam 19.0 ls |              |                | 2006-01-13 21:30 | f
-      98 |         1 | Prospect2 default |            |              |            5 | Death Domains  | 2004-02-25 15:15 | f
-      98 |         1 | Prospect2 default |            |              |           10 | Prospect2 FSSP | 2004-02-20 08:03 | f
-      98 |        17 | Psipred v2.45     |            |              |              |                | 2005-06-17 07:05 | f
-      98 |        28 | SignalP 3.0 (euk) |            |              |              |                | 2005-11-03 16:40 | f
-      98 |        29 | TMHMM 2.0c        |            |              |              |                | 2005-11-16 14:05 | f
-      98 |        20 | protcomp default  |            |              |              |                | 2005-08-10 05:40 | f
-      98 |        12 | regexp            |            |              |           19 | Bcl-2 domains  | 2005-11-16 11:26 | f
-      98 |        12 | regexp            |            |              |           11 | ITxM           | 2006-04-13 04:47 | f
-      98 |         9 | tmdetect default  |            |              |              |                | 2006-02-21 17:47 | f
+ pseq_id | params_id |      params       | origin_id |    origin    | pmodelset_id |    modelset    |      ran_on      | failed
+---------+-----------+-------------------+-----------+--------------+--------------+----------------+------------------+--------
+      98 |        19 | BIG-PI default    |           |              |              |                | 2005-02-06 01:50 | f
+      98 |         4 | EMBOSS/antigenic  |           |              |              |                | 2003-10-08 00:08 | f
+      98 |         5 | EMBOSS/sigcleave  |           |              |              |                | 2003-10-13 16:12 | f
+      98 |        11 | Genome BLAT       |           |              |              |                | 2004-02-11 10:48 | f
+      98 |        38 | PMAP 2006-03-20   |           |              |              |                | 2006-03-23 15:11 | f
+      98 |        21 | Pfam 17.0 fs      |     15038 | Pfam 17.0 fs |              |                | 2005-03-26 12:17 | f
+      98 |        33 | Pfam 19.0 fs      |     15038 | Pfam 19.0 fs |              |                | 2006-01-12 08:34 | f
+      98 |        34 | Pfam 19.0 ls      |     15039 | Pfam 19.0 ls |              |                | 2006-01-13 21:30 | f
+      98 |         1 | Prospect2 default |           |              |            5 | Death Domains  | 2004-02-25 15:15 | f
+      98 |         1 | Prospect2 default |           |              |           10 | Prospect2 FSSP | 2004-02-20 08:03 | f
+      98 |        17 | Psipred v2.45     |           |              |              |                | 2005-06-17 07:05 | f
+      98 |        28 | SignalP 3.0 (euk) |           |              |              |                | 2005-11-03 16:40 | f
+      98 |        29 | TMHMM 2.0c        |           |              |              |                | 2005-11-16 14:05 | f
+      98 |        20 | protcomp default  |           |              |              |                | 2005-08-10 05:40 | f
+      98 |        12 | regexp            |           |              |           19 | Bcl-2 domains  | 2005-11-16 11:26 | f
+      98 |        12 | regexp            |           |              |           11 | ITxM           | 2006-04-13 04:47 | f
+      98 |         9 | tmdetect default  |           |              |              |                | 2006-02-21 17:47 | f
 </pre>
 
 

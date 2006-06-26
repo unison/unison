@@ -41,7 +41,7 @@ CREATE OR REPLACE FUNCTION pmpseq_iu_trigger () RETURNS "trigger"
       RAISE EXCEPTION ''no best_palias_id for pseq_id=%'',new.pseq_id;
     END IF;
 
-		select into new.porigin_id,new.name porigin_id,alias from palias where palias_id=v_best_palias_id;
+		select into new.origin_id,new.name origin_id,alias from palias where palias_id=v_best_palias_id;
 
     return new;
   end; '

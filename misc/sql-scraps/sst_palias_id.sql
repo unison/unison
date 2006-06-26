@@ -20,7 +20,7 @@ BEGIN
 	-- order by alias desc has the effect of preferring UNQ, then PRO, then DNA
 	select into a_id QA.palias_id from pseqalias QA
 		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.porigin_id=porigin_id(''SPDI'')
+		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.origin_id=origin_id(''SPDI'')
 		order by alias desc
 		limit 1;
 	return a_id;
@@ -36,7 +36,7 @@ DECLARE
 BEGIN
 	select into a_id QA.palias_id from pseqalias QA
 		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.porigin_id=porigin_id(''SPDI'') and alias~''^UNQ''
+		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.origin_id=origin_id(''SPDI'') and alias~''^UNQ''
 		limit 1;
 	return a_id;
 END;';
@@ -51,7 +51,7 @@ DECLARE
 BEGIN
 	select into a_id QA.palias_id from pseqalias QA
 		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.porigin_id=porigin_id(''SPDI'') and alias~''^PRO''
+		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.origin_id=origin_id(''SPDI'') and alias~''^PRO''
 		limit 1;
 	return a_id;
 END;';
@@ -66,7 +66,7 @@ DECLARE
 BEGIN
 	select into a_id QA.palias_id from pseqalias QA
 		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.porigin_id=porigin_id(''SPDI'') and alias~''^DNA''
+		where QA.pseq_id=q_id and QA.iscurrent=TRUE and OA.origin_id=origin_id(''SPDI'') and alias~''^DNA''
 		limit 1;
 	return a_id;
 END;';

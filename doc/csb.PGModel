@@ -97,7 +97,7 @@
   <sink x="0.496124" y="0.494048" OID="2" id="0x8527190" />
   <sink x="0.437984" y="0.529762" OID="15" id="0x8526c60" />
   <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
-  <PGColumn OID="5" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="5" DataType="integer" Name="origin_id" NextOID="1" Mandatory="1" />
   <PGColumn OID="6" DataType="text" Name="name" NextOID="1" Mandatory="1" />
   <PGColumn OID="7" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
   <PGColumn OID="8" DataType="integer" Name="pseq_id" NextOID="1" Mandatory="1" />
@@ -205,7 +205,7 @@
  <PGTable width="130" x="924" TextField="2" Align="68" y="258" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="8" height="114" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="paliasorigin" id="0x8551b50" NextOID="11" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[alias (names) given by a particular origin]]><sink x="0.492308" y="0.491228" OID="1" id="0x8552be0" />
   <sink x="0.492308" y="0.491228" OID="3" id="0x85527a0" />
   <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="palias_id" Default="nextval('unison.paliasorigin_palias_id_seq'::text)" NextOID="1" Mandatory="1" />
-  <PGColumn ForeignKey="1" OID="5" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="5" DataType="integer" Name="origin_id" NextOID="1" Mandatory="1" />
   <PGColumn OID="6" DataType="text" Name="alias" NextOID="1" Mandatory="1" />
   <PGColumn OID="7" DataType="text" Name="descr" NextOID="1" />
   <PGColumn OID="8" DataType="integer" Name="spspec_id" NextOID="1" />
@@ -213,7 +213,7 @@
    <PGIndexColumn OID="1" Order="" Name="alias" NextOID="1" />
   </PGIndex>
   <PGIndex Unique="1" OID="10" AccessMethod="btree" Name="palias_alias_unique_in_origin" NextOID="3" >
-   <PGIndexColumn OID="1" Order="" Name="porigin_id" NextOID="1" />
+   <PGIndexColumn OID="1" Order="" Name="origin_id" NextOID="1" />
    <PGIndexColumn OID="2" Order="" Name="alias" NextOID="1" />
   </PGIndex>
  </PGTable>
@@ -416,7 +416,7 @@
  </PGTable>
  <PGTable width="245" x="1709" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="16" height="186" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmhmm" id="0x85a5470" NextOID="15" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[protein hidden Markov models (inherts from pmodel)]]><sink x="0.497959" y="0.494624" OID="1" id="0x85a6d98" />
   <PGColumn OID="3" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
-  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="origin_id" NextOID="1" Mandatory="1" />
   <PGColumn OID="5" DataType="text" Name="name" NextOID="1" Mandatory="1" />
   <PGColumn OID="6" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
   <PGColumn OID="7" DataType="text" Name="acc" NextOID="1" Mandatory="1" />
@@ -428,7 +428,7 @@
    <PGIndexColumn OID="1" Order="" Name="pmodel_id" NextOID="1" />
   </PGIndex>
   <PGIndex Unique="1" OID="13" AccessMethod="btree" Name="pmhmm_origin_name_idx" NextOID="3" >
-   <PGIndexColumn OID="1" Order="" Name="porigin_id" NextOID="1" />
+   <PGIndexColumn OID="1" Order="" Name="origin_id" NextOID="1" />
    <PGIndexColumn OID="2" Order="" Name="name" NextOID="1" />
   </PGIndex>
   <PGIndex OID="14" AccessMethod="btree" Name="pmhmm_name_idx" NextOID="2" >
@@ -438,7 +438,7 @@
  <PGTable width="258" x="800" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="3" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="17" height="96" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmodel" id="0x85ae7e8" NextOID="9" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[generic protein model information]]><sink x="0.496124" y="0.489583" OID="2" id="0x85b0268" />
   <sink x="0.51938" y="0.427083" OID="8" id="0x85afd38" />
   <PGColumn PrimaryKey="1" OID="3" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
-  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn ForeignKey="1" OID="4" DataType="integer" Name="origin_id" NextOID="1" Mandatory="1" />
   <PGColumn OID="5" DataType="text" Name="name" NextOID="1" Mandatory="1" />
   <PGColumn OID="6" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
   <PGIndex OID="7" AccessMethod="btree" Name="pmodel_name" NextOID="2" >
@@ -451,7 +451,7 @@
  </PGTable>
  <PGTable width="245" x="1451" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="19" height="114" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmpssm" id="0x85b6268" NextOID="10" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[Position Specific Scoring Matrix models (e.g., structure based profiles) ]]><sink x="0.497959" y="0.491228" OID="1" id="0x85b7c18" />
   <PGColumn OID="2" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
-  <PGColumn OID="3" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="origin_id" NextOID="1" Mandatory="1" />
   <PGColumn OID="4" DataType="text" Name="name" NextOID="1" Mandatory="1" />
   <PGColumn OID="5" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
   <PGColumn OID="6" Length="32" DataType="character" Name="md5" NextOID="1" />
@@ -467,7 +467,7 @@
  </PGTable>
  <PGTable width="177" x="1263" TextField="2" Align="68" y="989" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffefd5" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="20" height="121" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="pmseq" id="0x85bd198" NextOID="7" ScriptCreateDrop="0" FontFamily="Sans" >
   <PGColumn OID="2" DataType="integer" Name="pmodel_id" Default="nextval('unison.pmodel_pmodel_id_seq'::text)" NextOID="1" Mandatory="1" />
-  <PGColumn OID="3" DataType="integer" Name="porigin_id" NextOID="1" Mandatory="1" />
+  <PGColumn OID="3" DataType="integer" Name="origin_id" NextOID="1" Mandatory="1" />
   <PGColumn OID="4" DataType="text" Name="name" NextOID="1" Mandatory="1" />
   <PGColumn OID="5" DataType="timestamp without time zone" Name="added" Default="now()" NextOID="1" />
   <PGColumn ForeignKey="1" OID="6" DataType="integer" Name="pseq_id" NextOID="1" />
@@ -496,13 +496,13 @@
    <PGIndexColumn OID="2" Order="" Name="pmodel_id" NextOID="1" />
   </PGIndex>
  </PGTable>
- <PGTable width="126" x="1118" TextField="2" Align="68" y="264" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="25" height="114" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="porigin" id="0x85cd9b0" NextOID="10" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[origin (database or algorithm) of protein alias (sequence)]]><sink x="0.492063" y="0.491228" OID="3" id="0x85cf250" />
-  <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="porigin_id" Default="nextval('unison.porigin_porigin_id_seq'::text)" NextOID="1" Mandatory="1" />
+ <PGTable width="126" x="1118" TextField="2" Align="68" y="264" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="25" height="114" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="origin" id="0x85cd9b0" NextOID="10" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[origin (database or algorithm) of protein alias (sequence)]]><sink x="0.492063" y="0.491228" OID="3" id="0x85cf250" />
+  <PGColumn PrimaryKey="1" OID="4" DataType="integer" Name="origin_id" Default="nextval('unison.origin_origin_id_seq'::text)" NextOID="1" Mandatory="1" />
   <PGColumn OID="5" DataType="text" Name="origin" NextOID="1" Mandatory="1" />
   <PGColumn OID="6" DataType="text" Name="url" NextOID="1" />
   <PGColumn OID="7" DataType="text" Name="descr" NextOID="1" />
   <PGColumn OID="8" DataType="integer" Name="ann_pref" NextOID="1" />
-  <PGIndex Unique="1" OID="9" AccessMethod="btree" Name="porigin_origin" NextOID="2" >
+  <PGIndex Unique="1" OID="9" AccessMethod="btree" Name="origin_origin" NextOID="2" >
    <PGIndexColumn OID="1" Order="" Name="origin" NextOID="1" />
   </PGIndex>
  </PGTable>
@@ -583,7 +583,7 @@
    <PGIndexColumn OID="1" Order="" Name="name" NextOID="1" />
   </PGIndex>
  </PGTable>
- <PGView width="104" x="1291" TextField="2" Align="68" y="247" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="31" height="153" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="palias" id="0x85f3488" NextOID="1" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[backwardly compatible - joins paliasorigin and pseqalias tables]]><Definition><![CDATA[SELECT pa.palias_id, pv.pseq_id, pa.porigin_id, pa.alias, pa.descr, pv.ref_pseq_id, pv.added FROM paliasorigin pa, pseqalias pv WHERE ((pv.palias_id = pa.palias_id) AND (pv.iscurrent = true));]]></Definition>
+ <PGView width="104" x="1291" TextField="2" Align="68" y="247" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="31" height="153" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="palias" id="0x85f3488" NextOID="1" ScriptCreateDrop="0" FontFamily="Sans" ><![CDATA[backwardly compatible - joins paliasorigin and pseqalias tables]]><Definition><![CDATA[SELECT pa.palias_id, pv.pseq_id, pa.origin_id, pa.alias, pa.descr, pv.ref_pseq_id, pv.added FROM paliasorigin pa, pseqalias pv WHERE ((pv.palias_id = pa.palias_id) AND (pv.iscurrent = true));]]></Definition>
  </PGView>
  <PGView width="388" x="964" TextField="2" Align="68" y="1333" LineColor="#000000" FillStyle="Solid" LineWidth="1" FontUnderline="0" FillColor="#ffffff" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="32" height="204" FontBold="0" FontItalic="0" ScriptCreate="1" TextFlag="2048" FontStrikeOut="0" Name="v_p2thread_scop" id="0x85f8158" NextOID="1" ScriptCreateDrop="0" FontFamily="Sans" >
   <Definition><![CDATA[SELECT t.pseq_id, t.p2params_id, b.name, t.raw, t.svm, t.mutation, t.pairwise, t.singleton, t.gap, ((((cfdes.descr || ' / '::text) || sfdes.descr) || ' / '::text) || fades.descr) AS "SCOP fold class / superfamily / family" FROM (((((p2thread t JOIN p2template b ON ((t.pmodel_id = b.pmodel_id))) LEFT JOIN cla ON ((b.sunid = cla.sunid))) LEFT JOIN des cfdes ON ((cfdes.sunid = cla.cf))) LEFT JOIN des sfdes ON ((sfdes.sunid = cla.sf))) LEFT JOIN des fades ON ((fades.sunid = cla.fa))) ORDER BY t.svm DESC;]]></Definition>
@@ -600,11 +600,11 @@
   <texthandle x="0.45" y="0.5" OID="3" />
   <ColumnRef OID="4" Child="pmodel_id" Parent="pmodel_id" NextOID="1" />
  </PGReference>
- <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="7471215" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="37" BeginArrowDirection="7340080" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="paliasorigin" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="porigin" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="porigin_id_exists" BeginTruncate="1" id="0x8603d20" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
+ <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="CASCADE" EndArrowDirection="7471215" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="37" BeginArrowDirection="7340080" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="paliasorigin" FontItalic="0" ScriptCreate="1" OnUpdate="CASCADE" Parent="origin" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="origin_id_exists" BeginTruncate="1" id="0x8603d20" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
   <point x="988" y="314" sinkobjectid="0x8551b50" OID="1" id="0x8605040" sinkid="0x85527a0" />
   <point x="1180" y="320" sinkobjectid="0x85cd9b0" OID="2" id="0x8605898" sinkid="0x85cf250" />
   <texthandle x="0.45" y="0.5" OID="3" />
-  <ColumnRef OID="4" Child="porigin_id" Parent="porigin_id" NextOID="1" />
+  <ColumnRef OID="4" Child="origin_id" Parent="origin_id" NextOID="1" />
  </PGReference>
  <PGReference TextField="3" Align="68" LineColor="#000000" FillStyle="none" LineWidth="1" OnDelete="NO ACTION" EndArrowDirection="7274595" EndArrowType="2" FontUnderline="0" FillColor="#000000" LineStyle="Solid" FontColor="#000000" FontPointSize="10" OID="38" BeginArrowDirection="6750324" Initially="IMMEDIATE" BeginArrowType="0" FontBold="0" Child="palignment" FontItalic="0" ScriptCreate="1" OnUpdate="NO ACTION" Parent="pmodel" EndTruncate="1" TextFlag="2048" FontStrikeOut="0" Name="$1" BeginTruncate="1" id="0x8606a70" NextOID="5" ScriptCreateDrop="0" FontFamily="Sans" >
   <point x="924" y="739" sinkobjectid="0x8557b40" OID="1" id="0x8608020" sinkid="0x8558f58" />

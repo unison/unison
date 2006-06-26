@@ -33,13 +33,13 @@ select(STDOUT); $|++;
 
 # whee... globals
 my $u = new Unison;
-my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
+my $origin_id = $u->origin_si_origin_id($opts{origin});
 my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.22 2004/02/24 19:20:57 rkh Exp $ ',"\n");
-print(STDERR "# loading sequences into $opts{origin} (porigin_id=$porigin_id)\n");
+print(STDERR '# $Id: load-fasta,v 1.23 2004/06/25 00:20:27 rkh Exp $ ',"\n");
+print(STDERR "# loading sequences into $opts{origin} (origin_id=$origin_id)\n");
 
 
 
@@ -77,7 +77,7 @@ printf(STDERR "# before: %d extant aliases, %d extant md5s\n"
 	   scalar keys %alias, scalar keys %md5, 
 	   $nseen, $nskipped, $nadded);
 
-print( "last_updated = ", $u->porigin_last_updated( $porigin_id,1 ) );
+print( "last_updated = ", $u->origin_last_updated( $origin_id,1 ) );
 
 exit(0);
 
@@ -178,7 +178,7 @@ sub process_seq  {
   }
 
   foreach my $upd_id (@ids)	{
-	$u->add_palias($pseq_id,$porigin_id,$upd_id,$descr);
+	$u->add_palias($pseq_id,$origin_id,$upd_id,$descr);
   }
 
   printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",

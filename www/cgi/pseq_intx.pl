@@ -14,7 +14,7 @@ use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_intx.pl,v 1.5 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_intx.pl,v 1.6 2005/12/07 23:21:02 rkh Exp $ ');
 
 my $sql = qq/select pseq_id_b, sprot_b, best_annotation(pseq_id_b), pmid, interaction_detection_method
       from mint_v where pseq_id_a=$v->{pseq_id}/;
@@ -23,7 +23,7 @@ my $ar = $u->selectall_arrayref($sql);
 my @f = ( 'Sequence', 'Swiss-Prot', 'Best annotation', 'PubMed', 'Interaction detection method', 'Link' );
 
 my $sprot_a = $u->selectrow_array
-  ("select alias from palias where porigin_id=porigin_id('Swiss-Prot') and pseq_id=$v->{pseq_id} and alias~'^[A-Z][0-9]+\$'");
+  ("select alias from palias where origin_id=origin_id('Swiss-Prot') and pseq_id=$v->{pseq_id} and alias~'^[A-Z][0-9]+\$'");
 
 # work right-to-left
 do { $_->[5]= alias_link($_->[1],'Mint') } for @$ar;

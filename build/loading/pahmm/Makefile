@@ -20,4 +20,4 @@ update:
 	/bin/mv -f $@.err $@.log; touch $@
 
 .done.ids:
-	${PSQL} -UPUBLIC -Atc 'select pseq_id from run_history where params_id=${PAHMM_PARAMS_ID} and porigin_id=${PAHMM_PORIGIN_ID}' >$@
+	${PSQL} -UPUBLIC -Atc 'select pseq_id from run_history where params_id=${PAHMM_PARAMS_ID} and origin_id=${PAHMM_ORIGIN_ID}' >$@

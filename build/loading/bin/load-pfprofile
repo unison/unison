@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # load-pmprofile -- loads psiblast profiles into unison
-# $Id$
+# $Id: load-pfprofile,v 1.1 2003/04/30 21:09:34 rkh Exp $
 
 
 use strict;
@@ -19,7 +19,7 @@ my $fh = new IO::File;
 #my $u = new Unison;
 
 #my $sth;
-#$sth = $u->prepare("insert into pmprofile(porigin_id,name,md5) values ($porigin_id,?,?)")
+#$sth = $u->prepare("insert into pmprofile(origin_id,name,md5) values ($origin_id,?,?)")
 #  || die($u->errstr());
 
 while( my $fn = shift )

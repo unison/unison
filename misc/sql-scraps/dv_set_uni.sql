@@ -4,7 +4,7 @@ CREATE OR REPLACE VIEW dv_pset_uniA as
 SELECT distinct Q.pseq_id
   FROM pseq Q
   JOIN v_current_annotations A on A.pseq_id=Q.pseq_id
- WHERE A.porigin_id in (porigin_id('GenenGenes'),porigin_id('RefSeq'),porigin_id('UniProt'))
+ WHERE A.origin_id in (origin_id('GenenGenes'),origin_id('RefSeq'),origin_id('UniProt'))
    AND A.tax_id=gs2tax_id('HUMAN')
    AND Q.len>=50 AND Q.len<=1500 AND Q.seq~'^M';
 
@@ -14,7 +14,7 @@ UNION
 SELECT Q.pseq_id
   FROM pseq Q
   JOIN v_current_annotations A on A.pseq_id=Q.pseq_id
- WHERE A.porigin_id in (porigin_id('GenenGenes'),porigin_id('RefSeq'),porigin_id('UniProt'))
+ WHERE A.origin_id in (origin_id('GenenGenes'),origin_id('RefSeq'),origin_id('UniProt'))
    AND A.tax_id in (gs2tax_id('HUMAN'),gs2tax_id('MOUSE'),gs2tax_id('RAT'))
    AND Q.len>=50 AND Q.len<=1500;
 
@@ -24,7 +24,7 @@ UNION
 SELECT distinct Q.pseq_id
   FROM pseq Q
   JOIN v_current_annotations A on A.pseq_id=Q.pseq_id
- WHERE A.porigin_id in (porigin_id('GenenGenes'),porigin_id('UniProt'),porigin_id('RefSeq'))
+ WHERE A.origin_id in (origin_id('GenenGenes'),origin_id('UniProt'),origin_id('RefSeq'))
    AND A.tax_id in (gs2tax_id('HUMAN'),gs2tax_id('MOUSE'),gs2tax_id('RAT'))
    AND Q.len>=50 AND Q.len<=1500;
 
@@ -34,7 +34,7 @@ UNION
 SELECT distinct Q.pseq_id
   FROM pseq Q
   JOIN v_current_annotations A on A.pseq_id=Q.pseq_id
- WHERE A.porigin_id in (porigin_id('GenenGenes'),porigin_id('UniProt'),porigin_id('RefSeq'),porigin_id('Geneseq'))
+ WHERE A.origin_id in (origin_id('GenenGenes'),origin_id('UniProt'),origin_id('RefSeq'),origin_id('Geneseq'))
    AND A.tax_id in (gs2tax_id('HUMAN'),gs2tax_id('MOUSE'),gs2tax_id('RAT'),gs2tax_id('YEAST'),gs2tax_id('BRARE'),gs2tax_id('MACMU'))
    AND Q.len>=50 AND Q.len<=2000;
 

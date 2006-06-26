@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pmprospect -- Unison p2params table utilities
-S<$Id: pmprospect.pm,v 1.5 2005/10/09 09:39:32 rkh Exp $>
+S<$Id: pmprospect.pm,v 1.6 2005/12/07 21:36:38 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -46,9 +46,9 @@ sub add_pmprospect
   my $self = shift;
   $self->is_open()
 	|| croak("Unison connection not established");
-  my ($porigin_id,$pseq_id,$id,$len,$ncores) = @_;
-  $self->do( "insert into pmprospect (porigin_id,pseq_id,acc,len,ncores) "
-			 . "values ($porigin_id,$pseq_id,'$id',$len,$ncores);" );
+  my ($origin_id,$pseq_id,$id,$len,$ncores) = @_;
+  $self->do( "insert into pmprospect (origin_id,pseq_id,acc,len,ncores) "
+			 . "values ($origin_id,$pseq_id,'$id',$len,$ncores);" );
   return;
   }
 

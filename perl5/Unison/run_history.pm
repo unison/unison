@@ -2,7 +2,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: run_history.pm,v 1.10 2006/05/12 03:39:07 rkh Exp $>
+S<$Id: run_history.pm,v 1.11 2006/06/16 17:53:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -40,7 +40,7 @@ use warnings;
 
 =pod
 
-=item B<< $u->upd_run_history( C<pseq_id>, C<params_id>, C<porigin_id>, C<pmodelset_id>, failed ) >>
+=item B<< $u->upd_run_history( C<pseq_id>, C<params_id>, C<origin_id>, C<pmodelset_id>, failed ) >>
 
 =cut
 
@@ -58,7 +58,7 @@ sub upd_run_history(@) {
 
 =pod
 
-=item B<< $u->upd_run_histories( C<pseq_id>, C<params_id>, C<[porigin_ids]>, C<[pmodelset_ids]>  ) >>
+=item B<< $u->upd_run_histories( C<pseq_id>, C<params_id>, C<[origin_ids]>, C<[pmodelset_ids]>  ) >>
 
 =cut
 
@@ -82,7 +82,7 @@ sub upd_run_histories($$$$$) {
 
 =pod
 
-=item B<< $u->already_ran( C<pseq_id>, C<params_id>, C<[porigin_ids]>, C<[pmodelset_ids]> ) >>
+=item B<< $u->already_ran( C<pseq_id>, C<params_id>, C<[origin_ids]>, C<[pmodelset_ids]> ) >>
 
 =cut
 
@@ -109,7 +109,7 @@ sub already_ran ($$$$$) {
 
 =pod
 
-=item B<< $u->get_run_timestamp( C<pseq_id>, C<params_id>, C<porigin_id>, C<pmodelset_id> ) >>
+=item B<< $u->get_run_timestamp( C<pseq_id>, C<params_id>, C<origin_id>, C<pmodelset_id> ) >>
 
 =cut
 

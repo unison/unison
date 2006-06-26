@@ -2,7 +2,7 @@
 -- NAME: itim_mining.sql
 -- PURPOSE: sql code for mining Unison for ITIMS
 -- 
--- $Id: itim_mining.sql,v 1.6 2004/06/17 00:23:56 cavs Exp $
+-- $Id: itim_mining.sql,v 1.7 2004/07/02 23:38:59 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 -- define views for mining --
@@ -151,7 +151,7 @@ INSERT INTO pseqset SELECT DISTINCT 48,pseq_id FROM unison.pcluster_member WHERE
 --DELETE FROM pseqset WHERE pset_id=-39;
 --INSERT INTO pseqset SELECT DISTINCT -39,pseq_id FROM 
   --pfam_tm_itim WHERE pseq_id IN 
-  --(SELECT pseq_id FROM palias WHERE porigin_id=10047);
+  --(SELECT pseq_id FROM palias WHERE origin_id=10047);
 
 -- subtract known staub, known SPDI, already mined, and their genomic siblings from the
 -- GGI ITIMs to get a novel GGI set
@@ -170,7 +170,7 @@ INSERT INTO cavs.pclusterset SELECT DISTINCT 5,pcluster_id FROM unison.pcluster_
 --INSERT INTO pseqset SELECT DISTINCT -41,* FROM 
   --(SELECT 
     --(SELECT DISTINCT pti.pseq_id FROM cavs.prospect_tm_itim pti 
-    --WHERE pti.pseq_id=S.pseq_id) AS sq FROM palias S WHERE S.porigin_id=10047) 
+    --WHERE pti.pseq_id=S.pseq_id) AS sq FROM palias S WHERE S.origin_id=10047) 
   --X WHERE X.sq IS NOT NULL;
 
 -- subtract known staub, known SPDI, already mined, and their genomic siblings from the

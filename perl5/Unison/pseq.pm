@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.20 2005/05/11 21:53:41 rkh Exp $>
+S<$Id: pseq.pm,v 1.21 2005/11/18 04:22:49 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -93,7 +93,7 @@ sub get_sequence_by_pseq_id ($) {
 return the `best_alias' as determined heuristically by Unison.
 Briefly, the best_alias is the one specified by the pseq.palias_id if
 not null, or the first preference-ordered list of aliases based on
-porigin.ann_pref ranking.  See also best_annotation.
+origin.ann_pref ranking.  See also best_annotation.
 
 =cut
 
@@ -145,7 +145,7 @@ sub best_annotation {
 =item B<< $u->pseq_get_aliases( C<pseq_id> ) >>
 
 return a list of <origin>:<alias> annotations for a given pseq_id, ordered
-by porigin.ann_pref.
+by origin.ann_pref.
 
 =cut
 
@@ -160,7 +160,7 @@ sub pseq_get_aliases {
   my $sql = <<EOSQL;
 SELECT origin||':'||alias
   FROM palias AS a
-  JOIN porigin AS o ON a.porigin_id=o.porigin_id
+  JOIN origin AS o ON a.origin_id=o.origin_id
  WHERE pseq_id=$pseq_id $ann_pref_clause
 ORDER BY o.ann_pref
 EOSQL

@@ -2,7 +2,7 @@
 
 Unison::Unison -- import commonly used Unison modules
 
-S<$Id: common.pm,v 1.3 2005/06/15 03:49:03 rkh Exp $>
+S<$Id: common.pm,v 1.4 2005/10/09 09:39:32 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -27,7 +27,7 @@ submodules in the Unison:: API.  The following are currently loaded:
 
 =item use Unison::pmprospect;
 
-=item use Unison::porigin;
+=item use Unison::origin;
 
 =item use Unison::pseq;
 
@@ -56,7 +56,7 @@ use Unison::paprospect;
 use Unison::papseq;
 use Unison::params;
 use Unison::pmprospect;
-use Unison::porigin;
+use Unison::origin;
 use Unison::pseq;
 use Unison::run_history;
 

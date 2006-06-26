@@ -11,7 +11,7 @@ my $usage = <<'EOU';
 # OPTIONS:
 #   --verbose|-v: flag to output more processing information
 #
-# $Id$
+# $Id: load-pmprospect,v 1.3 2005/11/22 22:35:51 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -39,10 +39,10 @@ GetOptions( \%opts,
 
 my $u = new Unison(dbname=>'csb-dev', username=>'loader');
 
-my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
-printf(STDERR "# loading prospect templates into $opts{origin} (porigin_id=$porigin_id)\n") if($opts{vebose});
+my $origin_id = $u->origin_si_origin_id($opts{origin});
+printf(STDERR "# loading prospect templates into $opts{origin} (origin_id=$origin_id)\n") if($opts{vebose});
 
-my %pmprospect = map { $_->[0]=>1 } @{$u->selectall_arrayref("select acc from pmprospect where porigin_id=$porigin_id")};
+my %pmprospect = map { $_->[0]=>1 } @{$u->selectall_arrayref("select acc from pmprospect where origin_id=$origin_id")};
 printf(STDERR "# %d template names read from pmprospect origin=$opts{origin}\n", scalar keys %pmprospect) if($opts{vebose});
 
 my %md5;
@@ -97,8 +97,8 @@ sub process1
   if (not defined $pseq_id)
 	{ die("! sequence for $fn not in unison and couldn't be added"); return; }
 
-  $u->add_palias($pseq_id,$porigin_id,$id,$desc);
-  $u->add_pmprospect($porigin_id,$pseq_id,$id,$len,$ncores);
+  $u->add_palias($pseq_id,$origin_id,$id,$desc);
+  $u->add_pmprospect($origin_id,$pseq_id,$id,$len,$ncores);
 
   printf(STDERR "# added $id (pseq_id=$pseq_id) to Prospect templates\n") if($opts{vebose});
   }

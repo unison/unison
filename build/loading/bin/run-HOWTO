@@ -9,7 +9,7 @@ Unison::DBI opts: -d, -U, -h
 
 -q pseq_id      -Q pset_id
 -m pmodel_id    -M pmodelset_id (pmodelset name?)
--o porigin_id (or name?)
+-o origin_id (or name?)
 -p params_id
 
 --pseq_ids-from-file
