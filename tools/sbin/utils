@@ -1,9 +1,9 @@
 # -*- sh -*-
-# $Id: utils,v 1.11 2005/05/13 19:14:23 rkh Exp $
+# $Id: utils,v 1.12 2005/11/07 23:43:07 rkh Exp $
 # utils -- misc defaults and utilities for csb-db shell scripts
 
 JEMAPPELLE=`basename $0`
-LOG_DIR="/home/rkh/compbio/logs"
+LOG_DIR="$HOME/adm/logs"
 LOG_FN="$LOG_DIR/$JEMAPPELLE"
 
 
@@ -54,5 +54,4 @@ else
 fi
 
 
-# Hmm... this is a dubious hack to set up env -- this should be assumed
-source /gne/compbio/setup.sh
+source /gne/research/etc/profile

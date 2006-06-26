@@ -14,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: browse_views.pl,v 1.13 2005/08/08 21:46:34 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_views.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $ ');
 
 my %cvs = %{ $u->selectall_hashref('select cv_id,name,descr,sql from canned_views where cv_id>0',
 								   'cv_id') };
@@ -152,7 +152,7 @@ sub build_form {
 
 		  '<tr><td>',
 		  $p->checkbox(-name => 'r_age',
-					   -label => 'is less than',
+					   -label => 'sequence is less than',
 					   -checked => 0),
 		  '</td><td>',
 		  $p->popup_menu(-name=>'r_age_sel',

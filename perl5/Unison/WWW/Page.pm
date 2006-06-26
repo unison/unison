@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.82 2006/04/13 17:31:33 rkh Exp $>
+S<$Id: Page.pm,v 1.83 2006/05/12 03:48:54 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -1096,22 +1096,29 @@ sub _navbar {
   my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
   $navi = -1 unless defined $navi;
   my $rv = '';
-  $rv = "\n  <table    class=\"nav\" width=\"100%\">"
-	. "\n    <tr>"
-	  . _make_navrow($navi, map {$_->[0]} @navs)
-	  . '</tr>'
-	. "\n" . '<tr>'  
-	. ($navi==0      ? '' : sprintf('<td colspan=%d></td>',$navi))
-	. '<td align="center"><img src="../av/v.gif"></td>'
-	. ($navi==$#navs ? '' : sprintf('<td colspan=%d></td>',$#navs-$navi))
-	. '</tr>'
-	. "\n  </table>\n";
+  $rv = "\n"
+    . "  <table    class=\"nav\" width=\"100%\">\n"
+	. "    <!-- major nav -->\n"
+	. "    <tr>\n"
+    . _make_navrow($navi, map {$_->[0]} @navs)
+	. "    </tr>\n"
+	. "    <!-- 'V' graphic -->\n"
+	. "    <tr>"
+	. ($navi==0      ? '' : sprintf("<td colspan=%d></td>",$navi))
+	. '<td align="center"><img src="../av/caret.gif"></td>'
+	. ($navi==$#navs ? '' : sprintf("<td colspan=%d></td>",$#navs-$navi))
+	. "</tr>\n"
+	. "  </table>\n";
 
   my @nav = @{$navs[$navi]};
   shift @nav;				# menu header is first item; subnav items remain
-  $rv .= "\n  <table class=\"subnav\" width=\"100%\">" 
-	. '<tr>' . _make_navrow($subnavi, @nav) . '</tr>'
-	. "</table>\n";
+  $rv .= 
+      "  <table class=\"subnav\" width=\"100%\">\n"
+	. "    <!-- minor nav -->\n"
+	. "    <tr>\n"
+	. _make_navrow($subnavi, @nav)
+    . "    </tr>\n"
+    . "  </table>\n";
 
   return $rv;
 }
@@ -1194,7 +1201,7 @@ sub _make_navrow {
   # $sel is which is selected, and may be undef
   # @tu = array ref of [tab_label,tooltip,url,params]
   my ($sel,@tu) = @_;
-  my $spacer = '<td width="%80">&nbsp;</td>';
+  my $spacer = ' ' x 8 . '<td width="%80">&nbsp;</td>' . "\n";
   my @nav = ();
   for(my $i=0; $i<=$#tu; $i++) {
 	my ($tab_label,$tooltip,$url,$params) = @{$tu[$i]};
@@ -1211,9 +1218,11 @@ sub _make_navrow {
 	  $cl = 'selected';
 	  $url = undef;
 	}
-	push(@nav, "<td class=\"$cl\">"
+	push(@nav,
+		 ' ' x 8
+		 . "<td class=\"$cl\">"
 		 . tooltip( (defined $url ? "<a href=\"$url\">$tab_label</a>" : $tab_label), $tooltip, '' )
-		 . "</td>" );
+		 . "</td>\n" );
   }
   return( join('', @nav) . $spacer );
 }

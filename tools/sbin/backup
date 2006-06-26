@@ -1,6 +1,6 @@
 #!/bin/bash
 # backup -- backup the csb database
-# $Id: backup,v 1.23 2005/07/18 21:56:00 rkh Exp $
+# $Id: backup,v 1.24 2005/11/07 23:43:07 rkh Exp $
 #
 # you must set PGPASSWORD before running
 # this script any user with write permission in BACKUPDIR (below) should
@@ -19,9 +19,9 @@
 ### 20  1  *  *  1,2,4,5    /services/csb-db/sbin/backup -s csb-dev
 
 
-
-BACKUPDIR="$HOME/compbio/backups"
+BACKUPDIR="$HOME/adm/backups"
 PATH=/usr/bin:/bin
+source /gne/research/etc/profile
 PGD_OPTS="-Upostgres"
 
 source `dirname $0`/utils

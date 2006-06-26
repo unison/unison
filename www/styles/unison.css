@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.35 2006/03/14 01:27:31 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.36 2006/05/12 03:48:54 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -19,7 +19,7 @@ TABLE.page TD.logo {
   text-align: center;
   vertical-align: middle;
   border-right: medium double #150067;
- padding: 0px 5px 0px 0px;
+  padding: 0px 5px 0px 0px;
 }
 TABLE.page TD.body {
   padding-top: 2px;
@@ -34,8 +34,8 @@ TABLE.page TD.footer {
 }
 TABLE.page TD.navbar {
   font-size: small;
- padding: 0px 0px 5px 5px;
- marging: 0px;
+ padding: 0px 0px 0px 0px;
+ margin: 0px;
 }
 
 

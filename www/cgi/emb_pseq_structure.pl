@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-#$ID = q$Id: emb_pseq_structure.pl,v 1.7 2006/01/04 00:39:29 mukhyala Exp $:
+#$ID = q$Id: emb_pseq_structure.pl,v 1.8 2006/02/15 04:06:57 rkh Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -22,7 +22,7 @@ use Unison::Jmol;
 use Unison::Utilities::pseq_structure;
 use Unison::Utilities::pseq_features qw( %opts );
 
-my $pdbDir = (defined($ENV{PDB_PATH}) ? $ENV{PDB_PATH} : '/gne/compbio/share/pdb/all.ent');
+my $pdbDir = (defined($ENV{PDB_PATH}) ? $ENV{PDB_PATH} : '/gne/research/share/pdb/all.ent');
 
 my $p = new Unison::WWW::EmbPage;
 
