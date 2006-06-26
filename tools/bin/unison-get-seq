@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: unison-get-seq,v 1.27 2006/05/03 03:13:00 rkh Exp $
+# $Id: unison-get-seq,v 1.28 2006/05/12 03:34:20 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: unison-get-seq,v 1.27 2006/05/03 03:13:00 rkh Exp $>
+S<$Id: unison-get-seq,v 1.28 2006/05/12 03:34:20 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -47,7 +47,7 @@ sub process_set($$);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: unison-get-seq,v 1.27 2006/05/03 03:13:00 rkh Exp $ ', "\n");
+  print(STDERR '$Id: unison-get-seq,v 1.28 2006/05/12 03:34:20 rkh Exp $ ', "\n");
   exit;
 }
 
@@ -107,7 +107,7 @@ sub parse_options() {
 	 'select-all' => 0,
 	 'select-by-alias' => 0,
 	 'select-by-alias-fuzzy' => 0,
-	 'select-by-porigin' => 0,
+	 'select-by-origin' => 0,
 	 'select-by-pset' => 0,
 	 'select-by-unison-id' => 0,
 	 'iupac20' => 0,						# only IUPAC real AA (no ambiguity)
@@ -131,7 +131,7 @@ sub parse_options() {
 			  'select-all|all',
 			  'select-by-alias|A+',
 			  'select-by-alias-fuzzy|F+',
-			  'select-by-porigin|porigin|origin|O+',
+			  'select-by-origin|origin|origin|O+',
 			  'select-by-pset|pset|set|S+',
 			  'select-by-unison-id|unison|U+',
 			  'iupac20+',
@@ -148,7 +148,7 @@ sub parse_options() {
 	|| die("$0: you got usage issues, homey\n");
 
   @opts = qw(select-all select-by-alias select-by-alias-fuzzy
-			 select-by-pset select-by-porigin select-by-unison-id);
+			 select-by-pset select-by-origin select-by-unison-id);
   $optsum = eval join('+', map {$opts{$_}?1:0} @opts);
   if ($optsum == 0) {
 	$opts{'select-by-unison-id'}++;
@@ -171,7 +171,7 @@ sub parse_options() {
 
 
 sub map_args_to_pseq_ids($@) {
-  # args may be origins, porigin_ids, set names, pset_ids, aliases, or
+  # args may be origins, origin_ids, set names, pset_ids, aliases, or
   # unison_ids, or unison_id ranges. 
   # These all need to be reduced to enumerated unison_ids.  Although this
   # is terribly inelegant, it's not so bad in practice.
@@ -223,34 +223,34 @@ sub map_args_to_pseq_ids($@) {
 	printf(STDERR "# %d sequences in selected sets\n", $#pseq_ids+1) if $opts{verbose};
   }
 
-  elsif ($or->{'select-by-porigin'}) {
-	my $sth_poriginid_from_origin = $u->prepare('select porigin_id from porigin where origin=?');
-	my $sth_origin_from_poriginid = $u->prepare('select origin from porigin where porigin_id=?');
-	my $sth_pseqid_from_poriginid = $u->prepare('select pseq_id from palias where porigin_id=?');
+  elsif ($or->{'select-by-origin'}) {
+	my $sth_originid_from_origin = $u->prepare('select origin_id from origin where origin=?');
+	my $sth_origin_from_originid = $u->prepare('select origin from origin where origin_id=?');
+	my $sth_pseqid_from_originid = $u->prepare('select pseq_id from palias where origin_id=?');
 
 	foreach my $arg (@_) {
-	  my ($porigin_id, $porigin_origin);
+	  my ($origin_id, $origin_origin);
 	  if ($arg =~ m/^\d+$/) {
-		($porigin_origin) = $u->selectrow_array($sth_origin_from_poriginid,undef,$arg);
-		if (not defined $porigin_origin) {
-		  warn("! porigin with porigin_id=$arg doesn't exist\n");
+		($origin_origin) = $u->selectrow_array($sth_origin_from_originid,undef,$arg);
+		if (not defined $origin_origin) {
+		  warn("! origin with origin_id=$arg doesn't exist\n");
 		  next;
 		}
-		$porigin_id = $arg;
+		$origin_id = $arg;
 	  } else {
-		($porigin_id) = $u->selectrow_array($sth_poriginid_from_origin,undef,$arg);
-		if (not defined $porigin_id) {
-		  warn("! porigin named '$arg' doesn't exist (and $arg doesn't look like a numeric porigin id)\n");
+		($origin_id) = $u->selectrow_array($sth_originid_from_origin,undef,$arg);
+		if (not defined $origin_id) {
+		  warn("! origin named '$arg' doesn't exist (and $arg doesn't look like a numeric origin id)\n");
 		  next;
 		}
-		$porigin_origin = $arg;
+		$origin_origin = $arg;
 	  }
 
-	  my (@Q) = map {$_->[0]} @{ $u->selectall_arrayref($sth_pseqid_from_poriginid,undef,$porigin_id) };
+	  my (@Q) = map {$_->[0]} @{ $u->selectall_arrayref($sth_pseqid_from_originid,undef,$origin_id) };
 	  if (not @Q) {
-		warn("$0: porigin '$porigin_origin' (porigin_id=$porigin_id) contains 0 sequences\n")
+		warn("$0: origin '$origin_origin' (origin_id=$origin_id) contains 0 sequences\n")
 	  }
-	  printf(STDERR "# %d sequence ids in origin '$porigin_origin' ($porigin_id)\n", $#Q+1) if $opts{verbose};
+	  printf(STDERR "# %d sequence ids in origin '$origin_origin' ($origin_id)\n", $#Q+1) if $opts{verbose};
 	  push(@pseq_ids, @Q);
 	}
 	printf(STDERR "# %d sequences selected by origin\n", $#pseq_ids+1) if $opts{verbose};

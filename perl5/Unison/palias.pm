@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.21 2005/12/07 23:21:02 rkh Exp $>
+S<$Id: palias.pm,v 1.23 2006/01/02 20:19:52 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -42,15 +42,15 @@ use Unison::Exceptions;
 
 =pod
 
-=item B<< $u->add_palias_id( C<pseq_id>,C<porigin_id>,C<alias>,C<descr> ) >>
+=item B<< $u->add_palias_id( C<pseq_id>,C<origin_id>,C<alias>,C<descr> ) >>
 
 adds an alias and description record in the paliasorigin and pseqalias
-tables for the existing porigin_id and pseq_id.
+tables for the existing origin_id and pseq_id.
 
 =cut
 
 sub add_palias {
-  my ($self,$pseq_id,$porigin_id,$alias,$descr,$tax_id) = @_;
+  my ($self,$pseq_id,$origin_id,$alias,$descr,$tax_id) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
 
@@ -65,20 +65,20 @@ sub add_palias {
   $tax_id = ( defined $tax_id ) ? $tax_id : 'NULL';
 
   if ( not defined $pseq_id 
-	   or not defined $porigin_id
+	   or not defined $origin_id
 	   or not defined $alias 
 	   or not defined $descr) {
 	die("Assertion failed\n",
-		sprintf("<pseq_id,porigin_id,alias,descr>=<%s,%s,%s,%s>",
+		sprintf("<pseq_id,origin_id,alias,descr>=<%s,%s,%s,%s>",
 				defined $pseq_id ? $pseq_id : 'undef',
-				defined $porigin_id ? $porigin_id : 'undef',
+				defined $origin_id ? $origin_id : 'undef',
 				defined $alias ? $alias : 'undef',
 				defined $descr ? $descr : 'undef' )
 	   );
   }
 
-  my $sql = "insert into palias (pseq_id,porigin_id,alias,descr,tax_id) "
-	. "values ($pseq_id,$porigin_id,'$alias',$descr,$tax_id)";
+  my $sql = "insert into palias (pseq_id,origin_id,alias,descr,tax_id) "
+	. "values ($pseq_id,$origin_id,'$alias',$descr,$tax_id)";
   print STDERR "sql: $sql\n" if $ENV{DEBUG};
   $self->do( $sql, { PrintError=>1 } );
   return;
@@ -187,7 +187,7 @@ sub get_pseq_id_from_alias_exact {
   (defined $alias) 
 	|| throw Unison::RuntimeError("alias not defined");
   my $sql = 'select distinct pseq_id from palias where alias = ?';
-  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
+  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
 
@@ -211,7 +211,7 @@ sub get_pseq_id_from_alias_casefolded {
   (defined $alias) 
 	|| throw Unison::RuntimeError("alias not defined");
   my $sql = 'select distinct pseq_id from palias where upper(alias) = ?';
-  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
+  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, uc($alias)) } );
 }
 
@@ -247,7 +247,7 @@ sub get_pseq_id_from_alias_regexp {
 	$sql .= 'upper(alias) ~ ?';
 	$alias = uc($alias);
   }
-  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
+  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
 
@@ -271,7 +271,7 @@ sub get_pseq_id_from_alias_fuzzy {
   (defined $alias) 
 	|| throw Unison::RuntimeError("alias not defined");
   my $sql = 'select distinct pseq_id from palias where alias ilike ?';
-  $sql .= " AND porigin_id=porigin_id('$ori')" if defined $ori;
+  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
 

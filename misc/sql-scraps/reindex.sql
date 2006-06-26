@@ -20,7 +20,7 @@ reindex table locus;
 reindex table translation;
 reindex table pfsigcleave;
 reindex table pmprospect2;
-reindex table porigin;
+reindex table origin;
 reindex table pseqset;
 reindex table pset;
 reindex table pmsm;

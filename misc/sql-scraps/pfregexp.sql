@@ -37,13 +37,13 @@ comment on table pfregexp is 'regular expression features based on pmregexp moti
 
 
 
-insert into pmregexp (porigin_id,acc,regexp,descr) values (porigin_id_lookup('rkh'),
+insert into pmregexp (origin_id,acc,regexp,descr) values (origin_id_lookup('rkh'),
     'ITIM','[ILV].(Y)..[ILV]',
     'Immunotyrosine Inhibition Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=20');
-insert into pmregexp (porigin_id,acc,regexp,descr) values (porigin_id_lookup('rkh'),
+insert into pmregexp (origin_id,acc,regexp,descr) values (origin_id_lookup('rkh'),
     'ITAM','[DE]..(Y)..[LI].{6,12}(Y)..[LI]',
     'Immunotyrosine Activation Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=17');
-insert into pmregexp (porigin_id,acc,regexp,descr) values (porigin_id_lookup('rkh'),
+insert into pmregexp (origin_id,acc,regexp,descr) values (origin_id_lookup('rkh'),
     'ITSM','..T.(Y)..[IV]',
     'Immunotyrosine Switch Motif. See http://elm.eu.org/basicELM/cgimodel.py?fun=Show_Elm&elmId=142');
 

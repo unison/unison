@@ -9,7 +9,7 @@
 # -c, -d, -h may be specified in combination
 # -C outputs copy from statements instead (UNTESTED)
 #
-# $Id: load-scop,v 1.4 2004/04/02 19:33:23 cavs Exp $
+# $Id: load-scop,v 1.5 2005/08/22 17:13:24 mukhyala Exp $
 #------------------------------------------------------------------------------- 
 
 
@@ -52,7 +52,7 @@ sub load_pmprospect2_scop {
   # load scop domains
   $sql = "INSERT INTO unison.pmprospect2_scop " .
     "SELECT p.pmodel_id,c.sunid FROM pmprospect2 p, scop.cla c WHERE " .
-    "p.porigin_id=porigin_id('Prospect2/SCOP'::text) AND c.sid=p.acc";
+    "p.origin_id=origin_id('Prospect2/SCOP'::text) AND c.sid=p.acc";
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
 
@@ -62,7 +62,7 @@ sub load_pmprospect2_scop {
   $sql = "INSERT INTO unison.pmprospect2_scop " .
     " SELECT p.pmodel_id,c.sunid " .
     "FROM pmprospect2 p, scop.cla c " .
-    "WHERE p.porigin_id=porigin_id('Prospect2/SCOP'::text) AND " .
+    "WHERE p.origin_id=origin_id('Prospect2/SCOP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "char_length(trim(trailing '_' from  acc)) = 5 AND c.pdb=substr(p.acc,2,4)";
   printf STDERR "$sql\n" if $opts{verbose};
@@ -71,7 +71,7 @@ sub load_pmprospect2_scop {
   $sql = "INSERT INTO unison.pmprospect2_scop " .
   "SELECT p.pmodel_id,c.sunid " .
   "FROM pmprospect2 p, scop.cla c " .
-  "WHERE p.porigin_id=porigin_id('Prospect2/SCOP'::text) AND " .
+  "WHERE p.origin_id=origin_id('Prospect2/SCOP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "c.pdb=substr(p.acc,2,4) AND " .
     "c.def ~ (upper(substr(p.acc,6,1)) || ':' )";
@@ -82,7 +82,7 @@ sub load_pmprospect2_scop {
   # load fssp domains by acc
   $sql = "INSERT INTO unison.pmprospect2_scop " .
      "SELECT p.pmodel_id,c.sunid FROM pmprospect2 p, scop.cla c WHERE " .
-     "p.porigin_id=porigin_id('Prospect2/FSSP'::text) AND c.sid=rpad('d'||p.acc,7,'_')";
+     "p.origin_id=origin_id('Prospect2/FSSP'::text) AND c.sid=rpad('d'||p.acc,7,'_')";
   printf STDERR "$sql\n" if $opts{verbose};
   $dbh->do( $sql );
 
@@ -93,7 +93,7 @@ sub load_pmprospect2_scop {
   $sql = "INSERT INTO unison.pmprospect2_scop " .
     " SELECT p.pmodel_id,c.sunid " .
     "FROM pmprospect2 p, scop.cla c " .
-    "WHERE p.porigin_id=porigin_id('Prospect2/FSSP'::text) AND " .
+    "WHERE p.origin_id=origin_id('Prospect2/FSSP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "char_length(p.acc) = 4 and c.pdb=p.acc";
   printf STDERR "$sql\n" if $opts{verbose};
@@ -102,7 +102,7 @@ sub load_pmprospect2_scop {
   $sql = "INSERT INTO unison.pmprospect2_scop " .
   "SELECT p.pmodel_id,c.sunid " .
   "FROM pmprospect2 p, scop.cla c " .
-  "WHERE p.porigin_id=porigin_id('Prospect2/FSSP'::text) AND " .
+  "WHERE p.origin_id=origin_id('Prospect2/FSSP'::text) AND " .
     "p.pmodel_id NOT IN (SELECT pmodel_id FROM pmprospect2_scop ) AND " .
     "char_length(p.acc) = 5 AND c.pdb=substr(p.acc,1,4) AND " .
     "c.def ~ (upper(substr(p.acc,5,1)) || ':' )";

@@ -20,7 +20,7 @@ foreach my $o (qw( manual PDB Swiss-Prot TrEMBL Ensembl GenenGenes
   {
   meta_di($u,"nseqs/$o",
 		  "(select count(distinct(pseq_id)) from palias as a
-          join porigin as o on a.porigin_id=o.porigin_id and o.origin='$o')");
+          join origin as o on a.origin_id=o.origin_id and o.origin='$o')");
   }
 meta_di($u,'meta date','CURRENT_TIMESTAMP');
 

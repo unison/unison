@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.25 2006/03/14 01:26:25 rkh Exp $
+## $Id: common.mk,v 1.26 2006/05/12 03:37:17 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE
@@ -39,8 +39,8 @@ ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('Human')" >$@
 .pset%.ids:
 	${PSQL_DCMD} 'select pseq_id from pseqset where pset_id=$*' >$@
-.porigin%.ids:
-	${PSQL_DCMD} 'select distinct pseq_id from palias where porigin_id=$*' >$@
+.origin%.ids:
+	${PSQL_DCMD} 'select distinct pseq_id from palias where origin_id=$*' >$@
 
 # generic set-todo.ids is anything which hasn't been done already
 # The top-level makefile which included this one must
@@ -50,21 +50,21 @@ ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids
 
 # 'O-': sequence ids by origin
 .O-%.ids:
-	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('$*')" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where origin_id=origin_id('$*')" >$@
 
 # genentech sequence lists by origin
 # FIXME: genentech stuff still in this common file... it'd be nice to move this
 # elsewhere.
 .genengenes.ids .sugen.ids .pdb.ids: .%.ids:
-	${PSQL_DCMD} "select pseq_id from palias where porigin_id=porigin_id('$*')" >$@
+	${PSQL_DCMD} "select pseq_id from palias where origin_id=origin_id('$*')" >$@
 .ggi.ids:
-	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI')" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where origin_id=origin_id('GGI')" >$@
 .ggi1.ids:
-	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1/'" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where origin_id=origin_id('GGI') and descr ~ ' 1/'" >$@
 .ggi-se1.ids:
-	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where origin_id=origin_id('GGI') and descr ~ ' 1-1 ' and descr ~ ' 1/'" >$@
 .ggi-me1.ids:
-	${PSQL_DCMD} "select distinct pseq_id from palias where porigin_id=porigin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@
+	${PSQL_DCMD} "select distinct pseq_id from palias where origin_id=origin_id('GGI') and descr !~ ' 1-1 ' and descr ~ ' 1/'" >$@
 .rungga.ids:
 	${PSQL_DCMD} "select pseq_id * from pset_rungga_dv" >$@
 

@@ -12,7 +12,7 @@ our @EXPORT = ();
 use Text::Wrap;
 
 #### NOTE:
-#### The URL formats /should/ come from the porigin table (porigin.url)
+#### The URL formats /should/ come from the origin table (origin.url)
 #### using Unison::links.  However, those need a Unison ref and these
 #### functions don't provide such.
 

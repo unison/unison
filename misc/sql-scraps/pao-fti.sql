@@ -19,7 +19,7 @@ paofti FOR EACH ROW execute procedure paofti_iu_trigger();
 
 create index paofti_descr_tsv on paofti using gist(descr_tsv);
 
-insert into paofti select * from paliasorigin where porigin_id=porigin_id('RefSeq') limit 100000;
+insert into paofti select * from paliasorigin where origin_id=origin_id('RefSeq') limit 100000;
 (takes about 4 minutes)
 
 create type pao_fti_t as (pseq_id integer, headline text, rank real, alias text, descr text, tax_id integer);

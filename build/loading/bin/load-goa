@@ -12,7 +12,7 @@ my $i_sth = $u->prepare(q/insert into unison.pseq2go (pseq_id,go_id,
 						reference,evidence) values (?,?,?,?)/);
 
 my $q_sth = $u->prepare_cached(q/select pseq_id from palias where
-								 alias=? and porigin_id=12/);
+								 alias=? and origin_id=12/);
 
 
 my $fn = shift || '-';

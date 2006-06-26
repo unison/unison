@@ -7,7 +7,7 @@ These are items which can only/best be dealt with in a backup/restore cycle.
 
 ** prospect2/prospect
 
-** reorder cols in porigin, others?
+** reorder cols in origin, others?
 
 
 
@@ -39,22 +39,22 @@ paprospect2 loading is particularly slow; we should recast these as sql
 delete and COPY statements, including run_history updates, all wrapped in
 a transaction.
 
-** changes to pmodelsets and porigins are not tracked by run_history
-run_history refers to pmodelsets and porigins. It is possible that the set
+** changes to pmodelsets and origins are not tracked by run_history
+run_history refers to pmodelsets and origins. It is possible that the set
 of models (pmodel_ids) implied by using either or both of these criteria
 will change over time, thereby making run_history data incorrect. The
-options are to make such sets immutable (not possible for porigin), or
-better, attach time stamps to pmodelset and porigin rows, or to simply
-remove run_history rows when a pmodelset or porigin set is changed.
+options are to make such sets immutable (not possible for origin), or
+better, attach time stamps to pmodelset and origin rows, or to simply
+remove run_history rows when a pmodelset or origin set is changed.
 
 ** overriding inherited fields
-pmpseq (others?) override inherited fields (specifically, porigin_id and
+pmpseq (others?) override inherited fields (specifically, origin_id and
 acc are made not null) and therefore conflicts conceptually with the
 parent and, more pragmatically, upon restore. We should strictly follow
 inheritance of columns AND their attributes.
 
 ** linking
-URLs are stored in the porigin table, but they're not used by the web
+URLs are stored in the origin table, but they're not used by the web
 tools.  Solution: cache origin->url mapping, then use this to format. See
 U::WWW::utilities.pm.
 
@@ -152,7 +152,7 @@ evals are reproducible.  Scores are always reproducible.
   fix 4 tables made by cavs
 ** DONE: pseq.len: smallint -> int 
 ** DONE: s/p2/prospect2/
-** DONE: porigin_id() needs to be created ahead of *_dv
+** DONE: origin_id() needs to be created ahead of *_dv
 ** DONE: affyannot
 ** DONE: unq,pro,dnaid import
 ** DONE: run-blat needed

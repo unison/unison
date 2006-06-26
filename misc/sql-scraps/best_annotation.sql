@@ -2,7 +2,7 @@
 -- NAME: best_annotation.sql
 -- PURPOSE: set of functions for retrieving the best alias of a given sequence
 --
--- $Id$
+-- $Id: best_annotation.sql,v 1.7 2003/09/30 22:50:02 cavs Exp $
 -- -----------------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------------
@@ -24,7 +24,7 @@ BEGIN
 
 	select into rv O.origin || '':'' || A.alias || '' ('' || coalesce(A.descr, ''No descr available'') || '')''
 		from paliasorigin A
-		join porigin O on O.porigin_id=A.porigin_id
+		join origin O on O.origin_id=A.origin_id
 		where A.palias_id=a_id;
 
 	return rv;
@@ -51,7 +51,7 @@ BEGIN
 	select into rv 
 		O.origin || '':'' || A.alias
 		from paliasorigin A
-		join porigin O on O.porigin_id=A.porigin_id
+		join origin O on O.origin_id=A.origin_id
 		where A.palias_id=a_id;
 	return rv;
 END;';
@@ -83,14 +83,14 @@ BEGIN
 	if flag then
 		select into a_id QA.palias_id from pseqalias QA
 			join paliasorigin OA on OA.palias_id=QA.palias_id
-			join porigin O on O.porigin_id=OA.porigin_id
+			join origin O on O.origin_id=OA.origin_id
 			where QA.pseq_id=q_id and QA.iscurrent=TRUE 
 			order by O.ann_pref limit 1;
 	-- dont allow null ann_pref
 	else
 		select into a_id QA.palias_id from pseqalias QA
 			join paliasorigin OA on OA.palias_id=QA.palias_id
-			join porigin O on O.porigin_id=OA.porigin_id
+			join origin O on O.origin_id=OA.origin_id
 			where QA.pseq_id=q_id and QA.iscurrent=TRUE and O.ann_pref is not null
 			order by O.ann_pref limit 1;
 	end if;

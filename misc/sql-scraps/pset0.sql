@@ -1,11 +1,11 @@
 -- pset0.sql
--- $Id$
+-- $Id: pset0.sql,v 1.1 2005/04/04 18:19:58 rkh Exp $
 -- differential update of pset 0.
 
 drop table pset0;
 
 create temp table pset0 as select distinct pseq_id
-	from palias where porigin_id=porigin_id('kabat');
+	from palias where origin_id=origin_id('kabat');
 
 create index pset0_pseq_id on pset0(pseq_id);
 analyze pset0;

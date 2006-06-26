@@ -16,8 +16,8 @@ my $origin = 'pdb';
 
 my $udb = new Unison;
 
-my $porigin_id = $udb->si_porigin_id($origin);
-printf(STDERR "# loading sequences into $origin (porigin_id=$porigin_id)\n");
+my $origin_id = $udb->si_origin_id($origin);
+printf(STDERR "# loading sequences into $origin (origin_id=$origin_id)\n");
 
 
 my $in  = Bio::SeqIO->new('-format' => 'Fasta');
@@ -34,7 +34,7 @@ while( my $seq = $in->next_seq() )
   if (not defined $pseq_id)
 	{ warn("failed to add $id"); next; }
 
-  $udb->add_palias($pseq_id,$porigin_id,$id,$desc);
+  $udb->add_palias($pseq_id,$origin_id,$id,$desc);
 
   print(STDERR "added $id (pseq_id=$pseq_id)\n");
   }

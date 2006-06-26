@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pahmm,v 1.5 2005/04/02 02:42:46 rkh Exp $
+# $Id: load-pahmm,v 1.6 2005/05/11 21:53:41 rkh Exp $
 # load-pahmm -- load hmmer results from a file
 
 use warnings;
@@ -18,33 +18,33 @@ my %opts =
   (
    force => 0,
    params_id => undef,
-   porigin_id => undef,
+   origin_id => undef,
    verbose => 0,
   );
 GetOptions(\%opts,
 		   'force|f+',
 		   'params_id|p=i',
-		   'porigin_id|o=i',
+		   'origin_id|o=i',
 		   'verbose|v+',
 		  ) || die("$0: you got usage issues, short stack\n");
 
 (defined $opts{params_id})
   || die("$0: must defined params_id (-p)\n");
 
-(defined $opts{porigin_id}) 
-  || die("$0: must defined porigin_id for HMM models (-o)\n");
+(defined $opts{origin_id}) 
+  || die("$0: must defined origin_id for HMM models (-o)\n");
 
 
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
-my $origin = $u->porigin_origin_by_porigin_id($opts{porigin_id});
+my $origin = $u->origin_origin_by_origin_id($opts{origin_id});
 (defined $origin)
-  || die("origin with porigin_id=$opts{porigin_id} doesn't exist\n");
+  || die("origin with origin_id=$opts{origin_id} doesn't exist\n");
 
-my %pmodel_id_cache = cache_pmodel_ids($u,$opts{porigin_id});
-printf(STDERR "# %d pmodel_ids cached for accessions and names of porigin_id=%d (%s)\n",
-	   scalar keys %pmodel_id_cache, $opts{porigin_id}, $origin);
+my %pmodel_id_cache = cache_pmodel_ids($u,$opts{origin_id});
+printf(STDERR "# %d pmodel_ids cached for accessions and names of origin_id=%d (%s)\n",
+	   scalar keys %pmodel_id_cache, $opts{origin_id}, $origin);
 
 
 my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
@@ -80,9 +80,9 @@ sub cache_pmodel_ids($$) {
   # cache acc=>pmodel_id and name=>pmodel_id in same hash
   my $u = shift;
   my $o = shift;
-  my $h1 = $u->selectall_hashref('select acc,pmodel_id from pmhmm where porigin_id=?',
+  my $h1 = $u->selectall_hashref('select acc,pmodel_id from pmhmm where origin_id=?',
 								  1, undef, $o);
-  my $h2 = $u->selectall_hashref('select name,pmodel_id from pmhmm where porigin_id=?',
+  my $h2 = $u->selectall_hashref('select name,pmodel_id from pmhmm where origin_id=?',
 								 1, undef, $o);
   return( (map { $_=>$h1->{$_}{pmodel_id} } keys %$h1), 
 		  (map { $_=>$h2->{$_}{pmodel_id} } keys %$h2) );
@@ -119,7 +119,7 @@ sub load_aln_file ($$) {
 		my $acc = $hit->name();
 
 		(exists $pmodel_id_cache{$acc})
-		  || die("\n! couldn't look up a pmodel_id for $acc in origin $opts{porigin_id}!\n");
+		  || die("\n! couldn't look up a pmodel_id for $acc in origin $opts{origin_id}!\n");
 		my $pmodel_id = $pmodel_id_cache{$acc};
 
 		while( my $hsp = $hit->next_hsp ) {
@@ -133,7 +133,7 @@ sub load_aln_file ($$) {
 		  $pahmm_sth->execute(@data);
 		}
 	  }
-	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{porigin_id},$opts{pmodelset_id});
+	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},$opts{origin_id},$opts{pmodelset_id});
 	  $u->commit();
 	  printf(STDERR "# sequence stats: %d hits, %d hsps for Unison:$pseq_id\n",
 			 $nhits,$nhsps);

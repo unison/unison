@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.22 2006/02/15 04:06:37 rkh Exp $
+# $Id: run-pahmm,v 1.23 2006/05/11 04:04:44 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -72,25 +72,25 @@ my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 (defined $opts{params_id})
   || die("$0: parameters not defined (-p)\n");
 
-$opts{model_porigin_id} = 
+$opts{model_origin_id} = 
 	$u->selectrow_array(<<EOSQL);
-SELECT model_porigin_id FROM params
+SELECT model_origin_id FROM params
 WHERE params_id=$opts{params_id}
 EOSQL
-(defined $opts{model_porigin_id})
-  || die("$0: Big Problem: model_porigin_id not defined for params_id=$opts{params_id}\n");
+(defined $opts{model_origin_id})
+  || die("$0: Big Problem: model_origin_id not defined for params_id=$opts{params_id}\n");
 
 $opts{modelfile} = 
 	$u->selectrow_array(<<EOSQL);
-SELECT data_url FROM porigin
-WHERE porigin_id=$opts{model_porigin_id}
+SELECT data_url FROM origin
+WHERE origin_id=$opts{model_origin_id}
 EOSQL
 (defined $opts{modelfile})
-  || die("$0: data_url is NULL for porigin_id=$opts{model_porigin_id}\n");
+  || die("$0: data_url is NULL for origin_id=$opts{model_origin_id}\n");
 (-e $opts{modelfile})
   || die("$0: $opts{modelfile} doesn't exist\n");
 
-my $nmodels = preload_pmodel_id_cache($u,$opts{model_porigin_id});
+my $nmodels = preload_pmodel_id_cache($u,$opts{model_origin_id});
 
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
 my @cl = (split(' ',$clo), $opts{modelfile}, $seqfn);
@@ -99,10 +99,10 @@ my @cl = (split(' ',$clo), $opts{modelfile}, $seqfn);
 printf(STDERR "# loading params '%s' (params_id=%d)\n",
 	   $u->get_params_name_by_params_id($opts{params_id}),
 	   $opts{params_id});
-printf(STDERR "# %d models from porigin '%s' (porigin_id=%d)\n",
+printf(STDERR "# %d models from origin '%s' (origin_id=%d)\n",
 	   $nmodels,
-	   $u->get_porigin_name_by_porigin_id($opts{model_porigin_id}),
-	   $opts{model_porigin_id});
+	   $u->get_origin_name_by_origin_id($opts{model_origin_id}),
+	   $opts{model_origin_id});
 printf(STDERR "# models in file `%s'\n", $opts{modelfile});
 printf(STDERR "# commandline: %s\n", join(' ',@cl));
 
@@ -154,7 +154,7 @@ sub fetch_sequences ($$@) {
 	|| die("! couldn't open $seqfn for writing\n");
 
   foreach my $pseq_id (@pseq_ids) {
-	if ($u->already_ran($pseq_id,$opts{params_id},$opts{model_porigin_id},$opts{pmodelset_id})) {
+	if ($u->already_ran($pseq_id,$opts{params_id},$opts{model_origin_id},$opts{pmodelset_id})) {
 	  warn("Unison:$pseq_id already run with these parameters\n");
 	  next;
 	}
@@ -214,7 +214,7 @@ sub run_and_load ($$) {
 		my $acc = $hit->name();
 		my $pmodel_id = get_pmodel_id($acc);
 		if (not defined $pmodel_id) {
-		  die("\n! couldn't look up a pmodel_id for $acc in origin $opts{model_porigin_id}!\n");
+		  die("\n! couldn't look up a pmodel_id for $acc in origin $opts{model_origin_id}!\n");
 		}
 
 		$hit->rewind if ($ndlock > 0);
@@ -231,7 +231,7 @@ sub run_and_load ($$) {
 		}
 	  }
 	  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},
-									$opts{model_porigin_id},$opts{pmodelset_id});
+									$opts{model_origin_id},$opts{pmodelset_id});
 	  $u->commit();
 
 	  print(STDERR "# Unison:$pseq_id: $nhits hits, $nhsps HSPs; committed $z",
@@ -277,9 +277,9 @@ my %pmodel_id_cache;
 
 sub preload_pmodel_id_cache($$) {
   my $u = shift;
-  my $porigin_id = shift;
-  my $ar = $u->selectall_arrayref('select acc,pmodel_id from pmhmm where porigin_id=?',
-								 undef, $porigin_id);
+  my $origin_id = shift;
+  my $ar = $u->selectall_arrayref('select acc,pmodel_id from pmhmm where origin_id=?',
+								 undef, $origin_id);
   %pmodel_id_cache = map {$_->[0] => $_->[1]} @$ar;
   return $#$ar+1;
 }
@@ -287,8 +287,8 @@ sub preload_pmodel_id_cache($$) {
 sub get_pmodel_id ($) {
   my $acc = shift;
   if (not exists $pmodel_id_cache{$acc}) {
-	my $sth = $u->prepare_cached('select pmodel_id from pmhmm where acc=? and porigin_id=? order by added desc');
-	$sth->execute($acc,$opts{model_porigin_id});
+	my $sth = $u->prepare_cached('select pmodel_id from pmhmm where acc=? and origin_id=? order by added desc');
+	$sth->execute($acc,$opts{model_origin_id});
 	my $ids = $sth->fetchall_arrayref();
 	return undef unless defined $ids;
 	die("\n! found ",$#$ids+1," pmodel_ids for model acc $acc\n") if ($#$ids>0);

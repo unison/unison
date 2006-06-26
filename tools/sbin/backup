@@ -1,6 +1,6 @@
 #!/bin/bash
 # backup -- backup the csb database
-# $Id: backup,v 1.24 2005/11/07 23:43:07 rkh Exp $
+# $Id: backup,v 1.25 2006/06/26 17:36:25 rkh Exp $
 #
 # you must set PGPASSWORD before running
 # this script any user with write permission in BACKUPDIR (below) should
@@ -29,7 +29,7 @@ source `dirname $0`/utils
 PGD_SOPT=
 case "$1" in
 	-s) PGD_SOPT="-s"; shift;;
-	--debug) TABLE="-t porigin"; shift;;
+	--debug) TABLE="-t origin"; shift;;
 esac
 
 PGDATABASE=$1

@@ -85,7 +85,7 @@ while( @Q ) {
   my @q = splice( @Q, 0, $opts{'seqs-per-run'} );
   for(my $i=$#q; $i>=0; $i--) {
 	next;
-	if ($u->already_ran($q[$i],$opts{params_id},$opts{porigin_id},$opts{pmodelset_id})) {
+	if ($u->already_ran($q[$i],$opts{params_id},$opts{origin_id},$opts{pmodelset_id})) {
 	  warn("Unison:$q[$i] already run with these parameters\n");
 	  splice(@q,$i,1);
 	}

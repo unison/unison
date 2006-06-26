@@ -8,7 +8,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-tmdetect [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-pftmdetect,v 1.13 2006/02/20 20:49:09 rkh Exp $
+# $Id: run-pftmdetect,v 1.14 2006/03/14 01:26:25 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -31,13 +31,13 @@ my %opts = (
 			'debug' => 0,
 			'params_id' => 9,
 			'pmodelset_id' => undef,
-			'porigin_id' => undef,
+			'origin_id' => undef,
 			'update' => 0,					# try update before insert
 			'verbose' => 0,
 		   );
 
 
-print(STDERR '$Id: run-pftmdetect,v 1.13 2006/02/20 20:49:09 rkh Exp $ ', "\n");
+print(STDERR '$Id: run-pftmdetect,v 1.14 2006/03/14 01:26:25 rkh Exp $ ', "\n");
 
 GetOptions(\%opts,
 		   'debug+',

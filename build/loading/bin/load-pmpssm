@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # load-pmpssm -- loads psiblast profiles (PSSMs)into unison
-# $Id: load-pmpssm,v 1.1 2003/05/27 22:33:45 rkh Exp $
+# $Id: load-pmpssm,v 1.2 2004/04/02 00:34:05 rkh Exp $
 
 
 use strict;
@@ -28,12 +28,12 @@ if (not defined $opts{origin}) {
 
 my $fh = new IO::File;
 my $u = new Unison;
-my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
-print(STDERR "# loading into $opts{origin} (porigin_id=$porigin_id)\n");
+my $origin_id = $u->origin_si_origin_id($opts{origin});
+print(STDERR "# loading into $opts{origin} (origin_id=$origin_id)\n");
 
 
 my $sth;
-$sth = $u->prepare("insert into pmpssm(porigin_id,acc,md5) values ($porigin_id,?,?)")
+$sth = $u->prepare("insert into pmpssm(origin_id,acc,md5) values ($origin_id,?,?)")
   || die($u->errstr());
 
 while( my $fn = shift )  {
@@ -51,6 +51,6 @@ while( my $fn = shift )  {
   print(STDERR "# loaded $fn (acc=$acc, md5=$md5)\n");
 }
 
-print(STDERR "last_updated = ", $u->porigin_last_updated( $porigin_id,1 ) );
+print(STDERR "last_updated = ", $u->origin_last_updated( $origin_id,1 ) );
 
 $u->disconnect();

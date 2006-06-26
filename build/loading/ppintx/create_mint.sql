@@ -57,8 +57,8 @@ create or replace view v_mint_one_way as select A1.pseq_id as
 "pseq_id_a",M.sprot_a,A2.pseq_id as
 "pseq_id_b",M.sprot_b,M.interaction_detection_method,M.pmid from mint M
 join palias A1 on M.sprot_a=A1.alias join palias A2 on M.sprot_b=A2.alias
-where A1.porigin_id=porigin_id('Swiss-Prot') and
-A2.porigin_id=porigin_id('Swiss-Prot');
+where A1.origin_id=origin_id('Swiss-Prot') and
+A2.origin_id=origin_id('Swiss-Prot');
 
 grant select on table v_mint_one_way to public;
 comment on view v_mint_one_way is 'abridged view of mint with pseq_ids';

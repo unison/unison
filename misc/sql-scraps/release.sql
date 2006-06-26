@@ -37,18 +37,18 @@ BEGIN
 
 	-- number of distinct sequences in an origin and 
 	-- number of distinct sequences unique to an origin
-	FOR r IN select porigin_id,origin from porigin where ann_pref is not null LOOP
+	FOR r IN select origin_id,origin from origin where ann_pref is not null LOOP
 		create temp table in_r as select distinct pseq_id from palias
-			where porigin_id=r.porigin_id limit 10000;
+			where origin_id=r.origin_id limit 10000;
 		select into n count(*) from in_r;
 		perform meta_update_kv(''distinct sequences in ''||r.origin ,n);
 
 		create temp table not_in_r as select pseq_id from in_r
-			except select pseq_id from palias where porigin_id!=r.porigin_id limit 1000;
+			except select pseq_id from palias where origin_id!=r.origin_id limit 1000;
 		select into n count(*) from not_in_r;
 		-- this is faster (I think):
---		select into n count(distinct pseq_id) from palias a1 where a1.porigin_id=r.porigin_id
--- 			and	not exists (select * from palias a2 where a2.pseq_id=a1.pseq_id and a2.porigin_id!=a1.porigin_id);
+--		select into n count(distinct pseq_id) from palias a1 where a1.origin_id=r.origin_id
+-- 			and	not exists (select * from palias a2 where a2.pseq_id=a1.pseq_id and a2.origin_id!=a1.origin_id);
 --		perform meta_update_kv(''distinct sequences unique to ''||r.origin ,n);
 
 		drop table in_r;

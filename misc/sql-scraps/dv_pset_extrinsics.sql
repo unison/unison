@@ -3,7 +3,7 @@
 
 CREATE OR REPLACE VIEW dv_pset_BLAST as
 SELECT pseq_id FROM pseqset where pset_id=pset_id('uniA')
-UNION SELECT A.pseq_id FROM v_current_annotations A WHERE A.porigin_id in (porigin_id('PDB'));
+UNION SELECT A.pseq_id FROM v_current_annotations A WHERE A.origin_id in (origin_id('PDB'));
 
 CREATE OR REPLACE VIEW dv_pset_uptodate_cheap as
 SELECT 

@@ -63,8 +63,8 @@ create or replace view v_pseq2probeset as
 SELECT pseq_id, db_name AS chip, record_name AS probeset, link_method AS method
 FROM palias a
 JOIN affyannot aa ON a.alias = aa.annot_record_name
-WHERE (a.porigin_id = porigin_id('GenenGenes'::text) AND aa.record_name = 'SST'::text)
-  OR  (a.porigin_id = porigin_id('Swiss-Prot'::text) AND aa.annot_db_name = 'SwissProt'::text)
+WHERE (a.origin_id = origin_id('GenenGenes'::text) AND aa.record_name = 'SST'::text)
+  OR  (a.origin_id = origin_id('Swiss-Prot'::text) AND aa.annot_db_name = 'SwissProt'::text)
   OR  annot_db_name = 'LocusLink'::text;
 
 EOT
