@@ -1,6 +1,6 @@
 #!/bin/sh
 # pdb-fetch -- http non-parsed header PDB gateway
-# $Id: nph-pdb-fetch.sh,v 1.1 2005/07/19 01:51:35 rkh Exp $
+# $Id: nph-pdb-fetch.sh,v 1.2 2006/05/12 04:39:51 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 # Given a PDB id (e.g., 2tnf), this script returns the PDB file on STDOUT
@@ -29,7 +29,7 @@ RCSB_BASE_URL=ftp://rutgers.rcsb.org/PDB/pub/pdb
 ### Local PDB directory
 # Set this to something bogus (perhaps "/something/bogus"?) 
 # to disable local searching
-LOCAL_PDB_DIR=/gne/compbio/share/pdb/divided.pdb
+LOCAL_PDB_DIR=/gne/research/share/pdb/divided.pdb
 
 
 

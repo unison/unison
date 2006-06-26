@@ -12,7 +12,7 @@ use Unison::WWW::Page;
 sub _conn_info_html($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines('$Id: about_unison.pl,v 1.16 2005/12/09 00:48:31 rkh Exp $ ');
+$p->add_footer_lines('$Id: about_unison.pl,v 1.17 2006/01/02 05:41:11 rkh Exp $ ');
 
 
 print $p->render("About Unison", <<EOHTML, _conn_info_html($p) );
@@ -27,9 +27,9 @@ href="http://opensource.org/licenses/afl-2.1.php">Academic Free
 License</a>.  The Unison web site and PostgreSQL database backend
 available to all users.
 
-<p>Please see the <a href="../index.html">Unison Home Page
-(http://unison-db.org/)</a> for more information about the Unison project,
-<a href="../credits.html">credits</a>, <a href="../license.html">license</a>,
+<p>Please see the <a href="../index.html">Unison Home Page</a> for more
+information about the Unison project, <a
+href="../credits.html">credits</a>, <a href="../license.html">license</a>,
 documentation, direct database connection instructions, a guided tour, and
 download sites.
 
