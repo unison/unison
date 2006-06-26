@@ -22,7 +22,7 @@ my $usage = <<'EOU';
 #   --3d                 create backbone coordinates of sequences
 #   --pids           :   print percentage identities(col:4) on stdout for each template
 #   --help               this output
-# $Id: gne_prospect,v 1.7 2006/03/16 18:06:37 mukhyala Exp $
+# $Id: gne_prospect,v 1.8 2006/06/13 21:56:56 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -90,15 +90,12 @@ $opts->{db} = 'nr' unless(defined($opts->{db}));
 $ENV{BLASTPGP_DB} = "$dbroot/".$opts->{db} if (not defined $ENV{BLASTPGP_DB});
 $ENV{BLASTPGP_EXE} = '$ENV{RESEARCH_PREFIX}/i686-linux-2.6/bin/blastpgp'  if (not defined $ENV{BLASTPGP_DB});
 
-foreach my $e('PSIPRED_PATH') {
-  if (($opts{psiblast} or $opts{psipred}) and not defined($ENV{$e})) {
-    die("$0: $e not defined\n");
-  }
+
+if (($opts{psiblast} or $opts{psipred})) {
+  unshift(@PATH, '/gne/research/apps/psipred/current/i686-linux-2.6/bin/');
 }
 
-
 my $temproot = $ENV{TMPDIR} || '/tmp/';
-unshift(@PATH, $ENV{PSIPRED_PATH});
 
 my $fa_fn = $ARGV[0] || die "need an input sequence as a fasta file, try --help\n";
 
