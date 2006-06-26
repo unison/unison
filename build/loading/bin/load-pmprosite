@@ -1,22 +1,71 @@
 #!/usr/bin/env perl
 
+my $usage = <<'EOU';
+#-------------------------------------------------------------------------------
+# NAME: load-pmprosite
+# PURPOSE: load prosite patterns into Unison
+# USAGE: load-pmprosite ARGUMENTS OPTIONS <patterns file ...>
+# ARGUMENTS (required):
+#   --origin|-o <origin>: name of origin
+# OPTIONS:
+#   --verbose|-v: flag to output more processing information
+#
+# $Id$
+#------------------------------------------------------------------------------
+EOU
+
+use Getopt::Long;
+use ps_scan::Prosite;
+use Unison;
+
 use strict;
 use warnings;
 
-use CBT::Prosite::DB;
 
-my $dbfn = shift;
-defined $dbfn
-  || die("usage: $0 <prosite.dat>\n");
-my $db = new CBT::Prosite::DB;
-$db->open("$dbfn")
-  || die("$dbfn: $!\n");
 
-my $n = 0;
-foreach my $ac (sort $db->keys()) {
-  my($r);
-  (defined ($r = $db->read_parse_record($ac)) )
-    || die("$ac: couldn't read record\n");
-  print("$ac: $r->{PA}\n");
-exit if ++$n == 10;
+my %opts = (
+			'origin' => undef,
+			'verbose' => 0,
+);
+GetOptions( \%opts,
+			'origin|o=s',
+			'verbose|v')
+  || die("$0: bad usage:\n$usage\n");
+
+(defined $opts{origin})
+  || die("$0: --origin (-o) is mandatory\n\n$usage");
+
+my $u = new Unison( dbname=>'csb-dev', user=>'loader',password=>'marge');
+
+my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
+(defined $porigin_id)
+  || die("$0: origin $opts{origin}: $@\n");
+printf(STDERR "# loading patterns from $opts{origin} (porigin_id=$porigin_id)\n") if($opts{verbose});
+
+my @fn = $u->selectrow_array("select data_url from porigin where porigin_id=$porigin_id");
+open (PRO, $fn[0]) || die "Cannot open $fn[0]\n";
+
+my @insert_fields = qw(porigin_id acc name descr regexp);
+
+my $insert_stmt = sprintf('insert into pmregexp (%s) values (%s)',
+						  join(',',@insert_fields),
+						  join(',',map {'?'} @insert_fields) );
+my $sth_insert_pmprosite = $u->prepare($insert_stmt);
+
+warn($insert_stmt);
+
+$/ = "\n//\n";
+$u->begin_work();
+while(my $blk = <PRO>) {
+
+  my @p = Prosite::parseProsite($blk);
+  if($p[0] and $p[2] eq 'PATTERN') {
+    my ($acc,$name,$descr,$regexp,$skip) = (@p[0..1],$p[3],Prosite::prositeToRegexp($p[4]),$p[7]);
+    $sth_insert_pmprosite->execute($porigin_id,$acc,$name,$descr,$regexp) if(not $skip);
+    print(STDERR "$acc: $name ($descr) : $regexp\n");
+  }
 }
+printf("done; last updated=%s\n", $u->porigin_last_updated($porigin_id,1));
+print("Committing...\n");
+$u->commit();
+close(PRO);
