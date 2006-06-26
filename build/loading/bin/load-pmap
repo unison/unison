@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.9 2006/02/24 18:33:38 mukhyala Exp $
+# $Id: load-pmap,v 1.10 2006/03/13 22:04:41 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -183,7 +183,7 @@ sub load_aln_hsps ($@) {
 	  throw Unison::Exception("line $.: chr is undefined");
 	}
 	$hsp_sth->execute( $opts{genasm_id},  $chr,
-					   (( $f->strand > 0 ) ? 'true' : 'false'),
+					   (( $f->strand > 0 ) ? '+' : '-'),
 					   $f->start, $f->end, $pseq_id, $f->hstart,
 					   $f->hend, $opts{params_id} );
 	push(@hsp_ids,$hsp_sth->fetchrow_array);
