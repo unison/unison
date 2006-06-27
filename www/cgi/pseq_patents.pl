@@ -14,7 +14,7 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.17 2005/12/07 23:21:03 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_patents.pl,v 1.18 2006/06/26 18:05:08 rkh Exp $ ');
 
 if ($u->is_public()) {
   $p->die('Patents not available.', <<EOT);
@@ -60,6 +60,9 @@ sub do_search {
   return '' unless (defined $v->{pseq_id} and $v->{pseq_id} ne '');
 
   # substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([^\\\\s\\\\]]+)') as patent_authority,
+  # I'd much prefer to have this query view-ized, but as of 2006-06-25,
+  # the subquery below joined with patents_v is extremely slow.  I think the problem
+  # is the join across the union.  
   my $sql = <<EOSQL;
 SELECT
 	X1.*,
@@ -81,7 +84,7 @@ FROM (SELECT t_pseq_id AS pseq_id,len,pct_ident::smallint,pct_coverage::smallint
 JOIN pseqalias SA on X1.pseq_id=SA.pseq_id
 JOIN paliasorigin AO on	AO.palias_id=SA.palias_id
 JOIN origin O on O.origin_id=AO.origin_id
-JOIN spspec T on AO.tax_id=T.tax_id
+LEFT JOIN spspec T on AO.tax_id=T.tax_id
 WHERE SA.is_current=true
   AND AO.origin_id=origin_id('Geneseq')
 ORDER BY pct_coverage desc,pct_ident desc,patent_date,patent_authority,alias
