@@ -21,7 +21,7 @@ update default all: ${CLA} ${DES} ${HIE} scop.load
 scop.sql:
 	./scop2sql --cla ${CLA} --des ${DES} --hie ${HIE} >$@ 2>$@.log
 
-scop.load: scop.sql
+scop.load: scop.sql FORCE
 	psql -f $< 2>&1 | tee $@.err
 	/bin/mv $@.err $@
 

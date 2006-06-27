@@ -21,7 +21,7 @@ update: $(foreach t,${TABLES},logs/$t-load.log)
 
 
 # "create" logs
-$(foreach t,${TABLES},logs/$t-create.log): logs/%.log: sql/%.sql
+$(foreach t,${TABLES},logs/$t-create.log): logs/%.log: sql/%.sql FORCE
 	${PSQL} -f $< 2>&1 | tee $@
 
 
