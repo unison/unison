@@ -19,6 +19,6 @@ hugo.dat:
 $(foreach t,${TABLES},logs/$t-create.log): logs/%.log: sql/%.sql
 	psql -Xf $< 2>&1 | tee $@
 
-$(foreach t,${TABLES},logs/$t-load.log): logs/%-load.log: %.dat logs/%-create.log
+$(foreach t,${TABLES},logs/$t-load.log): logs/%-load.log: %.dat logs/%-create.log FORCE
 	tail +2 $< | ${PSQL} -f sql/$*-load.sql | tee $@.err
 	/bin/mv -f $@.err $@
