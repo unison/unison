@@ -63,14 +63,16 @@ printf("%d models selected\n", $#pmodel_ids+1);
 
 my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 my $N = $#pseq_ids+1;
-
+my $M = $#pmodel_ids+1;
 # Filter the requested pseq_ids for those which actually hit any of the
 # regexps. If the number of pseq_ids is large, we can save the time to
 # fetch each sequence by doing a server-side scan for pseq_ids which hit
 # ANY of the regexps, and using that locally to determine which sequences
 # to fetch.
+# This is very slow when the number of regular expressions to match is large, 
+# so restrict to smaller modelsets
 my %hits;
-if ($N >= 10000) {
+if ($N >= 10000 and $M <= 100) {
   print(STDERR "# using server-side expression matching...\n");
   %hits = map {$_=>1} get_matching_pseq_ids($u,values %regexps);
   my $nhits = scalar(keys %hits);
@@ -151,7 +153,7 @@ sub get_regexps($$$) {
 	$sql->order('M.origin_id');
   }
   $sql->order('M.pmodel_id');
-  return( map {$_->[0]=>$_->[1]} @{$u->selectall_arrayref("$sql")} );
+  return( map {$_->[0]=>qr/$_->[1]/} @{$u->selectall_arrayref("$sql")} );
 }
 
 sub get_matching_pseq_ids($@) {
