@@ -1,7 +1,7 @@
 =head1 NAME
 
- Unison::porigin -- Unison porigin table utilities
- $Id: porigin.pm,v 1.9 2005/02/16 22:50:52 rkh Exp $
+ Unison::origin -- Unison origin table utilities
+ $Id: origin.pm,v 1.10 2005/09/13 17:05:51 rkh Exp $
 
 =head1 SYNOPSIS
 
@@ -32,38 +32,38 @@ use warnings;
 
 
 ######################################################################
-## porigin_si_porigin_id()
+## origin_si_origin_id()
 
 =pod
 
-=item B<< ::porigin_si_porgin_id( C<origin> ) >>
+=item B<< ::origin_si_porgin_id( C<origin> ) >>
 
 =over
 
-ensure that origin is in the porigin table, return porigin_id
+ensure that origin is in the origin table, return origin_id
 
 =back
 
 =cut
 
-sub porigin_si_porigin_id($$) {
+sub origin_si_origin_id($$) {
   my ($self,$origin) = @_;
   $self->is_open()
 	|| throw Unison::Exception('Unison connection not established');
   (defined $origin and $origin =~ m/\w/)
 	|| throw Unison::Exception("can't lookup a null origin");
-  my ($rv) = $self->selectrow_array("select porigin_si_porigin_id ('$origin')");
+  my ($rv) = $self->selectrow_array("select origin_si_origin_id ('$origin')");
   return $rv;
 }
 
 
 
 ######################################################################
-## porigin_origin_by_porigin_id()
+## origin_origin_by_origin_id()
 
 =pod
 
-=item B<< ::porigin_origin_by_porigin_id( C<porigin_id> ) >>
+=item B<< ::origin_origin_by_origin_id( C<origin_id> ) >>
 
 =over
 
@@ -71,23 +71,23 @@ sub porigin_si_porigin_id($$) {
 
 =cut
 
-sub porigin_origin_by_porigin_id($$) {
-  my ($self,$porigin_id) = @_;
+sub origin_origin_by_origin_id($$) {
+  my ($self,$origin_id) = @_;
   $self->is_open()
 	|| throw Unison::Exception('Unison connection not established');
-  (defined $porigin_id)
-	|| throw Unison::Exception("can't lookup a null porigin_id");
-  my ($rv) = $self->selectrow_array("select origin from porigin where porigin_id=$porigin_id");
+  (defined $origin_id)
+	|| throw Unison::Exception("can't lookup a null origin_id");
+  my ($rv) = $self->selectrow_array("select origin from origin where origin_id=$origin_id");
   return $rv;
 }
 
 
 ######################################################################
-## porigin_porigin_id_by_origin
+## origin_origin_id_by_origin
 
 =pod
 
-=item B<< $u->porigin_porigin_id_by_origin( C<porigin_id> ) >>
+=item B<< $u->origin_origin_id_by_origin( C<origin_id> ) >>
 
 =over
 
@@ -95,52 +95,52 @@ sub porigin_origin_by_porigin_id($$) {
 
 =cut
 
-sub porigin_porigin_id_by_origin($) {
+sub origin_origin_id_by_origin($) {
   my ($self,$origin) = @_;
   $self->is_open()
 	|| throw Unison::Exception('Unison connection not established');
   (defined $origin and $origin =~ m/\w/)
 	|| throw Unison::Exception("can't lookup a null origin");
-  my ($rv) = $self->selectrow_array("select porigin_id from porigin where upper(origin)=upper('$origin')");
+  my ($rv) = $self->selectrow_array("select origin_id from origin where upper(origin)=upper('$origin')");
   return $rv;
 }
 
-sub get_porigin_id_by_origin {
-  goto &porigin_porigin_id_by_origin;
+sub get_origin_id_by_origin {
+  goto &origin_origin_id_by_origin;
 }
 
 
 
 ######################################################################
-## get_porigin_name_by_porigin_id()
+## get_origin_name_by_origin_id()
 
 =pod
 
-=item B<< $u->get_porigin_name_by_porigin_id( C<porigin_id> ) >>
+=item B<< $u->get_origin_name_by_origin_id( C<origin_id> ) >>
 
-Returns name for the given porigin_id.
+Returns name for the given origin_id.
 
 =cut
 
-sub get_porigin_name_by_porigin_id($$) {
-  my ($self,$porigin_id) = @_;
+sub get_origin_name_by_origin_id($$) {
+  my ($self,$origin_id) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
-  my (@rv) = $self->selectrow_array('select origin from porigin where porigin_id=?',
-									undef,$porigin_id);
+  my (@rv) = $self->selectrow_array('select origin from origin where origin_id=?',
+									undef,$origin_id);
   return @rv ? $rv[0] : undef;
 }
 
 
 
 ######################################################################
-## porigin_last_updated
+## origin_last_updated
 
 =pod
 
-=item B<< ::porigin_last_updated( C<porigin_id>, [set] ) >>
+=item B<< ::origin_last_updated( C<origin_id>, [set] ) >>
 
-If the optional second argument is defined (e.g,. porigin_last_updated(15,1)), then 
+If the optional second argument is defined (e.g,. origin_last_updated(15,1)), then 
 set the last_updated field to now.  In any case, the last_updated value is returned.
 
 =over
@@ -149,15 +149,15 @@ set the last_updated field to now.  In any case, the last_updated value is retur
 
 =cut
 
-sub porigin_last_updated($$) {
-  my ($self,$porigin_id) = @_;
+sub origin_last_updated($$) {
+  my ($self,$origin_id) = @_;
   $self->is_open()
 	|| croak("Unison connection not established");
   if (defined $_[2]) {
-	$self->do("update porigin set last_updated=now() where porigin_id=$porigin_id");
+	$self->do("update origin set last_updated=now() where origin_id=$origin_id");
   }
-  my $sth = $self->prepare("select last_updated from porigin where porigin_id=?");
-  $sth->execute( $porigin_id );
+  my $sth = $self->prepare("select last_updated from origin where origin_id=?");
+  $sth->execute( $origin_id );
   my ($rv) = $sth->fetchrow_array();
   $sth->finish();
   return $rv;
