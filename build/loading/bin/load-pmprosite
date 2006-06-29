@@ -10,7 +10,7 @@ my $usage = <<'EOU';
 # OPTIONS:
 #   --verbose|-v: flag to output more processing information
 #
-# $Id$
+# $Id: load-pmprosite,v 1.2 2006/06/26 20:56:21 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -35,7 +35,7 @@ GetOptions( \%opts,
 (defined $opts{origin})
   || die("$0: --origin (-o) is mandatory\n\n$usage");
 
-my $u = new Unison( dbname=>'csb-dev', user=>'loader',password=>'marge');
+my $u = new Unison( dbname=>'csb-dev', user=>'loader');
 
 my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
 (defined $porigin_id)
