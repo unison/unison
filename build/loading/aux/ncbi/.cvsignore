@@ -3,8 +3,12 @@ ensembl-*
 *.err
 *.fa
 *.ids
+*.load
 *.log
 logs
+*-N10
+*-N25
+*-N5
 qsub
 run*
 *.tmp

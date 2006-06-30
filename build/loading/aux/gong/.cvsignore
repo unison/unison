@@ -6,9 +6,13 @@ go_2*
 godb.sql
 go.pgdump.gz
 *.ids
+*.load
 load-go.sql
 load.sql
 *.log
+*-N10
+*-N25
+*-N5
 qsub
 run*
 schema.sql

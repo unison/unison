@@ -6,10 +6,14 @@ ensembl-*
 *.fa
 ggi
 *.ids
+*.load
 *.log
 logs*
 m10
 *.mt
+*-N10
+*-N25
+*-N5
 no
 ns*
 qsub

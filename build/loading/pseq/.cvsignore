@@ -10,6 +10,9 @@ geneseq
 log
 *.log
 logs
+*-N10
+*-N25
+*-N5
 *.proids
 qsub
 refseq

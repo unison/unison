@@ -4,7 +4,11 @@ ensembl-*
 *.fa
 go_*
 *.ids
+*.load
 *.log
+*-N10
+*-N25
+*-N5
 qsub
 run*
 *.tmp
