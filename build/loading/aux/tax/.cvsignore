@@ -5,7 +5,11 @@ ensembl-*
 *.fa
 gc.prt
 *.ids
+*.load
 *.log
+*-N10
+*-N25
+*-N5
 ncbi
 qsub
 run*

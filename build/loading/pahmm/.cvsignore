@@ -8,10 +8,14 @@ ensembl-*
 ggi
 *.ids
 load
+*.load
 load*
 *.log
 logs*
 *.mt
+*-N10
+*-N25
+*-N5
 no
 ns*
 qsub

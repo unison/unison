@@ -3,7 +3,11 @@ ensembl-*
 *.err
 *.fa
 *.ids
+*.load
 *.log
+*-N10
+*-N25
+*-N5
 *.phr
 *.pin
 *.psq
