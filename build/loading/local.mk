@@ -1,5 +1,5 @@
 ## local.mk -- site-local definitions for Unison loading
-## $Id: local.mk,v 1.6 2006/06/12 22:21:49 mukhyala Exp $
+## $Id: local.mk,v 1.7 2006/06/13 18:19:44 mukhyala Exp $
 
 
 # Unison connection details
@@ -15,7 +15,7 @@ UNISON_HOME:=${HOME}/unison
 
 # where to find executables
 PATH:=${UNISON_HOME}/sbin:${UNISON_HOME}/bin:${UNISON_HOME}/misc
-PATH:=${PATH}:${RESEARCH_PREFIX}/i686-linux-2.6/bin:${COMPBIO_PREFIX}/i686-linux-2.6/bin
+PATH:=${PATH}:${RESEARCH_PREFIX}/env/prd/i686-linux-2.6/bin
 PATH:=${PATH}:/usr/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
 export PATH
 
@@ -33,7 +33,7 @@ RENAME=${UNISON_HOME}/sbin/rerename
 # This will require a lot of code and data that are
 # not publicly available. 
 GNE:=0
-ifeq "$(shell /bin/dnsdomainname)" "gene.com"
+ifeq "$(shell /bin/hostname|cut -d. -f2-)" "gene.com"
 $(warning NOTICE: enabling Genentech-specific configuration)
 GNE:=1
 endif
