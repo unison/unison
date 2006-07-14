@@ -4,14 +4,14 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=5
+N:=10
 QNAME=${SUBDIR}p${PAHMM_PARAMS_ID}
-RUNSET=runB
+RUNSET=runC
 NPER:=250
 
 
 update:
-	make cleanest
+	make cleaner
 	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
 	make ${RUNSET}-todo-N${N}-qload
 
