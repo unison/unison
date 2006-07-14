@@ -10,7 +10,7 @@ my $usage = <<'EOU';
 # OPTIONS:
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pmprosite,v 1.2 2006/06/26 20:56:21 mukhyala Exp $
+# $Id: load-pmprosite,v 1.3 2006/06/29 17:25:38 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -37,15 +37,15 @@ GetOptions( \%opts,
 
 my $u = new Unison( dbname=>'csb-dev', user=>'loader');
 
-my $porigin_id = $u->porigin_si_porigin_id($opts{origin});
-(defined $porigin_id)
+my $origin_id = $u->origin_si_origin_id($opts{origin});
+(defined $origin_id)
   || die("$0: origin $opts{origin}: $@\n");
-printf(STDERR "# loading patterns from $opts{origin} (porigin_id=$porigin_id)\n") if($opts{verbose});
+printf(STDERR "# loading patterns from $opts{origin} (origin_id=$origin_id)\n") if($opts{verbose});
 
-my @fn = $u->selectrow_array("select data_url from porigin where porigin_id=$porigin_id");
+my @fn = $u->selectrow_array("select data_url from origin where origin_id=$origin_id");
 open (PRO, $fn[0]) || die "Cannot open $fn[0]\n";
 
-my @insert_fields = qw(porigin_id acc name descr regexp);
+my @insert_fields = qw(origin_id acc name descr regexp);
 
 my $insert_stmt = sprintf('insert into pmregexp (%s) values (%s)',
 						  join(',',@insert_fields),
@@ -61,11 +61,11 @@ while(my $blk = <PRO>) {
   my @p = Prosite::parseProsite($blk);
   if($p[0] and $p[2] eq 'PATTERN') {
     my ($acc,$name,$descr,$regexp,$skip) = (@p[0..1],$p[3],Prosite::prositeToRegexp($p[4]),$p[7]);
-    $sth_insert_pmprosite->execute($porigin_id,$acc,$name,$descr,$regexp) if(not $skip);
+    $sth_insert_pmprosite->execute($origin_id,$acc,$name,$descr,$regexp) if(not $skip);
     print(STDERR "$acc: $name ($descr) : $regexp\n");
   }
 }
-printf("done; last updated=%s\n", $u->porigin_last_updated($porigin_id,1));
+printf("done; last updated=%s\n", $u->origin_last_updated($origin_id,1));
 print("Committing...\n");
 $u->commit();
 close(PRO);
