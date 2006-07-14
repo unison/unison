@@ -1,20 +1,16 @@
 # -*-Makefile-*-
 
-YM=200601
-
 update: go.log
-
-# f!#$ers! my2pg now overwrites Makefile without warning
-# #MY2PG:=../../../sbin/my2pg.pl
 
 include ../../common.mk
 include ../../local.mk
 include ../../params.mk
 
+YM=200601
 Y=$(shell expr "${YM}" : '\(20..\)')
 M=$(shell expr "${YM}" : '20..\(..\)')
 GTT=go_$Y$M-termdb-tables
-TABLES_TAR_GZ:=${COMPBIO_PREFIX}/share/go/full/$Y-$M-01/${GTT}.tar.gz
+TABLES_TAR_GZ:=${RESEARCH_PREFIX}/share/go/full/$Y-$M-01/${GTT}.tar.gz
 
 
 test: ${GTT}-untar.log
@@ -24,17 +20,21 @@ ${GTT}-untar.log: ${TABLES_TAR_GZ}
 	tar -xzf $< >$@.tmp 2>&1
 	/bin/mv -f $@.tmp $@
 
-
+.PHONY: pgsql
+pgsql: ${GTT}.pgsql
 ${GTT}/%.pgsql: ${GTT}/%.sql     ${GTT}-untar.log
 	${MY2PG} $< >$@
 
-
+.PHONY: sql
+sql: ${GTT}.sql
 ${GTT}.sql: ${GTT}-untar.log
 	perl -e 'while(my $$fn=shift) {' \
 	-e 'my ($$t) = $$fn =~ m%(\w+)\.txt%;' \
 	-e 'print "COPY go.$$t FROM '"'"'${PWD}/$$fn'"'"';\n";' \
 	-e '}' ${GTT}/*.log >$@.tmp
 	/bin/mv -f $@.tmp $@
+
+
 
 load-tables.log: tables.sql
 
