@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.27 2006/05/31 17:42:05 mukhyala Exp $
+# $Id: load-pseq,v 1.28 2006/06/26 18:05:08 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -347,7 +347,7 @@ sub tally ($%) {
 		  (length($src)>29 ? '...'.substr($src,-26) : $src).':',
 		  @stats{qw(nseen nadded nskipped nfailed naliases)},
 		  $delta,
-		  $stats{nseen} / $delta
+		  ($stats{nseen} / ($delta+0.00001))
 		 );
 }
 
