@@ -1,4 +1,4 @@
--- $Id: gong.sql,v 1.2 2003/07/01 16:06:33 rkh Exp $
+-- $Id: gong.sql,v 1.3 2003/07/01 18:59:55 rkh Exp $
 -- GOng -- next generation GO tables
 
 -- This sql creates new tables based on the GO term data.  I find these
@@ -12,8 +12,8 @@
 
 
 
-drop schema GOng cascade;
-create schema GOng;
+drop schema gong cascade;
+create schema gong;
 
 set search_path = gong;
 
