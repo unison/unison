@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.23 2006/05/11 04:04:44 rkh Exp $
+# $Id: run-pahmm,v 1.24 2006/06/26 18:05:08 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -54,7 +54,7 @@ my %opts =
    pmodelset_id => undef,
    verbose => 0,
    'seqs-per-run' => 50,
-   'max-length' => 5000,					# works, but probably too low
+   'max-length' => 10000,					# works, but probably too low
   );
 GetOptions(\%opts,
 		   'force|f+',
@@ -188,7 +188,6 @@ sub run_and_load ($$) {
   my $rl_dlock = 0;
 
   my $hmmerpipe = new IO::Pipe;
-  print(STDERR "# $ENV{PATH}\n");
   $hmmerpipe->reader( @cl )
 	|| die("couldn't do @cl\n");
   my $in = new Bio::SearchIO(-format => 'hmmer',
