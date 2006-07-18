@@ -4,12 +4,12 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.10 2006/03/13 22:04:41 mukhyala Exp $
+# $Id: load-pmap,v 1.11 2006/06/26 20:57:26 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
 use warnings;
-use Bio::Tools::ProteinToGenomeBlat;
+use Bio::Tools::Pmap;
 use Getopt::Long;
 use Unison;
 use Unison::Exceptions;
@@ -29,13 +29,13 @@ my %opts =
   );
 
 GetOptions(\%opts,
-  'pct_ident_cutoff|i=i',
-  'genasm_id|g=i',
-  'score_cutoff|s=i',
-  'help',
-  'verbose|v+',
-  'params_id|p=s'
-) || usage();
+		   'pct_ident_cutoff|i=i',
+		   'genasm_id|g=i',
+		   'score_cutoff|s=i',
+		   'help',
+		   'verbose|v+',
+		   'params_id|p=s'
+		  ) || usage();
 
 ($#ARGV == 0
  and defined $opts{params_id}
@@ -45,46 +45,47 @@ GetOptions(\%opts,
 
 my $u = new Unison(dbname=>'csb-dev', username=>'loader');
 
-my $psl_in = new Bio::Tools::ProteinToGenomeBlat( -file => $ARGV[0] );
+my $psl_in = new Bio::Tools::Pmap( -file => $ARGV[0] );
 
-
-my $last_pseq_id = -1;
 my @alns;
+my $aln_pseq_id = -1;
+my $skip_pseq_id = -1;
 
 while ( my $aln = $psl_in->next_result() ) {
-  my $pseq_id;
-
   if ( not defined $aln->seq_id ) {
 	warn( "ERROR: line $.: result seq_id is undefined; skipping.\n",
 		  $_, "\n" );
-	next RESULT;
+	next;
   }
 
-  ($pseq_id) = $aln->seq_id =~ m/Unison:(\d+)/;
+  my ($pseq_id) = $aln->seq_id =~ m/Unison:(\d+)/;
   if ( not defined $pseq_id ) {
     die( "ERROR: can't parse pseq_id from seq_id=",$aln->seq_id,"\n",
 		 "Source sequences aren't from Unison!\n");
   }
 
-  my $leader = "\rUnison:$pseq_id";
-  print(STDERR $leader);
+  next if ($pseq_id == $skip_pseq_id);
 
-  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
-  if (defined $ran_on) {
-      print(STDERR "$leader: loaded with these options on $ran_on; skipping\n");
-      next;
-  }
-
-
-  if ( $pseq_id != $last_pseq_id ) {
+  if ( $pseq_id != $aln_pseq_id ) {
+	# insert queued alns
 	load_seq_alns($u,@alns);
+
+	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+	if (defined $ran_on) {
+	  print(STDERR "Unison:$pseq_id loaded with these options on $ran_on; skipping\n");
+	  $skip_pseq_id = $pseq_id;
+	  next;
+	}
+
+	# clear @alns for new pseq_id
+	$aln_pseq_id = $pseq_id;
 	undef @alns;
-	$last_pseq_id = $pseq_id;
   }
 
   push(@alns,$aln);
 }
 
+# flush the last set of alns
 load_seq_alns($u,@alns);
 
 exit(0);
@@ -102,10 +103,8 @@ sub load_seq_alns ($@) {
 
   printf(STDERR "# Unison:%d (<=%d alignments):\n", $pseq_id, $#alns+1);
 
-
  RETRY:
   try {
-
 	$u->begin_work();
 	for (my $i=0; $i<=$#alns; $i++) {
 	  my $aln = $alns[$i];
@@ -119,8 +118,8 @@ sub load_seq_alns ($@) {
 
 	  # filter by insertion criteria
 	  if (    $aln->score < $opts{score_cutoff}
-		   or $pct_ident[0] < $opts{pct_ident_cutoff}
-		   or $ident[0] < $opts{ident_cutoff} ) {
+			  or $pct_ident[0] < $opts{pct_ident_cutoff}
+			  or $ident[0] < $opts{ident_cutoff} ) {
 		if ( $opts{verbose} ) {
 		  printf(STDERR "  skipped aln %d: ident: %d, %%ident: %d, score: %4.2f\n",
 				 $i,$ident[0],$pct_ident[0],$aln->score);
@@ -150,21 +149,21 @@ sub load_seq_alns ($@) {
 
     my $e = shift;
 	if ($e->error() =~ m/deadlock detected/) {
-	warn("$e; retrying.\n");
-	goto RETRY;
-    } 	if ($e->error() =~ m/already exists/) {
-	warn("$e; not loading $pseq_id.\n");
-	return;
+	  warn("$e; retrying.\n");
+	  goto RETRY;
+    }
+	if ($e->error() =~ m/already exists/) {
+	  warn("$e; not loading $pseq_id.\n");
+	  return;
     } elsif ( $e->error() =~ m/unique constraint/ ) {
 	  warn($e);
 	} else {
 	  die("$e");
-      }
-	
+	}
+
   };
 
   $aln_sth->finish();
-
 }
 
 
@@ -197,8 +196,8 @@ sub load_aln_hsps ($@) {
 
 sub usage {
   die( "USAGE: load-pmap [OPTIONS] -g <genasm_id> |--genasm_id <genasm_id> -p <param_name> |--params_id <param_name> output.psl\n" ,
-    "\tOPTIONS:\n",
-    "\t\t-h|--help: output USAGE statement and exit\n",
-    "\t\t-i <cutoff> | --pct_ident_cutoff=<cutoff>: only accept HSPs with percent identity greater than cutoff\n",
-    "\t\t-s <cutoff> | --score_cutoff=<cutoff>: only accept HSPs with score greater than cutoff\n" );
+	   "\tOPTIONS:\n",
+	   "\t\t-h|--help: output USAGE statement and exit\n",
+	   "\t\t-i <cutoff> | --pct_ident_cutoff=<cutoff>: only accept HSPs with percent identity greater than cutoff\n",
+	   "\t\t-s <cutoff> | --score_cutoff=<cutoff>: only accept HSPs with score greater than cutoff\n" );
 }
