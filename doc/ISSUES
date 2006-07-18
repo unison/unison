@@ -63,6 +63,11 @@ instead of selecting the most recent params by pftype_id, we should join
 this with a pseq_id's run_history so that we don't select a params_id
 which hasn't been run against.  Oops.
 
+** running HMMer against custom HMMs
+Our current design for running HMMer is biased towards pfam. Issues that need more thought are:
+should we create a new params_id for each HMM based mining project?
+how will origin_id be associated with params_id
+run-pahmm should handle running aginst cutoms HMM's with above ids.
 
 BACKBURNER:
 
@@ -112,7 +117,9 @@ Do we care?
 
 ** order in asset aggregate
 
-
+** pmap failed sequences
+when pmap fails to map a sequence, no entry in run_history for sequences 
+that have no entry in psl files. 
 
 * COMPLETED TASKS
 
