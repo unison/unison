@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.28 2006/06/26 18:05:08 rkh Exp $
+# $Id: load-pseq,v 1.29 2006/07/14 21:55:18 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -47,6 +47,7 @@ my %opts = (
 			tax_id => undef,
 			'allow-anonymous-sequences' => 0,
 			'infer-tax-id' => 0,
+                        'version' => undef,
 			'dry-run' => 0
 );
 GetOptions( \%opts,
@@ -56,6 +57,7 @@ GetOptions( \%opts,
 			'tax_id|t=i',
 			'allow-anonymous-sequences+',
 			'infer-tax-id+',
+                        'version|V=s',
 			'dry-run|n+',
 		  )
   || die("$0: bad usage:\n$usage\n");
@@ -100,8 +102,10 @@ my %warnings;					  # hash of warnings to prevent duplicates
 my @tally_bins = qw(nseen nadded nskipped nfailed naliases);
 my %totals = map { $_=>0 } @tally_bins;
 my $tts = new Benchmark;
+my $palias_cur = $u->selectall_hashref("select palias_id from palias where origin_id=origin_id('$opts{origin}')",1);
+my $palias_new;
 
-
+$u->begin_work();
 foreach my $fn ( @ARGV ) {
   my $fh;
   $fh = new IO::File;
@@ -125,6 +129,7 @@ my $ttdelta = @{timediff($tte, $tts)}[0];
 print(STDERR tally('totals',$ttdelta,%totals), "\n");
 
 if ($totals{nfailed} > 0) {
+  $u->rollback();
   die("! WARNING: Some sequence and/or aliases failed; origin.last_updated NOT tickled\n");
 }
 
@@ -132,10 +137,15 @@ if ($totals{nadded} > 0 and not $opts{'dry-run'}) {
   print( "update origin set last_updated='",
 		 $u->origin_last_updated($opts{origin_id},1),
 		 "' where origin_id=$opts{origin_id}\n");
+  print( "update origin set version='",
+       $u->origin_version($opts{origin_id},$opts{version}),
+       "' where origin_id=$opts{origin_id}\n") if(defined $opts{version});
+  dep_older_aliases();
+  $u->commit();
 } else {
+  $u->rollback();
   warn("! WARNING: No sequences loaded; origin.last_updated NOT tickled\n");
 }
-
 exit(0);
 
 
@@ -330,6 +340,7 @@ sub process_seq ($$$) {
 
 	try {
 	  $u->add_palias($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
+	  push @$palias_new, $u->selectrow_array("select palias_id from palias where origin_id=$o_id and alias='$a'");
 	} catch Unison::Exception with {
 	  warn("! Failed to load alias $a for Unison:$pseq_id\n",$_[0]);
 	};
@@ -351,7 +362,22 @@ sub tally ($%) {
 		 );
 }
 
+#deprecate all aliases from this origin that are 
+#not part of the current load
+sub dep_older_aliases {
 
+  delete $palias_cur->{$_} foreach (@$palias_new) ;
+
+  my $sth = $u->prepare('update pseqalias set is_current=false where palias_id=? and is_current');
+
+  if ($opts{verbose}>1) {
+      print "The following palias_ids will be deprecaded\n";
+      print join "\n", (keys %$palias_cur) ;
+  }
+
+  $sth->execute($_) foreach (keys %$palias_cur);
+
+}
 
 ##  # split ctrl-A delimited entries into explict entries for this sequence
 ##  # this is effectively a no-op for single-entry deflines
