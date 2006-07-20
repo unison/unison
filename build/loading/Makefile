@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.22 2006/04/09 09:00:59 rkh Exp $
+## $Id: Makefile,v 1.23 2006/06/12 22:37:09 mukhyala Exp $
 
 default all: update
 
@@ -92,16 +92,13 @@ $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
 
 ######################################################################
 # 4. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
-PHASE4_FX:=
+PHASE4_FX:=update_psets_extrinsic
 PHASE4_MVV:=pmap pmap_aln_unambiguous pmap_aln_unambiguous_overlaps
 PHASE4_MVDV:=
 PHASE4_MV:= ${PHASE4_MVDV} ${PHASE4_MVV}
 
 .PHONY: phase4
-phase4: update_psets_extrinsic.log pmap_overlaps_mv.log $(addsuffix .log,${PHASE4_FX}) $(addsuffix _mv.log,${PHASE4_MV})
-update_psets_extrinsic.log:
-	${PSQL_VCMD} 'truncate meta; select update_psets_intrinsic();' >$@.err 2>&1
-	/bin/mv -f $@.err $@
+phase4: update_psets_extrinsic.log $(addsuffix .log,${PHASE4_FX}) $(addsuffix _mv.log,${PHASE4_MV})
 
 pmap_aln_unambiguous_mv.log: pmap_mv.log
 pmap_aln_unambiguous_overlaps_mv.log: pmap_aln_unambiguous_mv.log
