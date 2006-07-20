@@ -112,7 +112,8 @@ for(my $i=0; $i<=$#pseq_ids; $i++) {
 	  next PSEQ_ID;
 	}
 	foreach my $pmodel_id (@pmodel_ids) {
-	  while ($seq =~ m/$regexps{$pmodel_id}/g) {
+	  my $re = qr/$regexps{$pmodel_id}/;
+	  while ($seq =~ m/$re/g) {
 		my $e = pos($seq);
 		push(@mbe,[$pmodel_id,$e-length($&)+1,$e])
 	  }
@@ -153,7 +154,7 @@ sub get_regexps($$$) {
 	$sql->order('M.origin_id');
   }
   $sql->order('M.pmodel_id');
-  return( map {$_->[0]=>qr/$_->[1]/} @{$u->selectall_arrayref("$sql")} );
+  return( map {$_->[0]=>$_->[1]} @{$u->selectall_arrayref("$sql")} );
 }
 
 sub get_matching_pseq_ids($@) {
