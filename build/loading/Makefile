@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.23 2006/06/12 22:37:09 mukhyala Exp $
+## $Id: Makefile,v 1.24 2006/07/20 04:18:48 rkh Exp $
 
 default all: update
 
@@ -93,15 +93,14 @@ $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
 ######################################################################
 # 4. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
 PHASE4_FX:=update_psets_extrinsic
-PHASE4_MVV:=pmap pmap_aln_unambiguous pmap_aln_unambiguous_overlaps
+PHASE4_MVV:=pmap_unambiguous pmap_unambiguous_overlaps
 PHASE4_MVDV:=
 PHASE4_MV:= ${PHASE4_MVDV} ${PHASE4_MVV}
 
 .PHONY: phase4
 phase4: update_psets_extrinsic.log $(addsuffix .log,${PHASE4_FX}) $(addsuffix _mv.log,${PHASE4_MV})
 
-pmap_aln_unambiguous_mv.log: pmap_mv.log
-pmap_aln_unambiguous_overlaps_mv.log: pmap_aln_unambiguous_mv.log
+pmap_unambiguous_overlaps_mv.log: pmap_unambiguous_mv.log
 
 
 # m_s_u is broken, I think because of temp tables within plpgsql (unverified)
