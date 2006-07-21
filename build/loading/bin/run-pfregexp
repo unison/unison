@@ -23,12 +23,14 @@ my %opts = (
 			'params_id' => undef,
 			'pmodelset_id' => undef,
 			'origin_id' => undef,
+	                'update'    => 0,
 			'verbose' => 1,
 		   );
 GetOptions(\%opts,
 		   'debug+',
 		   'pmodelset_id|M=i@',
 		   'origin_id|O=i@',
+	           'update',
 		   'verbose!',
 		  )
   or die("$0: bad usage\n");
@@ -122,7 +124,12 @@ for(my $i=0; $i<=$#pseq_ids; $i++) {
 	printf(STDERR "%4d features...", $#mbe+1);
 	foreach my $mbe (@mbe) {
 	  try {
-		$insert_sth->execute($opts{params_id},$pseq_id,@$mbe);
+	    if($opts{update}) {
+	      my $dsql = 'delete from pfregexp where pseq_id=? and params_id=? and pmodel_id=?';
+	      my $dsth = $u->prepare($dsql);
+	      $dsth->execute($pseq_id,$opts{params_id},$mbe->[0]);
+	    }
+	    $insert_sth->execute($opts{params_id},$pseq_id,@$mbe);
 	  } catch Unison::Exception::DBIError with {
 		my $e = $_[0];
 		if ("$e" !~ m/duplicate key/) {
