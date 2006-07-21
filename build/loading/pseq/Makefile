@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.20 2006/06/12 21:31:17 mukhyala Exp $
+# $Id: Makefile,v 1.21 2006/06/23 17:06:07 mukhyala Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, Ensembl, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -25,9 +25,7 @@ endif
 endif
 
 
-update: 
-	make cleanest
-	$(addsuffix .load,${ORIGINS})
+update: $(addsuffix .load,${ORIGINS})
 
 
 ## CCDS
@@ -40,47 +38,47 @@ ccds-human.load: ${CCDS_HUMAN_PATH}
 ENSEMBL_SPECIES:=chimp cow fly human mouse rat zebrafish
 .PHONY: ensembl.load
 ensembl.load: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load) $(foreach S,${ENSEMBL_SPECIES},ensembl-$S-ai.load)
-ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_chimp/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Chimp -ffasta -t9598 - >$@.err 2>&1
+ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_pan_troglodytes/data/fasta/pep/*.pep.fa.gz) 
+	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Chimp -ffasta -t9598 -V$(<F:Pan_troglodytes.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-chimp-ai.load: $(wildcard ${ENSEMBL_DIR}/current_chimp/data/fasta/pep/*.pep.abinitio.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Chimp (ab initio)' -ffasta -t9598 - >$@.err 2>&1
+ensembl-chimp-ai.load: $(wildcard ${ENSEMBL_DIR}/current_pan_troglodytes/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Chimp (ab initio)' -ffasta -t9598 -V$(<F:Pan_troglodytes.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-cow.load: $(wildcard ${ENSEMBL_DIR}/current_cow/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Cow -ffasta -t9913 - >$@.err 2>&1
+ensembl-cow.load: $(wildcard ${ENSEMBL_DIR}/current_bos_taurus/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Cow -ffasta -t9913 -V$(<F:Bos_taurus.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-cow-ai.load: $(wildcard ${ENSEMBL_DIR}/current_cow/data/fasta/pep/*.pep.abinitio.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Cow (ab initio)' -ffasta -t9913 - >$@.err 2>&1
+ensembl-cow-ai.load: $(wildcard ${ENSEMBL_DIR}/current_bos_taurus/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Cow (ab initio)' -ffasta -t9913 -V$(<F:Bos_taurus.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_fly/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Fly -ffasta -t7227 - >$@.err 2>&1
+ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_drosophila_melanogaster/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Fly -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-fly-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fly/data/fasta/pep/*.pep.abinitio.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Fly (ab initio)' -ffasta -t7227 - >$@.err 2>&1
+ensembl-fly-ai.load: $(wildcard ${ENSEMBL_DIR}/current_drosophila_melanogaster/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Fly (ab initio)' -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_human/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Human -ffasta -t9606 - >$@.err 2>&1
+ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_homo_sapiens/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Human -ffasta -t9606 -V$(<F:Homo_sapiens.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-human-ai.load: $(wildcard ${ENSEMBL_DIR}/current_human/data/fasta/pep/*.pep.abinitio.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Human (ab initio)' -ffasta -t9606 - >$@.err 2>&1
+ensembl-human-ai.load: $(wildcard ${ENSEMBL_DIR}/current_homo_sapiens/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Human (ab initio)' -ffasta -t9606 -V$(<F:Homo_sapiens.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-mouse.load: $(wildcard ${ENSEMBL_DIR}/current_mouse/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Mouse -ffasta -t10090 - >$@.err 2>&1
+ensembl-mouse.load: $(wildcard ${ENSEMBL_DIR}/current_mus_musculus/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Mouse -ffasta -t10090 -V$(<F:Mus_musculus.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-mouse-ai.load: $(wildcard ${ENSEMBL_DIR}/current_mouse/data/fasta/pep/*.pep.abinitio.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Mouse (ab initio)' -ffasta -t10090 - >$@.err 2>&1
+ensembl-mouse-ai.load: $(wildcard ${ENSEMBL_DIR}/current_mus_musculus/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Mouse (ab initio)' -ffasta -t10090 -V$(<F:Mus_musculus.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-rat.load: $(wildcard ${ENSEMBL_DIR}/current_rat/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Rat -ffasta -t10116 - >$@.err 2>&1
+ensembl-rat.load: $(wildcard ${ENSEMBL_DIR}/current_rattus_norvegicus/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Rat -ffasta -t10116 -V$(<F:Rattus_norvegicus.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-rat-ai.load: $(wildcard ${ENSEMBL_DIR}/current_rat/data/fasta/pep/*.pep.abinitio.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Rat (ab initio)' -ffasta -t10116 - >$@.err 2>&1
+ensembl-rat-ai.load: $(wildcard ${ENSEMBL_DIR}/current_rattus_norvegicus/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Rat (ab initio)' -ffasta -t10116 -V$(<F:Rattus_norvegicus.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-zebrafish.load: $(wildcard ${ENSEMBL_DIR}/current_zebrafish/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Zebrafish -ffasta -t7955 - >$@.err 2>&1
+ensembl-zebrafish.load: $(wildcard ${ENSEMBL_DIR}/current_danio_rerio/data/fasta/pep/*.pep.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -oEnsembl/Zebrafish -ffasta -t7955 -V$(<F:Danio_rerio.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-zebrafish-ai.load: $(wildcard ${ENSEMBL_DIR}/current_zebrafish/data/fasta/pep/*.pep.abinitio.fa.gz)
-	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Zebrafish (ab initio)' -ffasta -t7955 - >$@.err 2>&1
+ensembl-zebrafish-ai.load: $(wildcard ${ENSEMBL_DIR}/current_danio_rerio/data/fasta/pep/*.pep.abinitio.fa.gz)
+	gzip -cdq $< | time -p load-pseq -vv -o'Ensembl/Zebrafish (ab initio)' -ffasta -t7955 -V$(<F:Danio_rerio.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
@@ -106,7 +104,7 @@ pataa.load: ${PATAA_FA}
 
 
 ## PDB
-PDB.load: /gne/compbio/share/blast/aa/pataa.psq
+PDB.load:
 	(time -p find ${PDB_DIR} -type f -name \*.pdb \
 	| pdb2fa 2>/dev/null \
 	| load-pseq -v -oPDB -ffasta - ) >$@.err 2>&1 2>&1 
@@ -114,23 +112,26 @@ PDB.load: /gne/compbio/share/blast/aa/pataa.psq
 
 
 ## REFSEQ
+REFSEQ_RELEASE:=$(patsubst RefSeq-release%.txt,%,$(notdir $(wildcard ${REFSEQ_DIR}/../release-notes/*.txt)))
 RCPs:=$(wildcard ${REFSEQ_DIR}/complete[0-9]*gpff.gz)
 RCPs:=$(subst ${REFSEQ_DIR}/,refseq/,${RCPs})
 RCPs:=$(subst .protein.gpff.gz,.load,${RCPs})
 refseq.load: ${RCPs}
 refseq/%.load: ${REFSEQ_DIR}/%.protein.gpff.gz
 	/bin/mkdir -p ${@D}
-	gzip -cdq $< | time -p load-pseq -v -fgenbank -oRefSeq --infer-tax-id - >$@.err 2>&1
+	gzip -cdq $< | time -p load-pseq -v -fgenbank -oRefSeq --infer-tax-id -V${REFSEQ_RELEASE} - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
 ## UNIPROT LOADING
+SPROT_VERSION := `grep Swiss  ${UNIPROT_DIR}/reldate.txt |cut -d' ' -f3`
+TrEMBL_VERSION:= `grep TrEMBL ${UNIPROT_DIR}/reldate.txt |cut -d' ' -f3`
 uniprot: uniprot_sprot.load uniprot_trembl.load 
 uniprot_sprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
-	gzip -cdq $< | time -p load-pseq -vv -oUniProtKB/Swiss-Prot -fswiss - >$@.err 2>&1
+	gzip -cdq $< | time -p load-pseq -vv -oUniProtKB/Swiss-Prot -fswiss -V${SPROT_VERSION} - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
-	gzip -cdq $< | time -p load-pseq -vv -oUniProtKB/TrEMBL -fswiss - >$@.err 2>&1
+	gzip -cdq $< | time -p load-pseq -vv -oUniProtKB/TrEMBL -fswiss -V${TrEMBL_VERSION} - >$@.err 2>&1 
 	/bin/mv -f $@.err $@
 
 
