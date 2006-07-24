@@ -1,0 +1,212 @@
+#!/usr/bin/env perl
+# $Id$
+
+use warnings;
+use strict;
+use Bio::SeqIO;
+use Bio::Tools::Seg;
+use Error qw(:try);
+use File::Temp qw(tempfile tempdir);
+use Getopt::Long qw(:config gnu_getopt);
+use IO::Pipe;
+use Unison::Exceptions;
+use Unison;
+use Env qw(@PATH);
+
+sub fetch_sequences ($$@);
+sub run_and_load ($$);
+sub load_seq_segs ($@);
+
+my %opts = 
+  (
+   params_id => undef,
+   verbose => 0,
+   'seqs-per-run' => 50,
+   update    => 0
+  );
+GetOptions(\%opts,
+		   'params_id|p=i',
+		   'verbose|v+',
+		   'seqs-per-run|N=i',
+	           'update',
+		  )  || die("$0: you got usage issues, short stack\n");
+
+unshift(@PATH, '/gne/research/apps/seg/current/i686-linux-2.6/bin/');
+my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+
+# prepare the insert statement
+my @fields = qw(pseq_id params_id start stop score);
+my $sth = $u->prepare_cached(sprintf("insert into pfseg (%s) values (%s)",
+									 join(',',@fields), join(',',map {'?'} @fields)));
+
+
+(defined $opts{params_id})
+  || die("$0: parameters not defined (-p)\n");
+
+
+my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
+my %all_ids = map {$_=>1} @pseq_ids;
+my $N = $#pseq_ids+1;
+my $n = 0;
+my $totseqs = 0;
+my $tothits = 0;
+
+my ($tmpfh, $seqfn) = tempfile( UNLINK=>1 );
+(defined $seqfn)
+  || die("couldn't generate temporary file\n");
+
+while ( @pseq_ids ) {
+  my (@ids) = splice(@pseq_ids,0,$opts{'seqs-per-run'});
+
+  my $nseq = fetch_sequences($u,$seqfn,@ids);
+  next if ($nseq == 0);
+
+  print(STDERR "fetched $nseq sequences; running...\n");
+
+  my ($seqs,$hits) = run_and_load($u,$seqfn);
+  $totseqs += $seqs;
+  $tothits += $hits;
+
+  my $Ncomp = $N - ($#pseq_ids+1);
+  printf(STDERR "run-pfseg: $Ncomp/$N (%5.1f%% complete); $totseqs seqs; $tothits hits;\n",
+		 $Ncomp / $N * 100);
+}
+
+$u->upd_run_history($_,$opts{params_id},undef,undef) foreach (keys %all_ids);
+
+
+sub fetch_sequences ($$@) {
+  # fetch sequences to temp file
+  my $u = shift;
+  my $seqfn = shift;
+  my @pseq_ids = @_;
+  my $nseq = 0;
+
+  my $so = new Bio::SeqIO( -format => 'fasta',
+						   -file => ">$seqfn" )
+	|| die("! couldn't open $seqfn for writing\n");
+
+  foreach my $pseq_id (@pseq_ids) {
+    if ($u->already_ran($pseq_id,$opts{params_id},undef,undef)) {
+      if (not $opts{update}) {
+	warn("Unison:$pseq_id already run with these parameters; skipping\n");
+	next;
+      } else {
+	warn("Unison:$pseq_id ran with these options; running anyway\n");
+      }
+    }
+    my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+    if (not defined $seq) {
+      warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
+      next;
+    }
+    $so->write_seq( new Bio::PrimarySeq( -seq => $seq,
+					 -id => "Unison:$pseq_id" ) );
+    $nseq++;
+  }
+  $so->close();
+  return $nseq;
+}
+
+
+sub run_and_load ($$) {
+  my $u = shift;
+  my $seqfn = shift;
+  my $rl_seqs = 0;
+  my $rl_hits = 0;
+
+  # command line and open the pipe
+  my $clo = $u->run_commandline_by_params_id($opts{params_id});
+  my $cmd = sprintf($clo,$seqfn);
+  my @cl = split(' ',$cmd);
+
+  my $pipe = new IO::Pipe;
+  $pipe->reader( @cl ) || die("couldn't do @cl\n");
+  my @segs;
+  my $seg_pseq_id  = -1;
+
+  my $parser = new Bio::Tools::Seg(-fh =>$pipe );
+  while ( my $seg = $parser->next_result ) {
+
+    my ($pseq_id) = $seg->seq_id =~ /Unison\:(\d+)/;
+    my $start = $seg->start;
+    my $stop = $seg->end;
+    my $score = $seg->score;
+    if ( not (defined $pseq_id and defined $start and defined $stop and defined $score)) {
+      die( "ERROR: can't parse pseq_id,start,stop,score for seq_id=",$seg->seq_id,"\n",
+	   "Source sequences aren't from Unison?\n");
+    }
+    $rl_seqs++;
+    if ( $pseq_id != $seg_pseq_id ) {
+      # insert queued segs
+      load_seq_segs($u,@segs);
+
+      $seg_pseq_id = $pseq_id;
+      # clear @segs for new pseq_id
+      undef @segs;
+      delete $all_ids{$pseq_id};
+    }
+    push(@segs,$seg);
+    $rl_hits+=$#segs;
+  }
+  # flush the last set of segs
+  load_seq_segs($u,@segs);
+
+  $rl_hits+=$#segs+1;
+  $pipe->close();
+  return($rl_seqs,$rl_hits);
+}
+
+############################################################################
+## Internal Functions
+
+sub load_seq_segs ($@) {
+  my ($u,@segs) = @_;
+  return unless @segs;
+  my ($pseq_id) = $segs[0]->seq_id =~ m/Unison:(\d+)/; # error-checked in calling loop
+
+  printf(STDERR "# Unison:%d (<=%d low complexity regions):\n", $pseq_id, $#segs+1);
+
+  try {
+	$u->begin_work();
+	for (my $i=0; $i<=$#segs; $i++) {
+
+	  if($opts{update}) {
+	    my $dsql = 'delete from pfseg where pseq_id=? and params_id=?';
+	    my $dsth = $u->prepare($dsql);
+	    $dsth->execute($pseq_id,$opts{params_id});
+	  }
+
+	  my $seg = $segs[$i];
+	  ($pseq_id) = $seg->seq_id =~ m/Unison:(\d+)/;	# already error-checked in calling loop
+	  my $start = $seg->start;
+	  my $stop = $seg->end;
+	  my $score = $seg->score;
+
+	  $sth->execute( $pseq_id, $opts{params_id}, $start, $stop, $score);
+	  if ( $opts{verbose} ) {
+		printf(STDERR "  loaded seg %d: %d %d %f\n",
+			   $i,$start,$stop, $score);
+	  }
+	}
+
+	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+	$u->commit();
+	print(STDERR "  run_history tickled and load committed at $z\n");
+
+  } catch Unison::Exception with {
+
+	$u->rollback();
+
+	my $e = shift;
+	if ($e->error() =~ m/already exists/) {
+	  warn("$e; not loading $pseq_id.\n");
+	  return;
+	} elsif ( $e->error() =~ m/unique constraint/ ) {
+	  warn($e);
+	} else {
+	  die("$e");
+	}	
+      };
+  $sth->finish();
+}
