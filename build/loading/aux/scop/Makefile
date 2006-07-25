@@ -25,3 +25,5 @@ scop.load: scop.sql FORCE
 	psql -f $< 2>&1 | tee $@.err
 	/bin/mv $@.err $@
 
+cleanest::
+	/bin/rm scop.sql
