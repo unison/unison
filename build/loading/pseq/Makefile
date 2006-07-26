@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.21 2006/06/23 17:06:07 mukhyala Exp $
+# $Id: Makefile,v 1.22 2006/07/21 16:53:57 mukhyala Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, Ensembl, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -112,7 +112,7 @@ PDB.load:
 
 
 ## REFSEQ
-REFSEQ_RELEASE:=$(patsubst RefSeq-release%.txt,%,$(notdir $(wildcard ${REFSEQ_DIR}/../release-notes/*.txt)))
+REFSEQ_RELEASE:=$(patsubst RefSeq-release%.txt,%,$(notdir $(shell ls -t ${REFSEQ_DIR}/../release-notes/*.txt | head -1)))
 RCPs:=$(wildcard ${REFSEQ_DIR}/complete[0-9]*gpff.gz)
 RCPs:=$(subst ${REFSEQ_DIR}/,refseq/,${RCPs})
 RCPs:=$(subst .protein.gpff.gz,.load,${RCPs})
