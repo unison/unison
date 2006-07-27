@@ -11,7 +11,7 @@ NPER:=250
 
 
 update:
-	make cleaner
+	make cleanest
 	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
 	make ${RUNSET}-todo-N${N}-qload
 
