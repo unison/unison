@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.24 2006/07/20 04:18:48 rkh Exp $
+## $Id: Makefile,v 1.25 2006/07/20 06:36:52 rkh Exp $
 
 default all: update
 
@@ -37,7 +37,7 @@ pseq.log: aux.log
 # is important.  These should all be moved to the db itself
 # for updating.
 PHASE2_FX:=update_tax_ids update_psets_intrinsic
-PHASE2_MVV:=best_annotation pseq_gene gg_famid_pseq_id gg_unq_pro_dna_pseq
+PHASE2_MVV:=best_annotation pseq_gene gg_famid_pseq_id gg_unq_pro_dna_pseq ensembl_coordinates ensembl_unambiguous_coordinates ensembl_unambiguous_overlaps
 PHASE2_MVDV:=pmprospect_scop gg_proid_pseq_id
 PHASE2_MV:=${PHASE2_MVDV} ${PHASE2_MVV}
 
@@ -99,7 +99,6 @@ PHASE4_MV:= ${PHASE4_MVDV} ${PHASE4_MVV}
 
 .PHONY: phase4
 phase4: update_psets_extrinsic.log $(addsuffix .log,${PHASE4_FX}) $(addsuffix _mv.log,${PHASE4_MV})
-
 pmap_unambiguous_overlaps_mv.log: pmap_unambiguous_mv.log
 
 
