@@ -1,9 +1,11 @@
 #!/usr/bin/perl
+# $Id$
 
 use strict;
 use warnings;
 use Unison;
 use File::Temp qw(tempfile tempdir);
+use Getopt::Long qw(:config gnu_getopt);
 use Bio::SeqIO;
 use IO::Pipe;
 use Unison::Exceptions;
@@ -12,12 +14,22 @@ sub fetch_sequences ($$@);
 
 my %opts =
   (
-   params_id => 37,
+   params_id => undef,
    'seqs-per-run' => 500,
   );
 
+GetOptions(\%opts,
+		   'params_id|p=i',
+		   'verbose|v+',
+		   'seqs-per-run|N=i',
+		  ) || die("$0: you got usage issues, short stack\n");
+
+
 my $tmpdir = tempdir( CLEANUP => 1 );
 my $tmp_fa_fn= "$tmpdir/in.fa";
+
+(defined $opts{params_id})
+  || die("$0: parameters not defined (-p)\n");
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 my $insert_sth = $u->prepare(<<EOSQL);

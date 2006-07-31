@@ -16,7 +16,7 @@ update:
 	make ${RUNSET}-todo-N${N}-qload
 
 %.load: %.ids
-	(time -p run-pfpepcoil <$<) >$@.err 2>&1;
+	(time -p run-pfpepcoil -p ${PFPEPCOIL_PARAMS_ID} <$<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
 .done.ids:
