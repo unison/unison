@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.28 2006/07/21 16:22:49 mukhyala Exp $
+# $Id: run-pahmm,v 1.29 2006/07/30 23:03:01 mukhyala Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -22,6 +22,12 @@
 # models of course.
 # In short: The model grouping at the top of HMMer output is NOT the same
 # as the "hit" grouping returned by the bioperl parser.
+
+
+# ISSUES: - when modelfile is specified, model_origin_id isn't set, which
+#   causes run_history to be tickled with empty pmodelset_id, which means
+#   that it's impossible to use r_h to track updates for these (imagine
+#   adding a new model to run against).
 
 
 use warnings;
@@ -65,8 +71,8 @@ GetOptions(\%opts,
 		   'modelfile=s',
 		   'params_id|p=i',
 		   'pmodelset_id|M=i@',
-	           'modelfile=s',
-                   'model_origin_id=i',
+		   'modelfile=s',
+		   'model_origin_id=i',
 		   'verbose|v+',
 		   'seqs-per-run|N=i',
 		  ) || die("$0: you got usage issues, short stack\n");
@@ -80,20 +86,20 @@ my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
   || die("$0: parameters not defined (-p)\n");
 
 
-$opts{model_origin_id} = 
-  $u->selectrow_array(<<EOSQL) if(not defined $opts{model_origin_id});
+if (not defined $opts{modelfile}) {
+  $opts{model_origin_id} = 
+	$u->selectrow_array(<<EOSQL) if(not defined $opts{model_origin_id});
 SELECT model_origin_id FROM params
 WHERE params_id=$opts{params_id}
 EOSQL
-(defined $opts{model_origin_id})
-  || die("$0: model_origin_id not defined for params_id=$opts{params_id}\n");
+  (defined $opts{model_origin_id})
+	|| die("$0: model_origin_id not defined for params_id=$opts{params_id}\n");
 
-if (not defined $opts{modelfile}) {
   $opts{modelfile} = $u->selectrow_array(<<EOSQL);
 SELECT data_url FROM origin
 WHERE origin_id=$opts{model_origin_id}
 EOSQL
-}
+
 (defined $opts{modelfile})
    || die("$0: data_url is NULL for origin_id=$opts{model_origin_id}\n");
 
