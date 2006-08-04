@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.10 2005/09/10 04:45:36 rkh Exp $
+# $Id: load-pmhmm,v 1.11 2006/06/26 18:05:08 rkh Exp $
 # load pfam HMM into unison
 # eg$ load-pmhmm /path/to/pfam-14.0/Pfam_fs
 
@@ -10,45 +10,75 @@ use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use IO::Pipe;
+use IO::File;
+
+
+my %opts =
+  (
+   'origin' => undef,
+   'descr' => undef,
+  );
+
+GetOptions(\%opts,
+		   'origin=s',
+		   'descr=s',
+		   'verbose|v+',
+		  ) || die("$0: you got usage issues, short stack\n");
 
 
 my $fn;
 ($fn = shift and $fn =~ m%^/%)
-  || die("$0: please privide the full path to the Pfam models\n");
+  || die("$0: please privide the full path to the HMM models\n");
+
+if ($fn =~ m/pfam/i) {
+  my ($pfam_version,$fl) = $fn =~ m%pfam-([\.\d]+)/Pfam_([lf]s)%;
+  (defined $fl)
+	|| die("$0: couldn't parse origin (pfam-<version>/Pfam_([fl]s) from $fn\n");
+  $opts{origin} = "Pfam $pfam_version $fl";
+  $opts{descr} = "Pfam_$fl version $pfam_version";
+} else {
+  (defined $opts{origin})
+	|| die("origin my be specified when loading from other than Pfam\n");
+  $opts{descr} = $opts{origin} unless defined $opts{descr};
+}
+
+
+my $data_url = $fn;
+$data_url =~ s/\.hmm$//;
+$data_url .= '.hmmb';
+
+(-f $data_url)
+  || die("$0: You must make `$data_url' before proceeding\n");
+
 
 my $in;
 if ($fn =~ m/.gz/) {
   $in = new IO::Pipe;
-  $in->reader( 'gzip', '-cdq', $fn );
+  my @args = ('gzip', '-cdq', $fn);
+  $in->reader( @args )
+	|| die("$0: @args: $!\n");
 } else {
-  die("$0: I expected the gzip-compressed HMM file\n");
+  $in = new IO::File;
+  $in->open( "<$fn" )
+	|| die("$0: $fn: $!\n");
 }
 
-my $hmmb_path = $fn;
-$hmmb_path =~ s/.gz$//;
-$hmmb_path .= '.hmmb';
-(-e $hmmb_path)
-  || die("$0: You must make `$hmmb_path' before proceeding\n");
 
-my ($pfam_version,$fl) = $fn =~ m%pfam-([\.\d]+)/Pfam_([lf]s)%;
-(defined $fl)
-  || die("$0: couldn't parse origin (pfam-<version>/Pfam_([fl]s) from $fn\n");
-
-my $origin = "Pfam $pfam_version $fl";
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
-my $origin_id = $u->origin_si_origin_id($origin);
+my $origin_id = $u->origin_si_origin_id($opts{origin});
 (defined $origin_id)
-  || die("$0: origin $origin: $@\n");
+  || die("$0: origin $opts{origin}: $@\n");
+
 my $sth = $u->prepare('update origin set url=?,descr=?,data_url=? where origin_id=?');
 $sth->execute('http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s',
-			  "Pfam_$fl version $pfam_version",
-			  $hmmb_path,
+			  $opts{descr},
+			  $data_url,
 			  $origin_id)
   || die("$0: update origin: $@\n");
-printf(STDERR "# loading models into $origin (origin_id=$origin_id)\n");
 
+printf(STDERR "# loading models into $opts{origin} (origin_id=$origin_id)\n");
 
 
 my @insert_fields = qw(origin_id name acc descr len nseq cksum
@@ -58,18 +88,20 @@ my $insert_stmt = sprintf('insert into pmhmm (%s) values (%s)',
 						  join(',',map {'?'} @insert_fields) );
 my $sth_insert_pmhmm = $u->prepare($insert_stmt);
 
-warn($insert_stmt);
 
 
 $/ = "\n//\n";
 $u->begin_work();
 while(my $blk = <$in>) {
   chomp($blk);
+  my @F = qw(NAME ACC DESC LENG NSEQ CKSUM GA TC NC);
   my ($name,$acc,$descr,$len,$nseq,$cksum,$ga,$tc,$nc) 
-	= map {$blk =~ m/^$_\s+(.+)/m}  qw(NAME ACC DESC LENG NSEQ CKSUM GA TC NC);
-  my ($gas,$gad) = split(' ',$ga);
-  my ($tcs,$tcd) = split(' ',$tc);
-  my ($ncs,$ncd) = split(' ',$nc);
+	= map {my ($r) = $blk =~ m/^$_\s+(.+)/m; $r||undef}  @F;
+  $acc = $name unless defined $acc;
+  $descr = $name unless defined $descr;
+  my ($gas,$gad) = defined $ga ? split(' ',$ga) : (undef,undef);
+  my ($tcs,$tcd) = defined $tc ? split(' ',$tc) : (undef,undef);
+  my ($ncs,$ncd) = defined $nc ? split(' ',$nc) : (undef,undef);
   $sth_insert_pmhmm->execute($origin_id,$name,$acc,$descr,$len,$nseq,$cksum,
 							 $gas,$gad, $tcs,$tcd, $ncs,$ncd);
 
