@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.18 2006/06/23 17:05:35 mukhyala Exp $
+## $Id: params.mk,v 1.19 2006/06/26 18:05:08 rkh Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
@@ -108,3 +108,11 @@ PSPROTCOMP_SEQS_PER_RUN:=25
 ############################################################################
 #### PROSITE
 PROSITE_ORIGIN:='Prosite 19.28'
+
+############################################################################
+#### SEG
+PFSEG_PARAMS_ID:=47
+
+############################################################################
+#### BLAST
+BLAST_PARAMS_ID:=3
