@@ -1,5 +1,5 @@
 ## local.mk -- site-local definitions for Unison loading
-## $Id: local.mk,v 1.8 2006/07/13 16:02:55 mukhyala Exp $
+## $Id: local.mk,v 1.9 2006/08/08 00:13:54 mukhyala Exp $
 
 
 # Unison connection details
@@ -30,8 +30,10 @@ RENAME=${UNISON_HOME}/sbin/rerename
 
 
 # Enable Genentech-specific loading
-# This will require a lot of code and data that are
-# not publicly available. 
+# GNE=1 will invoke a lot of code and data that are not publicly
+# available, and cause errors when these files aren't found.
+# dnsdomainname is not available on all platforms, and uname and cut
+# locations vary, ergo full path is not used.
 GNE:=0
 ifeq "$(shell /bin/hostname|cut -d. -f2-)" "gene.com"
 $(warning NOTICE: enabling Genentech-specific configuration)
