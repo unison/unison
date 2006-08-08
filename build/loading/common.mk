@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.26 2006/05/12 03:37:17 rkh Exp $
+## $Id: common.mk,v 1.27 2006/06/26 18:05:08 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE
@@ -130,7 +130,7 @@ qsub/%:
 	@mkdir -p "${@D}"
 	@N="${QNAME}/`basename '$(basename $*)'`"; \
 	if [ "$${#N}" -gt "15" ]; then N=$${N:$${#N}-15:15}; fi; \
-	echo "make -C${PWD} $*" | ${QSUB} -N"$$N" >$@.tmp
+	echo "make PGPASSWORD=${PGPASSWORD} -C${PWD} $*" | ${QSUB} -N"$$N" >$@.tmp
 	@/bin/mv -f $@.tmp $@
 	@echo "make -C${PWD} $*": `cat $@`
 
@@ -161,11 +161,11 @@ PATTERN=*
 
 # get sequences for a set of ids
 %.fa: %.ids
-	unison-get-seq -v <$< >$@
+	unison-get-seq -UPUBLIC -v <$< >$@
 
 # get a sequence
 %.fa:
-	unison-get-seq $* >$@
+	unison-get-seq -UPUBLIC $* >$@
 
 # make env -- write env to file `env' for debugging
 env:
