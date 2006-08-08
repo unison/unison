@@ -4,17 +4,17 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=50
 RUNSET=runC-human
 
 PATH:=/usr/local/tools/bin:/usr/local/seq/bin/:${PATH}
 SHELL=bash
-CMDLINE:=$(shell ${PSQL_DCMD} 'select commandline from params where params_id=${PMAP_PARAMS_ID}')
+CMDLINE:=$(shell ${PSQL_DCMD} "select replace(commandline,'%s','') from params where params_id=${PMAP_PARAMS_ID}")
 
 
 update:
 	make cleanest
-	make done.ids ${RUNSET}-todo.ids
+	make done.ids ${RUNSET}.ids ${RUNSET}-todo.ids
+	make ${RUNSET}-todo.psl
 	make ${RUNSET}-todo.load
 
 
@@ -24,8 +24,7 @@ update:
 	/bin/mv -f $@.tmp $@ && /bin/mv $@.err $@.log
 
 %.load: %.psl
-	# FIXME: genasm_id is hardwired at 2.
-	(time -p load-pmap -p ${PMAP_PARAMS_ID} -v --genasm_id=${GENASM_ID} $<) >$@.err 2>&1
+	(time -p load-pmap -p ${PMAP_PARAMS_ID} -v --genasm_id=${PMAP_GENASM_ID} $<) >$@.err 2>&1
 	/bin/mv $@.err $@
 
 .done.ids:
@@ -41,3 +40,6 @@ update:
 %-qpsl: % FORCE
 	@for f in $*/${PATTERN}.ids; do echo "qsub/$${f%ids}psl"; done | tr \\012 \\0 | xargs -0rt ${MAKE} $J
 
+
+cleanest::
+	/bin/rm -f *.psl
