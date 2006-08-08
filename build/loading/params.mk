@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.19 2006/06/26 18:05:08 rkh Exp $
+## $Id: params.mk,v 1.20 2006/08/07 22:17:11 mukhyala Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
@@ -8,7 +8,7 @@
 GENE_DIR:=${RESEARCH_PREFIX}/share/ncbi/gene
 HOMOLOGENE_VERSION:=46.1
 HOMOLOGENE_DATA:=${RESEARCH_PREFIX}/share/ncbi/pub/HomoloGene/build${HOMOLOGENE_VERSION}/homologene.data
-
+GO_DIR:=${RESEARCH_PREFIX}/share/go
 
 
 ############################################################################
@@ -91,8 +91,8 @@ PFSIGNALP_SEQS_PER_RUN:=100
 
 ############################################################################
 #### PMAP
-PMAP_PARAMS_ID:=38
-GENASM_ID:=2
+PMAP_PARAMS_ID:=45
+PMAP_GENASM_ID:=3
 
 
 ############################################################################
