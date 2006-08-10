@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.7 2006/05/12 03:39:07 rkh Exp $>
+S<$Id: genome_features.pm,v 1.8 2006/06/16 17:53:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -104,7 +104,7 @@ sub genome_features_panel ($%) {
 
   my $len = int( $opts{gstop} - $opts{gstart} );
 
-  my $panel = Bio::Graphics::Panel->new( 
+  my $panel = Bio::Graphics::Panel->new(
 										-length => $len,
 										-width => $opts{width},
 										-start => $opts{gstart},
@@ -140,10 +140,13 @@ sub genome_features_panel ($%) {
 
   $panel->add_track( ) for 1..2;			# spacing
   $panel->add_track( 
-					-key => '$Id: genome_features.pm,v 1.7 2006/05/12 03:39:07 rkh Exp $',
-					-key_font => 'gdSmallFont',
-					-bump => +1,
-				   );
+		    -key => 'Affymentrix and Agilents Probes',
+		    -key_font => 'gdSmallFont',
+		    -bgcolor => 'green',
+		    -bump => +1,
+		     add_probes( $u, $panel, %opts ),
+		     -key => '$Id: genome_features.pm,v 1.8 2006/06/16 17:53:38 rkh Exp $',
+		   );
 
 
   my $gd = $panel->gd();
@@ -274,6 +277,85 @@ EOSQL
       $rev_strand_track->add_feature($feat);
     }
     $nadded++;
+  }
+
+  return $nadded;
+}
+
+
+#-------------------------------------------------------------------------------
+# NAME: add_probes
+# PURPOSE: add probe features to a panel
+#-------------------------------------------------------------------------------
+sub add_probes {
+  my ($u, $panel, %opts) = @_;
+  my $nadded = 0;
+
+  my $plus_strand_track = $panel->add_track( 
+											-glyph => 'graded_segments',
+											-min_score => 0,
+											-max_score => 1,
+											-sort_order => 'high_score',
+											-bgcolor => 'green',
+											-key => '+',
+											-bump => +1,
+											-label => 1,
+											-fgcolor => 'black',
+											-fontcolor => 'black',
+											-font2color => 'red',
+											-description => 1,
+											-height => 4,
+										   );
+  my $separator_track = $panel->add_track( Bio::Graphics::Feature->new
+										   (-start => $opts{gstart},
+											-end => $opts{gstop},
+											-glyph => 'generic',
+											-double => 0,
+											-label => 0,
+										   ));
+  my $rev_strand_track = $panel->add_track( 
+										   -glyph => 'graded_segments',
+										   -min_score => 0,
+										   -max_score => 1,
+										   -sort_order => 'high_score',
+										   -bgcolor => 'green',
+										   -key => '-',
+										   -bump => +1,
+										   -label => 1,
+										   -fgcolor => 'black',
+										   -fontcolor => 'black',
+										   -font2color => 'red',
+										   -description => 1,
+										   -height => 4,
+										  );
+
+  my $sql = <<EOSQL;
+SELECT name,probe_id,gstart,gstop,plus_strand
+FROM marray.chip_probe_v
+WHERE genasm_id=$opts{genasm_id}
+  AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}
+EOSQL
+
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $sth = $u->prepare($sql);
+  $sth->execute();
+  my ($plus_strand,$feat);
+  while ( my $r = $sth->fetchrow_hashref ) {
+
+    # if we have a feat defined, then add it to the appropriate strand track
+    if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
+      if ( $plus_strand ) {
+	$plus_strand_track->add_feature($feat);
+      } else {
+	$rev_strand_track->add_feature($feat);
+      }
+    }
+    $plus_strand = $r->{plus_strand};
+    print STDERR "Get a new feature\n" if $opts{verbose};
+    $feat = new Bio::Graphics::Feature->new(-name=>sprintf('%s:%s',
+							   $r->{name},$r->{probe_id}||'?'));
+    print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
+    $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
   }
 
   return $nadded;
