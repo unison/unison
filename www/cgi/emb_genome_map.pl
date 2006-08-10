@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 ## emb_genome_map.pl -- genome features as a Unison embeddable page
-## $Id$
+## $Id: emb_genome_map.pl,v 1.2 2006/01/02 05:41:11 rkh Exp $
 
 
 use strict;
@@ -50,6 +50,10 @@ try {
 	  my $text = $u->best_annotation($pseq_id) || '?';
 	  $imagemap .= qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">\n);
 	}
+	else {
+	  my ($chip,$probe) = split(/:/,$fname);
+	  $imagemap .= qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$chip:$probe" HREF=http://research/projects/maprofile/bin/secure/maprofile.cgi?probeid=$probe">\n);
+	}
   }
 } catch Unison::Exception with {
   $p->die(shift);
@@ -60,3 +64,13 @@ print $p->render("Genome Map",
 				 "<center><img src=\"$png_urn\" usemap=\"#GENOME_MAP\"></center>",
 				 "<MAP NAME=\"GENOME_MAP\">\n", $imagemap, "</MAP>\n"
 				);
+
+#-------------------------------------------------------------------------------
+# NAME: usage
+# PURPOSE: return usage string
+#-------------------------------------------------------------------------------
+sub usage {
+  return( "USAGE: emb_genome_map.pl ? genasm_id=&lt;gensam_id&gt; params_id=&lt;params_id&gt; " .
+     "[(chr=&lt;chr&gt; ; gstart=&lt;gstart&gt; ; gstop=&lt;gstop&gt; " .
+     "|| pseq_id=&lt;pseq_id&gt;]" );
+}
