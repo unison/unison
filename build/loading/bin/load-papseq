@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-$Id$
+#$Id: load-papseq,v 1.6 2006/07/27 22:37:49 mukhyala Exp $
 
   use warnings;
 use strict;
