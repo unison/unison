@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-pfpsipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
 #
-# $Id: run-pfpsipred,v 1.4 2006/05/19 22:15:26 mukhyala Exp $
+# $Id: run-pfpsipred,v 1.5 2006/06/26 23:02:58 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -102,12 +102,13 @@ foreach my $pseq_id (@pseq_ids ) {
   }
 
   my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
-  if (defined $ran_on and not $opts{update}) {
+  if (defined $ran_on) {
     if (not $opts{update}) {
       print(STDERR "$leader: run with these options on $ran_on; skipping\n");
       next PSEQ_ID;
+    } else {
+      print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
     }
-    print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
   }
   $seqio->write_seq(new Bio::Seq(-id=>"Unison:$pseq_id", -seq=>$seq));
   printf(STDERR "Unison:$pseq_id: %dAA sequence written\n", length($seq));
