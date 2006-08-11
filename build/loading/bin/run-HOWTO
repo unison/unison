@@ -17,16 +17,33 @@ Unison::DBI opts: -d, -U, -h
 --delete -- delete existing row first
 --sql  -- output sql/COPY statements instead of loading
 
+Mnemonic: "things" are lowercase, SETS of things are uppercase.
 
-The basic rationale is that "things" are lowercase, SETS of things are
-uppercase. 
+Where sensible, options should take arrays and ranges of items, comma
+delimited.
+E.g., -q 76,15,1..5 or -M13,14 or -M13 -M14, -Q 22,23
+
+Names may be used for -o, -p, -Q, -M and will be translated to ids
+internally
+
+
+load-*   -o -M
+
+run-*    -q -Q -M -p
+
+run scripts will run sequences specified by -q/-Q against models specified
+by -M using params specified by -p.  These scripts MAY (i.e., are not
+required to) perform differential updates by computing the set of subject
+models as follows:
+  SM :=   U(pmodel_ids of specified modelsets (-M)) 
+        - U(pmodel_ids implied by run_history for this params_id (-p))
+Appropriate sequences may then be run against the SM models and
+run_history can be updated for all <-q,-p,-M> combinations.
+
 
 Where possible, CGI args should have the same names and semantics as the
 command line args above.
 
-Where sensible, options should take arrays and ranges of items, comma
-delimited.
-E.g., -q 76,15,1..5 or -M13,14 or -M13 -M14
 
 
 
