@@ -1,5 +1,5 @@
 #utilities for calling jmol functions
-#$Id: Jmol.pm,v 1.11 2005/10/11 21:04:07 mukhyala Exp $
+#$Id: Jmol.pm,v 1.12 2005/12/07 07:27:57 rkh Exp $
 ###########################################################
 package Unison::Jmol;
 
@@ -32,6 +32,7 @@ sub initialize{
     my $retval = '';
 
     my $select_chain = ":".uc(substr($name,4,1)).".*";
+    my $pdb_url = pdb_url($fn);
     my $jmol_menu_arr = $self->_get_jmol_menu_scripts($structures_ar,'structures') if(defined($structures_ar));
     $jmol_menu_arr .= $self->_get_jmol_menu_scripts($templates_ar,'templates') if(defined($templates_ar));
     $retval .= $pseq_structure->set_js_vars(1);
@@ -80,8 +81,9 @@ sub load{
     
     my $select_chain = ":".uc($chain).".*";
     my $name = substr($fn,3,4);
+    my $pdb_url = pdb_url($fn);
 	# set frank off;
-    $retval .= "load ../js/Jmol/pdb/all.ent/$fn; spacefill off; wireframe off; cartoon on; color cartoon structure;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
+    $retval .= "load $pdb_url; spacefill off; wireframe off; cartoon on; color cartoon structure;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
     return( $retval );
 }
 
@@ -197,14 +199,14 @@ sub _get_jmol_menu_scripts {
 sub _load_script {
   my ($self,$fn,$select_chain,$name) = @_;
   my $retval = '';
-
-  $retval .= "load $fn;set frank off;spacefill off; wireframe off; cartoon on; color cartoon structure; select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
+  my $pdb_url = pdb_url($fn);
+  $retval .= "load $pdb_url;set frank off;spacefill off; wireframe off; cartoon on; color cartoon structure; select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
   return $retval;
 }
 
 sub pdb_url {
   my $fn = shift;
-  my $id = ($fn =~ m%pdb(....).ent%) ? $1 : $fn;
+  my $id = ($fn =~ m/(....)\.ent$/) ? $1 : $fn;
   if ($ENV{REMOTE_USER}) {
 	# if secured, then we can't use the one in the Unison cgi/ directory
 	# because Jmol doesn't support basic auth. The admin should have copied
