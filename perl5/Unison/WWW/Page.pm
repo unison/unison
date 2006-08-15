@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.83 2006/05/12 03:48:54 rkh Exp $>
+S<$Id: Page.pm,v 1.84 2006/06/26 17:36:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -1105,7 +1105,7 @@ sub _navbar {
 	. "    <!-- 'V' graphic -->\n"
 	. "    <tr>"
 	. ($navi==0      ? '' : sprintf("<td colspan=%d></td>",$navi))
-	. '<td align="center"><img src="../av/caret.gif"></td>'
+	. '<td align="center"><img src="../av/subnav.gif"></td>'
 	. ($navi==$#navs ? '' : sprintf("<td colspan=%d></td>",$#navs-$navi))
 	. "</tr>\n"
 	. "  </table>\n";

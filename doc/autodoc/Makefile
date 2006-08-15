@@ -1,15 +1,13 @@
 default: update
 
-include ../../loading/common.mk
-include ../../loading/local.mk
-include ../../loading/params.mk
+PGDATABASE=csb
 
 GVOPTS:=-Goverlap=false
 
 update: $(foreach t,dot neato twopi fdp,${PGDATABASE}-$t.ps)
 
 %.log:
-	postgresql_autodoc -h csb -d $* -u PUBLIC -s unison >$@.tmp 2>&1
+	postgresql_autodoc -h localhost -d $* -u PUBLIC -s unison >$@.tmp 2>&1
 	/bin/mv $@.tmp $@
 
 %.dot: %.log;
