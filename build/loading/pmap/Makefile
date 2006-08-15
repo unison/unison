@@ -6,7 +6,7 @@ include ../params.mk
 
 RUNSET=runC-human
 
-PATH:=/usr/local/tools/bin:/usr/local/seq/bin/:${PATH}
+PATH:=/gne/research/apps/gmap/current/bin:${PATH}
 SHELL=bash
 CMDLINE:=$(shell ${PSQL_DCMD} "select replace(commandline,'%s','') from params where params_id=${PMAP_PARAMS_ID}")
 
