@@ -1,6 +1,6 @@
 #!/bin/sh
-# pdb-fetch -- http non-parsed header PDB gateway
-# $Id: nph-pdb-fetch.sh,v 1.2 2006/05/12 04:39:51 rkh Exp $
+# pdb-fetch -- PDB file gateway via http non-parsed header
+# $Id: nph-pdb-fetch.sh,v 1.3 2006/06/26 17:36:37 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 # Given a PDB id (e.g., 2tnf), this script returns the PDB file on STDOUT
@@ -18,9 +18,9 @@
 
 ### RCSB mirror
 # these point to the root of the rcsb tree
-#RCSB_BASE_URL=ftp://ftp.rcsb.org/pub/pdb
+RCSB_BASE_URL=ftp://ftp.rcsb.org/pub/pdb
 #RCSB_BASE_URL=ftp://pdb.ccdc.cam.ac.uk/rcsb
-RCSB_BASE_URL=ftp://rutgers.rcsb.org/PDB/pub/pdb
+#RCSB_BASE_URL=ftp://rutgers.rcsb.org/PDB/pub/pdb
 #RCSB_BASE_URL=ftp://pdb.bic.nus.edu.sg/pub/pdb
 #RCSB_BASE_URL=ftp://pdb.protein.osaka-u.ac.jp/pub/pdb
 #RCSB_BASE_URL=ftp://ftp.pdb.mdc-berlin.de/pub/pdb
@@ -56,7 +56,7 @@ fi
 trap '/bin/rm -f "$TMP";' 0
 TMP=`/bin/mktemp`
 URL="$RCSB_BASE_URL/data/structures/divided/pdb/$HASH/pdb$ID.ent.Z"
-wget -nd -q --retr-symlinks -O- "$URL" | gzip -cd >"$TMP" 2>/dev/null
+wget -nd -q --retr-symlinks -O- "$URL" | gzip -cdq >"$TMP"
 if [ -s "$TMP" ]; then
 		#echo "found $URL" 1>&2
 		cat "$TMP"
