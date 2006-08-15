@@ -13,7 +13,7 @@ genengenes.fa: genengenes.proids
 	sed -e 's/^/ssp.PRO/' <$< | ssh geneland xargs -n100 /usr/local/seq/bin/getseq -F >$@.tmp 2>$@.err
 	/bin/mv -f $@.err $@; /bin/mv -f $@.tmp $@
 genengenes.proids:
-	${UNISON_HOME}/loading/genentech/gg-proids-to-load >$@.tmp 2>$@.err
+	${UNISON_HOME}/loading/aux/sst/gg-proids-to-load >$@.tmp 2>$@.err
 	/bin/mv -f $@.err $@; /bin/mv $@.tmp $@
 	@wc -l $@
 
