@@ -89,3 +89,28 @@ char* clean_sequence(const char* in, int32 n) {
   return(out);
 }
 
+
+/* 
+
+In pgsql-bugs on 2006-08-14, Tom Lane wrote the following reply to a
+poster.  His reply may suggest that the above method 
+
+
+"Michael Enke" <michael.enke@wincor-nixdorf.com> writes:
+> I created a C function:
+> extern Datum test_arg(PG_FUNCTION_ARGS);
+> PG_FUNCTION_INFO_V1(test_arg);
+> Datum test_arg(PG_FUNCTION_ARGS) {
+>   elog(INFO, "arg: %s", VARDATA(PG_GETARG_TEXT_P(0)));
+>   PG_RETURN_INT16(0);
+
+The VARDATA of a TEXT datum is not a C string; in particular it is not
+guaranteed to be null-terminated.  This is an error in your code not
+a bug.
+
+The usual way to get a C string from a TEXT datum is to call textout,
+eg
+
+        str = DatumGetCString(DirectFunctionCall1(textout, datumval));
+
+*/
