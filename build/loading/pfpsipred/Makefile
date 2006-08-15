@@ -4,7 +4,7 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-N:=20
+N:=5
 QNAME=${SUBDIR}p${PFPSIPRED_PARAMS_ID}
 RUNSET=runB-human
 NPER:=250
