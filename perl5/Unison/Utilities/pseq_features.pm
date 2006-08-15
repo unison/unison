@@ -2,7 +2,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: pseq_features.pm,v 1.28 2006/06/06 20:33:27 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.29 2006/06/26 18:05:08 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -188,7 +188,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.28 2006/06/06 20:33:27 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.29 2006/06/26 18:05:08 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -467,7 +467,9 @@ sub add_paprospect {
   my $nadded = 0;
   $params_id = $u->preferred_params_id_by_pftype('Prospect') unless defined $params_id;
   my $params_name = $u->get_params_name_by_params_id($params_id);
-  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef) || 'NOT RUN';
+  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef);
+  warn("timestamp: $q $params_id $z\n");
+  $z ||= 'NOT RUN';
   my $sth = $u->prepare(<<EOT);
 SELECT *
 FROM paprospect_scop_v
@@ -603,7 +605,10 @@ sub add_pahmm {
   ## XXX: don't hardwire the following
   my $params_id = $u->preferred_params_id_by_pftype('HMM');
   my $params_name = $u->get_params_name_by_params_id($params_id);
-  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef) || 'NOT RUN';
+  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef);
+  warn("timestamp: $q $params_id $z\n");
+  $z ||= 'NOT RUN';
+
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
 FROM pahmm_v

@@ -6,24 +6,19 @@ include ../../common.mk
 include ../../local.mk
 include ../../params.mk
 
-YM=200601
-Y=$(shell expr "${YM}" : '\(20..\)')
-M=$(shell expr "${YM}" : '20..\(..\)')
+Y=2006
+M=06
 GTT=go_$Y$M-termdb-tables
-TABLES_TAR_GZ:=${RESEARCH_PREFIX}/share/go/full/$Y-$M-01/${GTT}.tar.gz
-
+TABLES_TAR_GZ:=${GO_DIR}/full/$Y-$M-01/${GTT}.tar.gz
+MY2PG:=../../../sbin/my2pg.pl
 
 test: ${GTT}-untar.log
 
+# untar the "full" go tarball
 .PRECIOUS: ${GTT}-untar.log
 ${GTT}-untar.log: ${TABLES_TAR_GZ}
 	tar -xzf $< >$@.tmp 2>&1
 	/bin/mv -f $@.tmp $@
-
-.PHONY: pgsql
-pgsql: ${GTT}.pgsql
-${GTT}/%.pgsql: ${GTT}/%.sql     ${GTT}-untar.log
-	${MY2PG} $< >$@
 
 .PHONY: sql
 sql: ${GTT}.sql
@@ -33,6 +28,15 @@ ${GTT}.sql: ${GTT}-untar.log
 	-e 'print "COPY go.$$t FROM '"'"'${PWD}/$$fn'"'"';\n";' \
 	-e '}' ${GTT}/*.log >$@.tmp
 	/bin/mv -f $@.tmp $@
+
+
+
+# convert 
+.PHONY: pgsql
+pgsql: ${GTT}.pgsql
+${GTT}/%.pgsql: ${GTT}/%.sql
+	${MY2PG} $< >$@
+
 
 
 
@@ -57,3 +61,4 @@ cleaner:: clean
 	/bin/rm -f load-go.sql schema.sql load.sql
 cleanest:: cleaner
 	/bin/rm -f tables load-go.log gong.log
+	/bin/rm -fr go_200*

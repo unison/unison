@@ -70,7 +70,8 @@ name to preclude inadvertenly overwritting an existing db.
 
 * setting the default database schema search path:
 $ export PGDATABASE=csb-dev
-$ psql -c "alter database $PGDATABASE set search_path = '\$user',unison,gong,scop,tax,public";
+$ psql -c "alter database $PGDATABASE set search_path = '\$user',unison,pdb,gong,scop,tax,public";
+$ psql -c 'alter database $PGDATABASE set statement_timeout=1800000;'
 Note: You should connect to the same database that you're modifying, as above.
 
 * useful commands

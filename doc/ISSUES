@@ -5,10 +5,7 @@ http://www.geneontology.org/external2go/
 * TO-DO AT NEXT BACKUP/RESTORE:
 These are items which can only/best be dealt with in a backup/restore cycle.
 
-** prospect2/prospect
-
-** reorder cols in origin, others?
-
+** palignment.score to integer from smallint
 
 
 * IMPORTANT:
