@@ -24,4 +24,4 @@ $(foreach t,${TABLES},logs/$t-load.log): logs/%-load.log: %.dat logs/%-create.lo
 	/bin/mv -f $@.err $@
 
 cleanest::
-	/bin/rm -fr logs
+	/bin/rm -fr hugo.dat logs
