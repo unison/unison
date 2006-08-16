@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.8 2006/06/16 17:53:38 rkh Exp $>
+S<$Id: genome_features.pm,v 1.9 2006/08/10 16:40:07 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -145,7 +145,7 @@ sub genome_features_panel ($%) {
 		    -bgcolor => 'green',
 		    -bump => +1,
 		     add_probes( $u, $panel, %opts ),
-		     -key => '$Id: genome_features.pm,v 1.8 2006/06/16 17:53:38 rkh Exp $',
+		     -key => '$Id: genome_features.pm,v 1.9 2006/08/10 16:40:07 mukhyala Exp $',
 		   );
 
 
@@ -330,7 +330,7 @@ sub add_probes {
 										  );
 
   my $sql = <<EOSQL;
-SELECT name,probe_id,gstart,gstop,plus_strand
+SELECT name,probe_id,gstart,gstop,strand
 FROM marray.chip_probe_v
 WHERE genasm_id=$opts{genasm_id}
   AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}
@@ -339,18 +339,18 @@ EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
   my $sth = $u->prepare($sql);
   $sth->execute();
-  my ($plus_strand,$feat);
+  my ($strand,$feat);
   while ( my $r = $sth->fetchrow_hashref ) {
 
     # if we have a feat defined, then add it to the appropriate strand track
     if ( defined $feat && $feat->isa('Bio::Graphics::Feature') ) {
-      if ( $plus_strand ) {
+      if ( $strand eq '+') {
 	$plus_strand_track->add_feature($feat);
       } else {
 	$rev_strand_track->add_feature($feat);
       }
     }
-    $plus_strand = $r->{plus_strand};
+    $strand = $r->{strand};
     print STDERR "Get a new feature\n" if $opts{verbose};
     $feat = new Bio::Graphics::Feature->new(-name=>sprintf('%s:%s',
 							   $r->{name},$r->{probe_id}||'?'));
