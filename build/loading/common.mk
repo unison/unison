@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.27 2006/06/26 18:05:08 rkh Exp $
+## $Id: common.mk,v 1.28 2006/08/08 02:53:10 rkh Exp $
 
 .SUFFIXES:
 .PHONY: FORCE
@@ -32,11 +32,13 @@ PSQL_DCMD=${PSQL} -UPUBLIC -At -c
 # sequences by from unison's psets
 vpath %.ids .:..
 .PHONY: ids
-ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids
+ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids runA-public.ids runB-public.ids runC-public.ids
 .runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
 .runA-human.ids .runB-human.ids .runC-human.ids .uniA-human.ids .uniB-human.ids .uniC-human.ids .uniD-human.ids: .%-human.ids:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('Human')" >$@
+.runA-public.ids .runB-public.ids .runC-public.ids .uniA-public.ids .uniB-public.ids .uniC-public.ids .uniD-public.ids: .%-public.ids:
+	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('public')" >$@
 .pset%.ids:
 	${PSQL_DCMD} 'select pseq_id from pseqset where pset_id=$*' >$@
 .origin%.ids:
