@@ -14,21 +14,21 @@ use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_intx.pl,v 1.6 2005/12/07 23:21:02 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_intx.pl,v 1.7 2006/06/26 18:05:08 rkh Exp $ ');
 
 my $sql = qq/select pseq_id_b, sprot_b, best_annotation(pseq_id_b), pmid, interaction_detection_method
       from mint_v where pseq_id_a=$v->{pseq_id}/;
 
 my $ar = $u->selectall_arrayref($sql);
-my @f = ( 'Sequence', 'Swiss-Prot', 'Best annotation', 'PubMed', 'Interaction detection method', 'Link' );
+my @f = ( 'Sequence', 'UniProtKB/Swiss-Prot', 'Best annotation', 'PubMed', 'Interaction detection method', 'Link' );
 
 my $sprot_a = $u->selectrow_array
-  ("select alias from palias where origin_id=origin_id('Swiss-Prot') and pseq_id=$v->{pseq_id} and alias~'^[A-Z][0-9]+\$'");
+  ("select alias from palias where origin_id=origin_id('UniProtKB/Swiss-Prot') and pseq_id=$v->{pseq_id} and alias~'^[A-Z][0-9]+\$'");
 
 # work right-to-left
 do { $_->[5]= alias_link($_->[1],'Mint') } for @$ar;
 do { $_->[3] = alias_link($_->[3],'Pubmed') } for @$ar;
-do { $_->[1] = alias_link($_->[1],'Swiss-Prot') } for @$ar;
+do { $_->[1] = alias_link($_->[1],'UniProtKB/Swiss-Prot') } for @$ar;
 do { $_->[0] = pseq_summary_link($_->[0],"Unison:$_->[0]") } for @$ar;
 
 
