@@ -14,7 +14,7 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: browse_views.pl,v 1.14 2005/11/20 23:22:42 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_views.pl,v 1.15 2006/06/26 17:36:37 rkh Exp $ ');
 
 my %cvs = %{ $u->selectall_hashref('select cv_id,name,descr,sql from canned_views where cv_id>0',
 								   'cv_id') };
@@ -49,7 +49,6 @@ sub do_search {
 				  'alias' => 'Unison sequence annotation',
 				  'gs' => 'genus and species',		
 				  'descr' => 'sequence description',
-				  'confidence' => 'TM region prediction confidence',
 				  'tm_prob' => 'TM region prediction probability',
 				  'best_annotation' => 'Best annotations are
 					   a guess about the most informative and reliable
