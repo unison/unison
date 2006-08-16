@@ -22,3 +22,22 @@ COMMENT ON column pfbigpi.start IS 'omega site';
 COMMENT ON column pfbigpi.stop IS '0';
 COMMENT ON column pfbigpi.quality IS 'A-D are good sites; S,N,I are rejected sites';
 COMMENT ON column pfbigpi.confidence IS 'BIG-PI Pv value';
+
+--------------------------------------------------------------------------------
+-- Name: pfbigpi_site_trigger
+-- Purpose: sets column stop = start
+-- 
+CREATE OR REPLACE FUNCTION pfbigpi_site_trigger() RETURNS "trigger"
+    AS '
+  begin
+    new.stop := new.start;
+    return new;
+  end; '
+    LANGUAGE plpgsql;
+COMMENT ON FUNCTION pfbigpi_site_trigger() IS 'sets stop equal to start';
+
+CREATE TRIGGER pfbigpi_site_trigger
+	BEFORE INSERT 
+	ON pfbigpi
+	FOR EACH ROW
+	EXECUTE PROCEDURE pfbigpi_site_trigger();
