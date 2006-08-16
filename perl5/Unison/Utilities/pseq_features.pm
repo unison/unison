@@ -1,13 +1,13 @@
 =head1 NAME
 
-Unison::blat -- BLAT-related functions for Unison
+Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.29 2006/06/26 18:05:08 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.30 2006/08/15 18:56:35 rkh Exp $>
 
 =head1 SYNOPSIS
 
  use Unison;
- use Unison::pseq_features;
+ use Unison::Utilities::pseq_features;
  my $u = new Unison(...);
 
 =head1 DESCRIPTION
@@ -188,7 +188,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.29 2006/06/26 18:05:08 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.30 2006/08/15 18:56:35 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -660,7 +660,7 @@ EOSQL
 
 =pod
 
-=item B<< add_pappsm( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+=item B<< add_papssm( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
 
 Add pappsm features to a panel and return the number of features added.
 
