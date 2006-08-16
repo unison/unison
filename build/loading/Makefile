@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.26 2006/07/28 16:55:40 mukhyala Exp $
+## $Id: Makefile,v 1.27 2006/08/08 02:52:56 rkh Exp $
 
 default all: update
 
@@ -70,8 +70,8 @@ pseq_gene_mv.log: aux.log
 # dependencies elsewhere.
 
 COMPUTE_DIRS:=
-COMPUTE_DIRS+=pahmm #paprospect
-COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm
+COMPUTE_DIRS+=pahmm papseq #paprospect
+COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm pfseg pfpepcoil
 COMPUTE_DIRS+=pmap
 #GENELAND only: psprotcomp
 #NEEDS ATTENTION: papseq papssm pfregexp
