@@ -1,7 +1,7 @@
 =head1 NAME
 
  Unison::origin -- Unison origin table utilities
- $Id: origin.pm,v 1.10 2005/09/13 17:05:51 rkh Exp $
+ $Id: origin.pm,v 1.11 2006/06/27 21:30:42 rkh Exp $
 
 =head1 SYNOPSIS
 
@@ -164,7 +164,35 @@ sub origin_last_updated($$) {
   }
 
 
+######################################################################
+## origin_version
 
+=pod
+
+=item B<< ::origin_version( C<origin_id>) >>
+
+If the optional second argument is defined (e.g,. origin_version(15,17b)), then 
+set the version field to it.  In any case, the version value is returned.
+
+=over
+
+=back
+
+=cut
+
+sub origin_version($$) {
+  my ($self,$origin_id) = @_;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  if (defined $_[2]) {
+	$self->do("update origin set version='$_[2]' where origin_id=$origin_id");
+  }
+  my $sth = $self->prepare("select version from origin where origin_id=?");
+  $sth->execute( $origin_id );
+  my ($rv) = $sth->fetchrow_array();
+  $sth->finish();
+  return $rv;
+  }
 =pod
 
 =back
