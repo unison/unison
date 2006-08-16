@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.12 2006/01/02 20:19:52 rkh Exp $
+# $Id: Makefile,v 1.13 2006/02/15 04:06:37 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -58,11 +58,12 @@ perl5-prereq-${DATE}.tgz: %.tgz:
 
 # "stage" the development database to production
 # must be run on the database host
-stage.log:
+stage:
 	export PGHOST=localhost PGUSER=postgres; \
 	dropdb csb-stage || true; \
-	../../sbin/dev2stage csb-stage >$@ 2>&1
-
+	../../sbin/dev2stage csb-stage >$@.tmp 2>$@.err
+	/bin/mv $@.err $@.log
+	/bin/mv $@.tmp $@
 
 # MANUAL INTERVENTION REQUIRED HERE
 # admin must now rename the csb-stage to "csb" when ready
