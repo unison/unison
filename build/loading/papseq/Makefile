@@ -5,8 +5,7 @@ include ../local.mk
 include ../params.mk
 
 DB:=uniblast
-PARAMS_ID:=3
-RUNSET:=runA
+RUNSET:=runC-human
 N:=10
 
 update:
@@ -21,26 +20,26 @@ update:
 
 .PRECIOUS: %-${DB}.load
 %-${DB}.load: %-${DB}.bo
-	(time -p load-papseq <$<) >$@.err 2>&1
-	/bin/mv -f $@.err $@
+	(time -p load-papseq -p ${BLAST_PARAMS_ID} --verbose <$<) >$@.err 2>&1
+	/bin/mv -f $@.err $@.log; touch $@
 
 .PRECIOUS: %-${DB}.bo
-%-${DB}.bo: %.fa ${DB}.phr
+%-${DB}.bo: %.fa ${DB}.pal
 	(time -p ${PAPSEQ_CMDLINE} -i $< -d ./${DB}) >$@.tmp 2>&1
 	/bin/mv -f $@.tmp $@
 
 .PRECIOUS: %.log %.fa
 %.phr: %.fa
 	formatdb -t "$* `date +'%Y-%m-%d %H:%M'`" -l $@.log -pT -n tmp-$* -i $<
-	for f in $*.phr $*.pin $*.psq; do /bin/mv -f "tmp-$$f" "$$f" || /bin/true; done
+	for f in $*.00.phr $*.00.pin $*.00.psq $*.01.phr $*.01.pin $*.01.psq $*.pal; do /bin/mv -f "tmp-$$f" "$$f" || /bin/true; done
 
 .PRECIOUS: uniblast.fa
 uniblast.fa:
-	get-seq -v -SS uniblast >$@.tmp
+	unison-get-seq -v -SS uniblast >$@.tmp
 	/bin/mv -f $@.tmp $@
 
 .done.ids:
-	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${PARAMS_ID}' >$@.tmp
+	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${BLAST_PARAMS_ID}' >$@.tmp
 	/bin/mv -f $@.tmp $@
 
 
