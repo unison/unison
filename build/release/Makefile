@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.13 2006/02/15 04:06:37 rkh Exp $
+# $Id: Makefile,v 1.14 2006/08/16 15:59:23 mukhyala Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -58,12 +58,23 @@ perl5-prereq-${DATE}.tgz: %.tgz:
 
 # "stage" the development database to production
 # must be run on the database host
-stage:
+stage.log:
 	export PGHOST=localhost PGUSER=postgres; \
 	dropdb csb-stage || true; \
-	../../sbin/dev2stage csb-stage >$@.tmp 2>$@.err
-	/bin/mv $@.err $@.log
-	/bin/mv $@.tmp $@
+	../../sbin/dev2stage csb-stage >$@.err 2>&1
+	/bin/mv -f $@.err $@
+
+
+# EXPERIMENTAL
+stage2.log:
+	( export PGHOST=localhost PGUSER=postgres; \
+	dropdb csb-stage || true; \
+	../../sbin/db-copy -S postgres,pgtools,public,go,gong,ncbi,pdb,scop,sst,tax,unison csb-dev csb-stage; \
+	psql -d "csb-stage" -c "select meta_update_kv('staged at','`date +\"%Y-%m-%d %H:%M:%S\"`');" \
+	) >$@.err 2>&1
+	/bin/mv -f $@.err $@
+
+
 
 # MANUAL INTERVENTION REQUIRED HERE
 # admin must now rename the csb-stage to "csb" when ready
