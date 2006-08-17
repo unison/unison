@@ -2,7 +2,7 @@
 
 Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.30 2006/08/15 18:56:35 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.31 2006/08/16 18:51:37 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -158,25 +158,27 @@ sub pseq_features_panel($%) {
 
   add_pftemplate   ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{template});
 
-  add_pfpsipred    ( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
+  # sequence composition features
   add_psdisprot    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{disprot});
+  add_pfpsipred    ( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
+  add_pfseg		   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
+  add_pfpepcoil	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pepcoil});
+  add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
 
+  # sequence signals
   add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
   add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
-
   add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pftmhmm      ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmhmm});
-
-  add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
   add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
-  add_pfpepcoil	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pepcoil});
 
+  # motifs and domains
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
-
   add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
   add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{hmm});
   add_paprospect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect});
 
+  # additional data
   add_pfsnp        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{snp});
   add_pfuser       ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}, $opts{user_feats}) if($opts{features}{user});
 
@@ -188,7 +190,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.30 2006/08/15 18:56:35 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.31 2006/08/16 18:51:37 mukhyala Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -200,6 +202,50 @@ sub pseq_features_panel($%) {
   return $panel;
 }
 
+
+
+######################################################################
+## add_pftmdetect
+
+=pod
+
+=item B<< add_pfseg( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pftmdetect features to a panel and return the number of features added.
+
+=cut
+
+sub add_pfseg {
+  my ($u, $panel, $q) = @_;
+  my $nadded = 0;
+  my $track = $panel->add_track( -glyph => 'graded_segments',
+								 -min_score => 0,
+								 -max_score => 4,
+								 -sort_order => 'high_score',
+								 -bgcolor => 'blue',
+								 -key => 'seg low complexity regions',
+								 -bump => +1,
+								 -label => 1,
+								 -fgcolor => 'black',
+								 -fontcolor => 'black',
+								 -font2color => 'red',
+								 -description => 1,
+								 -height => 4,
+							   );
+  my $sql = "select start,stop,score from pfseg where pseq_id=$q";
+  print(STDERR $sql, ";\n\n") if $opts{verbose};
+  my $featref = $u->selectall_arrayref($sql);
+  foreach my $r (@$featref) {
+	$track->add_feature
+	  ( Bio::Graphics::Feature->new( -start => $r->[0],
+									 -end => $r->[1],
+									 -score => $r->[2],
+									 -attributes => { tooltip => "$r->[0]-$r->[1]; score=$r->[2]" }
+								   ) );
+	$nadded++;
+  }
+  return $nadded;
+}
 
 
 #-------------------------------------------------------------------------------
@@ -468,8 +514,6 @@ sub add_paprospect {
   $params_id = $u->preferred_params_id_by_pftype('Prospect') unless defined $params_id;
   my $params_name = $u->get_params_name_by_params_id($params_id);
   my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef);
-  warn("timestamp: $q $params_id $z\n");
-  $z ||= 'NOT RUN';
   my $sth = $u->prepare(<<EOT);
 SELECT *
 FROM paprospect_scop_v
@@ -486,8 +530,8 @@ EOT
   my $track = $panel->add_track( 
 								-glyph => 'graded_segments',
 								-bgcolor => 'green',
-								-key => sprintf('Prospect Threading (%s, run on %s); top %d hits of %d w/svm>=%s',
-												$params_name, $z,($#$feats+1),$nfeat,$svm_thr),
+								-key => sprintf('Prospect Threading (%s); top %d hits of %d w/svm>=%s',
+												$params_name, ($#$feats+1),$nfeat,$svm_thr),
 								-bump => +1,
 								-label => 1,
 								-fgcolor => 'black',
@@ -606,8 +650,6 @@ sub add_pahmm {
   my $params_id = $u->preferred_params_id_by_pftype('HMM');
   my $params_name = $u->get_params_name_by_params_id($params_id);
   my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef);
-  warn("timestamp: $q $params_id $z\n");
-  $z ||= 'NOT RUN';
 
   my $sql = <<EOSQL;
 SELECT start,stop,ends,score,eval,acc,name,descr
@@ -620,8 +662,8 @@ EOSQL
 								 -min_score => 1,
 								 -max_score => 25,
 								 -sort_order => 'high_score',
-								 -key => sprintf('HMM (%s; ran on %s); %d w/eval<=%s',
-												 $params_name, $z, ($#$featref+1),$eval_thr),
+								 -key => sprintf('HMM (%s); %d w/eval<=%s',
+												 $params_name, ($#$featref+1),$eval_thr),
 								 -bgcolor => 'blue',
 								 -bump => +1,
 								 -label => 1,
