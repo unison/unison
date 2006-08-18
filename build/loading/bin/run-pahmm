@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pahmm,v 1.29 2006/07/30 23:03:01 mukhyala Exp $
+# $Id: run-pahmm,v 1.30 2006/08/04 03:04:03 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 # TODO:
@@ -99,6 +99,7 @@ EOSQL
 SELECT data_url FROM origin
 WHERE origin_id=$opts{model_origin_id}
 EOSQL
+}
 
 (defined $opts{modelfile})
    || die("$0: data_url is NULL for origin_id=$opts{model_origin_id}\n");
