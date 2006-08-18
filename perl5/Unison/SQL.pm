@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::SQL -- simplified generation of SQL queries
-S<$Id: SQL.pm,v 1.4 2004/06/25 00:20:44 rkh Exp $>
+S<$Id: SQL.pm,v 1.5 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -69,6 +69,7 @@ sub new {
 		 limit => undef,
 		 tables => [],
 		 offset => undef,
+		 group => [],
 		 order => [],
 		 where => [],
 		},$class);
@@ -189,6 +190,27 @@ sub order {
 }
 
 ######################################################################
+## group
+
+=pod
+
+=item B<group( C<> )>
+
+=cut
+
+sub group {
+  my $self = shift;
+  if (@_) {
+	if (defined $_[0]) {
+	  push( @{$self->{group}}, @_);
+	} else {
+	  $self->{group} = [];
+	}
+  }
+  return $self;
+}
+
+######################################################################
 ## limit
 
 =pod
@@ -240,7 +262,8 @@ sub sql {
   push(@sql, CORE::join( ',', @{$self->{columns}} ) );
   push(@sql, 'FROM', CORE::join( "   JOIN ", @{$self->{tables}})) if @{$self->{tables}};
   push(@sql, 'WHERE', CORE::join( '  AND  ', @{$self->{where}})) if @{$self->{where}};
-  push(@sql, 'ORDER BY', CORE::join( ',', @{$self->{order}})) if @{$self->{order}};
+  push(@sql, 'GROUP BY', CORE::join( ',', @{$self->{group}})) if @{$self->{group}};
+  push(@sql, 'ORDER BY', CORE::join( ',', @{$self->{distinct}},@{$self->{order}})) if @{$self->{distinct}} or @{$self->{order}};
   push(@sql, 'OFFSET', $self->{offset}) if defined $self->{offset};
   push(@sql, 'LIMIT', $self->{limit}) if defined $self->{limit};
 
