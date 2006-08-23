@@ -13,11 +13,12 @@ use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::Utilities::pfpsipred;
+use Unison::Exceptions;
 
 use Bio::Prospect::Options;
 use Bio::Prospect::LocalClient;
 use Bio::Prospect::Align;
-
+use Bio::Prospect::Exceptions;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
@@ -46,12 +47,13 @@ if ($po->{'phd'}) {
 
 my $pf = new Bio::Prospect::LocalClient( {options=>$po} );
 
-my @threads = $pf->thread( $seq );
-my $pa = new Bio::Prospect::Align( -debug=>0,-threads => \@threads );
-
-
-
-print $p->render("Prospect Threading for Unison:$v->{pseq_id}",
-				 $p->group('Prospect Threadings',
-						   '<b>', $pa->get_alignment(-format=>'html'), '</b>')
-				);
+try{
+  my @threads = $pf->thread( $seq );
+  my $pa = new Bio::Prospect::Align( -debug=>0,-threads => \@threads );
+  print $p->render("Prospect Threading for Unison:$v->{pseq_id}",
+		   $p->group('Prospect Threadings',
+			     '<b>', $pa->get_alignment(-format=>'html'), '</b>')
+		  );
+} catch Bio::Prospect::Exception with {
+  $p->die($_[0]);
+};
