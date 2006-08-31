@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.84 2006/06/26 17:36:37 rkh Exp $>
+S<$Id: Page.pm,v 1.85 2006/08/15 18:54:09 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -1047,7 +1047,7 @@ sub _navbar {
 	  [1,1,'Prospect',	 	'Prospect threadings', 				'pseq_paprospect.pl', $pseq_id],
 	  [1,1,'HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	  [0,1,'PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
-	  [1,1,'Interactions',	'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
+	  [0,1,'Interactions',		'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
 	  [1,1,'Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
 	  [0,0,'Notes',			'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
 	  [1,1,'History',		'run history',						'pseq_history.pl', 	$pseq_id ],
