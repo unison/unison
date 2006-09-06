@@ -20,12 +20,12 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_properties.pl,v 1.16 2006/03/14 01:22:52 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: search_properties.pl,v 1.17 2006/06/26 18:05:08 rkh Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_properties.pl,v 1.16 2006/03/14 01:22:52 mukhyala Exp $',
+				   '$Id: search_properties.pl,v 1.17 2006/06/26 18:05:08 rkh Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Complex searches may take several minutes!'),
 				   spit_form($p));
@@ -64,8 +64,8 @@ if (exists $v->{r_age} or exists $v->{r_len}) {
 }
 
 if (exists $v->{r_sigp}) {
-  $s_sql->join('pseqprop P on A.pseq_id=P.pseq_id')
-	->where("P.sigpredict>=$v->{r_sigp_sel}::real");
+  $s_sql->join('pfsignalpnn P on A.pseq_id=P.pseq_id')
+	->where("P.signal_peptide is true");
 }
 
 if (exists $v->{al_hmm}) {
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Feature Based Mining Results",
-				 '$Id: search_properties.pl,v 1.16 2006/03/14 01:22:52 mukhyala Exp $',
+				 '$Id: search_properties.pl,v 1.17 2006/06/26 18:05:08 rkh Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
@@ -194,11 +194,8 @@ sub spit_form {
 	   ' AA',
 	   '<br>',
 	   $p->checkbox(-name => 'r_sigp',
-					-label => 'have signal sequence with sigp >= ',
+					-label => 'have signal sequence',
 					-checked => 1),
-	   $p->popup_menu(-name => 'r_sigp_sel',
-					  -values => [qw(0.9 0.8 0.7 0.6 0.5 0.4)],
-					  -default => 0.6),
 	   '</td></tr>',
 
 
