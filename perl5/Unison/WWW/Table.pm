@@ -27,18 +27,21 @@ use Unison::WWW::utilities qw(coalesce);
 # cell_preprocess
 
 
+#http://www.cssplay.co.uk/menu/tablescroll.html
+
 sub render {
   return render_compat(@_) unless (ref $_[0] eq __PACKAGE__);
 
+  die("code barricade -- code path shouldn't be here");
   # BELOW THIS POINT IS EXPERIMENTAL
   my $self = shift;
   my $fr = shift;
   my $rv = '';
-  $rv .= "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
-  $rv .= "<tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr>\n";
+  $rv .= '<div style="overflow: auto;"><table class=\"uwtable\">';
+  $rv .= "<thead><tr>" . join('',map {'<th align="left">'.$_.'</th>'} @$fr) . "</tr></thead>\n";
   foreach(my $i; $i<=$#_; $i++) {
   }
-  $rv .= "</table class=\"uwtable\">\n";
+  $rv .= "</table></div>\n";
   return($rv);
 }
 
@@ -59,8 +62,8 @@ sub render_compat {
   my $ar = shift;
   my $opts = shift;
 
-  my $tbl_start = "<table class=\"uwtable\" border=\"0\" width=\"100%\">\n";
-  my $tbl_end = "</table class=\"uwtable\">\n";
+  my $tbl_start = '<table class="uwtable">';
+  my $tbl_end = '</table>';
 
   my $rv = $tbl_start;
 
@@ -71,14 +74,13 @@ sub render_compat {
   }
 
   if (not defined $opts->{highlight_column}) {
-
-        $rv = "<DIV STYLE=\"overflow: auto; height: 100px;
-            padding:0px; margin: 0px\">".$tbl_start if($opts->{scroll});
-
-	$rv .= "<tr>" . join('',map {'<th align="center">'.$_.'</th>'} @$fr)."</tr>\n";
-	$rv .= "<tr>" . join('',map {'<td align="'.guess_alignment($_).'">'.coalesce($_,'').'</td>'} @$_) ."</tr>\n" for @$ar; 
+	$rv = "<DIV STYLE=\"overflow: auto; height: 100px; padding:0px; margin: 0px\">".$tbl_start if ($opts->{scroll});
+	$rv .= "\n<thead>\n  <tr>\n" . join('',map {'    <th align="center">'.$_.'</th>'."\n"} @$fr)."  </tr>\n</thead>\n";
+	$rv .= '<tbody>'."\n";
+	$rv .= "  <tr>\n" . join('',map {'    <td align="'.guess_alignment($_).'">'.coalesce($_,'').'</td>'."\n"} @$_) ."  </tr>\n" for @$ar; 
+	$rv .= "</tbody>\n";
 	$rv .= $tbl_end;
-        $rv .= "</DIV>" if($opts->{scroll});
+	$rv .= "</div>" if ($opts->{scroll});
 	return $rv;
   }
 
