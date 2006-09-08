@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.85 2006/08/15 18:54:09 rkh Exp $>
+S<$Id: Page.pm,v 1.86 2006/08/31 00:20:48 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -358,7 +358,8 @@ sub render {
   my $self = shift;
   my $title = shift;
 
-  my $elapsed = 'page generated in ' . (time - $self->{starttime}) . ' seconds';
+  my $elapsed = time - $self->{starttime};
+  my $elapsed_msg = sprintf('page generated in %s second%s', $elapsed, $elapsed==1 ? '' : 's');
 
   return ($self->header(),
 
@@ -394,7 +395,7 @@ sub render {
 		     '">unison@unison-db.org</a>.',
 		  '  &nbsp; &nbsp; ',
 		  '  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
-		  '     <br>',$elapsed, "\n",
+		  '     <br>',$elapsed_msg, "\n",
 		  (defined $self->{footer} ? (map {"<br>$_"} @{$self->{footer}}) : ''),
 		  "  </td>\n",
 		  "</tr>\n",
