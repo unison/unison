@@ -2,7 +2,7 @@
 
 Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.31 2006/08/16 18:51:37 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.32 2006/08/17 17:45:20 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -161,15 +161,15 @@ sub pseq_features_panel($%) {
   # sequence composition features
   add_psdisprot    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{disprot});
   add_pfpsipred    ( $u, $panel, $opts{pseq_id}, $len, $opts{track_length}) if($opts{features}{psipred});
-  add_pfseg		   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
+  add_pfseg		   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pfseg});
   add_pfpepcoil	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pepcoil});
   add_pfantigenic  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{antigenic});
 
   # sequence signals
   add_pfsigcleave  ( $u, $panel, $opts{pseq_id} ) if($opts{features}{sigcleave});
   add_pfsignalp    ( $u, $panel, $opts{pseq_id} ) if($opts{features}{signalp});
-  add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pftmhmm      ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmhmm});
+  add_pftmdetect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{tmdetect});
   add_pfbigpi	   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{bigpi});
 
   # motifs and domains
@@ -190,7 +190,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.31 2006/08/16 18:51:37 mukhyala Exp $',
+			  '$Id: pseq_features.pm,v 1.32 2006/08/17 17:45:20 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
