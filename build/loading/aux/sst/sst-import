@@ -13,17 +13,17 @@ my %opts =
 
 my @table_defs =
   (
-   # table			columns
-   [ 'unqproform', 	qw(unqid proid) 					],
-   [ 'prodna',	 	qw(proid dnaid) 					],
-   [ 'fam', 	 	qw(famid familyname shortname)	 	],
-   [ 'unqfamily',	qw(unqid famid) 					],
+   #  table			columns								distinct
+	[ 'unqproform', [qw(unqid proid)],					1		],
+	[ 'prodna',	 	[qw(proid dnaid)],	 				1		],
+	[ 'fam', 	 	[qw(famid familyname shortname)], 	1		],
+	[ 'unqfamily',	[qw(unqid famid)], 					1		],
   );
 
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '$Id: sst-import,v 1.8 2005/12/01 06:05:02 rkh Exp $ ', "\n");
+print(STDERR '$Id: sst-import,v 1.9 2006/01/20 00:46:11 rkh Exp $ ', "\n");
 
 my $sql;
 my $sth;
@@ -35,10 +35,11 @@ print(STDERR "# connected to $dsn\n");
 print("-- $0 ($dsn)\n");
 
 for(my $ti=0; $ti<=$#table_defs; $ti++) {
-  my ($table,@cols) = @{$table_defs[$ti]};
-  my $cols = join(',',@cols);
+  my ($table,$cr,$d) = @{$table_defs[$ti]};
+  my $cols = join(',',@$cr);
+  my $dist = defined $d ? 'distinct' : '';
   my $msg = "preparing table sst.$table";
-  my $sql = "select $cols from $table";
+  my $sql = "select $dist $cols from $table";
   my $n = 0;
 
   print(STDERR "# $table: $sql\n");
