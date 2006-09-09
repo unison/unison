@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.36 2006/05/12 03:48:54 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.37 2006/06/26 17:36:37 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -168,16 +168,19 @@ TABLE.credits TD {
 
 
 TABLE.uwtable {
-  background-color: #E0E0FF;
+ background-color: #E0E0FF;
+ margin: 0px;
+}
+TABLE.uwtable TBODY {
+ background-color: #E0E0FF;
+ overflow: auto;
 }
 TABLE.uwtable TH {
  border: black thin solid;
- font-size: 100%;
  background-color: #E0E0FF;
 }
 TABLE.uwtable TH.highlighted {
  border: black thin solid;
- font-size: 100%;
  background-color: yellow;
 }
 TABLE.uwtable TD {
