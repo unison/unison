@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.14 2006/01/02 22:59:44 rkh Exp $
+# $Id: cgi-test.pl,v 1.15 2006/05/12 04:39:08 rkh Exp $
 
 use warnings;
 use strict;
@@ -11,7 +11,7 @@ use Term::ANSIScreen qw/:color/;
 
 my %params =
   (
-   hmm => 34,
+   hmm => 43,
   );
 
 my $usage = <<'EOU';
@@ -24,7 +24,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.14 2006/01/02 22:59:44 rkh Exp $
+# $Id: cgi-test.pl,v 1.15 2006/05/12 04:39:08 rkh Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -129,7 +129,7 @@ my %dir_scripts = map {$_=>1} grep {not m%(?:CVS|t|~)$%} glob('./* ../*');
 my @badwords = ('Server Error', 'Object not found', 'DBIError', 'Exception', 'Error');
 my $npassed =  0;
 
-print('$Id: cgi-test.pl,v 1.14 2006/01/02 22:59:44 rkh Exp $ ', "\n\n");
+print('$Id: cgi-test.pl,v 1.15 2006/05/12 04:39:08 rkh Exp $ ', "\n\n");
 
 printf("%-30.30s\tstatus\t%7s\tmessage\n",'script','time');
 print('='x76,"\n");
