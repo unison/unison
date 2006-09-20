@@ -1,9 +1,9 @@
 #!/bin/sh -e
 # dev2stage: copy dev database to stage
 # usage: dev2stage <stage-name>
-# $Id: dev2stage,v 1.16 2006/09/11 20:28:59 mukhyala Exp $
+# $Id: dev2stage,v 1.17 2006/09/13 16:10:37 mukhyala Exp $
 
-echo '# $Id: dev2stage,v 1.16 2006/09/11 20:28:59 mukhyala Exp $' 1>&2
+echo '# $Id: dev2stage,v 1.17 2006/09/13 16:10:37 mukhyala Exp $' 1>&2
 
 if [ $# != 1 -o -z "$1" ]; then
 	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
@@ -41,13 +41,16 @@ done
 
 psql -qaf- <<EOF
 alter database "$PGDATABASE" set search_path = unison,gong,pdb,scop,sst,tax,marray;
+EOF
+#Don't merge these two, analyze needs search path set above.
+psql -qaf- <<EOF
 analyze verbose;
 EOF
 
 # new connection need to use new search_path
 psql -qaf- <<EOF
 select meta_update_kv('staged at', '`date +"%Y-%m-%d %H:%M:%S"`');
-select meta_update_kv('staged by', '\$Id: dev2stage,v 1.16 2006/09/11 20:28:59 mukhyala Exp $')
+select meta_update_kv('staged by', '\$Id: dev2stage,v 1.17 2006/09/13 16:10:37 mukhyala Exp $')
 EOF
 
 echo `date +'%Y-%m-%d %H:%M:%S'`: $0 done
