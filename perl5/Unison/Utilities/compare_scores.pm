@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.8 2005/10/09 09:39:32 rkh Exp $;
+# $ID = q$Id: compare_scores.pm,v 1.9 2005/12/07 23:21:02 rkh Exp $;
 ############################################################
 
 package Unison::Utilities::compare_scores;
@@ -63,7 +63,7 @@ sub get_p2_scores($$$) {
   %params = (%params,%$v);
 
     #1
-    @ms = @{ $u->selectall_arrayref( "select m.pseq_id,m.pmodel_id from pmprospect m join pmsm_prospect s on m.pmodel_id=s.pmodel_id where s.pmodelset_id=$params{pmodelset_id}" ) };
+    @ms = @{ $u->selectall_arrayref( "select m.pseq_id,m.pmodel_id from pmprospect m join pmsm_pmprospect s on m.pmodel_id=s.pmodel_id where s.pmodelset_id=$params{pmodelset_id}" ) };
     my %ms = map { $_->[0] => $_->[1] } @ms;
 
     #2
