@@ -12,7 +12,7 @@ use Unison::WWW::Table;
 use Unison::SQL;
 use Data::Dumper;
 
-my (@db_pri) = sort qw( GenenGenes UniProt UniProt/TrEMBL Incyte Proteome RefSeq 
+my (@db_pri) = sort qw( GenenGenes UniProtKB/Swiss-Prot UniProtKB/TrEMBL Incyte Proteome RefSeq 
 			Curagen Geneseq Ensembl/Human FANTOM MGC/Human MGC/Mouse );
 my (@db_sec) = (); 
 
@@ -20,12 +20,12 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_properties.pl,v 1.17 2006/06/26 18:05:08 rkh Exp $ ');
+$p->add_footer_lines('$Id: search_properties.pl,v 1.18 2006/09/06 16:15:22 mukhyala Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_properties.pl,v 1.17 2006/06/26 18:05:08 rkh Exp $',
+				   '$Id: search_properties.pl,v 1.18 2006/09/06 16:15:22 mukhyala Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Complex searches may take several minutes!'),
 				   spit_form($p));
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Feature Based Mining Results",
-				 '$Id: search_properties.pl,v 1.17 2006/06/26 18:05:08 rkh Exp $',
+				 '$Id: search_properties.pl,v 1.18 2006/09/06 16:15:22 mukhyala Exp $',
 				 $results,
 				 $p->sql( $sql ));
 
