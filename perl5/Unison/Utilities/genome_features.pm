@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.9 2006/08/10 16:40:07 mukhyala Exp $>
+S<$Id: genome_features.pm,v 1.10 2006/08/16 18:53:03 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -138,14 +138,16 @@ sub genome_features_panel ($%) {
 
   add_pmaploci( $u, $panel, %opts );
 
-  $panel->add_track( ) for 1..2;			# spacing
-  $panel->add_track( 
+  $panel->add_track(
 		    -key => 'Affymentrix and Agilents Probes',
+		   );
+  $panel->add_track();			# spacing
+  $panel->add_track(
 		    -key_font => 'gdSmallFont',
 		    -bgcolor => 'green',
 		    -bump => +1,
-		     add_probes( $u, $panel, %opts ),
-		     -key => '$Id: genome_features.pm,v 1.9 2006/08/10 16:40:07 mukhyala Exp $',
+		     -key => '$Id: genome_features.pm,v 1.10 2006/08/16 18:53:03 mukhyala Exp $',
+		     add_probes( $u, $panel, %opts )
 		   );
 
 
@@ -357,7 +359,6 @@ EOSQL
     print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
     $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
   }
-
   return $nadded;
 }
 
