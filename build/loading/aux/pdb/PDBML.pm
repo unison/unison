@@ -2,7 +2,7 @@
 
 PDBML
 
-S<$Id$>
+S<$Id: PDBML.pm,v 1.1 2005/06/15 17:15:15 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -186,6 +186,7 @@ sub chain {
       my $ent = $self->{chains}{$chain}{id};
 
       my $ec = $self->{entities}{$ent.":"}{ec}  || $self->_check("Enzyme Classification");
+      $ec =~ s/E\.C\.\s//;
       my $name = (defined($self->{entities}{$ent}{name}) ? $self->{entities}{$ent}{name} : $self->{entities}{$ent.":"}{descr}) || $self->_check("Chain Name");
 
       # this is where we change the chainid to blank if pdbx_blank_PDB_chainid_flag is set to Y(true)
@@ -278,11 +279,13 @@ sub _get_data_tag {
   my $table_name = $field->gi;
   $table_name =~ s/^PDBx://;
   $table_name =~ s/Category$//;
+  my %options=(forcearray => '1', keyattr => 'id');
 
   foreach my $row ($field->children()) {
     my $pri_col = '';
     foreach my $pcol(sort keys %{$pri_att{$table_name}}) {
-      $pri_col .= $row->simplify()->{$pcol}.":" if ($row->simplify()->{$pcol});
+      my $simplified = $row->simplify(%options)->{$pcol};
+      $pri_col .= $simplified.":" if $simplified;
     }
     my $dum_ctr = 0;
     foreach my $col(sort keys %{$att{$table_name}}) {
@@ -438,7 +441,7 @@ sub _xml_init {
 sub _check {
 
   my ($self,$field) = @_;
-  print STDERR "\n$field\tCOULD NOT BE PARSED for $self->{pdbid}";
+  print STDERR "$field\tCOULD NOT BE PARSED for $self->{pdbid}\n";
   return '';
 }
 
