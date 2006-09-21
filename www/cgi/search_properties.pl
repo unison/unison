@@ -20,12 +20,12 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_properties.pl,v 1.18 2006/09/06 16:15:22 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: search_properties.pl,v 1.19 2006/09/20 23:49:03 mukhyala Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_properties.pl,v 1.18 2006/09/06 16:15:22 mukhyala Exp $',
+				   '$Id: search_properties.pl,v 1.19 2006/09/20 23:49:03 mukhyala Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Complex searches may take several minutes!'),
 				   spit_form($p));
@@ -106,7 +106,7 @@ $sql = "select X1.pseq_id,best_annotation(X1.pseq_id) from ($sql) X1";
 
 
 
-my $results = "<p>(SQL only requested -- go back and hit submit for results)\n";
+my @results = ("<p>(SQL only requested -- go back and hit submit for results)\n");
 if ($v->{submit} !~ m/^sql/) {
   my @fields = ( 'pseq_id', 'origin:alias (description)' );
   my $ar;
@@ -115,14 +115,14 @@ if ($v->{submit} !~ m/^sql/) {
 	$ar->[$i][0] = sprintf('<a href="pseq_summary.pl?pseq_id=%d">%d</a>',
 						   $ar->[$i][0],$ar->[$i][0]);
   }
-  $results = $p->group(sprintf("%d results",$#$ar+1),
+  @results = $p->group(sprintf("%d results",$#$ar+1),
 					   Unison::WWW::Table::render(\@fields,$ar));
 }
 
 
 print $p->render("Feature Based Mining Results",
-				 '$Id: search_properties.pl,v 1.18 2006/09/06 16:15:22 mukhyala Exp $',
-				 $results,
+				 '$Id: search_properties.pl,v 1.19 2006/09/20 23:49:03 mukhyala Exp $',
+				 @results,
 				 $p->sql( $sql ));
 
 
