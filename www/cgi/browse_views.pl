@@ -13,7 +13,7 @@ use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: browse_views.pl,v 1.17 2006/08/17 17:27:05 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_views.pl,v 1.18 2006/09/08 23:58:22 rkh Exp $ ');
 
 my %cvs = %{ $u->selectall_hashref('select cv_id,name,descr,sql,order_by from canned_views',
 								   'cv_id') };
@@ -83,7 +83,7 @@ sub do_search {
   $s_sql->columns('X.*');
   $s_sql->columns('Q.added::date') if ($v->{a_added});
   $s_sql->columns("(select as_set(distinct 'UNQ'||unqid) from gg_unq_pro_dna_pseq_v where pseq_id=X.pseq_id group by unqid order by unqid) as unqs") if ($v->{a_unq});
-  $s_sql->columns("(select as_set(distinct 'PRO'||proid) from gg_unq_pro_dna_pseq_v where pseq_id=X.pseq_id group by proid order by proid) as pros") if ($v->{a_pro});
+  $s_sql->columns("(select as_set(distinct 'PRO'||proid) from gg_unq_pro_dna_pseq_v where pseq_id=X.pseq_id) as pros") if ($v->{a_pro});
   $s_sql->columns("(select as_set(distinct(chip||':'||probe_id)) from pseq_probe_v P where P.pseq_id=X.pseq_id) as probes") if ($v->{a_probes});
 
   if ($v->{a_locus_rep} eq 'order') {
@@ -126,6 +126,16 @@ sub do_search {
 		my @links;
 		for (my $elems_i=0; $elems_i<=$#elems; $elems_i++) {
 		  push(@links,"<a target=\"_blank\" href=\"http://research/projects/gg/jsp/UNQ.jsp?UNQID=$elems[$elems_i]\">$elems[$elems_i]</a>");
+		}
+		$row->[$i] = join('<br>',sort @links);
+	  }
+	} elsif ($cols[$i] =~ /pros/) {
+	  foreach my $row (@$ar) {
+		next unless defined $row->[$i];
+		my @elems = split(/,/,$row->[$i]);
+		my @links;
+		for (my $elems_i=0; $elems_i<=$#elems; $elems_i++) {
+		  push(@links,"<a target=\"_blank\" href=\"http://research/projects/gg/jsp/PRO.jsp?PROID=$elems[$elems_i]\">$elems[$elems_i]</a>");
 		}
 		$row->[$i] = join('<br>',sort @links);
 	  }
