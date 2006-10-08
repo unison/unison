@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.29 2006/07/14 21:55:18 rkh Exp $
+# $Id: load-pseq,v 1.30 2006/07/19 17:56:37 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -26,6 +26,7 @@ use Unison;
 use Unison::Exceptions;
 use Unison::Utilities::misc qw(clean_sequence sequence_md5);
 use IO::File;
+use IO::Zlib;
 use Benchmark;
 use Data::Dumper;
 
@@ -41,13 +42,14 @@ my %af = map { $_=>1 } @af;
 
 
 my %opts = (
+			deprecate => 0,
 			origin => undef,
 			format => undef,
 			'verbose' => 0,
 			tax_id => undef,
 			'allow-anonymous-sequences' => 0,
 			'infer-tax-id' => 0,
-                        'version' => undef,
+			'version' => undef,
 			'dry-run' => 0
 );
 GetOptions( \%opts,
@@ -57,8 +59,9 @@ GetOptions( \%opts,
 			'tax_id|t=i',
 			'allow-anonymous-sequences+',
 			'infer-tax-id+',
-                        'version|V=s',
+			'version|V=s',
 			'dry-run|n+',
+			'deprecate+',
 		  )
   || die("$0: bad usage:\n$usage\n");
 
@@ -102,15 +105,33 @@ my %warnings;					  # hash of warnings to prevent duplicates
 my @tally_bins = qw(nseen nadded nskipped nfailed naliases);
 my %totals = map { $_=>0 } @tally_bins;
 my $tts = new Benchmark;
-my $palias_cur = $u->selectall_hashref("select palias_id from palias where origin_id=origin_id('$opts{origin}')",1);
-my $palias_new;
+
+# palias_ids_to_deprecate -- Initially, a hash of all palias ids in this
+# origin.  As aliases are loaded, we delete from this hash.  When we're
+# done loading sequences, any remaining palias ids refer to accessions
+# that are no longer in the source database.
+my %palias_ids_to_deprecate;
+if ($opts{deprecate}) {
+  %palias_ids_to_deprecate = map {$_->[0]=>1}
+	@{$u->selectall_arrayref("select palias_id from palias where origin_id=origin_id('$opts{origin}')")};
+}
+
+
 
 $u->begin_work();
 foreach my $fn ( @ARGV ) {
+  # Use IO::Zlib or IO::File, depending on whether the suffix suggests compression
+  # STDIN is presumed to be uncompressed
   my $fh;
-  $fh = new IO::File;
-  $fh->open($fn)
-	|| die("$fn: $!\n");
+  if ($fn =~ m/\.gz/) {
+	$fh = new IO::Zlib;
+	$fh->open($fn,"rb")
+	  || die("$fn: $!\n");
+  } else {
+	$fh = new IO::File;
+	$fh->open($fn)
+	  || die("$fn: $!\n");
+  }
 
   my $stream = Bio::SeqIO->new(-fh => $fh, 
 							   -format => $opts{format});
@@ -128,19 +149,40 @@ my $tte = new Benchmark;
 my $ttdelta = @{timediff($tte, $tts)}[0];
 print(STDERR tally('totals',$ttdelta,%totals), "\n");
 
+
 if ($totals{nfailed} > 0) {
   $u->rollback();
   die("! WARNING: Some sequence and/or aliases failed; origin.last_updated NOT tickled\n");
 }
 
+
 if ($totals{nadded} > 0 and not $opts{'dry-run'}) {
+  my $n_per_line = 8;
+
+  if ($opts{deprecate}) {
+	my (@palias_ids_to_deprecate) = sort {$a<=>$b} keys %palias_ids_to_deprecate;
+	printf("# Deprecating %d palias_ids\n",$#palias_ids_to_deprecate+1);
+	if ($opts{verbose}>1) {
+	  for(my $i=0; $i<=$#palias_ids_to_deprecate; $i += $n_per_line) {
+		my $top = $i+$n_per_line-1;
+		$top = $#palias_ids_to_deprecate if $top>$#palias_ids_to_deprecate;
+		print(join("\t",'',@palias_ids_to_deprecate[$i..$top]),"\n");
+	  }
+	}
+	# Note: we check is_current again because nearly all aliases in the hash
+	# will have been deprecated by assigning the alias to a new pseq_id.
+	# The only sequences we care about are those which aren't in the source
+	# database any longer, i.e., have is_current=TRUE still.
+	my $sth = $u->prepare('update pseqalias set is_current=false where palias_id=? and is_current=TRUE');
+	$sth->execute($_) foreach (@palias_ids_to_deprecate);
+  }
+
   print( "update origin set last_updated='",
 		 $u->origin_last_updated($opts{origin_id},1),
 		 "' where origin_id=$opts{origin_id}\n");
   print( "update origin set version='",
        $u->origin_version($opts{origin_id},$opts{version}),
        "' where origin_id=$opts{origin_id}\n") if(defined $opts{version});
-  dep_older_aliases();
   $u->commit();
 } else {
   $u->rollback();
@@ -283,10 +325,17 @@ sub process_seq ($$$) {
 
 	} elsif ($o =~ m/^TNF6F/i) {
 	  $d =~ s%/coords.+trans=[FR]\d %%;
+
+	} elsif ($o =~ m/^geneseq$/i) {
+	  my ($os) = $d =~ m/\[OS: ([^\[]+)\]/;
+	  $os = lc($os);
+	  if (defined $latin_to_tax_id{$os}) {
+		$t = $latin_to_tax_id{$os};
+	  }
 	}
 
 	$anno[$i] = [$o,$a,$d,$t];
-      }
+  }
 
   if ($#anno == -1 and not $opts{'allow-anonymous-sequences'}) {
 	die("Unison:$pseq_id has no primary annotations and allow-anonymous-sequences is not set\n",
@@ -336,15 +385,14 @@ sub process_seq ($$$) {
 		|| warn("! tax_id=$t not defined in Unison\n");
 	  undef $t;
 	}
-	$t = 'NULL' unless defined $t;
 
 	try {
-	  $u->add_palias($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
-	  push @$palias_new, $u->selectrow_array("select palias_id from palias where origin_id=$o_id and alias='$a'");
+	  my ($palias_id) = $u->assign_alias($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
+	  delete $palias_ids_to_deprecate{$palias_id};
 	} catch Unison::Exception with {
 	  warn("! Failed to load alias $a for Unison:$pseq_id\n",$_[0]);
 	};
-	printf(STDERR "   + $o:$a $d [$t]\n") if $opts{verbose}>1;
+	printf(STDERR "   + $o:$a %s [%s]\n",$d||'NULL',$t||'NULL') if $opts{verbose}>1;
 	$stats->{naliases}++;
   }
 
@@ -361,43 +409,4 @@ sub tally ($%) {
 		  ($stats{nseen} / ($delta+0.00001))
 		 );
 }
-
-#deprecate all aliases from this origin that are 
-#not part of the current load
-sub dep_older_aliases {
-
-  delete $palias_cur->{$_} foreach (@$palias_new) ;
-
-  my $sth = $u->prepare('update pseqalias set is_current=false where palias_id=? and is_current');
-
-  if ($opts{verbose}>1) {
-      print "The following palias_ids will be deprecaded\n";
-      print join "\n", (keys %$palias_cur) ;
-  }
-
-  $sth->execute($_) foreach (keys %$palias_cur);
-
-}
-
-##  # split ctrl-A delimited entries into explict entries for this sequence
-##  # this is effectively a no-op for single-entry deflines
-##  foreach my $ad ( split(/\01/, "$id $descr") ) {
-##	my ($a,$d) = $ad =~ m/^(\S+)\s+(.*)/g;
-##	if (not defined $a or not defined $d) {
-##	  die("couldn't parse alias and descr from '$ad'\n");
-##	}
-##	$d =~ s/^\s+|\s+$|\.$//;
-##	my $t = $tax_id;						# default or from $bs->speciees
-##	# infer tax_id from descr
-##	if (my ($latin) = $d =~ m/\[([^\]]+)\]/) {
-##	  if (exists $latin_to_tax_id{$latin}) {
-##		$t = $latin_to_tax_id{$latin};
-##	  } else {
-##		$warnings{'unknown latin species'}{$latin}++
-##		  || warn("no species found for $latin\n");
-##	  }
-##	  push(@anno, [$a,$d,$t]);
-##	}
-##  }
-
 
