@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.30 2006/07/19 17:56:37 mukhyala Exp $
+# $Id: load-pseq,v 1.31 2006/10/08 19:30:54 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -280,7 +280,7 @@ sub process_seq ($$$) {
 		}
 	  } else {
 		$warnings{'unknown latin species'}{$latin}++
-		  || warn("! no species found for $latin\n");
+		  || warn("! no species found for '$os', first seen in $a ($d)\n");
 	  }
 	}
 
@@ -328,9 +328,12 @@ sub process_seq ($$$) {
 
 	} elsif ($o =~ m/^geneseq$/i) {
 	  my ($os) = $d =~ m/\[OS: ([^\[]+)\]/;
-	  $os = lc($os);
-	  if (defined $latin_to_tax_id{$os}) {
-		$t = $latin_to_tax_id{$os};
+	  my $latin = lc($os);
+	  if (defined $latin_to_tax_id{$latin}) {
+		$t = $latin_to_tax_id{$latin};
+	  } else {
+		$warnings{'unknown latin species'}{$latin}++
+		  || warn("! no species found for '$os', first seen in $a ($d)\n");
 	  }
 	}
 
