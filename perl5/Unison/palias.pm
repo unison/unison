@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.23 2006/01/02 20:19:52 rkh Exp $>
+S<$Id: palias.pm,v 1.24 2006/06/26 18:05:08 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -38,52 +38,25 @@ use Unison::Exceptions;
 
 
 ######################################################################
-## add_palias_id( )
+## assign_alias( )
 
 =pod
 
-=item B<< $u->add_palias_id( C<pseq_id>,C<origin_id>,C<alias>,C<descr> ) >>
+=item B<< $u->assign_alias(origin_id, alias, descr, pseq_id, ref_pseq_id, tax_id) >>
 
-adds an alias and description record in the paliasorigin and pseqalias
-tables for the existing origin_id and pseq_id.
+Assigns an alias in the specified origin, and the tax_id, to the pseq_id.
+The alias is created if necessary.  The new or existing palias_id is
+returned.  This function is equivalent to the server-side function by the
+same name.
 
 =cut
 
-sub add_palias {
-  my ($self,$pseq_id,$origin_id,$alias,$descr,$tax_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-
-  if (defined $descr and $descr =~ /\w/) {
-    $descr =~ s/([\'])/\\$1/g;
-    $descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
-    $descr = "'$descr'";
-  } else {
-    $descr = 'NULL';
-  }
-
-  $tax_id = ( defined $tax_id ) ? $tax_id : 'NULL';
-
-  if ( not defined $pseq_id 
-	   or not defined $origin_id
-	   or not defined $alias 
-	   or not defined $descr) {
-	die("Assertion failed\n",
-		sprintf("<pseq_id,origin_id,alias,descr>=<%s,%s,%s,%s>",
-				defined $pseq_id ? $pseq_id : 'undef',
-				defined $origin_id ? $origin_id : 'undef',
-				defined $alias ? $alias : 'undef',
-				defined $descr ? $descr : 'undef' )
-	   );
-  }
-
-  my $sql = "insert into palias (pseq_id,origin_id,alias,descr,tax_id) "
-	. "values ($pseq_id,$origin_id,'$alias',$descr,$tax_id)";
-  print STDERR "sql: $sql\n" if $ENV{DEBUG};
-  $self->do( $sql, { PrintError=>1 } );
-  return;
+sub assign_alias($$$$) {
+  my $self = shift;
+  my ($pseq_id,$origin_id,$alias,$descr,$tax_id) = @_;
+  my $sth = $self->prepare_cached('select assign_alias(?,?,?,?,?)');
+  return $self->selectrow_array($sth,undef,$pseq_id,$origin_id,$alias,$descr,$tax_id);
 }
-
 
 
 
@@ -275,6 +248,62 @@ sub get_pseq_id_from_alias_fuzzy {
   return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
 }
 
+
+
+#### DEPRECATED FUNCTIONS
+
+
+######################################################################
+## add_palias( )
+
+=pod
+
+=item B<< $u->add_palias( C<pseq_id>,C<origin_id>,C<alias>,C<descr> ) >>
+
+DEPRECATED 2006-09-27 Reece Hart <reece@harts.net>
+
+adds an alias and description record in the paliasorigin and pseqalias
+tables for the existing origin_id and pseq_id.
+
+=cut
+
+sub add_palias {
+  warn_deprecated();
+
+  my ($self,$pseq_id,$origin_id,$alias,$descr,$tax_id) = @_;
+
+  $self->is_open()
+	|| croak("Unison connection not established");
+
+  if (defined $descr and $descr =~ /\w/) {
+    $descr =~ s/([\'])/\\$1/g;
+    $descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
+    $descr = "'$descr'";
+  } else {
+    $descr = 'NULL';
+  }
+
+  $tax_id = ( defined $tax_id ) ? $tax_id : 'NULL';
+
+  if ( not defined $pseq_id 
+	   or not defined $origin_id
+	   or not defined $alias 
+	   or not defined $descr) {
+	die("Assertion failed\n",
+		sprintf("<pseq_id,origin_id,alias,descr>=<%s,%s,%s,%s>",
+				defined $pseq_id ? $pseq_id : 'undef',
+				defined $origin_id ? $origin_id : 'undef',
+				defined $alias ? $alias : 'undef',
+				defined $descr ? $descr : 'undef' )
+	   );
+  }
+
+  my $sql = "insert into palias (pseq_id,origin_id,alias,descr,tax_id) "
+	. "values ($pseq_id,$origin_id,'$alias',$descr,$tax_id)";
+  print STDERR "sql: $sql\n" if $ENV{DEBUG};
+  $self->do( $sql, { PrintError=>1 } );
+  return;
+}
 
 
 
