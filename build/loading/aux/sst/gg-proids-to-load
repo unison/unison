@@ -10,7 +10,7 @@ use strict;
 use warnings;
 use DBI;
 
-print(STDERR '$Id: gg-proids-to-load,v 1.2 2005/05/11 21:53:41 rkh Exp $ ', "\n");
+print(STDERR '$Id: gg-proids-to-load,v 1.3 2005/11/12 05:03:31 rkh Exp $ ', "\n");
 
 
 # @GB: list of GENERATED_BY values which we'll load into Unison
@@ -31,7 +31,7 @@ my @GB =
   );
 
 my $sql = sprintf(qq/SELECT DISTINCT PD.proid FROM dna D,prodna PD,pro P
-				  WHERE D.dnaid=PD.proid AND PD.proid=P.proid 
+				  WHERE D.dnaid=PD.dnaid AND PD.proid=P.proid 
 					AND P.species in ('Human', 'Mouse', 'Rat')
 					AND ( %s )
 				  ORDER BY PD.proid/,
