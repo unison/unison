@@ -1,4 +1,4 @@
---#$Id$
+--#$Id: pI.sql,v 1.1 2006/08/16 16:19:24 mukhyala Exp $
 -- Adaptation of Mark Southern's pICalculator.pm in Bioperl
 -- see Bio/Tools/pICalculator.pm
 -- http://fields.scripps.edu/DTASelect/20010710-pI-Algorithm.pdf
@@ -9,7 +9,7 @@ create or replace function pI(text,text)
 returns real strict immutable language plperl as '
 # pK values from the DTASelect program from Scripps
 # http://fields.scripps.edu/DTASelect
-my $pK_params;
+my %pK_params;
 $pK_params{dtaselect} = {  
 		      N_term   =>  8.0,
                       K        => 10.0, # Lys
@@ -40,7 +40,7 @@ elog(ERROR, "sequence length <= 0") if(length($seq) <= 0);
 
 my $params = shift;
 elog(ERROR, "pK params $params does not exist options are ''emboss'' and ''dtaselect''\n") if(not defined $pK_params{$params});
-$pKset = $pK_params{$params};
+my $pKset = $pK_params{$params};
 
 my $places = 2; #decimal places
 my $count = _count_charged_residues( $seq );
