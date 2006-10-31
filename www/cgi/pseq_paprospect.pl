@@ -13,7 +13,7 @@ use Unison::Utilities::pseq_features;
 use Unison::SQL;
 use Unison::Exceptions;
 
-my $pdbDir = (defined($ENV{PDB_PATH}) ? $ENV{PDB_PATH} : '/gne/research/share/pdb/all.ent');
+my $pdbDir = (defined($ENV{PDB_PATH}) ? $ENV{PDB_PATH} : '/gne/research/data/public/pdb/all.ent');
 my @statevars = qw(pseq_id params_id offset limit sort pmodelset_id viewer);
 #my $scopURL = 'http://scop.mrc-lmb.cam.ac.uk/scop';
 my $scopURL = 'http://scop.berkeley.edu';
@@ -72,7 +72,7 @@ $v->{viewer} = 'jmol' unless defined $v->{viewer};
 $v->{details} = 0;
 
 $p->ensure_required_params(qw(pseq_id params_id));
-$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.37 2006/03/14 01:23:27 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: pseq_paprospect.pl,v 1.38 2006/06/26 17:36:37 rkh Exp $ ');
 
 
 my @cols;
