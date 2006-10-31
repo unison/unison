@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.31 2006/10/08 19:30:54 rkh Exp $
+# $Id: load-pseq,v 1.32 2006/10/09 01:33:04 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -280,7 +280,7 @@ sub process_seq ($$$) {
 		}
 	  } else {
 		$warnings{'unknown latin species'}{$latin}++
-		  || warn("! no species found for '$os', first seen in $a ($d)\n");
+		  || warn("! no species found for '$latin', first seen in $a ($d)\n");
 	  }
 	}
 
