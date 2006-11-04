@@ -36,6 +36,12 @@ paprospect2 loading is particularly slow; we should recast these as sql
 delete and COPY statements, including run_history updates, all wrapped in
 a transaction.
 
+** ref_pseq_id
+I disliked this idea from the start and acceded under duress.  I want to
+drop paliasorigin(ref_pseq_id).  The fundamental problem is that this
+information is misplaced -- it's the /sequences/ that are related, not the
+aliases.
+
 ** changes to pmodelsets and origins are not tracked by run_history
 run_history refers to pmodelsets and origins. It is possible that the set
 of models (pmodel_ids) implied by using either or both of these criteria
@@ -67,6 +73,26 @@ how will origin_id be associated with params_id
 run-pahmm should handle running aginst cutoms HMM's with above ids.
 
 BACKBURNER:
+
+** best annotations
+best annotation/alias is too human-centric.  For example, the pseq_id 54
+is IL4_HUMAN and IL4_PANTR; the best annotation is IL4_HUMAN.  That's fine
+if you're after human sequences, but misleading if you're after chimp.  I
+think best annotation should be expanded to be the best annotation /by
+species/, i.e., distinct on (pseq_id,tax_id) ... order by
+pseq_id,tax_id,ann_pref, and remaining current order criteria.
+
+The best_annotation_mv table should include all of these.
+
+The best_* functions should be parameterized by species/tax_id, but permit
+NULL tax_id columns as well (e.g., for sequences that have only NULL
+tax_id aliases).
+
+The current best_* functions should default to human OR become SRFs.
+
+views and web pages will need to be updated to accommodate multi-species
+best annotations.
+
 
 ** HUGO/HUPO terms
 http://www.gene.ucl.ac.uk/nomenclature/code/ftpaccess.html
