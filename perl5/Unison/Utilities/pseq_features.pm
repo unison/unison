@@ -2,7 +2,7 @@
 
 Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.32 2006/08/17 17:45:20 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.33 2006/09/08 23:56:56 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -53,7 +53,8 @@ our %opts =
    pad => 10,
    logo_margin=> 10,
    # this is the default track length needed for imagemap links
-   def_track_length => 60
+   def_track_length => 60,
+   synopsis => 0,
   );
 
 
@@ -190,7 +191,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.32 2006/08/17 17:45:20 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.33 2006/09/08 23:56:56 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {

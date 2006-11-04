@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.21 2005/11/18 04:22:49 rkh Exp $>
+S<$Id: pseq.pm,v 1.22 2006/06/26 18:05:08 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -135,6 +135,44 @@ sub best_annotation {
   $sth->finish();
   return( $ba );
 }
+
+
+
+######################################################################
+## entrez_annotations
+
+=pod
+
+=item B<< $u->entrez_annotations( C<pseq_id> ) >>
+
+Return the Entrez Gene annotations.
+
+=cut
+
+sub entrez_annotations {
+  my $self = shift;
+  my $pseq_id = shift;
+  $self->is_open()
+	|| croak("Unison connection not established");
+  my $sth = $self->prepare_cached(<<EOSQL);
+    SELECT distinct T.common,E.symbol,E.map_loc,E.descr
+      FROM pseq_gene_v PG
+      JOIN ncbi.gene_info E on PG.gene_id=E.gene_id
+ LEFT JOIN tax.spspec T on E.tax_id=T.tax_id
+     WHERE PG.pseq_id=?
+  ORDER BY T.common, E.symbol
+EOSQL
+  $sth->execute( $pseq_id );
+  my @annos;
+  while( my $h = $sth->fetchrow_hashref() ) {
+	push(@annos, $h);
+  }
+  $sth->finish();
+  return( sort { (($a->{common}||'') cmp ($b->{common}||''))
+				   || ($a->{symbol} cmp $b->{symbol})}
+		  @annos);
+}
+
 
 
 ######################################################################

@@ -20,10 +20,11 @@ sub features_group ($);
 sub homologs_group ($);
 
 my $p = new Unison::WWW::Page();
+my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.45 2006/03/14 01:27:31 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.46 2006/04/09 09:01:22 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -42,10 +43,21 @@ EOT
 
 try {
   print $p->render("Summary of Unison:$v->{pseq_id}",
-				   $p->best_annotation($v->{pseq_id}),
-#				   $p->entrez_annotation($v->{pseq_id}),
-				   '<p><b>Protcomp Localization:</b> ',
-				       ($p->{unison}->is_public() ? '' : protcomp_info($p)),
+				   "<p>\n",
+
+				   '<table class="summary">',
+
+				   '<tr><th><div>Best Annotation</div></th> <td>', $u->best_annotation($v->{pseq_id}), '</td></tr>',
+
+				   '<tr><th><div>Entrez Annotations</div></th> <td>', 
+				   		(map { sprintf("%s %s; %s (%s)", @{%$_}{qw(common symbol descr map_loc)}) }
+						 $u->entrez_annotations($v->{pseq_id}) ),
+				   '</td></tr>',
+
+				   ($p->{unison}->is_public() ? '' : 
+					'<tr><th><div>Protcomp Localization</div></th> <td>', protcomp_info($p), '</td></tr>'),
+				   '</table>',
+
 				   '<p>', sequence_group($p),
 				   '<p>', aliases_group($p),
 				   '<p>', features_group($p),

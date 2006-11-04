@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.37 2006/06/26 17:36:37 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.38 2006/09/09 00:00:47 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -131,6 +131,23 @@ TABLE.group TD {
  background-color: white;
 }
 
+
+TABLE.summary {
+ width: 100%;
+ border: thin solid gray;
+}
+TABLE.summary TH {
+ text-align: right;
+ vertical-align: top;
+}
+TABLE.summary TH DIV {
+ background-color: #E0E0FF;
+ padding-right: 5px;
+ white-space: nowrap;
+}
+TABLE.summary TD {
+  vertical-align: top;
+}
 
 
 /* Quick Links */

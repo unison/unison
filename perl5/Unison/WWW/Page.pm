@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.86 2006/08/31 00:20:48 mukhyala Exp $>
+S<$Id: Page.pm,v 1.87 2006/09/08 23:59:33 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -695,32 +695,26 @@ C<pseq_id>
 
 =cut
 
-sub entrez_annotation {
+sub entrez_annotation_UNIMPLEMENTED {
   my $self = shift;
   my $pseq_id = shift;
   my $u = $self->{unison};
-  my $sth = $u->prepare_cached(<<EOSQL);
-    SELECT distinct T.common,E.symbol,E.map_loc,E.descr
-      FROM pseq_gene_v PG
-      JOIN ncbi.gene_info E on PG.gene_id=E.gene_id
- LEFT JOIN tax.spspec T on E.tax_id=T.tax_id
-     WHERE PG.pseq_id=?;
-EOSQL
-
   my $entrez = '<br><b>Entrez annotation</b>&nbsp;'
 	. $self->tooltip( '?', 'Entrez Gene annotation' )
 	. ': ';
 
-  my (@entrez) = @{$u->selectall_arrayref($sth,undef,$pseq_id)};
+  my (@entrez) = $u->entrez_annotations($pseq_id);
+  $entrez .= '<div style="width: 80%; padding-left: 50px;">';
   if (@entrez) {
-	$entrez .= '<table width=100% border=0>';
+	$entrez .= '<table padding: 0; style="width: 100%;">';
 	foreach my $res (@entrez) {
 	  $entrez .= '<tr>' . (join('',map {"<td>$_</td>"} @$res)) . '</tr>';
 	}
 	$entrez .= "</table>\n";
   } else {
-	$entrez .= 'no Entrez Gene information for this sequence';
+	$entrez .= '<i>no Entrez Gene information for this sequence</i>';
   }
+  $entrez .= '</div>';
 
   return $entrez;
 }
