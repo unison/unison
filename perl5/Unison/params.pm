@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.15 2006/01/02 23:16:08 mukhyala Exp $>
+S<$Id: params.pm,v 1.16 2006/02/15 04:06:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -22,9 +22,9 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use strict;
 use warnings;
+
 use Unison::Exceptions;
-use Bio::Prospect::Options;
-use Unison::Utilities::misc qw( warn_deprecated unison_logo );
+use Unison::Utilities::misc qw( warn_deprecated unison_logo use_at_runtime );
 
 =pod
 
@@ -195,7 +195,8 @@ sub get_p2options_by_params_id($$) {
   my $h = $self->selectrow_hashref("select * from params where params_id=$run_id");
 
   ## FIX: only seqfile threading is supported below:
-  my $po = new Bio::Prospect::Options
+  use_at_runtime 'Bio::Prospect::Options';
+  my $po = Bio::Prospect::Options->new
 	( 
 	 $h->{commandline} =~ m/-global_local/ 	? (global_local=>1,global=>0) : (global_local=>0,global=>1),
 	 $h->{commandline} =~ m/-scop/ 			? (scop=>1)   : (scop=>0),

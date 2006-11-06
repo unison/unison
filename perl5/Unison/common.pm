@@ -2,7 +2,7 @@
 
 Unison::Unison -- import commonly used Unison modules
 
-S<$Id: common.pm,v 1.4 2005/10/09 09:39:32 rkh Exp $>
+S<$Id: common.pm,v 1.5 2006/06/26 18:05:08 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -52,10 +52,7 @@ if (q$Name:  $ =~ m/Name:\s+rel_(\S*)\s+/) { ($RELEASE = $1) =~ s/-/./g; }
 use Unison::DBI;
 use Unison::Exceptions;
 use Unison::palias;
-use Unison::paprospect;
-use Unison::papseq;
 use Unison::params;
-use Unison::pmprospect;
 use Unison::origin;
 use Unison::pseq;
 use Unison::run_history;

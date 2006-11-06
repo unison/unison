@@ -2,7 +2,7 @@
 
 Unison::Utilities::misc -- general Unison utilities
 
-S<$Id: misc.pm,v 1.5 2005/08/02 22:54:43 rkh Exp $>
+S<$Id: misc.pm,v 1.6 2006/05/12 03:39:07 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -24,7 +24,8 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use base Exporter;
 @EXPORT = ();
 @EXPORT_OK = qw/ warn_deprecated range_to_enum clean_sequence
-				 sequence_md5 wrap unison_logo elide_sequence /;
+				 sequence_md5 wrap unison_logo elide_sequence
+ 				 use_at_runtime /;
 
 use strict;
 use warnings;
@@ -216,6 +217,28 @@ sub elide_sequence ($$$) {
   }
   return $seq;
 }
+
+
+######################################################################
+=pod
+
+=item B<< use_at_runtime( module ) >>
+
+Akin to perl's use pragma, but executes at runtime and dies if error
+I haven't tried use args, such as 'use Mod qw(sub)'.
+
+=cut
+
+sub use_at_runtime ($) {
+  eval "use @_";
+  if ($@) {
+	my ($mfile,$line) = (caller(0))[1,2];
+	die(sprintf("Runtime loading of module %s failed at %s:%d:\n$@\n",
+				$_[0], $mfile, $line));
+  }
+}
+
+
 
 
 =pod
