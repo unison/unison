@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../../perl5", "$FindBin::Bin/../../perl5-prereq";
 
 use Unison;
 use Unison::Exceptions;
@@ -24,7 +24,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.46 2006/04/09 09:01:22 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.47 2006/11/04 03:48:25 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
