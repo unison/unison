@@ -1,30 +1,30 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.20 2006/08/07 22:17:11 mukhyala Exp $
+## $Id: params.mk,v 1.21 2006/08/08 02:53:40 rkh Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
 ############################################################################
 #### AUX DATA SOURCES
-GENE_DIR:=${RESEARCH_PREFIX}/share/ncbi/gene
+GENE_DIR:=${RESEARCH_PREFIX}/data/public/ncbi/gene
 HOMOLOGENE_VERSION:=46.1
-HOMOLOGENE_DATA:=${RESEARCH_PREFIX}/share/ncbi/pub/HomoloGene/build${HOMOLOGENE_VERSION}/homologene.data
-GO_DIR:=${RESEARCH_PREFIX}/share/go
+HOMOLOGENE_DATA:=${RESEARCH_PREFIX}/data/public/ncbi/pub/HomoloGene/build${HOMOLOGENE_VERSION}/homologene.data
+GO_DIR:=${RESEARCH_PREFIX}/data/public/go
 
 
 ############################################################################
 #### PSEQ
-ENSEMBL_DIR:=${RESEARCH_PREFIX}/share/ensembl
-PDB_DIR=${RESEARCH_PREFIX}/share/pdb/divided.pdb
-REFSEQ_DIR:=${RESEARCH_PREFIX}/share/refseq
-GENESEQ_DIR:=${RESEARCH_PREFIX}/share/geneseq
-KAZUSA_DIR:=${RESEARCH_PREFIX}/share/mirrors/zearth.kazusa.or.jp/pub
+ENSEMBL_DIR:=${RESEARCH_PREFIX}/data/public/ensembl
+PDB_DIR=${RESEARCH_PREFIX}/data/public/pdb/divided.pdb
+REFSEQ_DIR:=${RESEARCH_PREFIX}/data/public/refseq
+GENESEQ_DIR:=${RESEARCH_PREFIX}/data/public/geneseq
+KAZUSA_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/zearth.kazusa.or.jp/pub
 HUGE_DIR:=${KAZUSA_DIR}/huge
 ROUGE_DIR:=${KAZUSA_DIR}/rouge
-CCDS_HUMAN_PATH:=${RESEARCH_PREFIX}/share/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/current/CCDS_protein.03032005.faa.gz
-UNIPROT_DIR:=${RESEARCH_PREFIX}/share/uniprot
-PATAA_FA:=${RESEARCH_PREFIX}/share/seqdb/aa/pataa.fa
-NR_FA:=${RESEARCH_PREFIX}/share/seqdb/aa/nr.fa
-COSMIC_DIR:=${RESEARCH_PREFIX}/share/mirrors/ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
+CCDS_HUMAN_PATH:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/current/CCDS_protein.03032005.faa.gz
+UNIPROT_DIR:=${RESEARCH_PREFIX}/data/public/uniprot
+PATAA_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/pataa.fa
+NR_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/nr.fa
+COSMIC_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
 
 
 ############################################################################
@@ -37,7 +37,7 @@ PAPROSPECT_PMODELSET_ID:=20
 
 ############################################################################
 #### PAHMM
-PFAM_DIR=${RESEARCH_PREFIX}/share/pfam-20.0
+PFAM_DIR=${RESEARCH_PREFIX}/data/public/pfam-20.0
 PAHMM_PARAMS_ID:=43
 PAHMM_ORIGIN_ID:=$(shell ${PSQL_DCMD} 'select model_origin_id from params where params_id=${PAHMM_PARAMS_ID}')
 
