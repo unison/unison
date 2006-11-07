@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.23 2006/07/26 16:28:09 mukhyala Exp $
+# $Id: Makefile,v 1.24 2006/10/09 01:35:02 rkh Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, Ensembl, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -51,7 +51,7 @@ ensembl-cow-ai.load: $(wildcard ${ENSEMBL_DIR}/current_bos_taurus/data/fasta/pep
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Cow (ab initio)' -ffasta -t9913 -V$(<F:Bos_taurus.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_drosophila_melanogaster/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq --deprecate-vv -oEnsembl/Fly -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.fa.gz=%) - >$@.err 2>&1
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Fly -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 ensembl-fly-ai.load: $(wildcard ${ENSEMBL_DIR}/current_drosophila_melanogaster/data/fasta/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Fly (ab initio)' -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
