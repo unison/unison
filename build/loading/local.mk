@@ -1,5 +1,5 @@
 ## local.mk -- site-local definitions for Unison loading
-## $Id: local.mk,v 1.9 2006/08/08 00:13:54 mukhyala Exp $
+## $Id: local.mk,v 1.10 2006/08/08 02:53:59 rkh Exp $
 
 
 # Unison connection details
@@ -14,7 +14,7 @@ export PGUSER:=unison
 UNISON_HOME:=${HOME}/unison
 
 # where to find executables
-PATH:=${UNISON_HOME}/sbin:${UNISON_HOME}/bin:${UNISON_HOME}/misc:${PATH}
+PATH:=${UNISON_HOME}/tools/sbin:${UNISON_HOME}/tools/bin:${UNISON_HOME}/build/loading/bin:${PATH}
 PATH:=${PATH}:${RESEARCH_PREFIX}/env/prd/i686-linux-2.6/bin
 PATH:=${PATH}:/usr/pbs/bin:/usr/local/tools/bin:/usr/bin:/bin
 export PATH
