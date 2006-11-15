@@ -10,7 +10,8 @@ create table ncbi.gene2accession (
 	gen_gi integer,
 	gen_start integer,
 	gen_end integer,
-	gen_orient char(1)
+	gen_orient char(1),
+	assembly text
 ) without oids;
 
 create index gene2accession_gene_id on ncbi.gene2accession(gene_id);
