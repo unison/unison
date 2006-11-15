@@ -5,7 +5,8 @@ create table ncbi.gene2go (
 	evidence text not null,
 	qualifier text,
 	term text not null,
-	pubmed_id text
+	pubmed_id text,
+	category text
 ) without oids;
 
 create index gene2go_gene_id on ncbi.gene2go(gene_id);
