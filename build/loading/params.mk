@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.21 2006/08/08 02:53:40 rkh Exp $
+## $Id: params.mk,v 1.22 2006/11/07 19:33:11 mukhyala Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
@@ -17,7 +17,7 @@ ENSEMBL_DIR:=${RESEARCH_PREFIX}/data/public/ensembl
 PDB_DIR=${RESEARCH_PREFIX}/data/public/pdb/divided.pdb
 REFSEQ_DIR:=${RESEARCH_PREFIX}/data/public/refseq
 GENESEQ_DIR:=${RESEARCH_PREFIX}/data/public/geneseq
-KAZUSA_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/zearth.kazusa.or.jp/pub
+KAZUSA_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.kazusa.or.jp/pub
 HUGE_DIR:=${KAZUSA_DIR}/huge
 ROUGE_DIR:=${KAZUSA_DIR}/rouge
 CCDS_HUMAN_PATH:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/current/CCDS_protein.03032005.faa.gz
