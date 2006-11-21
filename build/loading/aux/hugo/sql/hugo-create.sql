@@ -1,4 +1,4 @@
-create table hugo.hugo (
+create table "unison-aux".hugo (
 	hgnc_id				integer primary key,   -- HGNC ID						
 	approved_symbold	text not null,		   -- Approved Symbol				
 	approved_name		text not null,		   -- Approved Name				
@@ -27,44 +27,44 @@ create table hugo.hugo (
 ) without oids;
 
 
-grant select on hugo.hugo to PUBLIC;
+grant select on "unison-aux".hugo to PUBLIC;
 
-create unique index hugo_approved_symbold_idx on hugo.hugo(approved_symbold);
-create index hugo_approved_name_idx on hugo.hugo(approved_name);
-create index hugo_status_idx on hugo.hugo(status);
-create index hugo_entrez_gene_id_idx on hugo.hugo(entrez_gene_id);
-create index hugo_gene_family_name_idx on hugo.hugo(gene_family_name);
-create index hugo_gdb_id_md_idx on hugo.hugo(gdb_id_md);
-create index hugo_entrez_gene_id_md_idx on hugo.hugo(entrez_gene_id_md);
-create index hugo_omim_id_md_idx on hugo.hugo(omim_id_md);
-create index hugo_refseq_md_idx on hugo.hugo(refseq_md);
-create index hugo_uniprot_id_md_idx on hugo.hugo(uniprot_id_md);
+create unique index hugo_approved_symbold_idx on "unison-aux".hugo(approved_symbold);
+create index hugo_approved_name_idx on "unison-aux".hugo(approved_name);
+create index hugo_status_idx on "unison-aux".hugo(status);
+create index hugo_entrez_gene_id_idx on "unison-aux".hugo(entrez_gene_id);
+create index hugo_gene_family_name_idx on "unison-aux".hugo(gene_family_name);
+create index hugo_gdb_id_md_idx on "unison-aux".hugo(gdb_id_md);
+create index hugo_entrez_gene_id_md_idx on "unison-aux".hugo(entrez_gene_id_md);
+create index hugo_omim_id_md_idx on "unison-aux".hugo(omim_id_md);
+create index hugo_refseq_md_idx on "unison-aux".hugo(refseq_md);
+create index hugo_uniprot_id_md_idx on "unison-aux".hugo(uniprot_id_md);
 
 
-comment on table hugo.hugo is 'Human Genome Organization official gene names';
-comment on column hugo.hugo.hgnc_id				is 'HGNC ID';
-comment on column hugo.hugo.approved_symbold	is 'Approved Symbol';
-comment on column hugo.hugo.approved_name		is 'Approved Name';
-comment on column hugo.hugo.status				is 'Status';
-comment on column hugo.hugo.locus_type			is 'Locus Type';
-comment on column hugo.hugo.previous_symbols	is 'Previous Symbols';
-comment on column hugo.hugo.previous_names		is 'Previous Names';
-comment on column hugo.hugo.aliases				is 'Aliases';
-comment on column hugo.hugo.chromosome			is 'Chromosome';
-comment on column hugo.hugo.date_approved		is 'Date Approved';
-comment on column hugo.hugo.date_modified		is 'Date Modified';
-comment on column hugo.hugo.date_name_changed	is 'Date Name Changed';
-comment on column hugo.hugo.accession_numbers	is 'Accession Numbers';
-comment on column hugo.hugo.enzyme_ids			is 'Enzyme IDs';
-comment on column hugo.hugo.entrez_gene_id		is 'Entrez Gene ID';
-comment on column hugo.hugo.mgd_id				is 'MGD ID';
-comment on column hugo.hugo.misc_ids			is 'Misc IDs';
-comment on column hugo.hugo.pubmed_ids			is 'Pubmed IDs';
-comment on column hugo.hugo.refseq_ids			is 'RefSeq IDs';
-comment on column hugo.hugo.gene_family_name	is 'Gene Family Name';
-comment on column hugo.hugo.gdb_id_md			is 'GDB ID (mapped data)';
-comment on column hugo.hugo.entrez_gene_id_md	is 'Entrez Gene ID (mapped data)';
-comment on column hugo.hugo.omim_id_md			is 'OMIM ID (mapped data)';
-comment on column hugo.hugo.refseq_md			is 'RefSeq (mapped data)';
-comment on column hugo.hugo.uniprot_id_md		is 'UniProt ID (mapped data)';
+comment on table "unison-aux".hugo is 'Human Genome Organization official gene names';
+comment on column "unison-aux".hugo.hgnc_id				is 'HGNC ID';
+comment on column "unison-aux".hugo.approved_symbold	is 'Approved Symbol';
+comment on column "unison-aux".hugo.approved_name		is 'Approved Name';
+comment on column "unison-aux".hugo.status				is 'Status';
+comment on column "unison-aux".hugo.locus_type			is 'Locus Type';
+comment on column "unison-aux".hugo.previous_symbols	is 'Previous Symbols';
+comment on column "unison-aux".hugo.previous_names		is 'Previous Names';
+comment on column "unison-aux".hugo.aliases				is 'Aliases';
+comment on column "unison-aux".hugo.chromosome			is 'Chromosome';
+comment on column "unison-aux".hugo.date_approved		is 'Date Approved';
+comment on column "unison-aux".hugo.date_modified		is 'Date Modified';
+comment on column "unison-aux".hugo.date_name_changed	is 'Date Name Changed';
+comment on column "unison-aux".hugo.accession_numbers	is 'Accession Numbers';
+comment on column "unison-aux".hugo.enzyme_ids			is 'Enzyme IDs';
+comment on column "unison-aux".hugo.entrez_gene_id		is 'Entrez Gene ID';
+comment on column "unison-aux".hugo.mgd_id				is 'MGD ID';
+comment on column "unison-aux".hugo.misc_ids			is 'Misc IDs';
+comment on column "unison-aux".hugo.pubmed_ids			is 'Pubmed IDs';
+comment on column "unison-aux".hugo.refseq_ids			is 'RefSeq IDs';
+comment on column "unison-aux".hugo.gene_family_name	is 'Gene Family Name';
+comment on column "unison-aux".hugo.gdb_id_md			is 'GDB ID (mapped data)';
+comment on column "unison-aux".hugo.entrez_gene_id_md	is 'Entrez Gene ID (mapped data)';
+comment on column "unison-aux".hugo.omim_id_md			is 'OMIM ID (mapped data)';
+comment on column "unison-aux".hugo.refseq_md			is 'RefSeq (mapped data)';
+comment on column "unison-aux".hugo.uniprot_id_md		is 'UniProt ID (mapped data)';
 
