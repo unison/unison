@@ -1,7 +1,7 @@
 BEGIN;
-TRUNCATE hugo.hugo;
-\copy hugo.hugo FROM PSTDIN WITH NULL AS ''
+TRUNCATE "unison-aux".hugo;
+\copy "unison-aux".hugo FROM PSTDIN WITH NULL AS ''
 COMMIT;
-ANALYZE hugo.hugo;
+ANALYZE "unison-aux".hugo;
 
-SELECT COUNT(*) FROM hugo.hugo;
+SELECT COUNT(*) FROM "unison-aux".hugo;
