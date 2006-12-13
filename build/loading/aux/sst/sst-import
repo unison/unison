@@ -14,16 +14,16 @@ my %opts =
 my @table_defs =
   (
    #  table			columns								distinct
-	[ 'unqproform', [qw(unqid proid)],					1		],
-	[ 'prodna',	 	[qw(proid dnaid)],	 				1		],
-	[ 'fam', 	 	[qw(famid familyname shortname)], 	1		],
-	[ 'unqfamily',	[qw(unqid famid)], 					1		],
+   [ 'v_trans',            [qw(dnaid pseq_id)],         1],
+   [ 'v_unq2dna',          [qw(dnaid proid unqid shortname unqname)],         1],
+   [ 'fam', 	 	   [qw(famid familyname shortname)],         1],
+   [ 'unqfamily',	   [qw(unqid famid)],                        1]
   );
 
 
 select(STDERR); $|++;
 select(STDOUT); $|++;
-print(STDERR '$Id: sst-import,v 1.9 2006/01/20 00:46:11 rkh Exp $ ', "\n");
+print(STDERR '$Id: sst-import,v 1.10 2006/09/08 23:55:45 rkh Exp $ ', "\n");
 
 my $sql;
 my $sth;
@@ -39,13 +39,13 @@ for(my $ti=0; $ti<=$#table_defs; $ti++) {
   my $cols = join(',',@$cr);
   my $dist = defined $d ? 'distinct' : '';
   my $msg = "preparing table sst.$table";
-  my $sql = "select $dist $cols from $table";
+  my $sql = "select $dist $cols from sst.$table";
   my $n = 0;
 
   print(STDERR "# $table: $sql\n");
 
   print("TRUNCATE sst.$table;\n");
-  print("COPY sst.$table ($cols) FROM stdin;\n");
+  print("COPY sst.$table ($cols) FROM stdin with null as E\'\\\\N\';\n");
 
   $sth = $dbh->prepare($sql);
   $sth->execute()
