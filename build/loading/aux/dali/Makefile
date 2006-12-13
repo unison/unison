@@ -1,8 +1,8 @@
 # Makefile for loading dali into a postgresql database
-# $Id$
+# $Id: Makefile,v 1.2 2005/06/16 03:51:56 rkh Exp $
 
 
-vpath % /gne/compbio/share/dali/
+vpath % /gne/research/data/public/dali/
 
 ## load aln_ids <= 100 for testing:
 #TEST:=| perl -pe 'exit(0) if $$F[0] > 100'
