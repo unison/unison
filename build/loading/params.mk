@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.22 2006/11/07 19:33:11 mukhyala Exp $
+## $Id: params.mk,v 1.23 2006/11/17 21:45:50 mukhyala Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
@@ -91,7 +91,7 @@ PFSIGNALP_SEQS_PER_RUN:=100
 
 ############################################################################
 #### PMAP
-PMAP_PARAMS_ID:=45
+PMAP_PARAMS_ID:=48
 PMAP_GENASM_ID:=3
 
 
