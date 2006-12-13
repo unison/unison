@@ -30,15 +30,15 @@ logs/homologene-load.log: ${HOMOLOGENE_DATA}
 	(time -p ${PSQL} -f sql/homologene-load.sql <$<) >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
-$(foreach t,${TABLES_GZ_SRCS},logs/$t-load.log): logs/%-load.log: ${GENE_DIR}/DATA/%.gz logs/%-create.log
+$(foreach t,${TABLES_GZ_SRCS},logs/$t-load.log): logs/%-load.log: ${GENE_DIR}/DATA/%.gz
 	(gzip -cdq <$< | perl -ne 'print unless m/^#/' | ${PSQL} -f sql/$*-load.sql) | tee $@.err
 	/bin/mv -f $@.err $@
 
-$(foreach t,${TABLES_UC_SRCS},logs/$t-load.log): logs/%-load.log: ${GENE_DIR}/DATA/% logs/%-create.log
+$(foreach t,${TABLES_UC_SRCS},logs/$t-load.log): logs/%-load.log: ${GENE_DIR}/DATA/%
 	perl -ne 'print unless m/^#/' <$< | ${PSQL} -f sql/$*-load.sql | tee $@.err
 	/bin/mv -f $@.err $@
 
-logs/generif-load.log: logs/%-load.log: ${GENE_DIR}/GeneRIF/generifs_basic.gz logs/%-create.log
+logs/generif-load.log: logs/%-load.log: ${GENE_DIR}/GeneRIF/generifs_basic.gz
 	(gzip -cdq <$< | perl -ne 'print unless m/^#/' | ${PSQL} -f sql/$*-load.sql) | tee $@.err
 	/bin/mv -f $@.err $@
 
