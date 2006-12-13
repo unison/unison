@@ -4,7 +4,7 @@ include ../../params.mk
 
 
 
-PDB_ROOT:=${RESEARCH_PREFIX}/share/pdb
+PDB_ROOT:=${RESEARCH_PREFIX}/data/public/pdb
 export PDB_XML_PATH:=${PDB_ROOT}/all.xml.gz
 
 
