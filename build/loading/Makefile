@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.27 2006/08/08 02:52:56 rkh Exp $
+## $Id: Makefile,v 1.28 2006/08/16 15:48:48 mukhyala Exp $
 
 default all: update
 
@@ -74,7 +74,7 @@ COMPUTE_DIRS+=pahmm papseq #paprospect
 COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm pfseg pfpepcoil
 COMPUTE_DIRS+=pmap
 #GENELAND only: psprotcomp
-#NEEDS ATTENTION: papseq papssm pfregexp
+#NEEDS ATTENTION: papssm pfregexp
 #DEPRECATED: pftmdetect
 CLEANUP_DIRS+=${COMPUTE_DIRS}
 .PHONY: phase3
@@ -93,14 +93,14 @@ $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
 ######################################################################
 # 4. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
 PHASE4_FX:=update_psets_extrinsic
-PHASE4_MVV:=pmap_unambiguous pmap_unambiguous_overlaps pmap_genomic_representative
+PHASE4_MVV:=pmap_unambiguous pmap_unambiguous_overlaps pmap_locus_representative pmap_gg_representative
 PHASE4_MVDV:=
 PHASE4_MV:= ${PHASE4_MVDV} ${PHASE4_MVV}
 
 .PHONY: phase4
 phase4: update_psets_extrinsic.log $(addsuffix .log,${PHASE4_FX}) $(addsuffix _mv.log,${PHASE4_MV})
 pmap_unambiguous_overlaps_mv.log: pmap_unambiguous_mv.log
-pmap_genomic_representative_mv.log: pmap_unambiguous_overlaps_mv.log
+pmap_locus_representative_mv.log: pmap_unambiguous_overlaps_mv.log
 
 # m_s_u is broken, I think because of temp tables within plpgsql (unverified)
 # in any case, the following doesn't work.
