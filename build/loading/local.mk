@@ -1,5 +1,5 @@
 ## local.mk -- site-local definitions for Unison loading
-## $Id: local.mk,v 1.11 2006/11/07 19:44:36 mukhyala Exp $
+## $Id: local.mk,v 1.12 2006/11/21 18:18:49 mukhyala Exp $
 
 
 # Unison connection details
@@ -25,7 +25,7 @@ export PERL5LIB
 
 # perl regexp-based renamer
 # this is only needed for PBS job submission
-RENAME=${UNISON_HOME}/sbin/rerename
+RENAME=${UNISON_HOME}/tools/sbin/rerename
 
 
 
