@@ -13,7 +13,7 @@ default all: update
 
 update: $(foreach t,${TABLES},logs/$t-load.log)
 
-hugo.dat:
+hugo.dat: FORCE
 	wget -nv -O$@.tmp "${HUGO_DAT_URL}"
 	/bin/mv -f $@.tmp $@
 
@@ -21,7 +21,7 @@ hugo.dat:
 $(foreach t,${TABLES},logs/$t-create.log): logs/%.log: sql/%.sql
 	-psql -Xf $< 2>&1 | tee $@
 
-$(foreach t,${TABLES},logs/$t-load.log): logs/%-load.log: %.dat logs/%-create.log FORCE
+$(foreach t,${TABLES},logs/$t-load.log): logs/%-load.log: %.dat FORCE
 	tail +2 $< | ${PSQL} -f sql/$*-load.sql | tee $@.err
 	/bin/mv -f $@.err $@
 
