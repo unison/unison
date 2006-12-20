@@ -24,7 +24,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.47 2006/11/04 03:48:25 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.48 2006/11/06 22:11:32 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -43,21 +43,7 @@ EOT
 
 try {
   print $p->render("Summary of Unison:$v->{pseq_id}",
-				   "<p>\n",
-
-				   '<table class="summary">',
-
-				   '<tr><th><div>Best Annotation</div></th> <td>', $u->best_annotation($v->{pseq_id}), '</td></tr>',
-
-				   '<tr><th><div>Entrez Annotations</div></th> <td>', 
-				   		(map { sprintf("%s %s; %s (%s)", @{%$_}{qw(common symbol descr map_loc)}) }
-						 $u->entrez_annotations($v->{pseq_id}) ),
-				   '</td></tr>',
-
-				   ($p->{unison}->is_public() ? '' : 
-					'<tr><th><div>Protcomp Localization</div></th> <td>', protcomp_info($p), '</td></tr>'),
-				   '</table>',
-
+				   '<p>', summary_table($p),
 				   '<p>', sequence_group($p),
 				   '<p>', aliases_group($p),
 				   '<p>', features_group($p),
@@ -72,6 +58,35 @@ exit(0);
 
 
 ############################################################################
+
+sub summary_table ($) {
+  my $p = shift;
+  my $u = $p->{unison};
+  my $v = $p->Vars();
+
+  # locus will only work for human sequences
+  my $locus = $u->selectrow_array('select chr||band from pseq_cytoband_v where pseq_id=? and params_id=48',
+								  undef, $v->{pseq_id});
+
+  return
+	(
+	 '<table class="summary">',
+
+	 '<tr><th><div>Best Annotation</div></th> <td>', $u->best_annotation($v->{pseq_id}), '</td></tr>',
+
+	 '<tr><th><div>Entrez Annotations</div></th> <td>', 
+	 (map { sprintf("%s %s; %s (%s)", @{%$_}{qw(common symbol descr map_loc)}) }
+	  $u->entrez_annotations($v->{pseq_id}) ),
+	 '</td></tr>',
+
+	 ($p->{unison}->is_public() ? '' : 
+	  '<tr><th><div>Protcomp Localization</div></th> <td>', protcomp_info($p), '</td></tr>'),
+
+	 '<tr><th><div>Human Locus</div></th> <td>', $locus||'N/A', '</td></tr>',
+
+	 '</table>'
+	 );
+}
 
 sub protcomp_info ($) {
   my $p = shift;
