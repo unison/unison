@@ -23,3 +23,36 @@ consider automatic submit for redisplay when user selects from popup
 - schema-qualify all tables and views
 - provide option which add user tables
 
+- see FIXME and BUG tags
+
+- `make update' should work for all loading/ subdirs
+
+- release tag in database
+
+- perl5-prereq download/install/something
+
+- require web release = API release = db release?
+
+- --libraries -- Unison::options or somesuch dumps %INC for Unison modules
+==> TODO <==
+browse views
+- excel export
+- split cv def into sql and order by
+
+select 
+	pseq_locus,
+	best_alias,
+	descr,
+	added,
+	unq, pro, fam
+	Y.*
+FROM 
+	(
+	SELECT 
+		[distinct on (locus_rep)],
+	    locus rep,
+		X.*
+	FROM (select * from def) X
+	[ORDER BY] locus_rep
+	) Y
+ORDER BY cvorder

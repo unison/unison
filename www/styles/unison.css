@@ -1,4 +1,4 @@
-/* $Id: unison.css,v 1.38 2006/09/09 00:00:47 rkh Exp $     emacs: -*-c-*-  */
+/* $Id: unison.css,v 1.39 2006/11/04 03:48:25 rkh Exp $     emacs: -*-c-*-  */
 
 BODY {
  background: #FFFFED;
@@ -160,6 +160,7 @@ TD.quicklinks_title {
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
+ font-style: italic; 
 }
 TD.quicklinks {
  border:  #150067 thin solid;
