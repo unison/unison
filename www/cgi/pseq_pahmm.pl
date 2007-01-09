@@ -19,7 +19,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.19 2006/02/15 04:06:57 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_pahmm.pl,v 1.20 2006/05/12 04:40:07 rkh Exp $ ');
 
 
 try {
@@ -111,7 +111,7 @@ EOSQL
   my @rows;
 
   while ( my $r = $sth->fetchrow_hashref() ) {
-	my $name = sprintf('<a tooltip="%s" href="http://pfam.wustl.edu/cgi-bin/getdesc?name=%s">%s (%s)</a>',
+	my $name = sprintf('<a tooltip="%s" href="http://pfam.janelia.org/cgi-bin/getdesc?name=%s">%s (%s)</a>',
 					   $r->{descr}, $r->{name}, $r->{name}, $r->{acc});
 	my @row;
 
