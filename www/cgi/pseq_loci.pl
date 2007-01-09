@@ -18,14 +18,14 @@ my $margin = 5000;						# margin around gene for genome map
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_loci.pl,v 1.23 2006/02/15 04:06:57 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_loci.pl,v 1.24 2006/04/09 09:01:22 rkh Exp $ ');
 
 
 my @ps = $u->get_params_info_by_pftype('pmap');
 
 if (not defined $v->{params_id}) {
-  $v->{params_id} = 
-	$u->get_current_params_id_by_pftype($v->{pseq_id},'pmap')
+  $v->{params_id} =
+	$u->preferred_params_id_by_pftype($v->{pseq_id},'pmap')
 	|| $ps[0]->[0];
 }
 
