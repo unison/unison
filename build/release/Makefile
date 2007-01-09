@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.14 2006/08/16 15:59:23 mukhyala Exp $
+# $Id: Makefile,v 1.15 2006/08/17 21:44:01 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -61,7 +61,7 @@ perl5-prereq-${DATE}.tgz: %.tgz:
 stage.log:
 	export PGHOST=localhost PGUSER=postgres; \
 	dropdb csb-stage || true; \
-	../../sbin/dev2stage csb-stage >$@.err 2>&1
+	./dev2stage csb-stage >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
