@@ -2,7 +2,7 @@
 
 Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.33 2006/09/08 23:56:56 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.34 2006/11/04 03:48:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -191,7 +191,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.33 2006/09/08 23:56:56 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.34 2006/11/04 03:48:38 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -681,7 +681,7 @@ EOSQL
 	### FIX: should use link_url
 	my $href = ($view
 				? $pseq_structure->region_script($r->[0],$r->[1],$r->[6])
-				:"http://pfam.wustl.edu/cgi-bin/getdesc?name=$r->[6]");	
+				:"http://pfam.janelia.org/cgi-bin/getdesc?name=$r->[6]");	
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
