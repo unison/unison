@@ -1,10 +1,11 @@
 #!/usr/bin/env perl
-#$Id: load-papseq,v 1.6 2006/07/27 22:37:49 mukhyala Exp $
+#$Id: load-papseq,v 1.7 2006/08/10 20:43:58 mukhyala Exp $
 
   use warnings;
 use strict;
 use Unison;
 use Unison::Exceptions;
+use Unison::papseq;
 use Bio::Tools::BPlite;
 use Error qw(:try);
 use Getopt::Long qw(:config gnu_getopt);
