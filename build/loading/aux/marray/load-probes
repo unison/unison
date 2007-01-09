@@ -53,7 +53,7 @@ $opts{genasm_id} = $u->selectrow_array("SELECT genasm_id FROM genasm WHERE name=
    || die("$0: genasm_id is NULL for origin_id=$opts{origin_id}\n");
 
 print(STDOUT "BEGIN;\n");
-print(STDOUT "TRUNCATE marray.probe;\n");
+print(STDOUT "delete from marray.probe where origin_id=$opts{origin_id};\n");
 print(STDOUT "\\copy marray.probe FROM STDIN\n");
 
 while(<DATA>) {
