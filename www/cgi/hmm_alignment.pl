@@ -20,14 +20,14 @@ use Bio::SearchIO::Writer::HTMLResultWriter;
 
 use IO::Pipe;
 
-my $pfamURL = 'http://pfam.wustl.edu/cgi-bin/getdesc?acc=%.7s';
+my $pfamURL = 'http://pfam.janelia.org/cgi-bin/getdesc?acc=%.7s';
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id params_id profiles));
-$p->add_footer_lines('$Id: hmm_alignment.pl,v 1.8 2005/10/11 18:12:22 mukhyala Exp $');
+$p->add_footer_lines('$Id: hmm_alignment.pl,v 1.9 2006/06/26 18:05:08 rkh Exp $');
 
 my $modelfile = _get_model_file();
 my ($hmmfh, $hmmfn) = $p->tempfile(SUFFIX=>'.hmm');

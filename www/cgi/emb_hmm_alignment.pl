@@ -19,7 +19,7 @@ use Bio::SearchIO;
 
 use IO::Pipe;
 
-my $pfamURL = 'http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s';
+my $pfamURL = 'http://pfam.janelia.org/cgi-bin/getdesc?acc=%s';
 
 my $p = new Unison::WWW::EmbPage;
 my $u = $p->{unison};
