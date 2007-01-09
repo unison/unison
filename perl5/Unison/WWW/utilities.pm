@@ -28,8 +28,9 @@ sub alias_link {
 	return( alias_uniprot_link($alias) )
   } elsif ($origin eq 'Ensembl') {
 	return( alias_enslink($alias) )
-  } elsif ($origin eq 'Proteome') {
-	return( alias_proteome_link($alias) )
+# diabling the url. //research/products/proteome does not work
+#  } elsif ($origin eq 'Proteome') {
+#	return( alias_proteome_link($alias) )
   } elsif ($origin eq 'Mint') { 
         return ( alias_mint_link ($alias) );
   } elsif ($origin eq 'Pubmed') {
