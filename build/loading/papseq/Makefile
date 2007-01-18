@@ -56,6 +56,6 @@ db: .${DB}-built
 
 clean::
 cleaner::
-	/bin/rm -f *.bo *.log
+	/bin/rm -f *.bo *.log *.ids .*.ids
 cleanest::
 	/bin/rm -f .*-built *.fa *.phr *.pin *.psq
