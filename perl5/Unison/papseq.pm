@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::papseq -- Unison papseq table utilities
-S<$Id: papseq.pm,v 1.8 2004/05/04 04:51:36 rkh Exp $>
+S<$Id: papseq.pm,v 1.9 2005/01/20 01:05:17 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -25,9 +25,7 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-
-use Bio::Tools::BPlite;
-
+use Bio::SearchIO;
 
 =pod
 
@@ -121,8 +119,8 @@ sub insert_hsp_swap {
     throw Unison::BadUsage( 'Unison::insert_hsp() requires query pseq_id as a parameter' );
   } elsif ( ! defined $pmodel_id ) {
     throw Unison::BadUsage( 'Unison::insert_hsp() requires pmodel_id as a parameter' );
-  } elsif ( ! defined $hsp or ( ref $hsp ne 'Bio::Tools::BPlite::HSP' ) ) {
-    throw Unison::BadUsage( 'Unison::insert_hsp() requires Bio::Tools::BPlite::HSP object' );
+  } elsif ( ! defined $hsp or ( ref $hsp ne 'Bio::Search::HSP::GenericHSP' ) ) {
+    throw Unison::BadUsage( 'Unison::insert_hsp() requires Bio::Search::HSP::GenericHSP object' );
   }
   throw Unison::RuntimeError( 'Unison connection is not open' ) if ! $u->is_open();
   
@@ -139,8 +137,8 @@ sub insert_hsp_swap {
   my $sql = $sql_start . "values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
   my $sth = $u->prepare_cached($sql);
   my @values = ( $pseq_id, $hsp->query->start, $hsp->query->end, $pmodel_id, $hsp->hit->start,
-    $hsp->hit->end,  $hsp->hsplength, $hsp->match, $hsp->positive, $hsp->gaps, $hsp->score,
-    $hsp->P, $hsp->percent );
+    $hsp->hit->end,  $hsp->hsp_length, $hsp->num_identical, $hsp->num_conserved, $hsp->gaps, $hsp->score,
+    $hsp->evalue, sprintf("%.1f",$hsp->percent_identity));
   print "sql: $sql_start values (" . join(',',@values) . ")\n" if $ENV{'DEBUG'};
   $sth->execute( @values );
 

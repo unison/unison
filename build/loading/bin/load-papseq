@@ -1,16 +1,14 @@
 #!/usr/bin/env perl
-#$Id: load-papseq,v 1.7 2006/08/10 20:43:58 mukhyala Exp $
+#$Id: load-papseq,v 1.8 2007/01/09 17:31:00 mukhyala Exp $
 
-  use warnings;
+use warnings;
 use strict;
 use Unison;
 use Unison::Exceptions;
 use Unison::papseq;
-use Bio::Tools::BPlite;
+use Bio::SearchIO;
 use Error qw(:try);
 use Getopt::Long qw(:config gnu_getopt);
-use IO::Scalar;
-use vars qw( $loaded );
 
 
 my %opts = 
@@ -37,28 +35,26 @@ my $u = new Unison(dbname=>'csb-dev', username=>'loader');
   || die("$0: parameters not defined (-p)\n");
 
 my $cnt=0;
-local $/ = "\nBLAST";
 print "start: ",scalar(localtime),"\n";
-$loaded=0;
-while ( my $block = <> ) {
-  $block =~ s/^(?!BLAST)/BLAST/;
-  $block =~ s/\nBLAST$//;
-  local $/ = "\n";
+my $in = new Bio::SearchIO(-format => 'blast',-fh => \*STDIN);
+if (not defined $in) {
+  warn("$in: $!\n");
+  return;
+}
+while ( my $report = $in->next_result ) {
 
-  my $io = new IO::Scalar \$block;
-  my $report = new Bio::Tools::BPlite(-fh=>$io);
   print '-'x80,"\n" if $ENV{DEBUG};
-  print "qname: " . $report->query() . "\n" if $opts{verbose};
-  my $q_pseq_id = $u->get_pseq_id_from_FASTA_name($report->query());
+  print "qname: " . $report->query_name() . "\n" if $opts{verbose};
+  my $q_pseq_id = $u->get_pseq_id_from_FASTA_name($report->query_name());
   if ( !defined $q_pseq_id ) {
     throw Unison::RuntimeError("No pseq_id defined for this query sequence: " .
 			       $report->query() );
   }
-  while (my $sbjct = $report->nextSbjct) {
+  while (my $sbjct = $report->next_hit()) {
     my $swapme = 0;
     print "\t",'-'x80,"\n" if $ENV{DEBUG};
     my $t_pseq_id = $u->get_pseq_id_from_FASTA_name($sbjct->name());
-    print "\tqname: " . $report->query() . "\n" if $ENV{DEBUG};
+    print "\tqname: " . $report->query_name() . "\n" if $ENV{DEBUG};
     print "\ttname: " . $sbjct->name() . "\n" if $ENV{DEBUG};
     throw Unison::RuntimeError( "No pseq_id defined for this target sequence: " 
 				. $sbjct->name() ) if ( !defined $t_pseq_id );
@@ -74,20 +70,20 @@ while ( my $block = <> ) {
 	next;
       }
     }
-    while (my $hsp = $sbjct->nextHSP) {
+    while (my $hsp = $sbjct->next_hsp) {
       # criteria for accepting HSP:
       #  - over 98% identity AND
       #  - hsp len > 50 AND
       #  - query is a subsequence of target or vice versa OR
       #  - query c-terminus overlaps with target n-terminus  OR
       #  - target c-terminus overlaps with query n-terminus
-      if ( $hsp->percent() < $opts{pct_id_cutoff} ) {
+      if ( $hsp->percent_identity() < $opts{pct_id_cutoff} ) {
 	print "Skipping this target ($t_pseq_id) because its percent identity (" .
-	  $hsp->percent() . ") < $opts{pct_id_cutoff}\n" if $ENV{DEBUG};
+	  $hsp->percent_identity() . ") < $opts{pct_id_cutoff}\n" if $ENV{DEBUG};
 	next;
-      } elsif ( $hsp->hsplength() < $opts{hsp_len_cutoff} ) {
+      } elsif ( $hsp->hsp_length() < $opts{hsp_len_cutoff} ) {
 	print "Skipping this target ($t_pseq_id) because the hsp length (" .
-	  $hsp->hsplength() . ") < $opts{hsp_len_cutoff} \n" if $ENV{DEBUG};
+	  $hsp->hsp_length() . ") < $opts{hsp_len_cutoff} \n" if $ENV{DEBUG};
 	next;
       }
 
@@ -97,19 +93,19 @@ while ( my $block = <> ) {
       # if we need to swap the query/target orientation b/c the
       # q_pseq_id < t_pseq_id and $swap_upper_triangle is true.
       if ( $swapme ) {
-	$q_start = $hsp->hit->start;
-	$q_end = $hsp->hit->end;
-	$q_len = $hsp->hit->seqlength();
-	$t_start = $hsp->query->start;
-	$t_end = $hsp->query->end;
-	$t_len = $report->qlength;
+	$q_start = $hsp->start('hit');
+	$q_end = $hsp->end('hit');
+	$q_len = $sbjct->length;
+	$t_start = $hsp->start('query');
+	$t_end = $hsp->end('query');
+	$t_len = $report->query_length();
       } else {
-	$q_start = $hsp->query->start;
-	$q_end = $hsp->query->end;
-	$q_len = $report->qlength;
-	$t_start = $hsp->hit->start;
-	$t_end = $hsp->hit->end;
-	$t_len = $hsp->hit->seqlength();
+	$q_start = $hsp->start('query');
+	$q_end = $hsp->end('query');
+	$q_len = $report->query_length();
+	$t_start = $hsp->start('hit');
+	$t_end = $hsp->end('hit');
+	$t_len = $sbjct->length;
       }
 
       # if the accept_overlap_seqs flag is true, then also insert
@@ -142,7 +138,6 @@ while ( my $block = <> ) {
   }
   my $z = $u->upd_run_histories($q_pseq_id,$opts{params_id},undef,undef);
 }
-print "loaded $loaded hsps\n";
 print "stop: ",scalar(localtime),"\n";
 
 sub _insert_hsp {
@@ -163,7 +158,6 @@ sub _insert_hsp {
 
   try {
     $u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap );
-    $loaded++;
   } catch Unison::Exception with {
     die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
   };
