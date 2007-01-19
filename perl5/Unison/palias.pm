@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.24 2006/06/26 18:05:08 rkh Exp $>
+S<$Id: palias.pm,v 1.25 2006/10/09 17:08:56 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -110,7 +110,7 @@ sub get_pseq_id_from_alias {
 	# in which case the view returns rows with empty pseq_ids.  This
 	# is the origin of the 'and pseq_id is not null' condition.
 	if ($type eq 'PRO' or $type eq 'DNA' or $type eq 'UNQ') {
-	  $sql = "select distinct pseq_id from gg_unq_pro_dna_pseq_v where ${type}ID=$id and pseq_id is not null";
+	  $sql = "select distinct pseq_id from pseq_sst_v where ${type}ID=$id and pseq_id is not null";
 	} elsif ($type eq 'FAM') {
 	  $sql = "select distinct pseq_id from gg_famid_pseq_id_v where ${type}ID=$id and pseq_id is not null";
 	} else {
