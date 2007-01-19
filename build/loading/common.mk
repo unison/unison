@@ -1,5 +1,5 @@
 ## unison/loading/common.mk -- common rules used by the Unison loading mechanism
-## $Id: common.mk,v 1.28 2006/08/08 02:53:10 rkh Exp $
+## $Id: common.mk,v 1.29 2006/08/16 15:47:23 mukhyala Exp $
 
 .SUFFIXES:
 .PHONY: FORCE
@@ -39,8 +39,6 @@ ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids run
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('Human')" >$@
 .runA-public.ids .runB-public.ids .runC-public.ids .uniA-public.ids .uniB-public.ids .uniC-public.ids .uniD-public.ids: .%-public.ids:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('public')" >$@
-.pset%.ids:
-	${PSQL_DCMD} 'select pseq_id from pseqset where pset_id=$*' >$@
 .origin%.ids:
 	${PSQL_DCMD} 'select distinct pseq_id from palias where origin_id=$*' >$@
 
@@ -49,6 +47,9 @@ ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids run
 # provide a 'done.ids' target.
 .%-todo.ids: %.ids done.ids
 	comm -23 $^ >$@
+
+.pset%.ids:
+	${PSQL_DCMD} 'select pseq_id from pseqset where pset_id=$*' >$@
 
 # 'O-': sequence ids by origin
 .O-%.ids:
