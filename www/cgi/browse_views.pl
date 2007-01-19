@@ -6,14 +6,17 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
 
+use Error qw(:try);
+
 use Unison::SQL;
 use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
+use Unison::Exceptions;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: browse_views.pl,v 1.18 2006/09/08 23:58:22 rkh Exp $ ');
+$p->add_footer_lines('$Id: browse_views.pl,v 1.19 2006/09/21 18:21:23 mukhyala Exp $ ');
 
 my %cvs = %{ $u->selectall_hashref('select cv_id,name,descr,sql,order_by from canned_views',
 								   'cv_id') };
@@ -32,10 +35,11 @@ exit(0);
 # view column comments...
 
 sub do_search {
+
   my $p = shift;
   my $u = $p->{unison};
   my $v = $p->Vars();
-
+  $v->{pmap_params_id}=$u->preferred_params_id_by_pftype('PMAP');
   my %coldescr = (
 				  # I'd love to be fetching these from the column comments...
 				  'pseq_id' => 'Unison unique sequence identifier',
@@ -59,7 +63,8 @@ sub do_search {
   return '' unless defined $v->{cv_id};
 
   my $cv = $cvs{$v->{cv_id}};
-
+  my $sql;
+  try {
   my $s_sql = Unison::SQL->new()
 	->table( "($cv->{sql}) X" );
 
@@ -75,16 +80,16 @@ sub do_search {
   }
 
   # column order
-  # FIXME: genasm_id=3 and params_id=45 shouldn't be hardwired
+  # FIXME: genasm_id=3 shouldn't be hardwired
   # consider 1-arg versions of these for most recent human alignment
-  $s_sql->columns('pseq_locus(X.pseq_id,3,45) as locus') if ($v->{a_locus});
-  $s_sql->columns('best_alias(pseq_locus_rep(X.pseq_id,3,45)) as locus_rep') if ($v->{a_locus_rep});
+  $s_sql->columns("pseq_locus(X.pseq_id,3,$v->{pmap_params_id}) as locus") if ($v->{a_locus});
+  $s_sql->columns("best_alias(pseq_locus_rep(X.pseq_id,3,$v->{pmap_params_id})) as locus_rep") if ($v->{a_locus_rep});
   $s_sql->columns('best_annotation(X.pseq_id)') if ($v->{a_best_annotation});
   $s_sql->columns('X.*');
   $s_sql->columns('Q.added::date') if ($v->{a_added});
-  $s_sql->columns("(select as_set(distinct 'UNQ'||unqid) from gg_unq_pro_dna_pseq_v where pseq_id=X.pseq_id group by unqid order by unqid) as unqs") if ($v->{a_unq});
-  $s_sql->columns("(select as_set(distinct 'PRO'||proid) from gg_unq_pro_dna_pseq_v where pseq_id=X.pseq_id) as pros") if ($v->{a_pro});
-  $s_sql->columns("(select as_set(distinct(chip||':'||probe_id)) from pseq_probe_v P where P.pseq_id=X.pseq_id) as probes") if ($v->{a_probes});
+  $s_sql->columns("(select as_set(distinct 'UNQ'||unqid) from pseq_sst_v where pseq_id=X.pseq_id) as unqs") if ($v->{a_unq});
+  $s_sql->columns("(select as_set(distinct 'PRO'||proid) from pseq_sst_v where pseq_id=X.pseq_id) as pros") if ($v->{a_pro});
+  $s_sql->columns("(select as_set(distinct(chip||':'||probe_id)) from pseq_probe_mv P where P.pseq_id=X.pseq_id and P.params_id= $v->{pmap_params_id} and P.genasm_id=3) as probes") if ($v->{a_probes});
 
   if ($v->{a_locus_rep} eq 'order') {
 	$s_sql->order('locus_rep');
@@ -92,11 +97,12 @@ sub do_search {
 	$s_sql->distinct('locus_rep');
   }
 
-  my $sql = "select * from ($s_sql) Y";
+  $sql = "select * from ($s_sql) Y";
   $sql .= " ORDER BY $cv->{order_by}" if (defined $cv->{order_by});
 
   my $sth = $u->prepare( $sql );
   my $ar = $u->selectall_arrayref($sth);
+
   my @cols = @{ $sth->{NAME} };
 
   for (my $i=0; $i<=$#cols; $i++) {
@@ -140,15 +146,23 @@ sub do_search {
 		$row->[$i] = join('<br>',sort @links);
 	  }
 	}
-  }
+      }
 
   my @colhdrs = map {$p->tooltip($_,$coldescr{$_})} @cols;
+
   return( "<hr>\n",
 		  "<b>$cv->{name} (view $cv->{cv_id})</b>: <i>$cv->{descr}</i>",
 		  $p->group(sprintf("%s; %d rows",$cv->{name}, $#$ar+1),
 					Unison::WWW::Table::render(\@colhdrs,$ar)),
 		  $p->sql("$sql")
-		);
+	 );
+
+} catch Unison::Exception with {
+  $p->die('SQL Query Failed',
+	  $_[0],
+	  $p->sql($sql));
+  };
+
 }
 
 
