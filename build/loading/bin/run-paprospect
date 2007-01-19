@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect,v 1.20 2006/03/16 19:06:56 mukhyala Exp $
+# $Id: run-paprospect,v 1.21 2006/06/26 18:05:08 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -14,6 +14,8 @@ use strict;
 
 use Unison;
 use Unison::SQL;
+use Unison::paprospect;
+
 use Bio::Prospect::File;
 use Bio::Prospect::ThreadSummary;
 use Bio::Prospect::Exceptions;
@@ -188,6 +190,9 @@ sub xml2threadsummaries {
 
 ############################################################################
 # $Log: run-paprospect,v $
+# Revision 1.21  2006/06/26 18:05:08  rkh
+# porigin_id -> origin_id rename
+#
 # Revision 1.20  2006/03/16 19:06:56  mukhyala
 # changes for use of unison/bin/gne_prospect
 #
