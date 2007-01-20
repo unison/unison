@@ -16,7 +16,7 @@ use Unison::Exceptions;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines('$Id: browse_views.pl,v 1.19 2006/09/21 18:21:23 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: browse_views.pl,v 1.20 2007/01/19 20:04:11 mukhyala Exp $ ');
 
 my %cvs = %{ $u->selectall_hashref('select cv_id,name,descr,sql,order_by from canned_views',
 								   'cv_id') };
@@ -38,6 +38,7 @@ sub do_search {
 
   my $p = shift;
   my $u = $p->{unison};
+  $u->do('set statement_timeout to 270000'); #4.5 minutes in milliseconds
   my $v = $p->Vars();
   $v->{pmap_params_id}=$u->preferred_params_id_by_pftype('PMAP');
   my %coldescr = (
@@ -158,6 +159,9 @@ sub do_search {
 	 );
 
 } catch Unison::Exception with {
+
+  $p->die('Timeout : The sql query took more than 4 minutes to complete.',
+	  $p->sql($sql)) if ($_[0] =~ /statement timeout/);
   $p->die('SQL Query Failed',
 	  $_[0],
 	  $p->sql($sql));
