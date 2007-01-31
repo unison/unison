@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id: unison-annotation,v 1.7 2006/06/16 17:53:38 rkh Exp $
+# $Id: unison-annotation,v 1.8 2006/06/23 21:53:32 mukhyala Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id: unison-annotation,v 1.7 2006/06/16 17:53:38 rkh Exp $>
+S<$Id: unison-annotation,v 1.8 2006/06/23 21:53:32 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -104,14 +104,14 @@ sub map_args_to_pseq_ids($@);
 sub get_data($);
 sub show_results($$);
 
+my %opts = parse_options();
+
 # connect with defaults. See Unison::DBI. Typically, the connection is made
 # to the csb production host ('csb'), csb production database (also 'csb'),
 # as the calling user id, authenticated by kerberos.
-my $u = new Unison();
+my $u = new Unison(username=>'PUBLIC');
 (defined $u)
   || die( "! couldn't open a connection to unison\n" );
-
-my %opts = parse_options();
 
 #data_type table/view columns condition
 my @short_table_defs =
@@ -437,7 +437,7 @@ sub parse_options() {
   }
 
   if ( $opts{version} ) {
-    print(STDOUT '$Id: unison-annotation,v 1.7 2006/06/16 17:53:38 rkh Exp $ ', "\n");
+    print(STDOUT '$Id: unison-annotation,v 1.8 2006/06/23 21:53:32 mukhyala Exp $ ', "\n");
     exit;
   }
   if ( $opts{help} ) {
