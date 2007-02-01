@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.15 2006/05/12 04:39:08 rkh Exp $
+# $Id: cgi-test.pl,v 1.16 2006/09/11 20:09:23 mukhyala Exp $
 
 use warnings;
 use strict;
@@ -24,7 +24,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.15 2006/05/12 04:39:08 rkh Exp $
+# $Id: cgi-test.pl,v 1.16 2006/09/11 20:09:23 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -81,13 +81,13 @@ my @cgi_scripts =
    ['../browse_sets.pl',"pset_id=1047"],
    ['../browse_views.pl',"cv_id=4"],
    ['../chr_view.pl',"chr=3 gstart=173540198 gstop=173567087"],
-   ['../compare_methods.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=raw"],
-   ['../compare_scores.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=svm Plot=Scatter"],
-   ['../compare_scores.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=svm Plot=Range"],
-   ['../compare_scores.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=svm Plot=Clustered"],
-   ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Scatter"],
-   ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Range"],
-   ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Clustered"],
+#   ['../compare_methods.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=raw"],
+#   ['../compare_scores.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=svm Plot=Scatter"],
+#   ['../compare_scores.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=svm Plot=Range"],
+#   ['../compare_scores.pl',"submit=submit pmodelset_id=3 pcontrolset_id=500 params_id=1 score=svm Plot=Clustered"],
+#   ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Scatter"],
+#   ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Range"],
+#   ['../compare_scores.pl',"submit=submit pmodelset_id=13 pcontrolset_id=500 params_id=1 score=raw Plot=Clustered"],
    ['../emb_genome_map.pl','genasm_id=2 chr=6 gstart=31646498 gstop=31658288 params_id=32'],
    ['../emb_hmm_alignment.pl',"pseq_id=98 params_id=$params{hmm} profiles=TNF"],
    ['../nph-pdb-fetch.sh','1jtz'],
@@ -129,7 +129,7 @@ my %dir_scripts = map {$_=>1} grep {not m%(?:CVS|t|~)$%} glob('./* ../*');
 my @badwords = ('Server Error', 'Object not found', 'DBIError', 'Exception', 'Error');
 my $npassed =  0;
 
-print('$Id: cgi-test.pl,v 1.15 2006/05/12 04:39:08 rkh Exp $ ', "\n\n");
+print('$Id: cgi-test.pl,v 1.16 2006/09/11 20:09:23 mukhyala Exp $ ', "\n\n");
 
 printf("%-30.30s\tstatus\t%7s\tmessage\n",'script','time');
 print('='x76,"\n");
