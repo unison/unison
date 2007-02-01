@@ -1,5 +1,5 @@
 ## params.mk -- Unison loading configuration and options
-## $Id: params.mk,v 1.23 2006/11/17 21:45:50 mukhyala Exp $
+## $Id: params.mk,v 1.24 2006/12/13 19:52:26 mukhyala Exp $
 
 ## XXX: We should get more params_id from pftype(preferred_params_id).
 
@@ -31,7 +31,7 @@ COSMIC_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.sanger.ac.uk/pub/CGP/cosm
 #### PAPROSPECT
 PROSPECT_PATH:=${RESEARCH_EPREFIX}/opt/prospect
 export PROSPECT_PATH
-PAPROSPECT_PARAMS_ID:=44
+PAPROSPECT_PARAMS_ID:=50
 PAPROSPECT_PMODELSET_ID:=20
 
 
