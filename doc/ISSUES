@@ -1,46 +1,33 @@
 -*-outline-*-
 
-http://www.geneontology.org/external2go/
+* NEXT RELEASE:
 
-* TO-DO AT NEXT BACKUP/RESTORE:
-These are items which can only/best be dealt with in a backup/restore cycle.
+** standing order: update sequences, models, predictions
 
-** palignment.score to integer from smallint
+** pmap failed sequences
+when pmap fails to map a sequence, no entry in run_history for sequences 
+that have no entry in psl files. 
+2007-02-02 Reece Hart <reece@harts.net> -- NEEDS VERIFICATION
+
+** params selection per pseq_id
+instead of selecting the most recent params by pftype_id, we should join
+this with a pseq_id's run_history so that we don't select a params_id
+which hasn't been run against.  Oops.
+
+2007-02-02 Reece Hart <reece@harts.net> -- I think this is done, but we
+should verify.
+
+** drop insert rule on palias IF IT IS UNUSED
+grep unison tree for any lingering uses of 'insert into palias...'
+
+
+
 
 
 * IMPORTANT:
 
 ** documentation
 need better documentation for installing and describing the code layout
-
-** sequence representatives
-Currently, all sequences in pseq are equal.  In reality, sequences may
-be usefully related by: 1) subsequences, 2) alternative splicing, 3)
-paralogs, 4) orthologs, 5) homology (not 3 or 4), and probably others as
-well.  Ex: given a good thread to pseq_id 333, how does one determine that
-333 is really a sigcleave'd fragment of 222 (case 1 above).
-
-** deprecate aliases
-
-Sequence aliases and identifiers may become obsolete between versions of a
-database (e.g., Swiss-Prot:T13X_HUMAN became TR13B_HUMAN). Although this
-isn't typically significant between two versions, the total accumulated
-number of obsolete aliases is steadily growing.  The upside of this is
-that historical names are preserved.  Possible solution: load-pseq should
-provide an option which retires unused aliases. We need to consider the
-case of multi-file loads (e.g., Geneseq) which might only load a subset in
-any single run.
-
-** loading is slow
-paprospect2 loading is particularly slow; we should recast these as sql
-delete and COPY statements, including run_history updates, all wrapped in
-a transaction.
-
-** ref_pseq_id
-I disliked this idea from the start and acceded under duress.  I want to
-drop paliasorigin(ref_pseq_id).  The fundamental problem is that this
-information is misplaced -- it's the /sequences/ that are related, not the
-aliases.
 
 ** changes to pmodelsets and origins are not tracked by run_history
 run_history refers to pmodelsets and origins. It is possible that the set
@@ -50,29 +37,10 @@ options are to make such sets immutable (not possible for origin), or
 better, attach time stamps to pmodelset and origin rows, or to simply
 remove run_history rows when a pmodelset or origin set is changed.
 
-** overriding inherited fields
-pmpseq (others?) override inherited fields (specifically, origin_id and
-acc are made not null) and therefore conflicts conceptually with the
-parent and, more pragmatically, upon restore. We should strictly follow
-inheritance of columns AND their attributes.
-
 ** linking
 URLs are stored in the origin table, but they're not used by the web
 tools.  Solution: cache origin->url mapping, then use this to format. See
 U::WWW::utilities.pm.
-
-** params selection per pseq_id
-instead of selecting the most recent params by pftype_id, we should join
-this with a pseq_id's run_history so that we don't select a params_id
-which hasn't been run against.  Oops.
-
-** running HMMer against custom HMMs
-Our current design for running HMMer is biased towards pfam. Issues that need more thought are:
-should we create a new params_id for each HMM based mining project?
-how will origin_id be associated with params_id
-run-pahmm should handle running aginst cutoms HMM's with above ids.
-
-BACKBURNER:
 
 ** best annotations
 best annotation/alias is too human-centric.  For example, the pseq_id 54
@@ -94,9 +62,62 @@ views and web pages will need to be updated to accommodate multi-species
 best annotations.
 
 
-** HUGO/HUPO terms
-http://www.gene.ucl.ac.uk/nomenclature/code/ftpaccess.html
-http://www.gene.ucl.ac.uk/public-files/nomen/searchdata.txt
+
+
+
+
+* CONSIDER:
+
+** sequence-sequence relationships
+Currently, all sequences in pseq are equal.  In reality, sequences may be
+usefully related by: 1) subsequences, 2) alternative splicing, 3)
+paralogs, 4) orthologs, 5) homology (not 3 or 4), and probably others as
+well.  Ex: given a good thread to pseq_id 333, how does one determine that
+333 is really a sigcleave'd fragment of 222 (case 1 above). Subsume the
+functionailty of pseq.ref_pseq_id into sequence-sequences relationships
+and drop that column.
+
+** running HMMer against custom HMMs 
+Our current design for running HMMer is biased towards pfam. Issues that
+need more thought are: should we create a new params_id for each HMM based
+mining project?  how will origin_id be associated with params_id run-pahmm
+should handle running aginst cutoms HMM's with above ids.
+
+** adopt stricter policy for params_id and pmodelset_id
+pseq_id: query
+params_id: how run
+pmodelset_id: what run against
+pmodelset_id should be used to represent origins
+
+ASSUMPTION: prediction results depend only on the triplet of
+<pseq_id,params_id,pmodel_id>.  It does NOT depend on anything else such
+as the identities or size of other models within a set.
+
+Consider effects on:
+- loading
+- queries for results (eg select * from pahmm_v where params_id=x)
+- indexes
+
+
+** incremental updates of models and corresponding predictions
+Requires adoption of params_id and pmodelset_id policy above.
+
+Conisder:
+- Models must now belong to multiple origins, but we don't currently have
+  a schema that reflects this.  One possibiity is to archive this
+  association in pmsm_pmhmm.  Otherwise, we'll need to explicitly version
+  model origins as we do for aliases (ugh).
+
+
+
+
+
+* BACKBURNER:
+
+** paprospect loading is slow
+paprospect2 loading is particularly slow; we should recast these as sql
+delete and COPY statements, including run_history updates, all wrapped in
+a transaction.
 
 ** pmodelsets are should be nested
 It would be nice if subsets of models triggered an automatic update of
@@ -110,10 +131,6 @@ need to be restricted as well.
 ** stage and/or prod building should write intermediate dump
 
 ** db release should be dump date (I think)
-
-** delete from palias rule
-  wipes out corresponding paliasorigin & pseqalias rows
-  (or, just set not current?)
 
 ** pftypes, params, run_history
 problems:
@@ -129,20 +146,11 @@ problems:
 
 ** standardize naming conventions better
 
-** "anonymous" sequences
-When a sequence alias is reused for a new version of a sequence, it's
-possible that the previous sequence no longer has a current alias and is
-therefore unnamed. This is reality.  The current alias views will hide
-that alias and give the impression that the sequence came from nowhere.
-Do we care?
-
 ** add current_user to pseq, palias tables?
 
 ** order in asset aggregate
 
-** pmap failed sequences
-when pmap fails to map a sequence, no entry in run_history for sequences 
-that have no entry in psl files. 
+
 
 * COMPLETED TASKS
 
@@ -214,4 +222,32 @@ global_local), then we should create a view which shadows params and
 augments with the params_prospect2 data. If not, then we can simply drop
 params_prospect2. Either way, params needs to be the /single/ table with
 the params_id primary key.
+
+** DONE: deprecate aliases
+Sequence aliases and identifiers may become obsolete between versions of a
+database (e.g., Swiss-Prot:T13X_HUMAN became TR13B_HUMAN). Although this
+isn't typically significant between two versions, the total accumulated
+number of obsolete aliases is steadily growing.  The upside of this is
+that historical names are preserved.  Possible solution: load-pseq should
+provide an option which retires unused aliases. We need to consider the
+case of multi-file loads (e.g., Geneseq) which might only load a subset in
+any single run.
+
+** DONE: HUGO/HUPO terms
+http://www.gene.ucl.ac.uk/nomenclature/code/ftpaccess.html
+http://www.gene.ucl.ac.uk/public-files/nomen/searchdata.txt
+
+** DONE: "anonymous" sequences
+When a sequence alias is reused for a new version of a sequence, it's
+possible that the previous sequence no longer has a current alias and is
+therefore unnamed. This is reality.  The current alias views will hide
+that alias and give the impression that the sequence came from nowhere.
+Do we care?
+A: Not really, but there's now a view called orphaned_sequences_v.
+
+** DONE: ** overriding inherited fields
+pmpseq (others?) override inherited fields (specifically, origin_id and
+acc are made not null) and therefore conflicts conceptually with the
+parent and, more pragmatically, upon restore. We should strictly follow
+inheritance of columns AND their attributes.
 
