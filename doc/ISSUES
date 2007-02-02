@@ -29,14 +29,6 @@ grep unison tree for any lingering uses of 'insert into palias...'
 ** documentation
 need better documentation for installing and describing the code layout
 
-** changes to pmodelsets and origins are not tracked by run_history
-run_history refers to pmodelsets and origins. It is possible that the set
-of models (pmodel_ids) implied by using either or both of these criteria
-will change over time, thereby making run_history data incorrect. The
-options are to make such sets immutable (not possible for origin), or
-better, attach time stamps to pmodelset and origin rows, or to simply
-remove run_history rows when a pmodelset or origin set is changed.
-
 ** linking
 URLs are stored in the origin table, but they're not used by the web
 tools.  Solution: cache origin->url mapping, then use this to format. See
@@ -84,20 +76,25 @@ mining project?  how will origin_id be associated with params_id run-pahmm
 should handle running aginst cutoms HMM's with above ids.
 
 ** adopt stricter policy for params_id and pmodelset_id
+- unfortunately, params mixes several ideas: HOW to run a program, and
+  WHAT models were run against by origin, and WHAT models were run against
+  by modelset.
 pseq_id: query
 params_id: how run
 pmodelset_id: what run against
 pmodelset_id should be used to represent origins
+run_id: consider adding as a shorthand for <params_id,pmodelset_id>
+(eg run-pahmm -r 33)
+run_history could/should use run_id... in lieu of alternatives?
 
 ASSUMPTION: prediction results depend only on the triplet of
 <pseq_id,params_id,pmodel_id>.  It does NOT depend on anything else such
 as the identities or size of other models within a set.
 
-Consider effects on:
+Consider effects of these changes on:
 - loading
 - queries for results (eg select * from pahmm_v where params_id=x)
 - indexes
-
 
 ** incremental updates of models and corresponding predictions
 Requires adoption of params_id and pmodelset_id policy above.
@@ -107,6 +104,16 @@ Conisder:
   a schema that reflects this.  One possibiity is to archive this
   association in pmsm_pmhmm.  Otherwise, we'll need to explicitly version
   model origins as we do for aliases (ugh).
+
+** changes to pmodelsets and origins are not tracked by run_history
+Requires adoption of params_id and pmodelset_id policy above.
+
+run_history refers to pmodelsets and origins. It is possible that the set
+of models (pmodel_ids) implied by using either or both of these criteria
+will change over time, thereby making run_history data incorrect. The
+options are to make such sets immutable (not possible for origin), or
+better, attach time stamps to pmodelset and origin rows, or to simply
+remove run_history rows when a pmodelset or origin set is changed.
 
 
 
@@ -128,10 +135,6 @@ need to be restricted as well.
 
 ** svn migration
 
-** stage and/or prod building should write intermediate dump
-
-** db release should be dump date (I think)
-
 ** pftypes, params, run_history
 problems:
 - some params map to multiple types (e.g., tmdetect). This happens
@@ -141,8 +144,6 @@ problems:
   Pfam has been run on a sequence. One solution is to have a modelset of
   Pfam models, but that's a deviation from the original intent of
   modelsets: to collect models related by function, not by model type.  
-- params mixes several ideas: HOW to run a program, and WHAT models were run
-  against by origin, and WHAT models were run against by modelset. 
 
 ** standardize naming conventions better
 
