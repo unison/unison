@@ -1,14 +1,14 @@
 #!/usr/bin/env perl
 
 # unison-annotation -- output annotation from Unison
-# $Id: unison-annotation,v 1.9 2007/01/31 21:08:23 mukhyala Exp $
+# $Id: unison-annotation,v 1.10 2007/02/01 22:02:08 mukhyala Exp $
 
 =pod
 
 =head1 NAME
 
 B<unison-annotation> -- retrieve annotations from Unison
-S<$Id: unison-annotation,v 1.9 2007/01/31 21:08:23 mukhyala Exp $>
+S<$Id: unison-annotation,v 1.10 2007/02/01 22:02:08 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -90,11 +90,16 @@ B<unison-annotation> outputs annotations from Unison
 
 use warnings;
 use strict;
+
 use Bio::SeqIO;
 use File::Temp qw(tempfile);
 use Pod::Usage;
-use Getopt::Long qw(:config gnu_getopt);
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
 use Unison;
+use Getopt::Long qw(:config gnu_getopt);
 
 #also shows the program flow
 sub parse_options();
@@ -439,7 +444,7 @@ sub parse_options() {
   }
 
   if ( $opts{version} ) {
-    print(STDOUT '$Id: unison-annotation,v 1.9 2007/01/31 21:08:23 mukhyala Exp $ ', "\n");
+    print(STDOUT '$Id: unison-annotation,v 1.10 2007/02/01 22:02:08 mukhyala Exp $ ', "\n");
     exit;
   }
   if ( $opts{help} ) {

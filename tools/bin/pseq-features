@@ -3,6 +3,10 @@
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
 use Unison;
 use Unison::features;
 use Getopt::Long qw(:config gnu_getopt);

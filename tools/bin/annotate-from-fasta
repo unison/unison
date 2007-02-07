@@ -4,9 +4,15 @@
 
 use strict;
 use warnings;
+
+use Bio::SeqIO;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
 use Unison;
 use Unison::run_history;
-use Bio::SeqIO;
+
 
 
 # connect with defaults. See Unison::DBI. Typically, the connection is made
@@ -25,7 +31,7 @@ my @table_defs =
 #   ['pfssp_psipred', [qw(start stop type)],'Psipred v2.45']
   );
 
-print "# ".'$Id: annotate-from-fasta,v 1.2 2005/12/07 07:27:57 rkh Exp $'."\n";
+print "# ".'$Id: annotate-from-fasta,v 1.3 2006/03/16 18:29:32 mukhyala Exp $'."\n";
   my $in = new Bio::SeqIO( -fh => \*STDIN,
 			   -format => 'fasta' );
 my $sno = 0;

@@ -4,9 +4,14 @@
 
 use strict;
 use warnings;
+
+use Bio::SeqIO;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
 use Unison;
 use Unison::run_history;
-use Bio::SeqIO;
 
 
 # Unison stores multiple versions of Pfam results (different Pfam releases,
@@ -37,7 +42,7 @@ my $pfam_sth = $u->prepare(<<EOSQL);
 EOSQL
 
 
-my $Id = '$Id: pfam-from-fasta,v 1.5 2005/08/20 00:00:25 rkh Exp $ ';
+my $Id = '$Id: pfam-from-fasta,v 1.6 2005/12/07 23:21:02 rkh Exp $ ';
 print(STDERR <<EOT);
 # $Id
 # params = $params (params_id = $params_id)

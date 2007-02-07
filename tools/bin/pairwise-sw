@@ -11,10 +11,15 @@
 
 use strict;
 use warnings;
-use Unison;
+
 use Bio::Tools::pSW;
 use Bio::AlignIO;
-use Data::Dumper;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
+use Unison;
+
 
 sub fetch_sequence($$);
 sub min($$);

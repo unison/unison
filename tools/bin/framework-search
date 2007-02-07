@@ -8,14 +8,19 @@
 # eg2$ framework-search <framwork.fa >file.html
 # eg3$ framework-search region1 region2 ... regionN >file.html
 #
-# $Id: framework-search,v 1.8 2005/11/05 00:21:55 rkh Exp $
+# $Id: framework-search,v 1.9 2006/06/26 18:05:08 rkh Exp $
 #
 
 
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
+
 
 my %opts = 
   ( 			
@@ -89,7 +94,7 @@ exit(0);
 
 sub html_header() {
   my $title = 'Antibody Framework Search';
-  my $Id = '$Id: framework-search,v 1.8 2005/11/05 00:21:55 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.9 2006/06/26 18:05:08 rkh Exp $ ';
   my $date = `date +"%Y-%m-%d %H:%M"`;
 
   my $htmltitle = $title;
@@ -261,7 +266,7 @@ EOHTML
 }
 
 sub html_footer($) {
-  my $Id = '$Id: framework-search,v 1.8 2005/11/05 00:21:55 rkh Exp $ ';
+  my $Id = '$Id: framework-search,v 1.9 2006/06/26 18:05:08 rkh Exp $ ';
   return <<EOHTML;
 <hr>
 Report generated in $_[0] seconds.
