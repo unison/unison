@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id: blast2,v 1.7 2004/04/20 00:02:30 rkh Exp $
+# $Id: blast2,v 1.8 2004/06/04 00:09:10 rkh Exp $
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
@@ -9,11 +9,17 @@
 
 use strict;
 use warnings;
-use Unison;
+
 use Bio::PrimarySeq;
 use Bio::Tools::Run::StandAloneBlast;
 use Bio::Tools::BPbl2seq;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
+use Unison;
 use Getopt::Long qw(:config gnu_getopt);
+
 
 select(STDERR); $|++;
 select(STDOUT); $|++;

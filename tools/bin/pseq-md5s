@@ -4,8 +4,14 @@
 use strict;
 use warnings;
 
-use Unison;
 use Digest::MD5 qw(md5_hex);
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
+use Unison;
+
+
 
 my $printmod = 100;
 my $u = new Unison;

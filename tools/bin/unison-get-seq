@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: unison-get-seq,v 1.28 2006/05/12 03:34:20 rkh Exp $
+# $Id: unison-get-seq,v 1.29 2006/06/26 18:05:08 rkh Exp $
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: unison-get-seq,v 1.28 2006/05/12 03:34:20 rkh Exp $>
+S<$Id: unison-get-seq,v 1.29 2006/06/26 18:05:08 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -31,9 +31,14 @@ STDOUT, optionally with aliases or annotations.
 
 use warnings;
 use strict;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Pod::Usage;
+
 
 
 # PROTOTYPES
@@ -47,7 +52,7 @@ sub process_set($$);
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: unison-get-seq,v 1.28 2006/05/12 03:34:20 rkh Exp $ ', "\n");
+  print(STDERR '$Id: unison-get-seq,v 1.29 2006/06/26 18:05:08 rkh Exp $ ', "\n");
   exit;
 }
 

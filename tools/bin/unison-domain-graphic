@@ -3,14 +3,19 @@
 
 use strict;
 use warnings;
-use Unison;
+
 use Bio::AlignIO;
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Bio::Graphics::Panel;
-use Getopt::Long qw(:config gnu_getopt);
-use Data::Dumper;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
+use Unison;
 use Unison::SQL;
+use Getopt::Long qw(:config gnu_getopt);
+
 
 sub generate_feature_expr($@);
 
@@ -32,7 +37,7 @@ my %feature_color =
 my %opts =
   (
    'feature-types' => [qw(HMM regexp SignalP TMHMM)],
-   #'feature-names' => [qw(/^BH[1234])],
+   'feature-names' => [qw(/^BH[1234])],
 #   'feature-names' => [keys %feature_color],
    verbose => 0,
   );
@@ -104,9 +109,12 @@ foreach my $bs ( $aln->each_seq() ) {
 
   $feature_sth->execute($q);
   my @features = ();
+  my %red_feature;
   while ( my $row = $feature_sth->fetchrow_hashref() ) {
 	my $cstart = $aln->column_from_residue_number($dn,$row->{start});
 	my $cstop = $aln->column_from_residue_number($dn,$row->{stop});
+	my $f = $row->{name}; $f =~ s/_.+//;
+	next if $red_feature{$f}++;
 	printf(STDERR "  [%3d,%3d] -> [%3d,%3d]: %-12s %-12s  %s\n",
 		   $row->{start}, $row->{stop},
 		   $cstart, $cstop,
