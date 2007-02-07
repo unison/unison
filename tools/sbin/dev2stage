@@ -1,9 +1,11 @@
 #!/bin/sh -e
 # dev2stage: copy dev database to stage
 # usage: dev2stage <stage-name>
-# $Id: dev2stage,v 1.18 2006/09/20 21:08:19 mukhyala Exp $
+# $Id: dev2stage,v 1.19 2007/01/05 06:16:25 rkh Exp $
 
-echo '# $Id: dev2stage,v 1.18 2006/09/20 21:08:19 mukhyala Exp $' 1>&2
+
+
+echo '# $Id: dev2stage,v 1.19 2007/01/05 06:16:25 rkh Exp $' 1>&2
 
 if [ $# != 1 -o -z "$1" ]; then
 	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
@@ -25,18 +27,25 @@ if psql </dev/null >/dev/null 2>/dev/null; then
 fi
 
 # create the new database with necessary languages
-createdb -EUTF8 "$PGDATABASE";
+createdb -EUTF8 "$PGDATABASE"
 createlang plpgsql
 createlang plperl
 createlang plperlu
 
 
 # restore selected schemas; order is important
-SCHEMAS="postgres  pgtools public  go gong ncbi pdb scop sst tax marray unison-aux unison"
+## 2007-02-06 Reece Hart: I can't remember if the PGOPTIONS line is
+## required. If staging breaks because of timeouts, uncomment the following
+## line.
+# export PGOPTIONS="-c statement_timeout=0"
+
+SCHEMAS="postgres  pgutils public  go gong ncbi pdb scop sst tax marray unison-aux unison"
 echo "WARNING: I'm staging these schemas ONLY: $SCHEMAS" 1>&2
 for s in $SCHEMAS; do
-	(echo '\set ON_ERROR_STOP' ;
-	PGOPTIONS="-c statement_timeout=0" pg_dump $DUMP_OPTS -n "$s" "csb-dev") | psql -af-
+	(
+	 echo '\set ON_ERROR_STOP';
+	 pg_dump $DUMP_OPTS -n "$s" "csb-dev"
+	) | psql -aX
 done
 
 
@@ -49,7 +58,7 @@ alter database "$PGDATABASE" set search_path = unison,"unison-aux",gong,pdb,scop
 analyze verbose;
 
 select meta_update_kv('staged at', '`date +"%Y-%m-%d %H:%M:%S"`');
-select meta_update_kv('staged by', '\$Id: dev2stage,v 1.18 2006/09/20 21:08:19 mukhyala Exp $')
+select meta_update_kv('staged by', '\$Id: dev2stage,v 1.19 2007/01/05 06:16:25 rkh Exp $')
 EOF
 
 
