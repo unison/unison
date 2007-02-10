@@ -2,7 +2,7 @@
 
 Unison::Exceptions -- Unison Exceptions
 
-S<$Id: Exceptions.pm,v 1.8 2005/01/20 01:05:17 rkh Exp $>
+S<$Id: Exceptions.pm,v 1.9 2005/07/18 02:59:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -45,7 +45,7 @@ B<END THE TRY..CATCH... COMMAND WITH A SEMICOLON.>
 =head1 ROUTINES AND METHODS
 
 This module provides no methods or routines other than those inherited
-from CBT::Exceptions.
+from Unison::Exceptions.
 
 =over
 
@@ -65,7 +65,7 @@ use Error qw(:try);
 
 # Define some standard exceptions
 package Unison::Exception;
-use base 'CBT::Exception';
+use base 'Unison::Exception';
 
 our @EXCEPTIONS = qw(NotImplemented NotConnected ConnectionFailed BadUsage
 					RuntimeError DBIError);

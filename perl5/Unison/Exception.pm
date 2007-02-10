@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::Exception -- base class for exceptions
-S<$Id: Exception.pm,v 1.4 2004/06/04 00:04:58 rkh Exp $>
+S<$Id: Exception.pm,v 1.1 2007/02/10 00:58:47 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -66,10 +66,10 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-our ($VERSION) = q$Revision: 1.4 $ =~ m/Revision: ([\d\.]+)/;
+our ($VERSION) = q$Revision: 1.1 $ =~ m/Revision: ([\d\.]+)/;
 
 use base qw(Error);
-use Text::Wrap;
+use Text::Wrap qw(wrap);
 use Carp;
 
 our $show_stacktrace = $CBT::debug || $ENV{EX_STACKTRACE} || 0;
@@ -151,16 +151,22 @@ sub stringify($) {
   my $self = shift;
   my $r = "! " . (ref($self)||$self) . " occurred: " . $self->error() . "\n";
   if ( $self->detail() ) {
-	$r .= "Detail:" . wrap("\t", "\t", $self->detail()) . "\n";
+	$r .= "Detail:" . __wrap($self->detail()) . "\n";
   }
   if ( $show_advice and $self->advice() ) {
-	$r .= "Advice:" . wrap("\t", "\t", $self->advice()) . "\n";
+	$r .= "Advice:" . __wrap($self->advice()) . "\n";
   }
   if ( $show_stacktrace ) {
 	$r .= "Trace:\t" . $self->stacktrace() . "\n";
   }
   return $r;
 }
+
+sub __wrap($) {
+  my $t = shift;
+  return Text::Wrap::wrap("\t", "\t", $t);
+}
+
 
 # backward compatibility
 sub text($)    { $_[0]->error();  }
