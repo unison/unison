@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.26 2006/05/12 03:39:07 rkh Exp $>
+S<$Id: DBI.pm,v 1.27 2006/06/16 17:53:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -145,6 +145,18 @@ sub connect {
   if (defined $self->{host}) {				# never happens: host eq ''
 	$dsn .= ";host=$self->{host}" ;
   }
+
+  if (    defined $self->{username} and $self->{username} eq 'PUBLIC'
+	  and defined $self->{host}     and $self->{host} =~ m/^csb/ ) {
+	warn(<<EOT);
+! You are using the PUBLIC login to Unison. This is -- and has
+! always been -- deprecated, and it will be discontinued
+! eventually. You should use Kerberos authentiation whenever
+! possible by typing `kinit' and your password.
+EOT
+  }
+
+
   my $dbh = DBI->connect($dsn,
 						 $self->{username},
 						 $self->{password},
@@ -158,18 +170,16 @@ sub connect {
 			 'host='.(defined $self->{host} ? $self->{host} : '<undef>'),
 			 'username='.(defined $self->{username} ? $self->{username} : '<undef>'),
 			 'password='.(defined $self->{password} ? '<hidden>' : '<undef>')),
-		('Please ensure that you have a valid Kerberos ticket, or check your settings of '
-		 .'PGHOST (-h), PGUSER (-U), and PGDATABASE (-d).')
-	  );
+		<<EOT) ;
+Please ensure that you have a valid Kerberos ticket, or check
+your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE
+(-d). To check for a valid Kerberos ticket, type 'klist'. To
+get a Kerberos ticket, type 'kinit'.
+EOT
   }
 
-  # this causes ALL DBI errors to be handled by Unison::Exception::DBIError (yea!)
+  # ALL DBI errors should be handled by Unison::Exception::DBIError
   $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) };
-
-## 2006-02-23: do not override search path
-## this guarantees the same behavior wrt to search_path with psql and DBI
-##  $dbh->do('set search_path = unison,tax');
-## remove this section when all's well
 
   $self->{dbh} = $dbh;
 
