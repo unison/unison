@@ -13,13 +13,17 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.32 2006/10/09 01:33:04 rkh Exp $
+# $Id: load-pseq,v 1.33 2006/10/31 01:16:31 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
 
 use warnings;
 use strict;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../../perl5";
+
 use Bio::SeqIO;
 use Getopt::Long qw(:config gnu_getopt);
 use Unison;
@@ -50,9 +54,11 @@ my %opts = (
 			'allow-anonymous-sequences' => 0,
 			'infer-tax-id' => 0,
 			'version' => undef,
-			'dry-run' => 0
+			'dry-run' => 0,
+			'create-origin' => 0
 );
 GetOptions( \%opts,
+			'create-origin+',
 			'origin|o=s',
 			'format|f=s',
 			'verbose|v+',
@@ -78,8 +84,14 @@ my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 my %origin_to_origin_id = map {$_->[0] => $_->[1]}
   @{$u->selectall_arrayref( 'select origin,origin_id from origin' )};
 $opts{origin_id} = $origin_to_origin_id{$opts{origin}};
-(defined $opts{origin_id})
-  || die("$0: origin $opts{origin} doesn't exist\n");
+if (not defined $opts{origin_id}) {
+  if ($opts{'create-origin'}) {
+	my $sth = $u->prepare('insert into origin(origin) values (?)');
+	$sth->execute($opts{origin});
+  } else {
+	die("$0: origin $opts{origin} doesn't exist\n");
+  }
+}
 
 my %latin_to_tax_id = map  {$_->[0] => $_->[1]}
   @{$u->selectall_arrayref( 'select lower(latin),tax_id from tax.spspec' )};
