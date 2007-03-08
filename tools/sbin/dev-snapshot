@@ -1,4 +1,8 @@
 #!/bin/sh
+# dev-snapshot -- make dated snapshot of csb-dev and delete older snapshots
+# usage: sudo -u postgres dev-snapshot
+# This is Genentech-specific
+
 
 MAX_SNAPS=2
 
