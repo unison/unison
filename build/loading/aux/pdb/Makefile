@@ -15,7 +15,7 @@ update default all: allxml-todo.load
 	(time -p ./load-pdblite < $<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
-allxml.ids: exclude.ids FORCE
+allxml.ids: exclude.list FORCE
 	find ${PDB_XML_PATH}/ -name \*.gz | perl -lne 'print $$1 if m%/(\w{4})\.xml\.gz%' >$@.tmp
 	sort -u -o $@.tmp $@.tmp
 	comm -23 $@.tmp $< >$@.tmp2
