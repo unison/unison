@@ -1,0 +1,31 @@
+#!/bin/sh
+
+MAX_SNAPS=2
+
+source /gne/common/etc/profile
+source /gne/research/env/prd/etc/profile
+
+snap_pfx='csb-dev-snapshot'
+ts=`/bin/date +%F`
+snap_name="$snap_pfx-$ts"
+
+/bin/date +'%F %T: started'
+
+(
+set -ex
+createdb -E UTF-8 "$snap_name"
+pg_dump -Fc csb-dev | pg_restore -d "$snap_name"
+)
+STATUS=$?
+
+if [ "$STATUS" = "0" ]; then
+		psql -Atc "select datname from pg_database where datname~'^$snap_pfx-' order by datname desc offset $MAX_SNAPS" \
+		| while read datname; do
+				(set -x; dropdb "$datname")
+		done
+fi
+
+/bin/date +'%F %T: finished'
+
+
+exit $STATUS
