@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.33 2006/10/31 01:16:31 mukhyala Exp $
+# $Id: load-pseq,v 1.34 2007/02/16 22:38:22 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -81,15 +81,21 @@ GetOptions( \%opts,
 
 my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 
-my %origin_to_origin_id = map {$_->[0] => $_->[1]}
+my %origin_to_origin_id;
+%origin_to_origin_id = map {$_->[0] => $_->[1]}
   @{$u->selectall_arrayref( 'select origin,origin_id from origin' )};
 $opts{origin_id} = $origin_to_origin_id{$opts{origin}};
 if (not defined $opts{origin_id}) {
   if ($opts{'create-origin'}) {
 	my $sth = $u->prepare('insert into origin(origin) values (?)');
 	$sth->execute($opts{origin});
+	$sth->finish();
+
+	%origin_to_origin_id = map {$_->[0] => $_->[1]}
+	  @{$u->selectall_arrayref( 'select origin,origin_id from origin' )};
+	$opts{origin_id} = $origin_to_origin_id{$opts{origin}};
   } else {
-	die("$0: origin $opts{origin} doesn't exist\n");
+	die("$0: origin $opts{origin} doesn't exist; consider --create-origin\n");
   }
 }
 
