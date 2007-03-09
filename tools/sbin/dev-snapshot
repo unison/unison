@@ -29,6 +29,11 @@ if [ "$STATUS" = "0" ]; then
 		done
 fi
 
+for db in csb-dev "$snap_name"; do
+		echo "select '$db: ' || pg_database_size('$db') / 10^9 || 'GB';"
+done | psql -At
+
+
 /bin/date +'%F %T: finished'
 
 
