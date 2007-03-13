@@ -3,6 +3,11 @@
 #include <ctype.h>
 #include <string.h>
 
+#ifdef PG_MODULE_MAGIC
+PG_MODULE_MAGIC;
+#endif
+
+
 #ifdef DEBUG
 static char* begin_end_hex(char* buf, char* seq, int len);
 #endif
