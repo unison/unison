@@ -1,11 +1,11 @@
 #!/bin/sh -e
 # dev2stage: copy dev database to stage
 # usage: dev2stage <stage-name>
-# $Id: dev2stage,v 1.19 2007/01/05 06:16:25 rkh Exp $
+# $Id: dev2stage,v 1.20 2007/02/07 01:11:17 rkh Exp $
 
 
 
-echo '# $Id: dev2stage,v 1.19 2007/01/05 06:16:25 rkh Exp $' 1>&2
+echo '# $Id: dev2stage,v 1.20 2007/02/07 01:11:17 rkh Exp $' 1>&2
 
 if [ $# != 1 -o -z "$1" ]; then
 	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
@@ -39,7 +39,7 @@ createlang plperlu
 ## line.
 # export PGOPTIONS="-c statement_timeout=0"
 
-SCHEMAS="postgres  pgutils public  go gong ncbi pdb scop sst tax marray unison-aux unison"
+SCHEMAS="postgres  pgutils public  go gong ncbi pdb scop sst tax marray unison_aux unison"
 echo "WARNING: I'm staging these schemas ONLY: $SCHEMAS" 1>&2
 for s in $SCHEMAS; do
 	(
@@ -50,7 +50,7 @@ done
 
 
 psql -qaf- <<EOF
-alter database "$PGDATABASE" set search_path = unison,"unison-aux",gong,pdb,scop,sst,tax,marray;
+alter database "$PGDATABASE" set search_path = unison,unison_aux,gong,pdb,scop,sst,tax,marray;
 
 -- reconnect to enact search_path for analyze
 \c -
@@ -58,7 +58,7 @@ alter database "$PGDATABASE" set search_path = unison,"unison-aux",gong,pdb,scop
 analyze verbose;
 
 select meta_update_kv('staged at', '`date +"%Y-%m-%d %H:%M:%S"`');
-select meta_update_kv('staged by', '\$Id: dev2stage,v 1.19 2007/01/05 06:16:25 rkh Exp $')
+select meta_update_kv('staged by', '\$Id: dev2stage,v 1.20 2007/02/07 01:11:17 rkh Exp $')
 EOF
 
 
