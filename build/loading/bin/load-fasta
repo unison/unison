@@ -38,7 +38,7 @@ my %alias;
 my %md5;
 
 
-print(STDERR '# $Id: load-fasta,v 1.23 2004/06/25 00:20:27 rkh Exp $ ',"\n");
+print(STDERR '# $Id: load-fasta,v 1.24 2006/06/26 18:05:08 rkh Exp $ ',"\n");
 print(STDERR "# loading sequences into $opts{origin} (origin_id=$origin_id)\n");
 
 
@@ -178,7 +178,7 @@ sub process_seq  {
   }
 
   foreach my $upd_id (@ids)	{
-	$u->add_palias($pseq_id,$origin_id,$upd_id,$descr);
+        $u->assign_alias($pseq_id,$origin_id,$upd_id,$descr,'NULL');
   }
 
   printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",
