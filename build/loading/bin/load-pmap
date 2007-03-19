@@ -4,11 +4,12 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.11 2006/06/26 20:57:26 mukhyala Exp $
+# $Id: load-pmap,v 1.12 2006/07/18 17:16:50 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
 use warnings;
+use File::Basename;
 use Bio::Tools::Pmap;
 use Getopt::Long;
 use Unison;
@@ -45,7 +46,17 @@ GetOptions(\%opts,
 
 my $u = new Unison(dbname=>'csb-dev', username=>'loader');
 
-my $psl_in = new Bio::Tools::Pmap( -file => $ARGV[0] );
+my $psl_in = new Bio::Tools::Pmap( -file => $ARGV[0] ) || die "load-pmap error: problem with $ARGV[0]\n";
+
+# to ensure that run history is tickled
+# for pseq_ids with no entry in psl file
+# we need the pseq_ids
+my $base = basename($ARGV[0],".psl");
+my $dir = dirname($ARGV[0]);
+die "$base.ids (needed to tickl run history for unmapped pseq_ids) does not exist\n" if !(-e "$dir/$base.ids");
+my @pseq_ids = map { chomp;$_ } (`cat $dir/$base.ids`);
+my %run_me;  #pseqs that were pmap'ed
+foreach my $pseqid (@pseq_ids) {  $run_me{ $pseqid }++; }
 
 my @alns;
 my $aln_pseq_id = -1;
@@ -88,6 +99,15 @@ while ( my $aln = $psl_in->next_result() ) {
 # flush the last set of alns
 load_seq_alns($u,@alns);
 
+
+
+# keys remaining in %run_me are sequences which didn't have any pmap
+# results... update their run_history (see `delete $run_me{}') above.
+foreach my $pseq ( keys %run_me ) {
+  print("Unison:$pseq: no results; run_history tickled ",
+	$u->upd_run_history($pseq,$opts{params_id},undef,undef),
+	"\n");
+}
 exit(0);
 
 
@@ -142,6 +162,7 @@ sub load_seq_alns ($@) {
 	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
 	$u->commit();
 	print(STDERR "  run_history tickled and load committed at $z\n");
+	delete $run_me{$pseq_id};
 
   } catch Unison::Exception with {
 
