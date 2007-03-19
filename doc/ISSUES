@@ -4,11 +4,6 @@
 
 ** standing order: update sequences, models, predictions
 
-** pmap failed sequences
-when pmap fails to map a sequence, no entry in run_history for sequences 
-that have no entry in psl files. 
-2007-02-02 Reece Hart <reece@harts.net> -- NEEDS VERIFICATION
-
 ** params selection per pseq_id
 instead of selecting the most recent params by pftype_id, we should join
 this with a pseq_id's run_history so that we don't select a params_id
@@ -252,3 +247,6 @@ acc are made not null) and therefore conflicts conceptually with the
 parent and, more pragmatically, upon restore. We should strictly follow
 inheritance of columns AND their attributes.
 
+** DONE: ** pmap failed sequences
+load-pmap now looks for *.ids file for a complete list of pseq_ids and 
+tickles run history for sequences that have no entry in psl files
