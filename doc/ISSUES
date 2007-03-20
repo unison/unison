@@ -29,28 +29,6 @@ URLs are stored in the origin table, but they're not used by the web
 tools.  Solution: cache origin->url mapping, then use this to format. See
 U::WWW::utilities.pm.
 
-** best annotations
-best annotation/alias is too human-centric.  For example, the pseq_id 54
-is IL4_HUMAN and IL4_PANTR; the best annotation is IL4_HUMAN.  That's fine
-if you're after human sequences, but misleading if you're after chimp.  I
-think best annotation should be expanded to be the best annotation /by
-species/, i.e., distinct on (pseq_id,tax_id) ... order by
-pseq_id,tax_id,ann_pref, and remaining current order criteria.
-
-The best_annotation_mv table should include all of these.
-
-The best_* functions should be parameterized by species/tax_id, but permit
-NULL tax_id columns as well (e.g., for sequences that have only NULL
-tax_id aliases).
-
-The current best_* functions should default to human OR become SRFs.
-
-views and web pages will need to be updated to accommodate multi-species
-best annotations.
-
-
-
-
 
 
 * CONSIDER:
@@ -145,7 +123,6 @@ problems:
 ** add current_user to pseq, palias tables?
 
 ** order in asset aggregate
-
 
 
 * COMPLETED TASKS
@@ -250,3 +227,8 @@ inheritance of columns AND their attributes.
 ** DONE: ** pmap failed sequences
 load-pmap now looks for *.ids file for a complete list of pseq_ids and 
 tickles run history for sequences that have no entry in psl files
+
+** DONE: ** ** best annotations by species
+best_annotation function parameterized by species/tax_id, permits
+NULL tax_id columns as well and defaults to human.
+
