@@ -17,8 +17,8 @@ snap_name="$snap_pfx-$ts"
 
 (
 set -ex
-createdb -E UTF-8 "tmp_${snap_name}"
-pg_dump -s -Fc csb-dev | pg_restore -d "tmp_$snap_name"
+createdb -O unison -E UTF-8 "tmp_${snap_name}"
+pg_dump -Fc csb-dev | pg_restore -d "tmp_$snap_name"
 )
 STATUS=$?
 
@@ -28,7 +28,7 @@ if [ "$STATUS" = "0" ]; then
 		# keep only the most recent MAX_SNAPS snapshots
 		psql -Atc "select datname from pg_database where datname~'^$snap_pfx-' order by datname desc offset $MAX_SNAPS" \
 		| while read datname; do
-				(set -x; echo dropdb "$datname")
+				(set -x; dropdb "$datname")
 		done
 fi
 
