@@ -10,29 +10,29 @@ source /gne/common/etc/profile
 source /gne/research/env/prd/etc/profile
 
 snap_pfx='csb-dev-snapshot'
-ts=`/bin/date +%F`
+ts=`/bin/date +%Y%m%d-%H%M%S`
 snap_name="$snap_pfx-$ts"
 
 /bin/date +'%F %T: started'
 
 (
 set -ex
-createdb -E UTF-8 "$snap_name"
-pg_dump -Fc csb-dev | pg_restore -d "$snap_name"
+createdb -E UTF-8 "tmp_${snap_name}"
+pg_dump -s -Fc csb-dev | pg_restore -d "tmp_$snap_name"
 )
 STATUS=$?
 
 if [ "$STATUS" = "0" ]; then
+		psql -d template1 -c "alter database \"tmp_$snap_name\" rename to \"$snap_name\""
+
+		# keep only the most recent MAX_SNAPS snapshots
 		psql -Atc "select datname from pg_database where datname~'^$snap_pfx-' order by datname desc offset $MAX_SNAPS" \
 		| while read datname; do
-				(set -x; dropdb "$datname")
+				(set -x; echo dropdb "$datname")
 		done
 fi
 
-for db in csb-dev "$snap_name"; do
-		echo "select '$db: ' || pg_database_size('$db') / 10^9 || 'GB';"
-done | psql -At
-
+psql -c "select datname as \"database\",pg_size_pretty(pg_database_size(oid)) as \"size\" from pg_database where datname~'^csb'"
 
 /bin/date +'%F %T: finished'
 
