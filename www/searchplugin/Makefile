@@ -8,8 +8,14 @@ DEV_BASE:=http://csb:8080/unison/
 USER_BASE:=http://csb:8080/~$USER/unison/
 
 
+TARGETS:=unison.src unison.png $(foreach d,dev gne user,unison-$d.src unison-$d.png)
+
+.PHONY: all
+all: ${TARGETS}
+
+
 unison-gne.src: unison.src Makefile
-	perl -pe 's%http://unison-db.org/%${DEV_BASE}%; s/unison.(src|png)/unison-dev.$$1/g;' $< >$@
+	perl -pe 's%http://unison-db.org/%${GNE_BASE}%; s/unison.(src|png)/unison-gne.$$1/g;' $< >$@
 
 unison-gne.png: unison.png Makefile
 	convert -font helvetica-oblique -pointsize 9 -fill blue \
@@ -38,13 +44,11 @@ unison-user.png: unison.png Makefile
 	$< $@
 
 
-all: unison.src unison.png  unison-dev.src unison-dev.png  unison-gne.src unison-gne.png  unison-user.src unison-user.png
 
 install: all
 	for d in ${DIRS}; do \
 		/bin/cp -auv $^ "$$d"; \
 	done
-
 
 uninstall:
 	find ${DIRS} -name unison.\* -print0 | xargs -0rt /bin/rm -f
