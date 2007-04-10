@@ -48,3 +48,10 @@ install: all
 
 uninstall:
 	find ${DIRS} -name unison.\* -print0 | xargs -0rt /bin/rm -f
+
+
+.PHONY: clean cleaner cleanest
+clean:
+cleaner: clean
+	/bin/rm -f unison-{dev,gne,user}.*
+cleanest: cleaner
