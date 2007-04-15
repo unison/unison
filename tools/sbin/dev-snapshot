@@ -5,9 +5,12 @@
 
 
 MAX_SNAPS=2
+SRC_DATNAME=csb-dev
 
 source /gne/common/etc/profile
 source /gne/research/env/prd/etc/profile
+
+
 
 snap_pfx='csb-dev-snapshot'
 ts=`/bin/date +%Y%m%d-%H%M%S`
@@ -15,20 +18,40 @@ snap_name="$snap_pfx-$ts"
 
 /bin/date +'%F %T: started'
 
+
+DUMP_OPTS=
+PSQL_OPTS=-qa
+ECHO=
+if [ -n "$SNAPSHOT_DEBUG" ]; then
+		DUMP_OPTS=-s
+		#PSQL_OPTS=-qa
+		ECHO='echo +'
+		snap_name="dbg_$snap_name"
+fi
+
+
 (
 set -ex
 createdb -O unison -E UTF-8 "tmp_${snap_name}"
-pg_dump -Fc csb-dev | pg_restore -d "tmp_$snap_name"
+pg_dump $DUMP_OPTS "$SRC_DATNAME" | psql $PSQL_OPTS -d "tmp_$snap_name"
 )
 STATUS=$?
 
 if [ "$STATUS" = "0" ]; then
+		psql -d "tmp_$snap_name" <<EOF
+UPDATE pg_database D SET datconfig=S.datconfig,datacl=S.datacl
+  FROM pg_database S
+ WHERE S.datname='$SRC_DATNAME' AND D.datname='tmp_$snap_name';
+EOF
+
+		psql -d "tmp_$snap_name" -c 'analyze verbose'
+
 		psql -d template1 -c "alter database \"tmp_$snap_name\" rename to \"$snap_name\""
 
 		# keep only the most recent MAX_SNAPS snapshots
 		psql -Atc "select datname from pg_database where datname~'^$snap_pfx-' order by datname desc offset $MAX_SNAPS" \
 		| while read datname; do
-				(set -x; dropdb "$datname")
+				(set -x; $ECHO dropdb "$datname")
 		done
 fi
 
