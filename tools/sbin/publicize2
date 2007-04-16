@@ -17,15 +17,16 @@ use DBI;
 select(STDERR); $|++;
 select(STDOUT); $|++;
 
+sub get_table_info($);
 sub get_schema_dump($$);
 sub get_dump_toc($);
-sub restore_subset($$$);
+sub restore_subset($$);
 sub origin_join($);
 sub params_join($);
-sub typical_join($$$$) {
+sub typical_join($$$$);
 
 
-my $CVSId = q$Id$; 
+my $CVSId = q$Id: publicize2,v 1.2 2007/04/16 03:05:01 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
@@ -33,15 +34,15 @@ my %IGNORE_SCHEMAS = map {$_=>1} qw( mukhyala rkh matthejb twu cavs );
 my %IGNORE_TABLES = map {$_=>1} qw( unison.p2gblataln unison.p2gblatalnhsp unison.p2gblathsp
 		unison.paprospect );
 
-my $PUBLIC_PARAMS_IDS = 'SELECT params_id FROM params WHERE is_public=TRUE';
-my $PUBLIC_ORIGIN_IDS = 'SELECT origin_id FROM origin WHERE is_public=TRUE';
-my $PUBLIC_PSEQ_IDS = qq(
+our $PUBLIC_PARAMS_IDS = 'SELECT params_id FROM params WHERE is_public=TRUE';
+our $PUBLIC_ORIGIN_IDS = 'SELECT origin_id FROM origin WHERE is_public=TRUE';
+our $PUBLIC_PSEQ_IDS = qq(
 						SELECT pseq_id FROM pseqset where pset_id=pset_id('public')
 						AND SA.pseq_id < 1000
 						);
 
 
-my %COPY_COMMAND =
+my %copy_command =
   (
    # 0' dependencies
    'unison.origin'			=> 'SELECT O.* FROM ONLY origin O WHERE O.is_public=TRUE',
@@ -155,9 +156,9 @@ my %COPY_COMMAND =
   );
 
 
-my $phase1_re = join('|',@PHASE1_KW);
-my $tmp_dir = '/tmp/'; #tempdir( CLEANUP => 1 );
-my $dump_fn = "$tmp_dir/pgdump";
+our $phase1_re = join('|',@PHASE1_KW);
+our $tmp_dir = '/tmp/'; #tempdir( CLEANUP => 1 );
+our $dump_fn = "$tmp_dir/pgdump";
 
 
 my $all_start = [gettimeofday];
@@ -171,33 +172,14 @@ my $src_db;
 defined ($src_db = shift)
   || die("$0: missing source database name\n");
 
-my $dst_db = "pub_$src_db";
-
-system( qw(dropdb), $dst_db );
-system( qw(createdb -O unison), $dst_db )
-  && die("$0: command createdb: $!\n");
-
+get_table_info($src_db);
 
 get_schema_dump($src_db,$dump_fn);			# dies on error
+
 my @toc = get_dump_toc($dump_fn);			# dies on error
 printf(STDERR "%d TOC entries\n", $#toc+1);
 
-
-# dst_psql_pipe
-# this is a single pipe for all restoration phases
-# It may be worth considering 3 separate reconnections for the rebuild, ie
-# pg_restore -l phase1 | psql
-# script | psql -d src | psql -d dest
-# pg_restore -l phase2 | psql
-my $dst_psql_pipe = new IO::Pipe;
-my @dst_psql_cmd = ('psql', '-q', '-d', $dst_db, '-f-');
-#my @dst_psql_cmd = ('/bin/sh', '-c', "psql -q -d $dst_db 2>&1");
-$dst_psql_pipe->writer( @dst_psql_cmd )
-  || die("$0: @dst_psql_cmd: $!\n");
-
-
-restore_subset( $dst_psql_pipe, $dump_fn, [grep { m/\s(?:$phase1_re)\s/ } @toc] );
-
+restore_subset( $dump_fn, [grep { m/\s(?:$phase1_re)\s/ } @toc] );
 
 my ($src_psql_w,$src_psql_r);
 my $src_psql_pid = open2($src_psql_r,$src_psql_w,'psql', '-d', $src_db);
@@ -220,23 +202,21 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
   }
 
   my $src_copy;
-  if (not exists $COPY_COMMAND{$st}) {
+  if (not exists $copy_command{$st}) {
 	$src_copy = "SELECT * FROM $st";
 	$pfx .= ' =';
-  } elsif (ref $COPY_COMMAND{$st} eq 'CODE') {
-	$src_copy = $COPY_COMMAND{$st}($st);
+  } elsif (ref $copy_command{$st} eq 'CODE') {
+	$src_copy = $copy_command{$st}($st);
 	$pfx .= ' *';
   } else {
-	$src_copy = $COPY_COMMAND{$st};
+	$src_copy = $copy_command{$st};
 	$pfx .= ' *';
   }
   #$src_copy = "$src_copy LIMIT 10";
   $src_copy = "($src_copy)";
 
-  #print(STDERR "== $pfx:\n  $src_copy\n");
-
   print(STDERR "$pfx  (querying)\r") if (-t 1);
-  $dst_psql_pipe->print("COPY $st FROM STDIN;\n");
+  print("COPY $st FROM STDIN;\n");
   $src_psql_w->print("COPY $src_copy TO STDOUT;\n");
   $src_psql_w->print("\\echo $TERM_STRING\n");
   my $nrows = 0;
@@ -245,10 +225,10 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
 	  die("Oh, man, are you in trouble.\n$line\n");
 	}
 	if ($line =~ m/^$TERM_STRING/) {
-	  $dst_psql_pipe->print("\\.\n");
+	  print("\\.\n");
 	  last;
 	}
-	$dst_psql_pipe->print($line);
+	print($line);
 	$nrows++;
 	printf("$pfx %15s\r","$nrows rows") if (-t 1 and $nrows % $VERBOSE_FREQ == 0);
   }
@@ -260,9 +240,7 @@ print(STDERR "waiting for src psql pipe process to die [pid=$src_psql_pid]\n");
 waitpid($src_psql_pid,0);
 print(STDERR "# src psql process finished\n");
 
-restore_subset( $dst_psql_pipe, $dump_fn, [grep { not m/\s(?:$phase1_re)\s/ } @toc] );
-
-$dst_psql_pipe->close();
+restore_subset( $dump_fn, [grep { not m/\s(?:$phase1_re)\s/ } @toc] );
 
 # !! comment, search_path, analyze
 
@@ -277,10 +255,28 @@ exit(0);
 ## ######################################################################
 ## INTERNALS
 
-sub get_pseq_id_tables($) {
+sub get_table_info($) {
   my ($db) = @_;
-  my $io = new IO::Pipe;
-#  $io->reader( 'psql', '-At', '-d', $db, '-c', 'select 
+  my %table_info;
+  my $dbi = DBI->connect("dbi:Pg:dbname=$db", undef, undef,
+						 { RaiseError => 1, AutoCommit => 0 })
+	|| die $DBI::errstr;
+  my $sth = $dbi->prepare( q(
+				  			SELECT fk_namespace,fk_relation,fk_column,
+								   pk_namespace,pk_relation,pk_column,ud
+							FROM pgutils.foreign_keys
+				            ) );
+  $sth->execute();
+  my $nfks;
+  while( my $row = $sth->fetchrow_hashref() ) {
+	$nfks++;
+	my $st = "$row->{fk_namespace}.$row->{fk_relation}";
+	$table_info{$st}{$row->{fk_column}} = \@{$row->{qw(pk_namespace pk_relation pk_column ud)}};
+  }
+  $sth->finish();
+  $dbi->disconnect();
+  printf(STDERR "# %d FKs in %d tables\n", $nfks, scalar keys %table_info);
+  return %table_info;
 }
 
 sub get_schema_dump($$) {
@@ -299,8 +295,8 @@ sub get_dump_toc($) {
   return grep { not /^;/ } <$io>;
 }
 
-sub restore_subset($$$) {
-  my ($dst_psql_pipe,$dump_fn,$toc_aref) = @_;
+sub restore_subset($$) {
+  my ($dump_fn,$toc_aref) = @_;
   my $toc_fn = "$tmp_dir/toc";
 
   my $toc_fh = new IO::File;
@@ -313,9 +309,10 @@ sub restore_subset($$$) {
   my @restore_cmd = ('pg_restore', '-Fc', '-L', $toc_fn, $dump_fn);
   $restore_pipe->reader(@restore_cmd)
 	|| die("$0: commmand @restore_cmd: $!\n");
-  $dst_psql_pipe->print($_) while <$restore_pipe>;
+  print($_) while <$restore_pipe>;
   $restore_pipe->close();
 }
+
 
 
 sub origin_join($) { return typical_join(@_,undef,undef,1); }
