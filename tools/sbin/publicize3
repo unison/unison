@@ -36,7 +36,7 @@ sub get_schema_dump($$);
 sub restore_subset($$);
 sub apply_custom_configuration($$$);
 
-my $CVSId = q$Id: publicize3,v 1.3 2007/04/17 19:58:15 rkh Exp $; 
+my $CVSId = q$Id: publicize3,v 1.4 2007/04/19 21:58:21 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
@@ -111,8 +111,6 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
   my $st = "$schema.$table";
 
   my $pfx = sprintf("* %3d/%3d %-30s", $i+1, $#table_tocs+1, "$st: ");
-
-  next unless exists $ONLY_THESE_TABLES{$st};
 
   if (exists $IGNORE_SCHEMAS{$schema}) {
 	printf(STDERR "$pfx   %15s\n", 'schema skipped');
