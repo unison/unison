@@ -36,7 +36,7 @@ sub get_schema_dump($$);
 sub restore_subset($$);
 sub apply_custom_configuration($$$);
 
-my $CVSId = q$Id: publicize3,v 1.5 2007/04/19 22:08:55 rkh Exp $; 
+my $CVSId = q$Id: publicize3,v 1.6 2007/04/19 22:28:35 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
@@ -190,11 +190,20 @@ print("-- PHASE 4: INDEXES AND CONSTRAINTS\n");
 restore_subset( $dump_fn, [grep { not m/\s(?:$phase1_re)\s/ } @toc] );
 
 
-# !! comment, search_path, analyze, meta update, log?
+print("-- PHASE 5: FINISHING UP\n");
+# select meta_update('publicize version',);
+# select meta_update('publicize timestamp',);
+# select unison_log('publicized by '.cvsid);
+# set search_path (get s_p from src_db)
+# analyze verbose
+
 
 print(STDERR "# $0\n",
 	  '# ended: ', strftime("%F %T %Z",localtime()),
 	  ' (', sprintf("%.1f",tv_interval($all_start)/60/60), " h elapsed)\n");
+
+# There's no way to set the comment or search_path since we don't know the
+# name of the database into which we'll restore. That's a shame.
 
 exit(0);
 
@@ -244,6 +253,7 @@ sub apply_custom_configuration($$$) {
   foreach $st (sort keys %$ccq) {
 	$t->{$st} = Unison::Schema::Table->new( 'st' => $st ) unless exists $t->{$st};
 	$t->{$st}->{cq} = $ccq->{$st};
+	$t->{$st}->{restricted}++;
   }
   foreach $st (sort keys %$ctp) {
 	$t->{$st} = Unison::Schema::Table->new( 'st' => $st ) unless exists $t->{$st};

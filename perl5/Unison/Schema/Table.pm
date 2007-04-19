@@ -141,15 +141,6 @@ sub _build_copy_query_auto() {
   for(my $i=0; $i<=$#fks; $i++) {
 	my $fk = $fks[$i];
 	my $pkst = "$fk->{pk_namespace}.$fk->{pk_relation}";
-
-	if ($fk->{ud} ne 'cc') {
-	  warn(sprintf("! %s(%s)->%s(%s) is type '%s' and not supported\n",
-				   $self->{st}, $fk->{fk_column},
-				   $pkst, $fk->{pk_column},
-				   $fk->{ud} ));
-	  next;
-	}
-
 	my $pkt = $fk->{pkt};
 	(defined $pkt) || die("FATAL: pkt is undefined for fk:\n", Dumper($self));
 	my $pkq = $pkt->copy_query();
