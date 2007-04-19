@@ -36,7 +36,7 @@ sub get_schema_dump($$);
 sub restore_subset($$);
 sub apply_custom_configuration($$$);
 
-my $CVSId = q$Id: publicize3,v 1.4 2007/04/19 21:58:21 rkh Exp $; 
+my $CVSId = q$Id: publicize3,v 1.5 2007/04/19 22:08:55 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
@@ -94,7 +94,6 @@ print("-- PHASE 2: DATA\n");
 %tables = Unison->new(dbname => $src_db)->get_table_info();
 apply_custom_configuration(\%tables,\%custom_table_predicates,\%custom_copy_queries);
 
-
 # to prevent cycles, I *think* I need to build the CODE custom copy queries first
 $tables{$_}->copy_query() for (keys %custom_copy_queries);
 
@@ -122,6 +121,7 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
 	next;
   }
 
+  $tables{$st} = Unison::Schema::Table->new( 'st' => $st ) unless exists $tables{$st};
   my $cq = $tables{$st}->copy_query();
   die("$0: FATAL: Got a undef copy query (fkst=$st)\n", Dumper($tables{$st}),"\n ") unless defined $cq;
 
