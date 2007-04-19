@@ -1,5 +1,9 @@
 package Unison;
 
+# I should probably represent the underlying types tables, columns, and
+# constraints more accurately.
+
+
 use strict;
 use warnings;
 
@@ -32,6 +36,7 @@ sub get_table_info($) {
 
 	$tables{$fkst}->add_fk( {
 							 %$row,
+							 fkst => $fkst,
 							 pkst => $pkst,
 							 pkt => $tables{$pkst}
 							} );
