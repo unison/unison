@@ -5,6 +5,8 @@ use warnings;
 
 use Data::Dumper;
 
+select(STDERR); $|++;
+select(STDOUT); $|++;
 
 sub new() {
   my $class = shift;
@@ -49,37 +51,33 @@ sub pred_query() {
   # returns a query of the self table with local predicates (and no
   # external constraints)
   my ($self) = @_;
-  my $tp = $self->_table_prefix();
-  my $T = "${tp}_T";
+  warn(">> pq($self->{st})\n") if $ENV{DEBUG};
   if (not defined $self->{pq}) {
-	my $q = "SELECT $T.* FROM ONLY $self->{st} $T\n";
+	my $q = "SELECT * FROM ONLY $self->{st}";
 	if (@{$self->{pred}}) {
-	  $q .= 'WHERE ' . join(' AND ', map {s/\$T/$T/g; "($_)"} @{$self->{pred}}) . "\n";
+	  $q .= ' WHERE ' . join(' AND ', @{$self->{pred}});
 	}
 	$self->{pq} = $q;
   }
+  warn("<< pq($self->{st}): $self->{pq}\n") if $ENV{DEBUG};
   return $self->{pq}
 }
 
 
 sub copy_query() {
-  # returns a query for this table that is a projection based on "local"
-  # predicates and by those dictated by other tables via FK-PK constraints
-  # It has the general form:
-  #   pred_query
-  #   JOIN ( pk1 copy query ) PK1 ON X.fk1c=Y.pk1c
-  #   JOIN ( pk2 copy query ) PK2 ON X.fk2c=Y.pk2c
-  # etc.
-  # GOTCHAS:
-  # 1. If a fk column is nullable, we need a left join
-  # 2. No recursion checking
-
   my ($self) = @_;
-
-  if ( not (defined $self->{cq} and ref $self->{cq} eq 'SCALAR') ) {
-	$self->{cq} = $self->_build_copy_query();
+  warn(">> cq($self->{st})\n") if $ENV{DEBUG};
+  if ( not defined $self->{cq} 
+	   or ref $self->{cq} eq 'CODE' ) {
+	my $cq = $self->_build_copy_query();
+	if (not defined $cq) {
+	  warn("<< cq($self->{st}): undef\n") if $ENV{DEBUG};
+	  return $self->pred_query(); 			# EXPERIMENTAL
+	}
+	$self->{cq} = $cq;
+	warn("== cq($self->{st}) := $self->{cq}\n") if $ENV{DEBUG};
   }
-
+  warn("<< cq($self->{st}): $self->{cq}\n") if $ENV{DEBUG};
   return $self->{cq};
 }
 
@@ -100,39 +98,54 @@ sub _table_prefix() {
 my %recursive_cq_build_st;
 sub _build_copy_query() {
   my $self = shift;
+  warn(">> bcq($self->{st})\n") if $ENV{DEBUG};
   my $st = $self->{st};
+  my $cq;
 
-  if (exists $recursive_cq_build_st{$st}) {
-	warn("recursive build of query for $st detected\n");
-	return $self->pred_query();
+  if (exists $recursive_cq_build_st{$st} and $recursive_cq_build_st{$st}>0) {
+	warn("<< bcq($self->{st}): undef (recursive)\n") if $ENV{DEBUG};
+	return undef;
   }
   $recursive_cq_build_st{$st}++;
 
   if (ref $self->{cq} eq 'CODE') {
-	$self->{cq} = &{$self->{cq}};
+	warn(">> cq CODE ref($self->{st})\n") if $ENV{DEBUG};
+	$cq = &{$self->{cq}};
+	warn(">> cq CODE ref($self->{st}): $cq\n") if $ENV{DEBUG};
   } else {
-	$self->{cq} = $self->_build_copy_query_auto();
+	$cq = $self->_build_copy_query_auto();
   }
 
-  delete $recursive_cq_build_st{$st};
-  $self->{cq};
+  $recursive_cq_build_st{$st}--;
+  warn("<< bcq($self->{st}): $cq\n") if $ENV{DEBUG};
+
+  return $cq;
   }
 
 sub _build_copy_query_auto() {
+  # returns a query for this table that is a projection based on "local"
+  # predicates and by those dictated by other tables via FK-PK constraints
+  # It has the general form:
+  #   pred_query
+  #   JOIN ( pk1 copy query ) PK1 ON X.fk1c=Y.pk1c
+  #   JOIN ( pk2 copy query ) PK2 ON X.fk2c=Y.pk2c
+  # etc.
+
+
   my $self = shift;
+  warn(">> bcqa($self->{st})\n") if $ENV{DEBUG};
   my $tp = $self->_table_prefix();
   my $T = "${tp}_T";
-  my $q = $self->pred_query();
+  my $q = sprintf( "SELECT $T.* FROM (%s) $T", $self->pred_query() );
   my @fks = @{$self->{fks}};
   for(my $i=0; $i<=$#fks; $i++) {
 	my $fk = $fks[$i];
 	my $pkst = "$fk->{pk_namespace}.$fk->{pk_relation}";
 
 	if ($fk->{ud} ne 'cc') {
-	  warn(sprintf("! %s(%s)->%s(%s) is type '%s' and not supported\n"
-				   . "!  Dump will be inconsistent if PK rows are missing\n",
+	  warn(sprintf("! %s(%s)->%s(%s) is type '%s' and not supported\n",
 				   $self->{st}, $fk->{fk_column},
-				   $fk->{pk_relation}, $fk->{pk_column},
+				   $pkst, $fk->{pk_column},
 				   $fk->{ud} ));
 	  next;
 	}
@@ -140,18 +153,22 @@ sub _build_copy_query_auto() {
 	my $pkt = $fk->{pkt};
 	(defined $pkt) || die("FATAL: pkt is undefined for fk:\n", Dumper($self));
 	my $pkq = $pkt->copy_query();
-	(defined $pkq) || die("FATAL: pkq is undefined for fk:\n", Dumper($self));
+	if (not defined $pkq) {
+	  warn("## bcqa: pkq is null; no JOIN\n") if $ENV{DEBUG};
+	  next;
+	}
 
 	next unless $pkt->{restricted};			# must be called after c_q()!
 
 	$pkq =~ s/\n/ /g;
 	my $A = "${tp}_J$i";
-	$q .= sprintf("%sJOIN ($pkq) $A ON $T.%s=$A.%s\n",
+	$q .= sprintf("\n%sJOIN ($pkq) $A ON $T.%s=$A.%s",
 				  ($fk->{fk_notnull} ? '' : 'LEFT '),
 				  $fk->{fk_column}, $fk->{pk_column});
 
 	$self->{restricted}++;
   }
+  warn("<< bcqa($self->{st}): $q\n") if $ENV{DEBUG};
   return $q;
 }
 
