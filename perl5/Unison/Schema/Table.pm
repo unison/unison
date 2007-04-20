@@ -140,7 +140,11 @@ sub _build_copy_query_auto() {
   my @fks = @{$self->{fks}};
   for(my $i=0; $i<=$#fks; $i++) {
 	my $fk = $fks[$i];
-	my $pkst = "$fk->{pk_namespace}.$fk->{pk_relation}";
+
+	# skip 'on del set null' constraints
+	# these are resolved later by setting FKs to NULL for missing PKs
+	next if ($fk->{ud} =~ 'n$');
+
 	my $pkt = $fk->{pkt};
 	(defined $pkt) || die("FATAL: pkt is undefined for fk:\n", Dumper($self));
 	my $pkq = $pkt->copy_query();
@@ -149,12 +153,14 @@ sub _build_copy_query_auto() {
 	  next;
 	}
 
+	# if the PK column is not restricted, it provides no
+	# exclusion of rows
 	next unless $pkt->{restricted};			# must be called after c_q()!
 
 	$pkq =~ s/\n/ /g;
 	my $A = "${tp}_J$i";
 	$q .= sprintf("\n%sJOIN ($pkq) $A ON $T.%s=$A.%s",
-				  ($fk->{fk_notnull} ? '' : 'LEFT '),
+				  ( $fk->{ud} eq 'cc' ? '' : 'LEFT ' ),
 				  $fk->{fk_column}, $fk->{pk_column});
 
 	$self->{restricted}++;
