@@ -1,426 +1,263 @@
 #!/usr/bin/perl
-#
-# publicize -- remove proprietary info from a COPY-formatted
-# psql dump.
-#
-# $Id: publicize,v 1.43 2006/11/04 03:48:38 rkh Exp $
-# Reece Hart <rkh@gene.com>
-#
+# publicize -- extract a public (non-proprietary) version of the unison database
 
-# TODO:
-# - filter entire schemas (e.g., sst)
+# usage:
+# $ publicize dbname >unison-public.pgdump
+# $ psql -f unison-public.pgdump
+
+
+# TODO
+# - extend to support arbitrary table restrictions that propagate through dump
 
 
 use strict;
 use warnings;
 
-use Storable;
+use DBI;
 use Data::Dumper;
-use Getopt::Long qw(:config gnu_getopt);
+use File::Temp qw(tempdir);
+use Getopt::Long qw(:config gnu_compat);
+use IO::File;
+use IO::Pipe;
+use IPC::Open2;
 use POSIX qw(strftime);
+use Time::HiRes qw(gettimeofday tv_interval);
 
 use FindBin;
 use lib "$FindBin::RealBin/../../perl5";
 
 use Unison;
-use Unison::pset;
+use Unison::Schema::Table;
+use Unison::Schema::Schema;
+
+sub get_dump_toc($);
+sub get_schema_dump($$);
+sub restore_subset($$);
+sub apply_custom_configuration($$$);
+
+my $CVSId = q$Id: publicize3,v 1.7 2007/04/19 23:42:54 rkh Exp $; 
+my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
+my $TERM_STRING = '__END_OF_COPY__';
+my $VERBOSE_FREQ = 25000;
+my %IGNORE_SCHEMAS = map {$_=>1} qw( mukhyala rkh matthejb twu cavs );
+my %IGNORE_TABLES = map {$_=>1} qw( unison.p2gblataln unison.p2gblatalnhsp unison.p2gblathsp
+		unison.paprospect );
+my %ONLY_THESE_TABLES = map {$_=>1} (map {"unison.$_"} 
+									 qw(pseq pfeature params origin pftype
+									 pseqalias paliasorigin pmodel pmhmm pahmm pfeature)
+									);
 
 
-sub col_match($$@);
-sub load_public_ids($);
-sub log(@);
-sub timestamp();
+# config tags should include: copy_queries, predicates, include/skip schemas and tables
+# plus there should be a global set of these
 
-my $CVSId = '$Id: publicize,v 1.43 2006/11/04 03:48:38 rkh Exp $ ';
+our %tables;
+our %custom_table_predicates;
+our %custom_copy_queries;
 
-my %opts =
-  (
-   tick_minor => 100000,
-   tick_major => 100000 * 50,
-   pset => 'public'
-  );
-
-GetOptions(\%opts,
-		   'tick_minor=i',
-		   'tick_major=i',
-		   'pset|S=s'
-		  )
-  || die("$0: bad usage. Even worse error message.\n");
+require 'pub-rules.pl';
 
 
-select(STDERR); $|++;		# unbuffer stderr
-select(STDOUT);
+select(STDERR); $|++;
+select(STDOUT); $|++;
 
-my $timestamp = timestamp();
+my $phase1_re = join('|',@PHASE1_KW);
+my $tmp_dir = '/tmp/'; #tempdir( '/tmp/Unison-publicize-XXXXX', CLEANUP => 1 );
+my $dump_fn = "$tmp_dir/pgdump";
+my $all_start = [gettimeofday];
+
+my $src_db;
+defined ($src_db = shift)
+  || die("$0: missing source database name\n");
+
+print(STDERR 
+	  "# $0\n",
+	  "# $CVSId\n",
+	  "# started: ", strftime("%F %T %Z",localtime()), "\n"
+	 );
+
+
+# Generated a "custom" format pgdump of the database
+# The TOC of that dump will be used to determine the content
+# and order of the output of this script.
+#get_schema_dump($src_db,$dump_fn);			# dies on error
+my @toc = get_dump_toc($dump_fn);			# dies on error
+printf(STDERR "%d TOC entries\n", $#toc+1);
+
+
+print("-- PHASE 1: SCHEMA\n");
+restore_subset( $dump_fn, [grep { m/\s(?:$phase1_re)\s/ } @toc] );
+
+
+print("-- PHASE 2: DATA\n");
+%tables = Unison->new(dbname => $src_db)->get_table_info();
+apply_custom_configuration(\%tables,\%custom_table_predicates,\%custom_copy_queries);
+
+# to prevent cycles, I *think* I need to build the CODE custom copy queries first
+$tables{$_}->copy_query() for (keys %custom_copy_queries);
+
+
+my ($src_psql_w,$src_psql_r);
+my $src_psql_pid = open2($src_psql_r,$src_psql_w,'psql', '-d', $src_db);
+my @table_tocs = grep { m/^\d+; \d+ \d+ TABLE / } @toc;
+my @cascading_null;
+
+for(my $i=0; $i<=$#table_tocs; $i++) {
+  my $table_start = [gettimeofday];
+
+  my ($schema,$table) = $table_tocs[$i] =~ m/^\d+; \d+ \d+ TABLE (\S+) (\S+)/;
+  my $st = "$schema.$table";
+
+  my $pfx = sprintf("* %3d/%3d %-30s", $i+1, $#table_tocs+1, "$st: ");
+
+  if (exists $IGNORE_SCHEMAS{$schema}) {
+	printf(STDERR "$pfx   %15s\n", 'schema skipped');
+	next;
+  }
+
+  if (exists $IGNORE_TABLES{$st}) {
+	printf(STDERR "$pfx   %15s\n", 'table skipped');
+	next;
+  }
+
+  $tables{$st} = Unison::Schema::Table->new( 'st' => $st ) unless exists $tables{$st};
+  my $cq = $tables{$st}->copy_query();
+  die("$0: FATAL: Got a undef copy query (fkst=$st)\n", Dumper($tables{$st}),"\n ") unless defined $cq;
+
+  my $cqc = $cq;
+  $cqc =~ s/^/--   /mg;
+  print("-- COPY QUERY FOR $st\n$cqc\n");
+
+  print(STDERR "$pfx  (querying)\r") if (-t 2);
+  print("COPY $st FROM STDIN;\n");
+  $src_psql_w->print("COPY ($cq) TO STDOUT;\n");
+  $src_psql_w->print("\\echo $TERM_STRING\n");
+  my $nrows = 0;
+  while (my $line = <$src_psql_r>) {
+	if ($line =~ m/^ERROR:/) {
+	  die("Oh, man, are you in trouble.\n$line\n");
+	}
+	if ($line =~ m/^$TERM_STRING/) {
+	  print("\\.\n");
+	  last;
+	}
+	print($line);
+	$nrows++;
+	printf(STDERR "$pfx %15s\r","$nrows rows") if (-t 2 and $nrows % $VERBOSE_FREQ == 0);
+  }
+
+  # push any 'on delete cascade set null' constraints
+  push( @cascading_null,
+		grep { $_->{ud} =~ 'n$' } @{$tables{$st}->{fks}} );
+
+  printf(STDERR "$pfx %15s (%d s)\n",
+		 "$nrows rows",tv_interval($table_start));
+}
+$src_psql_w->print("\\q\n");
+print(STDERR "# waiting for src psql pipe process to die [pid=$src_psql_pid]\n");
+waitpid($src_psql_pid,0);
+print(STDERR "# src psql process finished\n");
+
+
+print("-- PHASE 3: RESOLVE `ON DELETE SET NULL' CONSTRAINTS\n");
+{
+  my %idx_created;
+  my %idx_tables;
+  my $cnc;
+
+  foreach $cnc (@cascading_null) {
+	my ($pks,$pkt,$pkc) = ($cnc->{pk_namespace},$cnc->{pk_relation},$cnc->{pk_column});
+	my $idx_name = "\"__tmp_${pkt}_$pkc\"";
+	next if $idx_created{"$pks.$idx_name"}++;
+	next if $idx_tables{"\"$pks\".\"$pkt\""}++;
+	print("CREATE UNIQUE INDEX $idx_name on \"$pks\".\"$pkt\"(\"$pkc\");\n");
+  }
+
+  print("ANALYZE $_;\n") for keys %idx_tables;
+
+  foreach $cnc (@cascading_null) {
+	printf('UPDATE ONLY "%s"."%s" FK set "%s"=NULL WHERE NOT exists (select * from "%s"."%s" PK where FK."%s"=PK."%s");'."\n",
+		   $cnc->{fk_namespace},$cnc->{fk_relation},$cnc->{fk_column},
+		   $cnc->{pk_namespace},$cnc->{pk_relation},$cnc->{fk_column},$cnc->{pk_column});
+  }
+
+  print("DROP INDEX $_;\n") for (keys %idx_created);
+}
+
+
+print("-- PHASE 4: INDEXES AND CONSTRAINTS\n");
+restore_subset( $dump_fn, [grep { not m/\s(?:$phase1_re)\s/ } @toc] );
+
+
+print("-- PHASE 5: FINISHING UP\n");
+# select meta_update('publicize version',);
+# select meta_update('publicize timestamp',);
+# select unison_log('publicized by '.cvsid);
+# set search_path (get s_p from src_db)
+# analyze verbose
+
+
 print(STDERR "# $0\n",
-      "# $CVSId\n",
-      "# started at $timestamp\n");
-print("-- $0\n",
-      "-- $CVSId\n",
-      "-- started at $timestamp\n");
+	  '# ended: ', strftime("%F %T %Z",localtime()),
+	  ' (', sprintf("%.1f",tv_interval($all_start)/60/60), " h elapsed)\n");
 
-# The following tables are included without any filtering
-my @unfiltered_tables = qw(params pmhmm pmodel pmodel2go pmodelset
-			   pmpssm pmregexp
-			   pmsm pmsm_pmhmm pmsm_pmpssm
-			   pmsm_pmregexp origin);
-
-my $eodata_re = qr/^\\\./;
-my $pseq_id_re = qr/^(pseq_id|[qt]_pseq_id|query|target)$/;
-my $params_id_re = qr/^params_id$/;
-my $origin_id_re = qr/^origin_id$/;
-my $palias_id_re = qr/^palias_id$/;
-my $truncate_tables_re = qr/p2gblat|pmprospect|paprospect|pmsm_pmprospect|pnote/;
-my $unfiltered_tables_re = join('|',@unfiltered_tables);
-
-
-
-my %public_ids = load_public_ids($opts{pset});
-
-foreach my $id_class (sort keys %public_ids) {
-  next unless ref $public_ids{$id_class};
-  my $msg = sprintf("    %10d $id_class",
-					scalar(grep {defined $_} @{$public_ids{$id_class}}));
-  print('-- ', $msg, "\n");
-  print(STDERR '# ', $msg, "\n");
-}
-
-
-if ( -t 0 ) {
-  open(DUMP_IN, "pg_dump|")
-	|| die("couldn't open pg_dump pipe\n");
-  print(STDERR "# reading pgdump data from pg_dump pipe\n");
-} else {
-  open(DUMP_IN, "<&=STDIN");
-  print(STDERR "# reading pgdump data from stdin\n");
-}
-
-
-my $table;								 # filtering COPY block if defined
-my %id_cols;							   # hash of arrays; h by col name
-my $printed = 0;
-my %skipped;								# No. lines skipped
-my %copied;								   # ... and copied, by table name
-
-while ( my $line = <DUMP_IN> ) {
-  # default is to print line as-is at end of loop; exceptions:
-  # 1) skip to next line if row is proprietary
-  # 2) modify text of current line (and then print it)
-
-  my $tbl;
-  my $cols;
-
-  if (not defined $table) {	# == "if not filtering"
-    # BEGIN extra-COPY parsing
-
-    ########
-    # Reject GRANT/REVOKE/CREATE SCHEMA/SSA
-	# for any user other than PUBLIC or unison
-	# not sure if this the right thing to do for some, e.g., pgtools schema
-    if ( (   $line =~ m/^(?:GRANT|REVOKE).+(?:TO|FROM)\s+/ )
-#		  or $line =~ m/^(?:CREATE SCHEMA.+|SET SESSION) AUTHORIZATION '/ )
-		 and $' !~ m/PUBLIC|unison/
-	   ) {
-      print(STDERR "# skipped: $line");
-      $line =~ s/^/-- /;	# comment it out
-    }
-
-    ########
-    # Insert k/v pairs for publicization (ugh)
-    elsif ( $line =~ m/^COPY meta/ ) {
-      print(STDERR "# inserted meta k/v\n");
-      $line .= <<EOT
-publicized by	$CVSId
-publicized at	$timestamp
-EOT
-	# $table not set, see above
-    }
-
-    ########
-    # Some tables contain only proprietary data.  These would
-    # be caught by the column-based rules below, but it's faster to
-    # just fast forward across them.
-    elsif ( $line =~ m/^COPY ($truncate_tables_re)/ ) {
-	  my $tbl = $1;
-      my $tlines = 0;
-      print(STDERR "# table $tbl: truncating...");
-      print $line;
-      while ($line = <DUMP_IN>) {
-		last if $line =~ $eodata_re;
-		$tlines++;
-      }
-	  print $line;							# = eodata_re (\.)
-      print(STDERR "done; $tlines lines truncated\n");
-	  $skipped{$tbl} = $tlines;
-	  $copied{$tbl} = 0;
-	  next;
-    }
-
-    ########
-    # Tables which shouldn't be filtered, even though
-    # they might match column-based filtering below.
-    elsif ( $line =~ m/^COPY ($unfiltered_tables_re)/ ) {
-      print(STDERR "# table $1: unfiltered\n");
-      # $table not set => no filtering
-    }
-
-    ########
-    # Column-based filtering. Tables matching the following COPY regexp
-    # are candidates for filtering based on the column names. 
-    # WARNING: quoted column names (e.g., "start") aren't parsed
-    # correctly, but this isn't currently a problem
-    elsif ( ($tbl, $cols) = $line =~ m/^COPY (\S+) \(([^\)]+)\)/ ) {
-      my @cols = split(/,\s*/,$cols);
-
-	  # standard cols for all tables
-      @{$id_cols{pseq}} 	= grep {$cols[$_]=~$pseq_id_re   } 0..$#cols;
-      @{$id_cols{params}}	= grep {$cols[$_]=~$params_id_re } 0..$#cols;
-      @{$id_cols{origin}}	= grep {$cols[$_]=~$origin_id_re} 0..$#cols;
-      @{$id_cols{palias}}	= grep {$cols[$_]=~$palias_id_re } 0..$#cols;
-      @{$id_cols{pmodel}}   = grep {$cols[$_]=~m/pmodel_id/} 0..$#cols;
-	  @{$id_cols{pmap_aln}} = ();
-	  @{$id_cols{pmap_hsp}} = ();
-	  if ($tbl =~ m/^pmap/) {
-		@{$id_cols{pmap_aln}} = grep {$cols[$_]=~m/aln_id/} 0..$#cols;
-		@{$id_cols{pmap_hsp}} = grep {$cols[$_]=~m/hsp_id/} 0..$#cols;
-	  }
-
-      if (   @{$id_cols{pseq}}
-	      or @{$id_cols{params}}
-	      or @{$id_cols{origin}}
-	      or @{$id_cols{palias}}
-	      or @{$id_cols{pmodel}}
-	      or @{$id_cols{pmap_aln}}
-	      or @{$id_cols{pmap_hsp}}
-		 ) {
-		printf(STDERR "# table $tbl: filtering on o(%s), q(%s), a(%s), p(%s), m(%s), pmap(aln:%s,hsp:%s)\n",
-			   join(',',@{$id_cols{origin}}),
-			   join(',',@{$id_cols{pseq}}),
-			   join(',',@{$id_cols{palias}}),
-			   join(',',@{$id_cols{params}}),
-			   join(',',@{$id_cols{pmodel}}),
-			   join(',',@{$id_cols{pmap_aln}}),
-			   join(',',@{$id_cols{pmap_hsp}}),
-			  );
-		$table = $tbl;
-      } else {
-		print(STDERR "# table $tbl: no filter cols\n");
-		# table not set => no filtering
-      }
-    }
-
-    ########
-    # This is a sanity check. It shouldn't be hit.
-    elsif ( $line =~ m/^COPY (\S+)/ ) {
-      die("\n! fell through to COPY block for table $1\n# <$line");
-    }
-
-	if (defined $table) { 					# table must have just been set
-	  $skipped{$table} = 0;
-	  $copied{$table} = 0;
-	}
-
-    # END extra-COPY parsing
-
-
-  } else {
-
-    # BEGIN intra-COPY parsing
-
-	# progress ticks:
-	if ($. % $opts{tick_major} == 0) {
-	  printf(STDERR " %12d\n",$.);
-	} elsif ($. % $opts{tick_minor} == 0) {
-	  print(STDERR '.');
-	}
-
-    ########
-    if ( $line =~ $eodata_re ) {
-      undef $table;
-      undef %id_cols;
-	  print(STDERR "done.\n");
-    } else {
-      my @F = split(/\t/, $line);
-      chomp $F[$#F];
-      # Note: if @{$id_cols{x}} is empty, we're not filtering on that column 
-      # and col_match returns match
-      if ( not (    col_match(\@{$public_ids{pseq}},    	\@F, @{$id_cols{pseq}}    )
-				and col_match(\@{$public_ids{origin}}, 	\@F, @{$id_cols{origin}} )
-				and col_match(\@{$public_ids{params}},  	\@F, @{$id_cols{params}}  )
-				and col_match(\@{$public_ids{palias}}, 		\@F, @{$id_cols{palias}}  )
-				and col_match(\@{$public_ids{pmodel}},		\@F, @{$id_cols{pmodel}}  )
-				and col_match(\@{$public_ids{pmap_aln}},  	\@F, @{$id_cols{pmap_aln}}  )
-				and col_match(\@{$public_ids{pmap_hsp}},  	\@F, @{$id_cols{pmap_hsp}}  )
-			   ) ) {
-		$skipped{$table}++;
-		next;
-      } else {
-		$copied{$table}++;
-	  }
-    }
-    # END intra-COPY parsing
-  }
-
-  # whether inside or outside of a COPY block
-  print $line;
-  $printed++;
-}
-print(STDERR "\n\n# done.\n");
-my $nlines = $. + 1;
-close(DUMP_IN);
-
-
-print(STDERR "# table summary:\n");
-print(       "-- table summary:\n");
-foreach my $tbl (sort keys %skipped) {
-  my $tot = $copied{$tbl}+$skipped{$tbl};
-  my $line = sprintf("%20s: %12d total lines", $tbl, $tot);
-  if ($tot > 0) {
-	$line .= sprintf("; %12d (%6.2f%%) copied, %12d (%6.2f%%) skipped",
-					 $copied{$tbl}, $copied{$tbl}/$tot*100,
-					 $skipped{$tbl}, $skipped{$tbl}/$tot*100
-					);
-  }
-  print(STDERR '# ',  $line, "\n");
-  print(       '-- ', $line, "\n");
-}
-
-$timestamp = timestamp();
-my $msg = sprintf("%12d printed / %12d lines total (%6.2f%%)",
-				  $printed, $nlines, $printed/$nlines*100);
-print(STDERR "# $msg\n# $0 finished at $timestamp\n");
-print(       "-- $msg\n-- $0 finished at $timestamp\n");
+# There's no way to set the comment or search_path since we don't know the
+# name of the database into which we'll restore. That's a shame.
 
 exit(0);
 
 
-########################################################################
-########################################################################
 
-sub timestamp () {
-  strftime('%F %T %Z',localtime);
+## ######################################################################
+## INTERNALS
+
+sub get_schema_dump($$) {
+  my ($db,$fn) = @_;
+  my @cmd = ('pg_dump', '-Fc', '-s', '-f', $fn, $db);
+  system(@cmd)
+	&& die("@cmd: $!\n");
 }
 
-sub load_public_ids($) {
-  # Generates and caches various ids to be made public, or reads them
-  # from a cache.
+sub get_dump_toc($) {
+  my $fn = shift;
+  my $io = new IO::Pipe;
+  my @cmd = ('pg_restore', '-l', $fn);
+  $io->reader(@cmd)
+	|| die("@cmd: $!\n");
+  return grep { not /^;/ } <$io>;
+}
 
-  my $pset_name = shift;
-  my $s_fn = "/tmp/$pset_name-public_ids.plst";
+sub restore_subset($$) {
+  my ($dump_fn,$toc_aref) = @_;
+  my $toc_fn = "$tmp_dir/toc";
 
-  if ( -f $s_fn ) {
-    print(STDERR "# loading public ids from '$s_fn'...");
-    (my $ref = retrieve($s_fn))
-      || die("$0: retrieve failed on $s_fn\n");
-    print(STDERR "done loading.\n",
-	  "# public ids for set '$ref->{pset_name}' generated\n",
-	  "#   on $ref->{timestamp}\n",
-	  "#   by $ref->{CVSId}\n");
-    if ($CVSId ne $ref->{CVSId}) {
-      warn("!! ids were generated by a different version of $0\n");
-    }
-    return %$ref;
-  }
+  my $toc_fh = new IO::File;
+  $toc_fh->open(">$toc_fn")
+	|| die("$0: file $toc_fn: $!\n");
+  $toc_fh->print($_) for @$toc_aref;
+  $toc_fh->close();
 
-
-  print(STDERR "# building public ids for set '$pset_name'. This takes ~15 minutes...\n");
-
-  my $u = new Unison();
-
-  my %ids;
-  $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.43 $ ';
-  $ids{pset_name} = $pset_name;
-  $ids{timestamp} = $timestamp;
-
-
-  my @public_pseq_ids = $u->pseq_ids_by_pset($pset_name);
-  $ids{pseq}[$_]++ 			for @public_pseq_ids;
-  printf(STDERR "%10d public_pseq_ids\n", $#public_pseq_ids+1);
-  undef @public_pseq_ids;
-
-
-  my @public_origin_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT)};
-select origin_id from origin where is_public
-EOT
-  $ids{origin}[$_]++		for @public_origin_ids;
-  printf(STDERR "%10d public_origin_ids\n", $#public_origin_ids+1);
-  my $ppis = join(',',@public_origin_ids);
-  undef @public_origin_ids;
-
-
-  my @public_params_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT)};
-select params_id from params where is_public
-EOT
-  $ids{params}[$_]++ 		for @public_params_ids;
-  printf(STDERR "%10d public_params_ids\n", $#public_params_ids+1);
-  undef @public_params_ids;
-
-
-  my @public_palias_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-SELECT DISTINCT AO.palias_id
-  FROM paliasorigin AO
-  JOIN origin O on AO.origin_id=O.origin_id and O.is_public=TRUE
-  JOIN pseqalias SA on AO.palias_id=SA.palias_id and SA.is_current=TRUE
-  JOIN pseqset SS ON SA.pseq_id=SS.pseq_id and SS.pset_id=pset_id(?)
-EOT
-  $ids{palias}[$_]++ 		for @public_palias_ids;
-  printf(STDERR "%10d public_palias_ids\n", $#public_palias_ids+1);
-  undef @public_palias_ids;
-
-
-  my @public_pmodel_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-SELECT DISTINCT pmodel_id
-  FROM pmpseq M
-  JOIN pseqset SS on M.pseq_id=SS.pseq_id
- WHERE SS.pset_id=pset_id(?)
-EOT
-  $ids{pmodel}[$_]++ 		for @public_pmodel_ids;
-  printf(STDERR "%10d public_pmodel_ids\n", $#public_pmodel_ids+1);
-  undef @public_pmodel_ids;
-
-
-  my @public_pmap_hsp_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-SELECT DISTINCT hsp_id
-  FROM pmap_hsp H
-  JOIN pseqset SS on H.pseq_id=SS.pseq_id
-  JOIN params P on H.params_id=P.params_id
- WHERE SS.pset_id=pset_id(?) and P.is_public;
-EOT
-  $ids{pmap_hsp}[$_]++		for @public_pmap_hsp_ids;
-  printf(STDERR "%10d public_pmap_hsp_ids\n", $#public_pmap_hsp_ids+1);
-  undef @public_pmap_hsp_ids;
-
-
-  my @public_pmap_aln_ids = map {$_->[0]} @{$u->selectall_arrayref(<<EOT,undef,$pset_name)};
-SELECT DISTINCT aln_id
-  FROM pmap_aln A
-  JOIN pseqset SS on A.pseq_id=SS.pseq_id
-  JOIN params P on A.params_id=P.params_id
- WHERE SS.pset_id=pset_id(?) and P.is_public;
-EOT
-  $ids{pmap_aln}[$_]++		for @public_pmap_aln_ids;
-  printf(STDERR "%10d public_pmap_aln_ids\n", $#public_pmap_aln_ids+1);
-  undef @public_pmap_aln_ids;
-
-
-  if (not store(\%ids, $s_fn)) {
-    warn("! store($s_fn) failed: $!\n");
-  }
-  print(STDERR "# stored public_ids in $s_fn\n");
-
-  return %ids;
+  my $restore_pipe = new IO::Pipe;
+  my @restore_cmd = ('pg_restore', '-Fc', '-L', $toc_fn, $dump_fn);
+  $restore_pipe->reader(@restore_cmd)
+	|| die("$0: commmand @restore_cmd: $!\n");
+  print($_) while <$restore_pipe>;
+  $restore_pipe->close();
 }
 
 
-sub col_match($$@) {
-  # given: ids, columns, col indices
-  # returns: 0 if any column column referenced by indices is not "in" the ids array (vector)
-  #		Otherwise, returns 1. Therefore, this fx returns 1 when given an empty index array
-  my $pids = shift;
-  my $colr = shift;
-  while ( defined (my $i = shift) ) {
-    return 0 if ($colr->[$i] ne '' and $colr->[$i] ne '\\N' and not $pids->[$colr->[$i]]);
+sub apply_custom_configuration($$$) {
+  my ($t,$ctp,$ccq) = @_;
+  my $st;
+  foreach $st (sort keys %$ccq) {
+	$t->{$st} = Unison::Schema::Table->new( 'st' => $st ) unless exists $t->{$st};
+	$t->{$st}->{cq} = $ccq->{$st};
+	$t->{$st}->{restricted}++;
   }
-  return 1;
+  foreach $st (sort keys %$ctp) {
+	$t->{$st} = Unison::Schema::Table->new( 'st' => $st ) unless exists $t->{$st};
+	for(my $i=0; $i<=$#{$ctp->{$st}}; $i++) {
+	  $t->{$st}->add_pred( $ctp->{$st}->[$i] );
+	}
+  }
 }
