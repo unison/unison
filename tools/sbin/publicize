@@ -35,7 +35,7 @@ sub get_schema_dump($$);
 sub restore_subset($$);
 sub apply_custom_configuration($$$);
 
-my $CVSId = q$Id: publicize3,v 1.7 2007/04/19 23:42:54 rkh Exp $; 
+my $CVSId = q$Id: publicize,v 1.45 2007/04/23 14:58:39 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
@@ -62,7 +62,7 @@ select(STDERR); $|++;
 select(STDOUT); $|++;
 
 my $phase1_re = join('|',@PHASE1_KW);
-my $tmp_dir = '/tmp/'; #tempdir( '/tmp/Unison-publicize-XXXXX', CLEANUP => 1 );
+my $tmp_dir = tempdir( 'Unison-publicize-XXXXX', CLEANUP => 1, TMPDIR => 1 );
 my $dump_fn = "$tmp_dir/pgdump";
 my $all_start = [gettimeofday];
 
@@ -80,7 +80,7 @@ print(STDERR
 # Generated a "custom" format pgdump of the database
 # The TOC of that dump will be used to determine the content
 # and order of the output of this script.
-#get_schema_dump($src_db,$dump_fn);			# dies on error
+get_schema_dump($src_db,$dump_fn);			# dies on error
 my @toc = get_dump_toc($dump_fn);			# dies on error
 printf(STDERR "%d TOC entries\n", $#toc+1);
 
@@ -107,6 +107,7 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
 
   my ($schema,$table) = $table_tocs[$i] =~ m/^\d+; \d+ \d+ TABLE (\S+) (\S+)/;
   my $st = "$schema.$table";
+  my $qst = join('.',map {"\"$_\""} split(/\./,$st));
 
   my $pfx = sprintf("* %3d/%3d %-30s", $i+1, $#table_tocs+1, "$st: ");
 
@@ -129,7 +130,7 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
   print("-- COPY QUERY FOR $st\n$cqc\n");
 
   print(STDERR "$pfx  (querying)\r") if (-t 2);
-  print("COPY $st FROM STDIN;\n");
+  print("COPY $qst FROM STDIN;\n");
   $src_psql_w->print("COPY ($cq) TO STDOUT;\n");
   $src_psql_w->print("\\echo $TERM_STRING\n");
   my $nrows = 0;
