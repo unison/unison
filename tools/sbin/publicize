@@ -3,7 +3,7 @@
 # publicize -- remove proprietary info from a COPY-formatted
 # psql dump.
 #
-# $Id: publicize,v 1.42 2006/06/26 18:05:08 rkh Exp $
+# $Id: publicize,v 1.43 2006/11/04 03:48:38 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 
@@ -13,18 +13,25 @@
 
 use strict;
 use warnings;
-use Unison;
-use Unison::pset;
+
 use Storable;
 use Data::Dumper;
 use Getopt::Long qw(:config gnu_getopt);
 use POSIX qw(strftime);
 
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
+use Unison;
+use Unison::pset;
+
+
 sub col_match($$@);
 sub load_public_ids($);
 sub log(@);
+sub timestamp();
 
-my $CVSId = '$Id: publicize,v 1.42 2006/06/26 18:05:08 rkh Exp $ ';
+my $CVSId = '$Id: publicize,v 1.43 2006/11/04 03:48:38 rkh Exp $ ';
 
 my %opts =
   (
@@ -322,7 +329,7 @@ sub load_public_ids($) {
 
   my %ids;
   $ids{CVSId} = $CVSId;
-  $ids{CVSRevision} = '$Revision: 1.42 $ ';
+  $ids{CVSRevision} = '$Revision: 1.43 $ ';
   $ids{pset_name} = $pset_name;
   $ids{timestamp} = $timestamp;
 
