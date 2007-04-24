@@ -35,7 +35,7 @@ sub get_schema_dump($$);
 sub restore_subset($$);
 sub apply_custom_configuration($$$);
 
-my $CVSId = q$Id: publicize,v 1.47 2007/04/24 02:37:37 rkh Exp $; 
+my $CVSId = q$Id: publicize,v 1.48 2007/04/24 02:53:14 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
@@ -78,7 +78,6 @@ print(STDERR
 # and order of the output of this script.
 get_schema_dump($src_db,$dump_fn);			# dies on error
 my @toc =  get_dump_toc($dump_fn);			# dies on error
-@toc = grep { m/unison-aux/ } @toc;
 printf(STDERR "%d TOC entries\n", $#toc+1);
 
 

@@ -29,10 +29,12 @@ sub get_table_info($) {
 	$nfks++;
 
 	my $fkst = "$row->{fk_namespace}.$row->{fk_relation}";
-	$tables{$fkst} = Unison::Schema::Table->new( 'st' => $fkst ) unless exists $tables{$fkst};
+	$tables{$fkst} = Unison::Schema::Table->new( namespace => $row->{fk_namespace},
+												 relation => $row->{fk_relation} ) unless exists $tables{$fkst};
 
 	my $pkst = "$row->{pk_namespace}.$row->{pk_relation}";
-	$tables{$pkst} = Unison::Schema::Table->new( 'st' => $pkst ) unless exists $tables{$pkst};
+	$tables{$pkst} = Unison::Schema::Table->new( namespace => $row->{pk_namespace},
+												 relation => $row->{pk_relation} ) unless exists $tables{$pkst};
 
 	$tables{$fkst}->add_fk( {
 							 %$row,
