@@ -25,7 +25,7 @@ sub new() {
 	 @_
 	};
 
-  if (exists $self->{st}) {
+  if (defined $self->{st}) {
 	($self->{namespace},$self->{relation}) = split(/\./,$self->{st});
   }
 
