@@ -1,0 +1,13 @@
+### LOCAL ADDITIONS 
+authentication_timeout = 15
+default_with_oids = false
+listen_addresses = '*'
+log_connections = true
+log_disconnections = true
+log_duration = true
+log_hostname = true
+log_line_prefix = '%t %p %u %d %x '
+log_statement = 'mod'
+log_min_duration_statement = 20000
+max_connections = 10
+#statement_timeout = 120000
