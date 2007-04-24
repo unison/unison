@@ -10,17 +10,28 @@ select(STDOUT); $|++;
 
 sub new() {
   my $class = shift;
-  my $self = 
+  my $self =
 	{
-	 st => undef,
-	 fks => [],
 	 cq => undef,
-	 pq => undef,
+	 fks => [],
+	 namespace => undef,
 	 pkq => undef,
+	 pq => undef,
 	 pred => [],
+	 relation => undef,
 	 restricted => 0,
+	 st => undef,
+
 	 @_
 	};
+
+  if (exists $self->{st}) {
+	($self->{namespace},$self->{relation}) = split(/\./,$self->{st});
+  }
+
+  $self->{st} = "$self->{namespace}.$self->{relation}";
+  $self->{qst} = "\"$self->{namespace}\".\"$self->{relation}\"";
+
   bless $self, $class;
 }
 
@@ -53,7 +64,8 @@ sub pred_query() {
   my ($self) = @_;
   warn(">> pq($self->{st})\n") if $ENV{DEBUG};
   if (not defined $self->{pq}) {
-	my $q = "SELECT * FROM ONLY $self->{st}";
+	my $q = sprintf('SELECT * FROM ONLY "%s"."%s"',
+					$self->{namespace}, $self->{relation});
 	if (@{$self->{pred}}) {
 	  $q .= ' WHERE ' . join(' AND ', @{$self->{pred}});
 	}
