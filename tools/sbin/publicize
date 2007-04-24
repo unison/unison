@@ -35,7 +35,7 @@ sub get_schema_dump($$);
 sub restore_subset($$);
 sub apply_custom_configuration($$$);
 
-my $CVSId = q$Id: publicize,v 1.46 2007/04/23 22:36:37 rkh Exp $; 
+my $CVSId = q$Id: publicize,v 1.47 2007/04/24 02:37:37 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
@@ -78,7 +78,7 @@ print(STDERR
 # and order of the output of this script.
 get_schema_dump($src_db,$dump_fn);			# dies on error
 my @toc =  get_dump_toc($dump_fn);			# dies on error
-@toc = grep { m/cytoband/ } @toc;
+@toc = grep { m/unison-aux/ } @toc;
 printf(STDERR "%d TOC entries\n", $#toc+1);
 
 
@@ -104,7 +104,6 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
 
   my ($schema,$table) = $table_tocs[$i] =~ m/^\d+; \d+ \d+ TABLE (\S+) (\S+)/;
   my $st = "$schema.$table";
-  my $qst = join('.',map {"\"$_\""} split(/\./,$st));
 
   my $pfx = sprintf("* %3d/%3d %-30s", $i+1, $#table_tocs+1, "$st: ");
 
@@ -127,7 +126,7 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
   print("-- COPY QUERY FOR $st\n$cqc\n");
 
   print(STDERR "$pfx  (querying)\r") if (-t 2);
-  print("COPY $qst FROM STDIN;\n");
+  print("COPY $tables{$st}->{qst} FROM STDIN;\n");
   $src_psql_w->print("COPY ($cq) TO STDOUT;\n");
   $src_psql_w->print("\\echo $TERM_STRING\n");
   my $nrows = 0;
