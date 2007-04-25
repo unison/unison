@@ -1,0 +1,14 @@
+#!/bin/sh
+
+PATH=/usr/local/bin:/usr/bin:bin
+PGDATA=/srv/postgresql
+
+#pg_ctl="/usr/local/bin/pg_ctl"
+pg_ctl="/usr/local/opt/postgresql/8.1.5/bin/pg_ctl"
+
+if ! [ -x "$pg_ctl" ]; then
+    echo "$0: $pg_ctl: No such file" 1>&2
+    exit 1;
+fi
+
+exec sudo -u postgres -H $pg_ctl -D "$PGDATA" ${1+"$@"}
