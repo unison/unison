@@ -6,7 +6,7 @@ export PGUSER:=unison
 
 default: Pfam_fs.load Pfam_ls.load
 
-Pfam_ls.load Pfam_fs.load: %.load: ${PFAM_DIR}/%.gz
+Pfam_ls.load Pfam_fs.load: %.load: ${PFAM_DIR}/%
 	load-pmhmm $< >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
