@@ -1,7 +1,11 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.11 2006/06/26 18:05:08 rkh Exp $
+# $Id: load-pmhmm,v 1.12 2006/08/04 03:00:26 rkh Exp $
 # load pfam HMM into unison
 # eg$ load-pmhmm /path/to/pfam-14.0/Pfam_fs
+
+
+# NOTE: See version 1.6 for the version that includes pmodel HMM
+# versioning
 
 
 use strict;
@@ -71,10 +75,12 @@ my $origin_id = $u->origin_si_origin_id($opts{origin});
 (defined $origin_id)
   || die("$0: origin $opts{origin}: $@\n");
 
-my $sth = $u->prepare('update origin set url=?,descr=?,data_url=? where origin_id=?');
-$sth->execute('http://pfam.wustl.edu/cgi-bin/getdesc?acc=%s',
+my $sth = $u->prepare('update origin set url=?,link_url=?,descr=?,data_url=?,is_public=TRUE,version=? where origin_id=?');
+$sth->execute('http://pfam.janelia.org/',
+			  'http://pfam.janelia.org/cgi-bin/getdesc?acc=%s',
 			  $opts{descr},
 			  $data_url,
+			  $pfam_version,
 			  $origin_id)
   || die("$0: update origin: $@\n");
 
