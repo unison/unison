@@ -31,7 +31,7 @@ logs/homologene-load.log: ${HOMOLOGENE_DATA}
 	/bin/mv -f $@.err $@
 
 $(foreach t,${TABLES_GZ_SRCS},logs/$t-load.log): logs/%-load.log: ${GENE_DIR}/DATA/%.gz
-	(gzip -cdq <$< | perl -ne 'print unless m/^#/' | ${PSQL} -f sql/$*-load.sql) | tee $@.err
+	(gzip -cdq <$< | perl -ne 's/\\//g; print unless m/^#/' | ${PSQL} -f sql/$*-load.sql) | tee $@.err
 	/bin/mv -f $@.err $@
 
 $(foreach t,${TABLES_UC_SRCS},logs/$t-load.log): logs/%-load.log: ${GENE_DIR}/DATA/%
