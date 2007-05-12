@@ -20,12 +20,12 @@ my (@db_sec) = ();
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: search_properties.pl,v 1.19 2006/09/20 23:49:03 mukhyala Exp $ ');
+$p->add_footer_lines('$Id: search_properties.pl,v 1.20 2006/09/21 16:27:08 mukhyala Exp $ ');
 
 
 if (not exists $v->{submit}) {
   print $p->render("Search by Sequence Features",
-				   '$Id: search_properties.pl,v 1.19 2006/09/20 23:49:03 mukhyala Exp $',
+				   '$Id: search_properties.pl,v 1.20 2006/09/21 16:27:08 mukhyala Exp $',
 				   $p->warn('This page is a work-in-progress. ' .
 							'Complex searches may take several minutes!'),
 				   spit_form($p));
@@ -121,7 +121,7 @@ if ($v->{submit} !~ m/^sql/) {
 
 
 print $p->render("Feature Based Mining Results",
-				 '$Id: search_properties.pl,v 1.19 2006/09/20 23:49:03 mukhyala Exp $',
+				 '$Id: search_properties.pl,v 1.20 2006/09/21 16:27:08 mukhyala Exp $',
 				 @results,
 				 $p->sql( $sql ));
 
@@ -142,7 +142,7 @@ sub spit_form {
 	@{ $u->selectall_arrayref("select go_id,alias from gong.alias 
                                where alias ilike '%necrosis%'") };
   my %xs = map { $_->[0] => "$_->[1] (set $_->[0])" } 
-	@{ $u->selectall_arrayref("select pset_id,name from pset") }; 
+	@{ $u->selectall_arrayref("select pset_id,name from pset where pset_id>0") }; 
   my %sl = map { $_->[0] => "$_->[1] ($_->[2])" } 
 	@{ $u->selectall_arrayref("select tax_id,common,latin from tax.spspec
                                where tax_id in (7955,9606,10090,10116,10117,
@@ -234,7 +234,7 @@ sub spit_form {
 					-label => 'to Genentech-curated sets of ',
 					-checked => 0),
 	   $p->popup_menu(-name => 'al_ms_sel',
-					  -values => [keys %ms],
+					  -values => [sort keys %ms],
 					  -labels => \%ms,
 					  -default => 2),
 	   ' models',
@@ -257,7 +257,7 @@ sub spit_form {
 					-label => 'in set ',
 					-checked => 0),
 	   $p->popup_menu(-name => 'x_set_sel',
-					  -values => [sort keys %xs],
+					  -values => [sort {$a<=>$b} keys %xs],
 					  -labels => \%xs,
 					  -default => 5),
 	   '</td></tr>',
