@@ -2,7 +2,7 @@
 
 Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.34 2006/11/04 03:48:38 rkh Exp $>
+S<$Id: pseq_features.pm,v 1.35 2007/01/09 19:42:50 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -22,6 +22,11 @@ S<$Id: pseq_features.pm,v 1.34 2006/11/04 03:48:38 rkh Exp $>
 ## indicate when it hasn't been run)
 
 ## FIXME: standardize tooltip format as: <start>-<stop> (elided subseq)<br>score, etc
+
+## FIXME: ALWAYS check return val for functions like params_id(). When
+## they're null/undef, we need to return. When uncaught (eg, in pub web
+## site when params doesn't exist), the page barfs.
+
 
 
 package Unison::Utilities::pseq_features;
@@ -191,7 +196,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.34 2006/11/04 03:48:38 rkh Exp $',
+			  '$Id: pseq_features.pm,v 1.35 2007/01/09 19:42:50 mukhyala Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -512,15 +517,20 @@ sub add_paprospect {
   my ($u, $panel, $q, $params_id) = @_;
   my ($svm_thr,$topN) = (7,5);
   my $nadded = 0;
+
   $params_id = $u->preferred_params_id_by_pftype('Prospect') unless defined $params_id;
+  return unless defined $params_id;
+
   my $params_name = $u->get_params_name_by_params_id($params_id);
   my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef);
+
   my $sth = $u->prepare(<<EOT);
 SELECT *
 FROM paprospect_scop_v
 WHERE pseq_id=$q AND svm >= $svm_thr and params_id=$params_id
 EOT
   $sth->execute();
+
   my @raw_data;
   while ( my $row = $sth->fetchrow_hashref() ) {
 	push @raw_data,$row;
