@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.27 2006/06/16 17:53:38 rkh Exp $>
+S<$Id: DBI.pm,v 1.28 2007/02/10 01:05:29 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -46,12 +46,13 @@ our %opts =
 									 chomp $tmp; $tmp},
    password => $ENV{PGPASSWORD},
    attr => {
-			# I want to migrate to AutoCommit => 0, but this requires
+			# we should migrate to AutoCommit => 0, but this requires
 			# coordination with loading clients
 			AutoCommit => 1,
 
 			PrintError => 0,
 			RaiseError => 0,
+
 			# Does the following work as an alternative to
 			# setting HandleError explicitly below?
 			# HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },

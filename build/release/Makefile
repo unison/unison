@@ -1,9 +1,13 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.16 2007/01/09 01:08:35 mukhyala Exp $
+# $Id: Makefile,v 1.17 2007/02/07 01:08:23 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
 # eg$ make upload-1.0.0
+
+# some rules must be run as the user 'postgres':
+# eg$ sudo -u postgres make ...
+
 
 .PHONY: FORCE
 .SUFFIXES:
@@ -22,6 +26,29 @@ STAGE_DATABASE=csb-stage
 
 default all:
 	@echo "Ain't no stinking $@ target" 1>&2; exit 1
+
+%-pub.log: 
+	-dropdb $*-pub
+	createdb -EUTF8 -Ounison $*-pub
+	(set -e; time ~rkh/unison/tools/sbin/publicize $* | psql -d $*-pub -qa -f -) >$@.tmp 2>&1
+	/bin/mv -f "$@.tmp" "$@"
+	psql -d '$*-pub' -c 'alter database "$*-pub" set search_path = "$$user",unison,pdb,gong,scop,tax,public'
+	psql -d '$*-pub' -c 'analyze verbose'
+
+# run as postgres
+%.pgdfc: %.log
+	(time pg_dump -Fc $* >$@.tmp) 2>$@.err 
+	/bin/mv -f "$@.tmp" "$@"
+
+# NB: `./' is to prevent rsync from interpreting colons
+# run as rkh
+%-wepush: % %.md5
+	(time rsync --progress ./$* ./$*.md5 we:tmp/) >$@.tmp 2>&1
+	/bin/mv -f "$@.tmp" "$@"
+
+
+
+
 
 
 # build a tarball of the web pages
@@ -114,8 +141,8 @@ unison-%-restore.log: unison-%-data.psql.gz
 
 .PRECIOUS: %.md5
 %.md5: %
-	md5sum $< >$@.tmp
-	/bin/mv -f $@.tmp $@
+	md5sum $< >"$@.tmp"
+	/bin/mv -f "$@.tmp" "$@"
 
 .PRECIOUS: %.asc
 %.asc: %
