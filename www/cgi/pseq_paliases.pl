@@ -14,12 +14,16 @@ use Unison::WWW::utilities qw(alias_link text_wrap);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.19 2005/12/07 23:21:03 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_paliases.pl,v 1.20 2006/06/26 18:05:08 rkh Exp $ ');
 
+
+# coalesce is required because the Geneseq doesn't exist in the public
+# release, and therefore origin_id('geneseq') returns null and the
+# predicate returns NULL.
 my $sql = <<EOSQL;
 SELECT	origin,alias,latin as species,descr
  FROM	current_annotations_v A
-WHERE	pseq_id=$v->{pseq_id} AND origin_id!=origin_id('Geneseq')
+WHERE	pseq_id=$v->{pseq_id} AND origin_id!=coalesce(origin_id('Geneseq'),0)
 EOSQL
 
 my $ar = $u->selectall_arrayref($sql);
