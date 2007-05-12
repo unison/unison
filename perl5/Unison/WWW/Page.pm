@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.87 2006/09/08 23:59:33 rkh Exp $>
+S<$Id: Page.pm,v 1.88 2006/11/04 03:48:25 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -495,13 +495,12 @@ format C<text> as a SQL block on the web page
 sub sql {
   my $self = shift;
   #return '' unless $self->{userprefs}->{'show_sql'};
-
   # poor man's SQL pretty-printer.  This is not a bulletproof general
-  # reformatter, but it seems to suffice for most Unison queries.
+  # reformatter, but it suffices for most Unison queries.
   my $sql =  join( '', map {CGI::escapeHTML($_)} text_wrap(@_) );
   $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
   $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
-  $sql =~ s/\s+JOIN\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JOIN /ixg;
+  $sql =~ s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
   $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
   $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
   $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
@@ -1039,7 +1038,7 @@ sub _navbar {
 	  [1,1,'Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
 	  [1,1,'Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
 	  [0,1,'BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	  [1,1,'Prospect',	 	'Prospect threadings', 				'pseq_paprospect.pl', $pseq_id],
+	  [1,0,'Prospect',	 	'Prospect threadings', 				'pseq_paprospect.pl', $pseq_id],
 	  [1,1,'HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
 	  [0,1,'PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
 	  [0,1,'Interactions',		'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
