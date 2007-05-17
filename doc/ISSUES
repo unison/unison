@@ -12,12 +12,6 @@ which hasn't been run against.  Oops.
 2007-02-02 Reece Hart <reece@harts.net> -- I think this is done, but we
 should verify.
 
-** drop insert rule on palias IF IT IS UNUSED
-grep unison tree for any lingering uses of 'insert into palias...'
-
-
-
-
 
 * IMPORTANT:
 
@@ -232,3 +226,4 @@ tickles run history for sequences that have no entry in psl files
 best_annotation function parameterized by species/tax_id, permits
 NULL tax_id columns as well and defaults to human.
 
+** DONE: ** drop insert rule on palias
