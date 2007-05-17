@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-pfpsipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
 #
-# $Id: run-pfpsipred,v 1.5 2006/06/26 23:02:58 mukhyala Exp $
+# $Id: run-pfpsipred,v 1.6 2006/08/10 20:59:53 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -61,7 +61,7 @@ if (defined $opts{'pset_id'}) {
 
 push @pseq_ids, (@ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <> );
 
-my %run_me;  #pseqs to sun psipred
+my %run_me;  #pseqs to run psipred
 
 foreach my $pseq_id (@pseq_ids) {$run_me{ $pseq_id }++;}
 
