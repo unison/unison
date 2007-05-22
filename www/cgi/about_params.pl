@@ -16,7 +16,7 @@ my $star = '<span style="color: red;">*</span>';
 sub params_group($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines('$Id: about_params.pl,v 1.2 2005/11/21 20:24:18 rkh Exp $ ');
+$p->add_footer_lines('$Id: about_params.pl,v 1.3 2006/01/02 05:41:11 rkh Exp $ ');
 
 print $p->render("Available parameters",
 				 "$star indicates proprietary methods",
@@ -36,8 +36,11 @@ sub params_group($) {
 	$ar->[$i][1] =~ s/\s+/&nbsp;/g;
 	$ar->[$i][1] =~ s/\*/$star/;
 
-	$ar->[$i][2] =~ s%(http://.+db=pubmed\S+)%<a href="$1">[PubMed reference]</a>%
-	  || $ar->[$i][2] =~ s%(http://\S+)%<a href="$1">$1</a>%;
+	if (defined $ar->[$i][2]) {
+	  # rewrite urls to pubmed
+	  $ar->[$i][2] =~ s%(http://.+db=pubmed\S+uids=\d+)%<a href="$1">[PubMed]</a>%g;
+	  $ar->[$i][2] =~ s%(?<!href=")(http://[\w/\.]+)%<a href="$1">$1</a>%g;
+	}
 
 	$ar->[$i][3] = "<code>$ar->[$i][3]</code>";
   }
