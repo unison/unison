@@ -54,9 +54,5 @@ db: .${DB}-built
 
 
 
-clean::
-cleaner::
-	/bin/rm -f *.bo *.log *.ids .*.ids
-	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
-cleanest::
+cleandb:
 	/bin/rm -f .*-built *.fa *.phr *.pin *.psq
