@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.88 2006/11/04 03:48:25 rkh Exp $>
+S<$Id: Page.pm,v 1.89 2007/05/12 17:42:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -64,6 +64,7 @@ use Data::Dumper;
 
 $Data::Dumper::Indent = 1;
 
+sub _set_connection_params ($);
 sub _genentech_connection_params ($);
 sub _page_connect ($);
 sub _infer_pseq_id ($);
@@ -101,14 +102,7 @@ sub new {
   $v->{debug} = 0 unless defined $v->{debug};
 
   try {
-	if (not defined $ENV{SERVER_ADDR}) {
-	  # command line debugging
-	  $v->{username} = $ENV{USER} || `/usr/bin/id -un`;
-	  $v->{dbname} = $v->{dbname} || 'csb-dev';
-	} elsif ($ENV{SERVER_ADDR} =~ '^128\.137\.') {
-	  # Genentech subnet
-	  _genentech_connection_params($self)
-	}
+	$self->_set_connection_params();
 	_page_connect($self);
   } catch Unison::Exception with {
 	$self->die($_[0],
@@ -834,16 +828,12 @@ sub _page_connect ($) {
   my $self = shift;
   my $v = $self->Vars();
 
-  # These are the defaults expected for public versions of Unison
-  # Some or all may have been preset in new()
-  $v->{dbname} 	 = 'unison'	unless defined $v->{dbname};
-  $v->{username} = 'PUBLIC'	unless defined $v->{username};
-  # $v->{host}, $v->{password}->{host} may be undef
-
   $self->{unison} = new Unison( host => $v->{host},
 								dbname => $v->{dbname},
 								username => $v->{username},
-								password => $v->{password} );
+								password => $v->{password}
+								# NB: KRB5CCNAME may affect connection success
+							  );
   # Errors are caught by exceptions.
 
   # If the connection succeeded, then set PG vars so that spawned apps
@@ -861,18 +851,36 @@ sub _page_connect ($) {
 
 
 ######################################################################
+## _set_connection_params
+sub _set_connection_params ($) {
+  my $self = shift;
+  my $v = $self->Vars();
+
+  if (not defined $ENV{SERVER_ADDR}) {
+	# command line debugging
+	$v->{username} = $ENV{USER} || `/usr/bin/id -un`;
+	$v->{dbname} = $v->{dbname} || 'csb-dev';
+	return;
+ }
+
+  # These are the defaults expected for public versions of Unison
+  # May have been preset in U::WWW::Page::new()
+  $v->{dbname} 	 = 'unison'	unless defined $v->{dbname};
+  $v->{username} = 'PUBLIC'	unless defined $v->{username};
+  # $v->{host}, $v->{password}->{host} may be undef
+
+  _genentech_connection_params($self) if ($ENV{SERVER_ADDR} =~ '^128\.137\.');
+}
+
+######################################################################
 ## _genentech_connection_params
 sub _genentech_connection_params ($) {
   my $self = shift;
-
-  defined $ENV{SERVER_PORT}
-	|| CORE::die("_genentech_connection_params: called outside of web environment");
-
   my $v = $self->Vars();
 
   # If KRB5CCNAME is set, we're doing kerberos authentication.
   if (defined $ENV{KRB5CCNAME}) {
-	$v->{username} = $ENV{REMOTE_USER};
+	$v->{username} = $ENV{REMOTE_USER};		# what about krb5 outside of webserver?!
 	$v->{username} =~ s/@.+//;				# strip realm from krb identity
 	$v->{host} = 'csb';
   } else {
@@ -888,6 +896,10 @@ sub _genentech_connection_params ($) {
   return;
 }
 
+
+sub _get_connection_params($$$) {
+  
+}
 
 
 ######################################################################
