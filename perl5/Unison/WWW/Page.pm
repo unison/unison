@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.89 2007/05/12 17:42:37 rkh Exp $>
+S<$Id: Page.pm,v 1.90 2007/05/31 16:22:46 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -768,6 +768,7 @@ Return true if this is a production version of Unison.
 
 =cut
 sub is_prd_instance {
+  # should ~user/ paths be dev?
   return 1 if (defined $ENV{SERVER_PORT} and $ENV{SERVER_PORT}==80);
   return 0;
 }
@@ -852,6 +853,7 @@ sub _page_connect ($) {
 
 ######################################################################
 ## _set_connection_params
+## sets connection parameters in the Page's instance variables
 sub _set_connection_params ($) {
   my $self = shift;
   my $v = $self->Vars();
@@ -894,11 +896,6 @@ sub _genentech_connection_params ($) {
   elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
 
   return;
-}
-
-
-sub _get_connection_params($$$) {
-  
 }
 
 
