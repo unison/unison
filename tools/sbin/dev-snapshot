@@ -57,6 +57,8 @@ fi
 
 psql -c "select datname as \"database\",pg_size_pretty(pg_database_size(oid)) as \"size\" from pg_database where datname~'^csb' order by datname"
 
+df -h /srv
+
 /bin/date +'%F %T: finished'
 
 
