@@ -34,14 +34,15 @@ sub get_dump_toc($);
 sub get_schema_dump($$);
 sub restore_subset($$);
 sub apply_custom_configuration($$$);
+sub toc_entry_schema($);
 
-my $CVSId = q$Id: publicize,v 1.48 2007/04/24 02:53:14 rkh Exp $; 
+my $CVSId = q$Id: publicize,v 1.49 2007/04/24 02:54:50 rkh Exp $; 
 my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
-my %IGNORE_SCHEMAS = map {$_=>1} qw( mukhyala rkh matthejb twu cavs );
-my %IGNORE_TABLES = map {$_=>1} qw( unison.p2gblataln unison.p2gblatalnhsp unison.p2gblathsp
-		unison.paprospect );
+my %SCHEMAS = map {$_=>1} qw( pgutils  go gong marray ncbi pdb scop sst tax unison unison-aux unison_aux );
+my %IGNORE_TABLES = map {$_=>1} qw( unison.p2gblataln unison.p2gblatalnhsp
+		unison.p2gblathsp unison.paprospect );
 
 
 # config tags should include: copy_queries, predicates, include/skip schemas and tables
@@ -78,6 +79,7 @@ print(STDERR
 # and order of the output of this script.
 get_schema_dump($src_db,$dump_fn);			# dies on error
 my @toc =  get_dump_toc($dump_fn);			# dies on error
+@toc = grep { my $s = toc_entry_schema($_); not defined $s or exists $SCHEMAS{$s} } @toc;
 printf(STDERR "%d TOC entries\n", $#toc+1);
 
 
@@ -86,7 +88,8 @@ restore_subset( $dump_fn, [grep { m/\s(?:$phase1_re)\s/ } @toc] );
 
 
 print("-- PHASE 2: DATA\n");
-%tables = Unison->new(dbname => $src_db)->get_table_info();
+my $u = Unison->new(dbname => $src_db, username=>'PUBLIC');
+%tables = $u->get_table_info();
 apply_custom_configuration(\%tables,\%custom_table_predicates,\%custom_copy_queries);
 
 # to prevent cycles, I *think* I need to build the CODE custom copy queries first
@@ -105,11 +108,6 @@ for(my $i=0; $i<=$#table_tocs; $i++) {
   my $st = "$schema.$table";
 
   my $pfx = sprintf("* %3d/%3d %-30s", $i+1, $#table_tocs+1, "$st: ");
-
-  if (exists $IGNORE_SCHEMAS{$schema}) {
-	printf(STDERR "$pfx   %15s\n", 'schema skipped');
-	next;
-  }
 
   if (exists $IGNORE_TABLES{$st}) {
 	printf(STDERR "$pfx   %15s\n", 'table skipped');
@@ -256,4 +254,70 @@ sub apply_custom_configuration($$$) {
 	  $t->{$st}->add_pred( $ctp->{$st}->[$i] );
 	}
   }
+}
+
+
+sub toc_entry_schema($) {
+  my $te = shift;
+  my $tok = '[-\(\)\"\.\$\w]+';
+  my $ldr = '^\d+; \d+ \d+ ';
+
+  if ($te =~ m/${ldr}PROCEDURAL LANGUAGE/) {
+	return undef;
+  }
+
+  if ($te =~ m/${ldr}SCHEMA - ($tok)/) {
+	return $1;
+  }
+
+  if ($te =~ m/${ldr}ACL - ($tok)/) {
+	return $1;
+  }
+
+  if ($te =~ m/${ldr}COMMENT ($tok)/) {
+	return $1;
+  }
+
+  my @toc_entry_types =
+	(
+	 'ACL', 'AGGREGATE', 'CONSTRAINT', 'DEFAULT',
+	 'FK CONSTRAINT', 'FUNCTION', 'INDEX', 'RULE', 'SEQUENCE',
+	 'SEQUENCE OWNED BY', 'TABLE', 'TRIGGER', 'TYPE', 'VIEW'
+	);
+
+  my $tet_re = join('|',@toc_entry_types);
+  if ($te =~ m/$ldr(?:$tet_re) ($tok)/) {
+	return $1;
+  }
+
+  print(STDERR "TOC schema UNDEF>> $te");
+}
+
+sub toc_entry_sno($) {
+  my $te = shift;
+  my $tok = '[-\(\)\"\.\$\w]+';
+  my $ldr = '^\d+; \d+ \d+ ';
+  my ($s,$n,$o) = ($tok,$tok,$tok);
+
+  if ($te =~ m/${ldr}ACL - ($tok) ($tok)$/) {
+	return ($1,undef,$2);
+  }
+
+  if ($te =~ m/${ldr}COMMENT ($tok) (AGGREGATE|COLUMN|FUNCTION|INDEX|TABLE|VIEW) ($tok) ($tok)$/) {
+	return ($1,$3,$4);
+  }
+
+  my @toc_entry_types =
+	(
+	 'ACL', 'AGGREGATE', 'CONSTRAINT', 'DEFAULT',
+	 'FK CONSTRAINT', 'FUNCTION', 'INDEX', 'RULE', 'SEQUENCE',
+	 'SEQUENCE OWNED BY', 'TABLE', 'TRIGGER', 'TYPE', 'VIEW'
+	);
+
+  my $tet_re = join('|',@toc_entry_types);
+  if ($te =~ m/$ldr(?:$tet_re) ($tok) ($tok) ($tok)/) {
+	return ($1,$2,$3)
+  }
+
+  print(STDERR "TOC SNO UNDEF>> $te\n");
 }
