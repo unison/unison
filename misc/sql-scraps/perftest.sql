@@ -1,10 +1,11 @@
 drop table perftest_result;
+drop table perftest_run;
 drop table perftest_platform;
 drop table perftest_def;
 
 
 create table perftest_def (
-	perftest_def_id serial 	primary key,
+	def_id serial 	primary key,
 	current		boolean not null	default TRUE,
 
 	ordr		smallint not null	default 10000,	
@@ -22,7 +23,7 @@ create table perftest_def (
 	constraint max_avg_time_le_max_time check (max_avg_time<=max_time)
 );
 comment on table perftest_def is 'Unison regression test definitions';
-comment on column perftest_def.perftest_def_id is 'unique test definition identifier ';
+comment on column perftest_def.def_id is 'unique test definition identifier ';
 comment on column perftest_def.ordr is 'order in which test should be run';
 comment on column perftest_def.name is 'unique name for test';
 comment on column perftest_def.sql is 'sql definition';
@@ -35,7 +36,7 @@ grant select on perftest_def to PUBLIC;
 
 
 create table perftest_platform (
-	perftest_platform_id serial	primary key,
+	platform_id serial	primary key,
 	name 		text 	not null unique,
 	date 		timestamp not null default now(),
 	current		boolean not null default TRUE,
@@ -78,7 +79,7 @@ BEFORE INSERT OR UPDATE ON perftest_platform
 FOR EACH ROW EXECUTE PROCEDURE perftest_iu_trigger_fx();
 
 comment on table perftest_platform is 'hardware and software platform for a set of test results';
-comment on column perftest_platform.perftest_platform_id is 'unique id for a set of test results';
+comment on column perftest_platform.platform_id is 'unique id for a set of test results';
 comment on column perftest_platform.name is 'platform name';
 comment on column perftest_platform.date is 'date of test';
 comment on column perftest_platform.current is 'whether this platform is currently interesting';
@@ -95,24 +96,35 @@ comment on column perftest_platform.pg_version	is 'PostgreSQL x.y.z version';
 grant select on perftest_platform to PUBLIC;
 
 
+create table perftest_run (
+	run_id serial	primary key,
+	platform_id integer not null
+		references perftest_platform(platform_id) on delete cascade on update cascade,
+	start_ts	timestamp	not null,
+	stop_ts  	timestamp,
+	comments 	text
+);
+grant select on perftest_run to public;
+
+
 create table perftest_result (
-	perftest_def_id integer not null
-		references perftest_def(perftest_def_id) on delete cascade on update cascade,
-	perftest_platform_id integer not null
-		references perftest_platform(perftest_platform_id) on delete cascade on update cascade,
+	def_id integer not null
+		references perftest_def(def_id) on delete cascade on update cascade,
+	run_id integer not null
+		references perftest_run(run_id) on delete cascade on update cascade,
 	had_error	boolean	not null,
 	n_rows		integer,
 	times		integer[],
 	avg_time	integer,
 
-	constraint one_result_per_def_platform unique (perftest_def_id,perftest_platform_id),
+	constraint one_result_per_def_platform unique (def_id,run_id),
 
 	constraint n_rows_gt_zero check (n_rows>0),
 	constraint avg_time_gt_zero	check (avg_time>0)
 );
 comment on table perftest_result is 'results for a single test on single platform';
-comment on column perftest_result.perftest_def_id is 'test definition id';
-comment on column perftest_result.perftest_platform_id is 'test platform id';
+comment on column perftest_result.def_id is 'test definition id';
+comment on column perftest_result.run_id is 'test run id (implies one platform)';
 comment on column perftest_result.had_error is 'whether there was an error/exception for this test';
 comment on column perftest_result.n_rows is 'number of rows returned by this test';
 comment on column perftest_result.times is 'vector of elapsed times for this test (see perftest_platform.n_runs)';
@@ -123,8 +135,8 @@ grant select on perftest_result to PUBLIC;
 
 insert into perftest_def (n_runs,min_n_rows,max_time,max_avg_time,name,sql) values
 	--nr    rows        t      <t>  name                              sql
-	(  2,  25000,   53000,   53000, '7Q sequences'					, $$select * from pseq where seq~'QQQQQQQ'$$						),
-	(  3,   3300,      90,      90, '100 pahmms'					, $$select * from pahmm_v where pseq_id<100$$						),
+	(  5,  25000,   53000,   53000, '7Q sequences'					, $$select * from pseq where seq~'QQQQQQQ'$$						),
+	(  5,   3300,      90,      90, '100 pahmms'					, $$select * from pahmm_v where pseq_id<100$$						),
 	(  1,     50,  360000,  360000, $$Bcl-2s$$						, $$select * from bcl2_zebrafish_domains_v where known='f'$$		),
 	(  1,	 655,   31000,	 31000,	$$BH3 E3 Ligases (canned view)$$, $$select * from e3_and_bh3_cv$$									),
 	(  1,	 182,   33000,	 33000,	$$Kunitz-type inhibitors (canned view)$$,	$$select * from tm_kunitz_cv where "#TM">0$$ 			),
