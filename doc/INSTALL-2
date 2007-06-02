@@ -1,0 +1,73 @@
+UNISON INSTALLATION INSTRUCTIONS
+2007-04-16 Reece Hart <reece@harts.net>
+
+# = root prompt; $ = user prompt
+
+
+PostgreSQL Installation
+-----------------------
+- Install PostgreSQL, either from source (which is very easy on most
+  platforms) or from binary packages.
+- Install the pg_crypto, tsearch2, and ltree contrib packages
+- Configure pg_hba.conf for PUBLIC access
+- MAKE SURE YOU READ THE RELEASE NOTES -- ES
+
+For example, with 8.2.4:
+# cd /usr/local/opt/postgresql
+# tar -xjf postgresql-8.2.4.tar.bz2
+# cd postgresql-8.2.4
+# ./configure --enable-nls --enable-integer-datetimes --with-perl --with-openssl --prefix=/usr/local/opt/postgresql/8.2.4
+  (nb: if you have an extant postgresql, try `pg_config --configure' to
+   see how the current version was built.)
+# make
+# make install
+# make -C contrib/pgcrypto install
+# make -C contrib/ltree install
+# make -C contrib/tsearch2 install
+
+
+$ cd unison/build/src/
+$ make
+$ sudo -u compbio make install
+
+
+- MAJOR UPGRADES: *IF* you're doing a "major" upgrade (ie, difference x.y
+  version), you'll need to migrate your data. Here's a window into how I
+  do this:
+-- create the database cluster
+PGDATA=/srv/postgresql-8.2
+sudo sh -c "mkdir $PGDATA; chown postgres:postgres $PGDATA"
+sudo -H -u postgres initdb -D $PGDATA -EUTF8 --locale=C
+sudo -H -u postgres perl -i.bak -pe 's/#(port\s*=)\s*5432/$1 5433/' $PGDATA/postgresql.conf
+sudo -H -u postgres pg_ctl -D $PGDATA -l $PGDATA/log start
+sudo -H -u postgres sh -c 'pg_dump | psql -p 5433'
+
+
+-- create users
+sudo -u postgres createuser -S -R -D -p5433 PUBLIC
+sudo -u postgres createuser -S -R -D -p5433 unison
+sudo -u postgres createuser -S -R -D -p5433 loader
+sudo -u postgres createuser -S -R -D -p5433 rkh
+
+
+
+
+Apache2 Installation/Configuration
+----------------------------------
+
+Unison expect to run out of it's unpacked directory. The easiest way to do
+this is to unpack it wherever you keep external packages (eg,
+/opt/Unison/Unison-<version>/), and then configure an Apache alias for
+Unison.
+
+htdocs/unison -> 
+Requires AllowOverides 
+
+
+Unison Database Installation
+----------------------------
+
+-- create and restore the database
+sudo -u postgres sh -c 'dropdb -p 5433 csb-pub; createdb -E UTF8 -p 5433 csb-pub'
+(time sudo -u postgres pg_restore -d csb-pub -p5433 -v csb-pub.pgdfc) >|csb-pub-restore.log 2>&1 &
+
