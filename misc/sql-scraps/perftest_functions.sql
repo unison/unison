@@ -1,89 +1,51 @@
-create or replace function run_all_perftests(in ptpid integer)
-returns void
-language plpgsql
-as $_$
+CREATE OR REPLACE FUNCTION perftest_platform_id_by_name(text)
+RETURNS integer
+STRICT IMMUTABLE LANGUAGE SQL
+AS $_$ SELECT perftest_platform_id FROM perftest_platform WHERE name=$1 $_$;
+
+
+CREATE OR REPLACE FUNCTION perftest_platform_si( 
+	IN
+	ip text,
+	mac text,
+	uname_s text,
+	uname_n text,
+	uname_r text,
+	uname_m text,
+	ram_gb smallint,
+	fs_type text,
+	pg_version_str text,
+
+	OUT
+	perftest_platform_id integer
+	) 
+STRICT IMMUTABLE
+LANGUAGE plpgsql
+AS
+$_$
 DECLARE
-	pla perftest_platform%ROWTYPE;
-	def perftest_def%ROWTYPE;
-	res perftest_result%ROWTYPE;
-	i smallint;
-	t0 timestamp;
-	t1 timestamp;
-	td integer;
-	sum_td integer;
-	rows integer;
+	pg_version text := substring(pg_version_str from E'^PostgreSQL (\\S+) ');
 BEGIN
-	SELECT INTO pla * FROM perftest_platform where perftest_platform_id = ptpid;
+	perftest_platform_id := SELECT perftest_platform_id FROM perfest_platform_id P
+		ip = P.id
+		AND mac = P.mac
+		AND uname_s = P.uname_s
+		AND uname_n = P.uname_n
+		AND uname_r = P.uname_r
+		AND uname_m = P.uname_m
+		AND ram_gb = P.ram_gb
+		AND fs_type = P.fs_type
+		AND pg_version_str = P.pg_version_str;
+
 	IF NOT FOUND THEN
-		RAISE EXCEPTION 'perftest_platform_id=%: NOT FOUND; aborting', ptpid;
+		INSERT INTO perftest_platform
+			("name, ip", "mac", "uname_s", "uname_n", "uname_r", "uname_m", "ram_gb", "fs_type", "pg_version_str")
+			VALUES
+			(uname_n || ' (' || pg_version || ')', mac, uname_s, uname_n, uname_r, uname_m, ram_gb, fs_type, pg_version_str)
+			;
+		perftest_platform_id = lastval;
 	END IF;
-
-	-- sanity checks to ensure that the user doesn't call us with an obviously bogus
-	-- platform_id
-	IF NOT pla.current THEN
-		RAISE EXCEPTION 'perftest_platform_id=%: platform is not current; aborting', ptpid;
-	END IF;
-
-	IF pla.locked THEN
-		RAISE EXCEPTION 'perftest_platform_id=%: platform is locked; aborting', ptpid;
-	END IF;
-
-	IF pla.pg_version_str != version() THEN
-		RAISE EXCEPTION 'perftest_platform_id=% pg_version_str=% but version()=%; aborting', ptpid, pla.pg_version_str, version();
-	END IF;
-
-	IF pla.ip != inet_server_addr() THEN
-		RAISE EXCEPTION 'perftest_platform_id=% ip=% but inet_server_addr()=%; aborting', ptpid, pla_ip, inet_server_addr();
-	END IF;
-
-
-
-	RAISE NOTICE '* running perftest_platform_id=% (%)', ptpid, pla.name;
-
-	FOR def IN SELECT * FROM perftest_def WHERE current ORDER BY ordr,perftest_def_id LOOP
-		RAISE NOTICE 'perftest_def_id=% (%): %', def.perftest_def_id, def.name, def.sql;
-		sum_td := 0;
-		FOR i IN 1..def.n_runs LOOP
-			-- run test
-			t0 := clock_timestamp();
-			EXECUTE def.sql;
-			GET DIAGNOSTICS rows = ROW_COUNT;
-			t1 := clock_timestamp();
-			td := extract(milliseconds from t1-t0)::integer;
-
-			IF i = 1 THEN
-				res.n_rows = rows;
-				IF rows < def.min_n_rows THEN
-					RAISE WARNING 'perftest_def_id=%, #%: returned % rows; expected >%', def.perftest_def_id, i, rows, def.min_n_rows;
-				END IF;
-			ELSE
-				IF rows != res.n_rows THEN
-					RAISE WARNING 'perftest_def_id=%, #%: returned % rows; iteration 1 returned % rows', def.perftest_def_id, i, rows, res.n_rows;
-				END IF;
-			END IF;
-			
-			IF td > def.max_time THEN
-				RAISE WARNING 'perftest_def_id=%, #%: time exceeded max_time (% ms > % ms)', def.perftest_def_id, i, td, def.max_time;
-			END IF;
 	
-			res.times[i] = td;
-			sum_td := sum_td + td;
-
-			RAISE NOTICE '  #%: % rows, % ms', i, rows, td;
-		END LOOP;
-
-		res.avg_time = sum_td / def.n_runs;
-		IF res.avg_time > def.max_avg_time THEN
-			RAISE WARNING 'perftest_def_id=%: avg_time (% ms) exceeed max_av_time (% ms)', def.perftest_def_id, res.avg_time, def.max_time;
-		END IF;
-
-		res.perftest_def_id := def.perftest_def_id;
-		res.perftest_platform_id := ptpid;
-		res.had_error := FALSE;
-
-		INSERT INTO perftest_result(perftest_def_id,perftest_platform_id,had_error,n_rows,times,avg_time)
-			VALUES (res.perftest_def_id,res.perftest_platform_id,res.had_error,res.n_rows,res.times,res.avg_time);
-	END LOOP;
+	RETURN perftest_platform_id;
 END;
 $_$;
-
