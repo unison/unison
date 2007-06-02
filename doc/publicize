@@ -1,0 +1,74 @@
+building a public database is much harder than one might guess.
+
+I just can't make deletes work reasonably: the cascading
+deletion/nullification take a very very long time to complete (ie, doesn't
+complete w/in 24h)
+
+The best solution seems to be to extract the public data into a new DB
+rather than removing the proprietary data from a "full" database.
+
+I tried doing this by filtering pg_dump output with custom FK selections.
+That worked -- once -- but is not very maintainable and is sensitive to
+schema changes.
+
+PG 8.2.x now supports a COPY exports using queries in lieu of tables, as in 
+COPY (SELECT a,b,c FROM T) TO STDOUT.
+This opens the possibility of crafting subqueries for the appropriate
+data, which is likely to be much more efficient.
+
+I tried doing this with hand-written subqueries, but that is challenging.
+0' and 1'-order cascading delete dependencies are easy.  2'-order and
+multi-way dependencies are more challenging and painstaking to
+write. Furthermore, these are sensitive to schema changes.  I haven't even
+tried to deal with nullification (ie, 'on delete set null') sorts of
+constraints.
+
+
+I'm gearing up for another rewrite. The end-goals:
+- extract a consistent public database
+- extract a consistent sub-database
+- don't be schema dependent
+- perhaps be a general tool for any database
+
+Implementation goals:
+- given some query predicates, potentially on PK tables, project those to dependent tables
+
+Interface:
+- specify predicates
+- wrap up predicates into sets (eg, 'public', 'subset')
+- out as SQL
+- db comment, owner, acls
+- allow custom sql for table extraction
+
+Flow:
+user input => get schema info => build table copy queries => phase1 => copy => phase2
+
+
+Gotchas:
+- NULL fks (when FK is nullable) => left join
+- CASCADE SET NULL constraints => hmm
+
+
+dependencies mostly follow FK->PK (FK dep. on PK). BUT, consider the
+case with pseqalias, paliasorigin, pseq, origin
+
+
+		O		Q		P
+		^	    ^
+		|       |
+		AO  ____|
+		^  /
+		| /
+		SA
+
+
+The O query is (select * from O where is_public)
+The AO query is (select * from AO JOIN (O query))
+The SA query is (select * from AS JOIN (AO query))
+--BUT--
+The Q query should be (select * from Q JOIN (SELECT pseq_id from SA query)).
+That is, the predictate goes the opposite direction of the FK-PK constraint.
+
+This sort of predicate needs to be coded manually, and by reference to the
+automatically built SA query.
+
