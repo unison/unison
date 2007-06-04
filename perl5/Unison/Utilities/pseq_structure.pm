@@ -2,7 +2,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.12 2005/12/07 07:27:57 rkh Exp $;
+$ID = q$Id: pseq_structure.pm,v 1.13 2005/12/07 23:21:02 rkh Exp $;
 
 =head1 SYNOPSIS
 
@@ -192,7 +192,25 @@ sub set_js_vars {
 
       $stringio->print("seq_str[pdbid][$i] = \'$res\';\n") if(defined($res));
     }
+
   }
+
+  foreach my $pdbid (@{$self->{'structure_ids'}}) {
+
+    my $j  = 0;
+    $stringio->print("pdbid = \'$pdbid\';seq_str[pdbid] = new Object;");
+
+    foreach my $i ($self->{'structures'}{$pdbid}{'qstart'}..$self->{'structures'}{$pdbid}{'qstop'}) {
+      my $structure_pos = $j++;
+      next if (!defined($self->{'seq_str_map'}{$pdbid}{$structure_pos}));
+      my $pdb_res = $self->{'seq_str_map'}{$pdbid}{$structure_pos};
+      my $res = $pdb_res->{'res_id'};
+
+      $stringio->print("seq_str[pdbid][$i] = \'$res\';\n") if(defined($res));
+    }
+
+  }
+
   $stringio->print("pdbid=\'".$self->{loaded_structure}."\';</script></form>");
   return $retval;
 }
