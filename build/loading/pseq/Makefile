@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.24 2006/10/09 01:35:02 rkh Exp $
+# $Id: Makefile,v 1.25 2006/11/07 19:49:04 mukhyala Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, Ensembl, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -175,6 +175,7 @@ cleaner:: clean
 cleanest:: cleaner
 	/bin/rm -f *.load
 	/bin/rm -fr data
+	/bin/rm -f *.fa *.proids
 
 
 
