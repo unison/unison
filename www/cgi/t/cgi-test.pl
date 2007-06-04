@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.16 2006/09/11 20:09:23 mukhyala Exp $
+# $Id: cgi-test.pl,v 1.17 2007/02/01 22:03:28 mukhyala Exp $
 
 use warnings;
 use strict;
@@ -24,7 +24,7 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.16 2006/09/11 20:09:23 mukhyala Exp $
+# $Id: cgi-test.pl,v 1.17 2007/02/01 22:03:28 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -129,7 +129,7 @@ my %dir_scripts = map {$_=>1} grep {not m%(?:CVS|t|~)$%} glob('./* ../*');
 my @badwords = ('Server Error', 'Object not found', 'DBIError', 'Exception', 'Error');
 my $npassed =  0;
 
-print('$Id: cgi-test.pl,v 1.16 2006/09/11 20:09:23 mukhyala Exp $ ', "\n\n");
+print('$Id: cgi-test.pl,v 1.17 2007/02/01 22:03:28 mukhyala Exp $ ', "\n\n");
 
 printf("%-30.30s\tstatus\t%7s\tmessage\n",'script','time');
 print('='x76,"\n");
@@ -142,10 +142,10 @@ foreach my $cgi (@cgi_scripts) {
       ($ENV{QUERY_STRING} = $cgi->[1]) =~ s/ /;/g;
   }
   my $cmd = $cgi->[0];
-  if(not $opts{html}) {
-    $cmd .= " host=$opts{host} dbname=$opts{dbname} ";
-    $cmd .= $cgi->[1] if (defined $cgi->[1]);
+  if(not $opts{html} and $cgi->[0] ne '../nph-pdb-fetch.sh') {
+    $cmd .= " host=$opts{host} dbname=$opts{dbname}";
   }
+  $cmd .= " $cgi->[1]" if (defined $cgi->[1]);
   delete $dir_scripts{$cgi->[0]};
   printf( '%-30.30s', $cgi->[0] . ' ' . '.' x 30 );
 
