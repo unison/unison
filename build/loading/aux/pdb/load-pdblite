@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pdblite,v 1.3 2006/01/18 03:05:24 rkh Exp $
+# $Id: load-pdblite,v 1.4 2006/06/19 22:03:18 mukhyala Exp $
 # load-pdblite -- load pdb data
 
 use warnings;
@@ -124,8 +124,8 @@ sub insert_data {
     }
     else {
       if(!$dbh->do("COPY $opts{schema}.$table FROM STDIN with null as \'\';")){return 0;}
-      if(!$dbh->func($data->{$table}, 'putline')){return 0;}
-      $dbh->func('endcopy');
+      if(!$dbh->pg_putline($data->{$table})){return 0;}
+      if(!$dbh->pg_endcopy){return 0;}
     }
   }
   return 1;
