@@ -5,6 +5,8 @@ include ../local.mk
 include ../params.mk
 
 DIRS:=ncbi pdb scop tax hugo marray
+
+CLEANUP_DIRS=${DIRS}
 ifeq "${GNE}" "1"
 DIRS+=sst
 endif
@@ -17,3 +19,6 @@ update: ${LOGS}
 
 ${LOGS}: %.log:
 	make -C$* update
+
+clean cleaner cleanest::
+	for dir in ${CLEANUP_DIRS}; do make -C $$dir $@; done
