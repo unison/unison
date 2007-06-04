@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.32 2007/03/08 19:47:44 mukhyala Exp $
+## $Id: Makefile,v 1.33 2007/05/01 04:02:29 mukhyala Exp $
 
 default all: update
 
@@ -15,6 +15,7 @@ CLEANUP_DIRS=
 
 ######################################################################
 # 0. "AUXILIARY" DATABASES AND SCHEMAS
+CLEANUP_DIRS+=aux
 .PHONY: phase0
 phase0: aux.log
 aux.log:
@@ -169,7 +170,7 @@ push-cvsignore:
 
 
 clean cleaner cleanest::
-	for dir in ${DIRS}; do make -C $$dir $@; done
+	for dir in ${CLEANUP_DIRS}; do make -C $$dir $@; done
 clean::
 cleaner:: clean
 cleanest:: cleaner
