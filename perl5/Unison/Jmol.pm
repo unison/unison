@@ -1,12 +1,13 @@
 # utilities for calling jmol functions
-# $Id: Jmol.pm,v 1.13 2006/08/14 21:12:47 mukhyala Exp $
+# FIXME: This module is misplaced. Move it to U::W::Jmol.pm
+# $Id: Jmol.pm,v 1.14 2007/06/05 16:46:31 rkh Exp $
 ###########################################################
 
 package Unison::Jmol;
 
 use strict;
-use Carp;
-use vars qw( $VERSION );
+use warnings;
+
 
 sub new {
   my ($class,$width,$height) = @_;
