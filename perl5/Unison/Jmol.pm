@@ -1,7 +1,11 @@
 # utilities for calling jmol functions
-# FIXME: This module is misplaced. Move it to U::W::Jmol.pm
-# $Id: Jmol.pm,v 1.14 2007/06/05 16:46:31 rkh Exp $
+# $Id: Jmol.pm,v 1.15 2007/06/06 05:25:30 rkh Exp $
 ###########################################################
+
+# FIXME: This module is misplaced. Move it to U::W::Jmol.pm
+
+# FIXME: routines need comments badly
+
 
 package Unison::Jmol;
 
@@ -44,7 +48,7 @@ sub initialize {
     $retval .= "\n<table border=1><tr><td colspan=3>\n";
     $retval .= "<script>jmolInitialize(\"../js/jmol/\");\n";
     $retval .= "jmolApplet([$self->{'width'}, $self->{'height'}],\"".$self->_load_script("../js/Jmol/pdb/all.ent/$fn",$select_chain,$name);
-    $retval .= $self->highlights($select_chain) if (defined($self->{'highlights'}));
+    $retval .= $self->highlights($select_chain,$pseq_structure,$name) if (defined($self->{'highlights'}));
     $retval .= "\");\n";
     $retval .= "</script></td></tr>\n";
     $retval .= "<tr><td colspan=3><center>\n";
@@ -82,6 +86,7 @@ sub load {
     my $name = substr($fn,3,4);
     my $pdb_url = pdb_url($fn);
 	$self->_load_script($fn,$select_chain,$name);
+    #return "load $pdb_url; spacefill off; wireframe off; cartoon on; color cartoon structure;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
 }
 
 sub pos_view {
@@ -120,23 +125,33 @@ sub set_highlight_regions {
   $self->{'highlights'} = $ref;
 }
 
+
 sub highlights {
-  my $self = shift;
-  my $chain = shift;
+  my ($self,$chain,$pseq_str,$pdbid) = @_;
   my $script = '';
   my $ref = $self->{'highlights'};
-
   foreach my $r (sort {($ref->{$b}{end} - $ref->{$b}{start}) <=> ($ref->{$a}{end} - $ref->{$a}{start})} 
 				 keys %{$ref}) {
-	next unless defined($ref->{$r}{color});
-	my $end = $ref->{$r}{end};
+	next unless defined($ref->{$r}{colour});
+
+	#translate query coordinates to structure coordinates
+	my $str = (defined $pseq_str->{'templates'}{$pdbid} ? $pseq_str->{'templates'}{$pdbid} : $pseq_str->{'structures'}{$pdbid});
+	#distance from query start
+	my $start= $ref->{$r}{start} - $str->{'qstart'};
+	my $end = $ref->{$r}{end} - $str->{'qstart'} if defined $ref->{$r}{end};
+
+	#equal to distance from template start(only for ungapped alignments) 
+	$ref->{$r}{start} = $str->{'tstart'} + $start;
+	$ref->{$r}{end}   = $str->{'tstart'} + $end if defined $end;
+	
 	$script .= (defined ($end) ?
-				$self->region_view($ref->{$r}{start},$chain,$ref->{$r}{end},$r,$ref->{$r}{color}) :
-				$self->pos_view($ref->{$r}{start},$chain,$r,$ref->{$r}{color})
+				$self->region_view($ref->{$r}{start},$chain,$ref->{$r}{end},$r,$ref->{$r}{colour}) :
+				$self->pos_view($ref->{$r}{start},$chain,$r,$ref->{$r}{colour})
 			   );
   }
   return $script;
 }
+
 
 sub link {
   my ($self,$script,$name) = @_;
