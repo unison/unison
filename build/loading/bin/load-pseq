@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.34 2007/02/16 22:38:22 rkh Exp $
+# $Id: load-pseq,v 1.35 2007/03/09 23:54:15 rkh Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -304,14 +304,18 @@ sub process_seq ($$$) {
 
 	if ( $o =~ m/^RefSeq/i ) {
 	  if ($opts{format} =~ m/genbank/i) {
-		push( @secondary_anno, [ "$o gi", $bs->primary_id(), $d, $t ] );
+	    push( @secondary_anno, [ "$o unversioned", $a, $d, $t ] ); 	    #unversioned alias
+	    push( @secondary_anno, [ "$o gi", $bs->primary_id(), $d, $t ] );
+	    if (not defined $bs->version()) {
+	      die("! Unison:$pseq_id couldn't find version for $id ($a: $d)\n");
+	    }
+	    $a .= '.' . $bs->version(); 	    #versioned alias
 	  } elsif ( $a =~ m/^gi\|(\d+)/ ) {
 		push( @secondary_anno, [ "$o gi", $1, $d, $t ] );
 	  }
 	  $a =~ s/^.*ref\|([^\|]+).*/$1/;		# refseq alias only
 	  (defined $a)
 		|| die("! Unison:$pseq_id ($id) doesn't contain a RefSeq accession!\n");
-
 	} elsif ( $o =~ m/^(?:pataa)/i ) {
 	  # the accession mess in pataa deflines isn't necessarily unique.  E.g.,
 	  # Unison:1795309, len=11, 2 annotations
@@ -331,7 +335,7 @@ sub process_seq ($$$) {
 		  my $newt = $gs_to_tax_id{uc($gs)};
 		}
 	  }
-	  #push(@anno, [$o,$bs->accession(),$d,$t] );
+	  push(@secondary_anno, [$o,$bs->accession(),$d,$t] );
 
 	} elsif ($o =~ m/^CCDS/i) {
 	  $d = $a;
