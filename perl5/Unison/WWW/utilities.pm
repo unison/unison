@@ -37,6 +37,8 @@ sub alias_link {
       return ( alias_pubmed_link ($alias) );
   } elsif ($alias =~ m/^[XN]P/) {
 	return( alias_reflink($alias) )
+  } elsif ($origin =~ m/GeneHub/) {
+	return( alias_ghlink($alias) )
   } else {
 	return( $_[0] );
   }
@@ -61,6 +63,10 @@ sub alias_proteome_link {
 sub alias_gglink {
   $_[0] =~ s%^(UNQ|PRO|DNA)(\d+)$%<a tooltip=\"link to GenenGenes:$_[0]\" href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;
   $_[0];
+  }
+
+sub alias_ghlink {
+  "<a tooltip=\"link to GeneHub:$_[0]\" href=\"http://research/genehub/jsp/SearchAction.jsp?searchVal0=$_[0]\">$_[0]</a>";
   }
 
 sub alias_splink {
