@@ -1,5 +1,5 @@
 # loading/pseq/Makefile -- loads sequences sources into Unison
-# $Id: Makefile,v 1.25 2006/11/07 19:49:04 mukhyala Exp $
+# $Id: Makefile,v 1.26 2007/06/04 18:02:35 mukhyala Exp $
 
 # This makefile coordinates the loading of sequences into the Unison pseq
 # table for UniProt, Ensembl, PDB, RefSeq, Derwent/Geneseq (proprietary), and
@@ -125,10 +125,10 @@ SPROT_VERSION := `grep Swiss  ${UNIPROT_DIR}/reldate.txt |cut -d' ' -f3`
 TrEMBL_VERSION:= `grep TrEMBL ${UNIPROT_DIR}/reldate.txt |cut -d' ' -f3`
 uniprot: uniprot_sprot.load uniprot_trembl.load 
 uniprot_sprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oUniProtKB/Swiss-Prot -fswiss -V${SPROT_VERSION} - >$@.err 2>&1
+	gzip -cdq $< | PERL5LIB=/gne/home/mukhyala/opt/lib/perl:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/Swiss-Prot -fswiss -V${SPROT_VERSION} - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oUniProtKB/TrEMBL -fswiss -V${TrEMBL_VERSION} - >$@.err 2>&1 
+	gzip -cdq $< |  PERL5LIB=/gne/home/mukhyala/opt/lib/perl:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/TrEMBL -fswiss -V${TrEMBL_VERSION} - >$@.err 2>&1 
 	/bin/mv -f $@.err $@
 
 
