@@ -1,11 +1,11 @@
 #!/bin/sh -e
 # dev2stage: copy dev database to stage
 # usage: dev2stage <stage-name>
-# $Id: dev2stage,v 1.21 2007/03/13 00:28:45 rkh Exp $
+# $Id: dev2stage,v 1.22 2007/04/10 22:06:32 rkh Exp $
 
 
 
-echo '# $Id: dev2stage,v 1.21 2007/03/13 00:28:45 rkh Exp $' 1>&2
+echo '# $Id: dev2stage,v 1.22 2007/04/10 22:06:32 rkh Exp $' 1>&2
 
 if [ $# != 1 -o -z "$1" ]; then
 	echo "$0: exactly one non-empty argument required for the stage name" 1>&2
@@ -14,6 +14,7 @@ fi
 
 export PGDATABASE="$1"
 export PGUSER=postgres
+export PGHOST=csb
 
 DUMP_OPTS=${DUMP_OPTS:-}
 
@@ -58,7 +59,7 @@ alter database "$PGDATABASE" set search_path = unison,unison_aux,gong,pdb,scop,s
 analyze verbose;
 
 select meta_update_kv('staged at', '`date +"%Y-%m-%d %H:%M:%S"`');
-select meta_update_kv('staged by', '\$Id: dev2stage,v 1.21 2007/03/13 00:28:45 rkh Exp $')
+select meta_update_kv('staged by', '\$Id: dev2stage,v 1.22 2007/04/10 22:06:32 rkh Exp $')
 EOF
 
 
