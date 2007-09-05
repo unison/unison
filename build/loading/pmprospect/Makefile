@@ -2,19 +2,20 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-TEMPLATE_ROOT:=${COMPBIO_PREFIX}/i686-linux-2.6/opt/prospect/data
-FSSP_ROOT:=${TEMPLATE_ROOT}/templates_xml
-SCOP_ROOT:=${TEMPLATE_ROOT}/templates_scop
+TEMPLATE_ROOT:=${RESEARCH_PREFIX}/apps/prospect/current/data
+fssp_ROOT:=${TEMPLATE_ROOT}/templates_xml
+scop_ROOT:=${TEMPLATE_ROOT}/templates_scop
+PMPROSPECT_DATA_DIR:=${UNISON_HOME}/runtime/data/pmprospect
 
 ORIGIN:=Prospect-3.0/FSSP
 
-fssp.ids:
-	perl -e 'my $$root=shift;opendir(D,$$root);my @f= grep {/.xml/} sort readdir(D);print "$$root/$$_\n",foreach @f;' ${FSSP_ROOT} > $@.tmp
+%.ids: %.list 
+	perl -e 'my $$root=shift;opendir(D,$$root);my @f= grep {/.xml/} sort readdir(D);print "$$root/$$_\n",foreach @f;' $* > $@.tmp
 	mv $@.tmp $@
 
-scop.ids:
-	perl -e 'my $$root=shift;opendir(D,$$root);my @f= grep {/.xml/} sort readdir(D);print "$$root/$$_\n",foreach @f;' ${SCOP_ROOT} > $@.tmp
-	mv $@.tmp $@
+%.list: 
+	perl -e 'my $$root=shift;opendir(D,$$root);my @f= grep {/.xml/} sort readdir(D);foreach (@f){s/\.xml//;print "$$_\n";}' ${$*_ROOT} > $@.tmp
+	mv $@.tmp ${PMPROSPECT_DATA_DIR}/$@
 
 %.load: %.ids
 	(time -p cat $< | load-pmprospect -o ${ORIGIN} -v)>$@.err 2>&1
