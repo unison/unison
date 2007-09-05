@@ -42,8 +42,9 @@ create or replace view pseq_features_bigpi_v as
  SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f."start", f.stop, f.score, f.pvalue::double precision AS eval, NULL::integer as origin_id, NULL::text as origin, NULL::integer AS pmodel_id, 'GPI Anchor'::text AS feature, NULL::text AS acc, NULL::text AS descr, (('site='::text || f.site_no::text) || '; quality='::text) || f.quality::text AS details, domain_digest(f.start,f.stop,'GPI',f.quality) as digest, NULL::text AS link_url
    FROM pfbigpi f
    JOIN params p ON f.params_id = p.params_id
-   JOIN pftype ft ON p.pftype_id = ft.pftype_id
-  WHERE f.params_id = preferred_params_id_by_pftype('BIG-PI'::text) AND (f.quality = 'A'::bpchar OR f.quality = 'B'::bpchar OR f.quality = 'C'::bpchar OR f.quality = 'D'::bpchar);
+   JOIN run r on r.params_id=p.params_id
+   JOIN pftype ft ON ft.preferred_run_id = r.run_id
+  WHERE ft.name = 'BIG-PI' AND (f.quality = 'A'::bpchar OR f.quality = 'B'::bpchar OR f.quality = 'C'::bpchar OR f.quality = 'D'::bpchar);
 
 create or replace view pseq_features_hmm_v as
  SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f."start", f.stop, f.score, f.eval, m.origin_id, o.origin, f.pmodel_id, m.name AS feature, m.acc, m.descr, NULL::text AS details, domain_digest(f.start,f.stop,m.name,f.score,f.eval) AS digest, link_url(m.origin_id, m.acc) AS link_url
@@ -51,39 +52,48 @@ create or replace view pseq_features_hmm_v as
    JOIN pmhmm m ON f.pmodel_id = m.pmodel_id
    JOIN origin o ON m.origin_id=o.origin_id
    JOIN params p ON f.params_id = p.params_id
-   JOIN pftype ft ON p.pftype_id = ft.pftype_id
-  WHERE f.params_id = preferred_params_id_by_pftype('HMM'::text) AND f.eval < 1::double precision;
+   JOIN run r on r.params_id=p.params_id
+   JOIN pftype ft ON ft.preferred_run_id = r.run_id
+  WHERE ft.name = 'HMM' AND m.is_current is true AND f.eval < 1::double precision;
 
 create or replace view pseq_features_regexp_v as
  SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f."start", f.stop, NULL::smallint AS score, NULL::double precision AS eval, m.origin_id, o.origin, f.pmodel_id, m.name AS feature, m.acc, m.descr, NULL::text AS details, domain_digest(f.start,f.stop,m.name,NULL) AS digest, link_url(m.origin_id, m.acc) AS link_url
    FROM pfregexp f
-   JOIN pmregexp m ON f.pmodel_id = m.pmodel_id
+   JOIN pmregexp m ON  ON f.pmodel_id = m.pmodel_id
    JOIN origin o ON m.origin_id=o.origin_id
    JOIN params p ON f.params_id = p.params_id
-   JOIN pftype ft ON p.pftype_id = ft.pftype_id
-  WHERE f.params_id = preferred_params_id_by_pftype('regexp'::text);
+   JOIN run r on r.params_id=p.params_id
+   JOIN pftype ft ON ft.preferred_run_id = r.run_id
+  WHERE ft.name = 'regexp';
 
 create or replace view pseq_features_signalpnn_v as
  SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f."start", f.stop, f.d_score AS score, NULL::double precision AS eval, NULL::integer as origin_id, NULL::text as origin, NULL::integer AS pmodel_id, 'SS'::text AS feature, NULL::text AS acc, 'signal sequence'::text AS descr, NULL::text AS details, domain_digest(f.start,f.stop,'SS',f.d_score) AS digest, NULL::text AS link_url
    FROM pfsignalpnn f
    JOIN params p ON f.params_id = p.params_id
-   JOIN pftype ft ON p.pftype_id = ft.pftype_id
-  WHERE f.params_id = preferred_params_id_by_pftype('SignalP'::text) AND f.signal_peptide = true;
+   JOIN run r on r.params_id=p.params_id
+   JOIN pftype ft ON ft.preferred_run_id = r.run_id
+  WHERE ft.name = 'SignalP' AND f.signal_peptide = true;
 
 create or replace view pseq_features_tmhmm_v as
  SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f."start", f.stop, NULL::smallint AS score, NULL::double precision AS eval, NULL::integer as origin_id, NULL::text as origin, NULL::integer AS pmodel_id, 'TM'::text AS feature, NULL::text AS acc, 'transmembrane domain'::text AS descr, NULL::text AS details, domain_digest(f.start,f.stop,'TM',NULL) AS digest, NULL::text AS link_url
    FROM pftmhmm f
    JOIN params p ON f.params_id = p.params_id
-   JOIN pftype ft ON p.pftype_id = ft.pftype_id
-  WHERE f.params_id = preferred_params_id_by_pftype('TMHMM'::text) AND (f."type" = 'M'::bpchar OR f."type" = 'N'::bpchar);
+   JOIN run r on r.params_id=p.params_id
+   JOIN pftype ft ON ft.preferred_run_id = r.run_id
+  WHERE ft.name = 'TMHMM' AND (f."type" = 'M'::bpchar OR f."type" = 'N'::bpchar);
 
 create or replace view pseq_features_tmhmm_excl_signal_v as
  SELECT tm.feature_type, tm.params_id, tm.params_name, tm.pseq_id, tm."start", tm.stop, tm.score, tm.eval, NULL::integer as origin_id, NULL::text as origin, tm.pmodel_id, tm.feature, tm.acc, tm.descr, tm.details, tm.digest, tm.link_url
    FROM pseq_features_tmhmm_v tm
-  WHERE tm.params_id = preferred_params_id_by_pftype('TMHMM'::text) AND NOT (EXISTS ( SELECT ss.pfeature_id, ss.pseq_id, ss.pftype_id, ss."start", ss.stop, ss.params_id, ss.d_score, ss.signal_peptide
+   JOIN run r on r.params_id=tm.params_id
+  WHERE r.run_id = preferred_run_id_by_pftype('TMHMM'::text) AND 
+	NOT (EXISTS 
+	( SELECT ss.pfeature_id, ss.pseq_id, ss.pftype_id, ss."start", ss.stop, ss.params_id, ss.d_score, ss.signal_peptide
            FROM pfsignalpnn ss
-          WHERE ss.pseq_id = tm.pseq_id AND ss.params_id = preferred_params_id_by_pftype('SignalP'::text) AND ss.signal_peptide = true AND ss.stop >=
-tm."start" AND ss."start" <= tm.stop));
+	   JOIN run r on r.params_id=ss.params_id
+           WHERE ss.pseq_id = tm.pseq_id AND r.run_id = preferred_run_id_by_pftype('SignalP'::text) AND ss.signal_peptide = true AND ss.stop >=
+tm."start" AND ss."start" <= tm.stop
+	));
 
 
 create or replace view pseq_features_v as
