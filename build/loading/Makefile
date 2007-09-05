@@ -1,5 +1,5 @@
 ## unison/loading/Makefile -- choreographs Unison loading
-## $Id: Makefile,v 1.33 2007/05/01 04:02:29 mukhyala Exp $
+## $Id: Makefile,v 1.34 2007/06/04 18:00:27 mukhyala Exp $
 
 default all: update
 
@@ -72,11 +72,9 @@ pseq_gene_mv.log: aux.log
 
 COMPUTE_DIRS:=
 COMPUTE_DIRS+=pahmm papseq #paprospect
-COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm pfseg pfpepcoil
+COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm pfseg pfpepcoil pfregexp 
 COMPUTE_DIRS+=pmap
-#GENELAND only: psprotcomp
-#NEEDS ATTENTION: papssm pfregexp
-#DEPRECATED: pftmdetect
+COMPUTE_DIRS+=psprotcomp
 CLEANUP_DIRS+=${COMPUTE_DIRS}
 .PHONY: phase3
 phase3: $(addsuffix .log,${COMPUTE_DIRS})
@@ -94,7 +92,7 @@ $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
 ######################################################################
 # 4. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
 PHASE4_FX:=update_psets_extrinsic
-PHASE4_MVV:=pmap_unambiguous pmap_unambiguous_overlaps pmap_locus_representative pseq_probe
+PHASE4_MVV:=pmap_unambiguous pmap_unambiguous_overlaps pmap_locus_representative pseq_probe papseq_pdbcs
 PHASE4_MVDV:=
 PHASE4_MV:= ${PHASE4_MVDV} ${PHASE4_MVV}
 
