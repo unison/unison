@@ -24,7 +24,7 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params( qw( pseq_id ) );
-$p->add_footer_lines('$Id: pseq_summary.pl,v 1.48 2006/11/06 22:11:32 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_summary.pl,v 1.49 2006/12/20 22:54:25 rkh Exp $ ');
 if (defined $v->{plugin_id}) {
   #$p->add_footer_lines('Thanks for using the plugin!');
   print(STDERR "plugin $v->{plugin_id} from $ENV{REMOTE_ADDR}\n");
@@ -68,11 +68,14 @@ sub summary_table ($) {
   my $locus = $u->selectrow_array('select chr||band from pseq_cytoband_v where pseq_id=? and params_id=48',
 								  undef, $v->{pseq_id});
 
+  # try best human annotation first, otherwise get best annotation for any species
+  my $ba = $u->best_annotation($v->{pseq_id}, 'HUMAN') || $u->best_annotation($v->{pseq_id});
+
   return
 	(
 	 '<table class="summary">',
 
-	 '<tr><th><div>Best Annotation</div></th> <td>', $u->best_annotation($v->{pseq_id}), '</td></tr>',
+	 '<tr><th><div>Best Annotation</div></th> <td>', $ba , '</td></tr>',
 
 	 '<tr><th><div>Entrez Annotations</div></th> <td>', 
 	 (map { sprintf("%s %s; %s (%s)", @{%$_}{qw(common symbol descr map_loc)}) }
@@ -108,10 +111,12 @@ sub sequence_group ($) {
   my $wrapped_seq = $seq;
   $wrapped_seq =~ s/.{60}/$&\n/g;
 
+  my $ba = $u->best_alias($v->{pseq_id}, 'HUMAN') || $u->best_alias($v->{pseq_id});
+
   $p->group(sprintf("Sequence (%d&nbsp;AA)", length($seq)),
 			"<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format",
 			'<br><pre>', 
-			'&gt;Unison:', $v->{pseq_id}, ' ', $u->best_alias($v->{pseq_id}),
+			'&gt;Unison:', $v->{pseq_id}, ' ', $ba,
 			'<br>',	$wrapped_seq,'</pre>',
 			)
 }
@@ -155,7 +160,7 @@ sub homologs_group ($) {
 
   if (not @tax_ids) {
 	# There are no tax_ids associated with this sequence.
-	my $sql_h = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
+	my $sql_h = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id,t_tax_id)
   	 from homologene_pairs_v where q_pseq_id=$v->{pseq_id} order by 1,3";
 	my $hr = $u->selectall_arrayref($sql_h);
 	do { $_->[0] = homologene_link($_->[0]) } for @$hr;
@@ -187,14 +192,14 @@ sub homologs_group ($) {
 
 
   # paralogs:
-  my $sql_p = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
+  my $sql_p = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id,t_tax_id)
   	 from homologene_paralogs_v where q_pseq_id=$v->{pseq_id} order by 1,3";
   my $pr = $u->selectall_arrayref($sql_p);
   do { $_->[0] = homologene_link($_->[0]) } for @$pr;
   do { $_->[1] = pseq_summary_link($_->[1],$_->[1]) } for @$pr;
 
   # orthologs:
-  my $sql_o = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id)
+  my $sql_o = "select t_gene_symbol, t_pseq_id, tax_id2gs(t_tax_id), best_annotation(t_pseq_id,t_tax_id)
   	from homologene_orthologs_v where q_pseq_id=$v->{pseq_id} order by 1,3";
   my $or = $u->selectall_arrayref("$sql_o");
   do { $_->[0] = homologene_link($_->[0]) } for @$or;
