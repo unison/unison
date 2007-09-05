@@ -1,9 +1,10 @@
 #!/usr/bin/perl
-# $Id$
+# $Id: run-pfpepcoil,v 1.4 2006/07/31 19:46:01 mukhyala Exp $
 
 use strict;
 use warnings;
 use Unison;
+use Unison::run;
 use File::Temp qw(tempfile tempdir);
 use Getopt::Long qw(:config gnu_getopt);
 use Bio::SeqIO;
@@ -14,12 +15,14 @@ sub fetch_sequences ($$@);
 
 my %opts =
   (
+   run_id=> undef,
    params_id => undef,
    'seqs-per-run' => 500,
   );
 
 GetOptions(\%opts,
 		   'params_id|p=i',
+	           'run_id|r=i',
 		   'verbose|v+',
 		   'seqs-per-run|N=i',
 		  ) || die("$0: you got usage issues, short stack\n");
@@ -28,10 +31,17 @@ GetOptions(\%opts,
 my $tmpdir = tempdir( CLEANUP => 1 );
 my $tmp_fa_fn= "$tmpdir/in.fa";
 
-(defined $opts{params_id})
-  || die("$0: parameters not defined (-p)\n");
+if (defined $opts{params_id}) {
+    die("$0: use run_id (-r),  may not specify params_id\n");
+}
 
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+my $u = new Unison();
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
+(defined $opts{params_id})
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
+
+
 my $insert_sth = $u->prepare(<<EOSQL);
 INSERT INTO pfpepcoil (params_id,pseq_id,start,stop,score,prob) VALUES ($opts{params_id},?,?,?,?,?)
 EOSQL
@@ -75,7 +85,7 @@ while ( @pseq_ids ) {
 		};
 	  }
 	}
-	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+	my $z = $u->upd_run_history($pseq_id,$opts{run_id});
 	$u->commit();
 
 	printf(STDERR "Unison:$pseq_id: %d coiled-coil regions; committed $z\n", $#data+1);
@@ -97,7 +107,7 @@ sub fetch_sequences ($$@) {
 	|| die("! couldn't open $seqfn for writing\n");
 
   foreach my $pseq_id (@pseq_ids) {
-	if (my $z = $u->already_ran($pseq_id,$opts{params_id},undef,undef)) {
+	if (my $z = $u->already_ran($pseq_id,$opts{run_id})) {
 	  warn("Unison:$pseq_id run with these parameters on $z\n");
 	  next;
 	}
