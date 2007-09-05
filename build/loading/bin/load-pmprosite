@@ -10,62 +10,127 @@ my $usage = <<'EOU';
 # OPTIONS:
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pmprosite,v 1.3 2006/06/29 17:25:38 mukhyala Exp $
+# $Id: load-pmprosite,v 1.4 2006/07/14 22:06:40 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
 use Getopt::Long;
 use ps_scan::Prosite;
 use Unison;
+use Unison::pmodelset;
+use Unison::pmregexp;
 
 use strict;
 use warnings;
 
-
-
 my %opts = (
+			'deprecate' => 0,
 			'origin' => undef,
-			'verbose' => 0,
+                        'version' => undef,
+			'verbose' => 1,
+	                'pmodelset' => undef
 );
 GetOptions( \%opts,
 			'origin|o=s',
-			'verbose|v')
+                        'pmodelset=s',
+        	        'version|V=s',
+			'verbose|v',
+			'deprecate+')
   || die("$0: bad usage:\n$usage\n");
 
-(defined $opts{origin})
-  || die("$0: --origin (-o) is mandatory\n\n$usage");
+$opts{origin} = 'Prosite' unless defined $opts{origin};
 
-my $u = new Unison( dbname=>'csb-dev', user=>'loader');
+(defined $opts{version})
+  || die("version must be specified when loading Prosite\n");
 
+$opts{pmodelset} = $opts{origin} unless defined $opts{pmodelset};
+$opts{pmodelset} .= " $opts{version}";
+
+my $u = new Unison( );
+
+# pmodel_ids_to_deprecate -- Initially, a hash of all pmodel ids in this
+# origin.  As models are loaded, we delete from this hash.  When we're
+# done loading sequences, any remaining pmodel ids refer to accessions
+# that are no longer in the source database.
+my %pmodel_ids_to_deprecate;
+if ($opts{deprecate}) {
+  %pmodel_ids_to_deprecate = map {$_->[0]=>1}
+	@{$u->selectall_arrayref("select pmodel_id from pmregexp where origin_id=origin_id('$opts{origin}')")};
+}
+
+$u->begin_work();
 my $origin_id = $u->origin_si_origin_id($opts{origin});
 (defined $origin_id)
   || die("$0: origin $opts{origin}: $@\n");
-printf(STDERR "# loading patterns from $opts{origin} (origin_id=$origin_id)\n") if($opts{verbose});
+
+my $sth = $u->prepare('update origin set version=? where origin_id=?');
+$sth->execute($opts{version},$origin_id)
+    || die("$0: update origin: $@\n");
+
+my $pmodelset_id = $u->pmodelset_si_pmodelset_id($opts{pmodelset});
+(defined $pmodelset_id)
+  || die("$0: pmodelset $opts{pmodelset}: $@\n");
+
+my $update_pmodelset_sth = $u->prepare('update pmodelset set descr=?,pmsm_table=?,def=?,locked=? where pmodelset_id=?');
+
+#unlocking pmodelset here.
+$update_pmodelset_sth->execute('regular expressions for prosite patterns',
+			  'pmsm_pmregexp',
+			  "select pmodel_id from pmregexp where origin_id=origin_id('$opts{origin}') and is_current=TRUE",
+			  'f',
+			  $pmodelset_id)
+  || die("$0: update pmodelset: $@\n");
+
+printf(STDERR "# loading patterns from $opts{origin} (origin_id=$origin_id) (version=$opts{version})\n") if($opts{verbose});
 
 my @fn = $u->selectrow_array("select data_url from origin where origin_id=$origin_id");
 open (PRO, $fn[0]) || die "Cannot open $fn[0]\n";
 
-my @insert_fields = qw(origin_id acc name descr regexp);
-
-my $insert_stmt = sprintf('insert into pmregexp (%s) values (%s)',
-						  join(',',@insert_fields),
-						  join(',',map {'?'} @insert_fields) );
-my $sth_insert_pmprosite = $u->prepare($insert_stmt);
-
-warn($insert_stmt);
-
 $/ = "\n//\n";
-$u->begin_work();
 while(my $blk = <PRO>) {
 
   my @p = Prosite::parseProsite($blk);
   if($p[0] and $p[2] eq 'PATTERN') {
-    my ($acc,$name,$descr,$regexp,$skip) = (@p[0..1],$p[3],Prosite::prositeToRegexp($p[4]),$p[7]);
-    $sth_insert_pmprosite->execute($origin_id,$acc,$name,$descr,$regexp) if(not $skip);
-    print(STDERR "$acc: $name ($descr) : $regexp\n");
+    my ($acc,$name,$descr,$regexp,$skip) = (@p[0..1],$p[3],Prosite::prositeToRegexp($p[4],0,0),$p[7]);
+    $regexp =~ s/(.)\)(.?)/$1$2/g;
+    $regexp =~ s/(.?)\((.)/$1$2/g;
+    if(not $skip) {
+      print(STDERR "$acc: $name ($descr) : $regexp\n");
+      my ($pmodel_id) = $u->pmregexp_si_pmodel_id($origin_id,$acc,$name,$descr,$regexp)
+       || die("$0: pmregexp_si_pmhmm: $@\n");
+      delete $pmodel_ids_to_deprecate{$pmodel_id};
+    }
   }
 }
+close(PRO);
+
+
+
+if ($opts{deprecate}) {
+  my $n_per_line = 8;
+	my (@pmodel_ids_to_deprecate) = sort {$a<=>$b} keys %pmodel_ids_to_deprecate;
+	printf("# Deprecating %d pmodel_ids\n",$#pmodel_ids_to_deprecate+1);
+	if ($opts{verbose}) {
+	  for(my $i=0; $i<=$#pmodel_ids_to_deprecate; $i += $n_per_line) {
+	    my $top = $i+$n_per_line-1;
+	    $top = $#pmodel_ids_to_deprecate if $top>$#pmodel_ids_to_deprecate;
+	    print(join("\t",'',@pmodel_ids_to_deprecate[$i..$top]),"\n");
+	  }
+	}
+	# Note:
+	# The only regexps we care about are those which aren't in the source
+	# database any longer, i.e., have is_current=TRUE still.
+	my $sth = $u->prepare('update pmregexp set is_current=false where pmodel_id=? and is_current=TRUE');
+	$sth->execute($_) foreach (@pmodel_ids_to_deprecate);
+      }
+
+my $update_pmsm_sth = $u->prepare('select update_pmodelset(?)');
+$update_pmsm_sth->execute($pmodelset_id) || die("$0: update pmsm_pmregexp: $@\n");
+#lock pmodelset
+my $lock_pmodelset_sth = $u->prepare('update pmodelset set locked=? where pmodelset_id=?');
+$lock_pmodelset_sth->execute('t', $pmodelset_id)  || die("$0: lock pmodelset: $@\n");
+
 printf("done; last updated=%s\n", $u->origin_last_updated($origin_id,1));
+printf("pmodelset last_updated=%s\n", $u->pmodelset_last_updated($pmodelset_id,1));
 print("Committing...\n");
 $u->commit();
-close(PRO);
