@@ -11,7 +11,7 @@ my $usage = <<'EOU';
 # OPTIONS:
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pmprospect,v 1.4 2006/06/26 18:05:08 rkh Exp $
+# $Id: load-pmprospect,v 1.5 2007/03/14 18:10:06 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -37,7 +37,7 @@ GetOptions( \%opts,
 (defined $opts{origin})
   || die("$0: --origin (-o) is mandatory\n\n$usage");
 
-my $u = new Unison(dbname=>'csb-dev', username=>'loader');
+my $u = new Unison();
 
 my $origin_id = $u->origin_si_origin_id($opts{origin});
 printf(STDERR "# loading prospect templates into $opts{origin} (origin_id=$origin_id)\n") if($opts{vebose});
