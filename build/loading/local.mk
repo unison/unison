@@ -1,5 +1,5 @@
 ## local.mk -- site-local definitions for Unison loading
-## $Id: local.mk,v 1.12 2006/11/21 18:18:49 mukhyala Exp $
+## $Id: local.mk,v 1.13 2006/12/13 19:52:05 mukhyala Exp $
 
 
 # Unison connection details
@@ -12,6 +12,7 @@ export PGUSER:=unison
 
 # Unison top-level directory
 UNISON_HOME:=${HOME}/unison
+export UNISON_HOME
 
 # where to find executables
 PATH:=${UNISON_HOME}/tools/sbin:${UNISON_HOME}/tools/bin:${UNISON_HOME}/build/loading/bin:${PATH}
