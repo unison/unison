@@ -5,10 +5,11 @@ include ../local.mk
 include ../params.mk
 
 N:=5
-QNAME=${SUBDIR}p${PSPROTCOMP_PARAMS_ID}
+QNAME:=${SUBDIR}-r${PSPROTCOMP_RUN_ID}
 RUNSET=runC-human
-NPER:=250
+PSPROTCOMP_SEQS_PER_RUN:=250
 
+PSPROTCOMP_RUN_ID:=`${PSQL_DCMD} "select preferred_run_id_by_pftype('Protcomp')"`
 
 update:
 	make cleanest
@@ -16,9 +17,9 @@ update:
 	make ${RUNSET}-todo-N${N}-qload
 
 %.load: %.ids
-	(time -p run-psprotcomp -v -N${PSPROTCOMP_SEQS_PER_RUN} <$<) >$@.err 2>&1
+	(time -p run-psprotcomp -v -N${PSPROTCOMP_SEQS_PER_RUN}  -r ${PSPROTCOMP_RUN_ID} <$<) >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 .done.ids:
-	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${PSPROTCOMP_PARAMS_ID}' >$@.tmp
+	${PSQL} -Atc "select pseq_id from run_history where run_id=${PSPROTCOMP_RUN_ID}" >$@.tmp
 	/bin/mv -f $@.tmp $@
