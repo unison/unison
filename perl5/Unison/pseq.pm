@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::pseq -- Unison pseq table utilities
-S<$Id: pseq.pm,v 1.22 2006/06/26 18:05:08 rkh Exp $>
+S<$Id: pseq.pm,v 1.23 2006/11/04 03:48:38 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -88,7 +88,7 @@ sub get_sequence_by_pseq_id ($) {
 
 =pod
 
-=item B<< $u->best_alias( C<pseq_id> ) >>
+=item B<< $u->best_alias( C<pseq_id>, [C<gs>] ) >>
 
 return the `best_alias' as determined heuristically by Unison.
 Briefly, the best_alias is the one specified by the pseq.palias_id if
@@ -98,13 +98,13 @@ origin.ann_pref ranking.  See also best_annotation.
 =cut
 
 sub best_alias {
-  my $self = shift;
-  my $pseq_id = shift;
+  my ($self,$pseq_id,$gs) = @_;
+
   # my $from_view = true_or_false( shift );
   $self->is_open()
 	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached( 'select best_alias(?)' );
-  $sth->execute( $pseq_id );
+  my $sth = (defined $gs ? $self->prepare_cached("select best_alias(?,?)") : $self->prepare_cached("select best_alias(?)"));
+  defined $gs ? $sth->execute( $pseq_id, $gs ) : $sth->execute( $pseq_id);
   my $ba = $sth->fetchrow_array();
   $sth->finish();
   return( $ba );
@@ -116,26 +116,25 @@ sub best_alias {
 
 =pod
 
-=item B<< $u->best_annotation( C<pseq_id> ) >>
+=item B<< $u->best_annotation( C<pseq_id>, [C<gs>] ) >>
 
 return the "best_annotation" as determined heuristically by Unison.
 Compare with the C<best_alias> method and see that for a definition of
-"best".
+"best". gs (genus-species eg HUMAN) is optional
 
 =cut
 
 sub best_annotation {
-  my $self = shift;
-  my $pseq_id = shift;
+  my ($self,$pseq_id,$gs) = @_;
+
   $self->is_open()
 	|| croak("Unison connection not established");
-  my $sth = $self->prepare_cached("select best_annotation(?)");
-  $sth->execute( $pseq_id );
+  my $sth = (defined $gs ? $self->prepare_cached("select best_annotation(?,?)") : $self->prepare_cached("select best_annotation(?)"));
+  defined $gs ? $sth->execute( $pseq_id, $gs ) : $sth->execute( $pseq_id);
   my $ba = $sth->fetchrow_array();
   $sth->finish();
   return( $ba );
 }
-
 
 
 ######################################################################
