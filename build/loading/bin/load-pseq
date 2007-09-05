@@ -13,7 +13,7 @@ my $usage = <<'EOU';
 #   --incl-subex|--inclsubex: flag to include suboptimal gene predictions
 #   --verbose|-v: flag to output more processing information
 #
-# $Id: load-pseq,v 1.35 2007/03/09 23:54:15 rkh Exp $
+# $Id: load-pseq,v 1.36 2007/06/20 22:06:41 mukhyala Exp $
 #------------------------------------------------------------------------------
 
 EOU
@@ -79,7 +79,7 @@ GetOptions( \%opts,
 		 join(',',sort {$a cmp $b} keys %af),")\n$usage\n");
 
 
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+my $u = new Unison();
 
 my %origin_to_origin_id;
 %origin_to_origin_id = map {$_->[0] => $_->[1]}

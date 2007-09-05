@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-p2 [psql options] --params_id <params_id> [--tfile <template file>] [--update]
 #
-# $Id: run-paprospect,v 1.21 2006/06/26 18:05:08 rkh Exp $
+# $Id: run-paprospect,v 1.22 2007/01/19 01:14:20 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use warnings;
@@ -15,6 +15,7 @@ use strict;
 use Unison;
 use Unison::SQL;
 use Unison::paprospect;
+use Unison::run;
 
 use Bio::Prospect::File;
 use Bio::Prospect::ThreadSummary;
@@ -30,10 +31,9 @@ my %opts =
   (
    'debug' => 0,
    'dry-run' => 0,
+   'run_id' => undef,
    'params_id' => undef,
    'pmodelset_id' => undef,
-   'origin_id' => undef,
-   'template-file' => undef,				# file of template names
    'templates' => undef,					# template names
    'update' => 0,							# try update before insert
    'verbose' => 1,
@@ -42,27 +42,32 @@ GetOptions
   (
    \%opts,
    'debug+',
-   'params_id|p=i',
-   'pmodelset_id|M=i@',
-   'origin_id|o=i@',
-   'template-file|tfile|T=s',
-   'templates|t=s@',
+   'run_id|r=i',
    'update',
    'verbose|v',
    'dry-run|n'
   )
   or die("$0: bad usage\n");
 
+my $u = new Unison();
 
-(defined $opts{params_id})
-  || die( "$0: --params_id|-p parameter missing\n" );
-if (defined $opts{'template-file'} or defined $opts{'templates'}) {
-  (defined $opts{'template-file'} and defined $opts{'templates'})
-	&& die("$0: may not specify both --template-file and --templates\n");
-  (defined $opts{'pmodelset_id'} or defined $opts{'origin_id'})
-	&& die("$0: may not specify pmodelset_id or origin_id with --template-file or --templates\n");
+if (defined $opts{params_id} || (defined $opts{pmodelset_id})) {
+    die("$0: use run_id (-r),  may not specify params_id/pmodelset_id\n");
 }
 
+($opts{params_id},$opts{pmodelset_id}) = (defined $opts{run_id} ? $u->get_run_params_id_pmodelset_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
+(defined $opts{params_id})
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
+(defined $opts{pmodelset_id})
+  || die("$0: could not fetch modelset from run_id $opts{run_id}\n");
+
+(defined $ENV{UNISON_HOME})
+  || die("$0: UNISON_HOME is not set\n");
+
+$opts{modelfile} = "$ENV{UNISON_HOME}/".$u->selectrow_array("select data_url from pmodelset where pmodelset_id=$opts{pmodelset_id}") || die ("$0: Could not fetch modelfile for modelset=$opts{pmodelset_id}\n");
+(-e $opts{modelfile} and -f $opts{modelfile})
+  || die("$0: $opts{modelfile} doesn't exist select data_url from pmodelset where pmodelset_id=$opts{pmodelset_id}\n");
 
 if ($opts{debug}) {
   select STDERR; $|++;
@@ -73,63 +78,22 @@ if ($opts{debug}) {
 my @pseq_ids = map {eval "$_"} @ARGV;
 my $N = $#pseq_ids+1;
 
-
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 my @cl = (@{$u->selectall_arrayref("select commandline from params where params_id=$opts{params_id}")->[0]});
-if (defined $opts{'pmodelset_id'} or defined $opts{'origin_id'}) {
-  # given pmodelset_id and/or origin_id, shove list of models in $opts{templates}
-  my $sql = new Unison::SQL;
-  $sql->columns('acc')
-	->table('pmprospect M');
-  if (defined $opts{pmodelset_id}) {
-	$sql->join('pmsm_pmprospect S on M.pmodel_id=S.pmodel_id')
-	  ->where('S.pmodelset_id in (' . join(',',@{$opts{pmodelset_id}}) . ')');
-  }
-  if (defined $opts{origin_id}) {
-	$sql->where('M.origin_id in (' . join(',',@{$opts{origin_id}}) . ')' );
-  }
-  $sql->order('acc');
-  (@{$opts{'templates'}}) = map {@$_} @{$u->selectall_arrayref("$sql")};
-}
-
-if (defined $opts{'templates'}) {
-
-  my ($fh,$fn) = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.lst' );
-  $fh->print(join("\n",@{$opts{templates}}),"\n");
-  $fh->close();
-  push(@cl, '--tfile ', $fn);
-  printf(STDERR "threading against %d templates\n", 1+$#{$opts{templates}});
-
-} elsif (defined $opts{'template-file'}) {
-  push(@cl, '--tfile ', $opts{'template-file'});
-  printf(STDERR "threading against templates in %s\n", $opts{'template-file'});
-}
-
-
+push(@cl, '--tfile ', $opts{modelfile});
 
 
 PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
   my $leader = "\rUnison:$pseq_id";
   print(STDERR $leader);
 
-  foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
-  foreach my $o (defined $opts{origin_id} ? @{$opts{origin_id}} : undef) {
-	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$o,$m);
-	if (defined $ran_on and not $opts{update}) {
-	  ## IMPORTANT NOTE: This is arguably broken when running with
-	  ## multiple pmodelset_id and/or origin_id arguments. Specifically,
-	  ## this conservatively skips running this entire sequence if ANY of
-	  ## the m/o compbinations are present. This may leave some m/o
-	  ## combinations un-run.
-	  if (not $opts{update}) {
-		print(STDERR "$leader: run with these options on $ran_on; skipping\n");
-		next PSEQ_ID;
-	  }
-	  print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
-	}
-  }}
-
-
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{run_id});
+  if (defined $ran_on and not $opts{update}) {
+    if (not $opts{update}) {
+      print(STDERR "$leader: run with these options on $ran_on; skipping\n");
+      next PSEQ_ID;
+    }
+    print(STDERR "$leader: run with these options on $ran_on; running anyway\n");
+  }
 
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   $leader .= " (" . length($seq) . " AA)";
@@ -155,12 +119,12 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 	print(STDERR "done\n");
 	next;
   }
-
+  $u->begin_work();
   for( my $i=0; $i<=$#summaries; $i++) {
 	my $ts = $summaries[$i];
 	printf(STDERR "$leader: loading %8s (%4d/%4d %3d%%)...", 
-		   $ts->tname(), ($i+1), ($#summaries+1), ($i+1)/($#summaries+1)*100 );
-    $u->delete_thread($pseq_id,$opts{params_id},$ts) if $opts{update};
+	       $ts->tname(), ($i+1), ($#summaries+1), ($i+1)/($#summaries+1)*100 );
+	$u->delete_thread($pseq_id,$opts{params_id},$ts) if $opts{update};
 	try {
 	  $u->insert_thread($pseq_id,$opts{params_id},$ts);
 	} catch Unison::Exception::DBIError with {
@@ -168,12 +132,10 @@ PSEQ_ID: while( my $pseq_id = shift(@pseq_ids) ) {
 	};
   }
 
-  my $z = $u->upd_run_histories($pseq_id,
-								$opts{params_id},
-								$opts{origin_id},
-								$opts{pmodelset_id});
+  my $z = $u->upd_run_history($pseq_id,$opts{run_id});
 
   print(STDERR "done; history tickled ($z)\n");
+  $u->commit();
 }
 
 sub xml2threadsummaries {
@@ -190,6 +152,9 @@ sub xml2threadsummaries {
 
 ############################################################################
 # $Log: run-paprospect,v $
+# Revision 1.22  2007/01/19 01:14:20  mukhyala
+# load paprospect module needed for loading
+#
 # Revision 1.21  2006/06/26 18:05:08  rkh
 # porigin_id -> origin_id rename
 #
