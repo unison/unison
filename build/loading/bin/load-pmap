@@ -4,7 +4,7 @@
 # PURPOSE: Parse PMAP psl output for protein-to-genome alignments. load
 #          output into Unison.
 #
-# $Id: load-pmap,v 1.12 2006/07/18 17:16:50 rkh Exp $
+# $Id: load-pmap,v 1.13 2007/03/19 19:00:53 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -13,6 +13,7 @@ use File::Basename;
 use Bio::Tools::Pmap;
 use Getopt::Long;
 use Unison;
+use Unison::run;
 use Unison::Exceptions;
 use Data::Dumper;
 
@@ -21,6 +22,7 @@ sub load_aln_hsps ($@);
 
 my %opts =
   (
+   run_id => undef,
    genasm_id => undef,
    pct_ident_cutoff => 80,
    score_cutoff => 80,
@@ -30,6 +32,7 @@ my %opts =
   );
 
 GetOptions(\%opts,
+	           'run_id|r=i',
 		   'pct_ident_cutoff|i=i',
 		   'genasm_id|g=i',
 		   'score_cutoff|s=i',
@@ -39,12 +42,20 @@ GetOptions(\%opts,
 		  ) || usage();
 
 ($#ARGV == 0
- and defined $opts{params_id}
  and defined $opts{genasm_id})
   || usage();
 
+my $u = new Unison();
 
-my $u = new Unison(dbname=>'csb-dev', username=>'loader');
+if (defined $opts{params_id}) {
+    die("$0: use run_id (-r),  may not specify params_id\n");
+}
+
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
+(defined $opts{params_id})
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
+
 
 my $psl_in = new Bio::Tools::Pmap( -file => $ARGV[0] ) || die "load-pmap error: problem with $ARGV[0]\n";
 
@@ -81,10 +92,11 @@ while ( my $aln = $psl_in->next_result() ) {
 	# insert queued alns
 	load_seq_alns($u,@alns);
 
-	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{run_id});
 	if (defined $ran_on) {
 	  print(STDERR "Unison:$pseq_id loaded with these options on $ran_on; skipping\n");
 	  $skip_pseq_id = $pseq_id;
+	  delete $run_me{$pseq_id};
 	  next;
 	}
 
@@ -105,7 +117,7 @@ load_seq_alns($u,@alns);
 # results... update their run_history (see `delete $run_me{}') above.
 foreach my $pseq ( keys %run_me ) {
   print("Unison:$pseq: no results; run_history tickled ",
-	$u->upd_run_history($pseq,$opts{params_id},undef,undef),
+	$u->upd_run_history($pseq,$opts{run_id}),
 	"\n");
 }
 exit(0);
@@ -159,7 +171,7 @@ sub load_seq_alns ($@) {
 	  }
 	}
 
-	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+	my $z = $u->upd_run_history($pseq_id,$opts{run_id});
 	$u->commit();
 	print(STDERR "  run_history tickled and load committed at $z\n");
 	delete $run_me{$pseq_id};
