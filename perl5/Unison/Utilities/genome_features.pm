@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.10 2006/08/16 18:53:03 mukhyala Exp $>
+S<$Id: genome_features.pm,v 1.11 2006/09/20 22:49:09 mukhyala Exp $>
 
 =head1 SYNOPSIS
 
@@ -146,7 +146,7 @@ sub genome_features_panel ($%) {
 		    -key_font => 'gdSmallFont',
 		    -bgcolor => 'green',
 		    -bump => +1,
-		     -key => '$Id: genome_features.pm,v 1.10 2006/08/16 18:53:03 mukhyala Exp $',
+		     -key => '$Id: genome_features.pm,v 1.11 2006/09/20 22:49:09 mukhyala Exp $',
 		     add_probes( $u, $panel, %opts )
 		   );
 
@@ -257,9 +257,10 @@ EOSQL
       $pmap_aln_id = $r->{aln_id};
       $strand = $r->{strand};
       print STDERR "Get a new feature\n" if $opts{verbose};
+      my $ba = $u->best_alias($r->{pseq_id}, 'HUMAN') || $u->best_alias($r->{pseq_id});
       $feat = new Bio::Graphics::Feature->new(-name=>sprintf('Unison:%d (%s)',
 															 $r->{pseq_id},
-															 $u->best_alias($r->{pseq_id})||'?'));
+															 $ba ||'?'));
       print STDERR "Add segment from $r->{gstart} .. $r->{gstop}\n" if $opts{verbose};
       $feat->add_segment( new Bio::Graphics::Feature->new(-start=>$r->{gstart},-end=>$r->{gstop}));
     }
