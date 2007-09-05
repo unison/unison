@@ -1,0 +1,184 @@
+04/07 mukhyala
+
+
+Summary of changes
+******************
+
+The objective of the following proposed changes is to adhere to the original design principle of Unison which is have a clear distinction between which (sequenecs/sequencesets) how (params) and what (models/modelsets) in the data as depicted below.
+
+
+      __M_______      
+    p/| ^      /|
+    /_|{m}___ / |
+   |  |      |  |
+ Q |  |______|__|
+{q}|  /      |  /
+   | /       | /
+   |/________|/
+
+where 
+q - sequence
+Q - sequence set
+p - param
+m - model
+M - model set
+
+I. Schema changes
+-----------------
+1. Tables and columns
+
+	a. Tables
+		i. New table name: run
+			column 		type 	comment
+			------------------------------------------------------
+			run_id		serial	primary key
+			name		text	name
+			parmas_id 	int	foreign key to params table
+			pmodelset_id	int	foreign key to pmodelset table
+		
+	b. columns
+		i. New columns in existing tables:
+			pmodelset:
+			column 		type 		comment
+			------------------------------------------------------
+			def		text		sql statement to fetch models 
+							to be inserted into pmsm_pm* 
+							tables to be used by 
+							update_pmodelset(int) function
+			pmsm_table	text		the pmsm_pm* table name that 
+							contains the pmodel_ids
+			lock            boolean		t/f used by update_pmodelset 
+							function to check if pmodelset 
+							can be edited 
+			last_updated	timestamp	date last updated
+			data_url	text		filepath for the database of models in this set
+
+			pmhmm:
+			column 		type 		comment
+			------------------------------------------------------
+			hmm		text		hmm
+
+			run_history:
+			column 		type 		comment
+			------------------------------------------------------
+			run_id		int		fk to run table
+
+			pftype:
+			column 			type 		comment
+			-----------------------------------------------------
+			preferred_run_id	int		fk to run table
+
+		ii. Columns to be deleted:
+			column			table		comment
+			--------------------------------------------------
+			origin_id		run_history
+			params_id		run_history 	can be linked through run_id
+			pmodelset_id		run_history	can be linked through run_id
+			model_origin_id		params
+			run_cmd_data		params (note: this is only for general 
+							schema cleanup)
+
+2. Constraints and Functions
+
+	a. pmodelset_immutable
+		A new trigger on pmsm_* tables that does not allow insert/update/delete if the lock column in the corresponing row in pmodelset table is true
+	b. update_pmodelset
+		A function to update pmodelset for a specified pmodelset_id,feature using the insert sql in pmodelset.update_sql
+		The function def is similar to update_pseq
+		
+	c. preferred_run_id
+		looks up the pftype table for a feature type and returns the corresponding preferred_run_id
+
+	d. pftype_run_id_exists 
+
+	e. get_run_timestamp
+		remove origin_id
+
+	f. upd_run_history
+		remove origin_id from both the versions (i,i,i,i) and (i,i,i,i,bool)
+
+	g. pmodelset_si_pmodelset_id
+		select/insert a pmodelset_id from pmodelset, returns pmodelset_id	
+
+	h. pmodel_id
+		returns the pmodel_id for the input acc and origin
+
+3. Data
+	a. A new params_id for standard HMMer runs: 
+		ldhmmpfam --acc -E10 -Z10000
+	b. New modelsets:
+		modelsets for Pfam 21.0 ls and fs
+	c. cleanup: 
+		params_id 42 and 43 will be deleted
+
+4. Views
+	a. Following views need changes in definition:
+		 i. run_history_v
+			drop the column origin since we are dropping the origin column from the run_history table
+			drop params_id and pmodelset_id but keep params name and pmodelset name
+		ii. run_v
+			shows params and modelset for each run_id
+
+	b. Following new views will be created (these views will be specific to the respective databases where the generic hmm and regexp will include all results)
+		 i. pseq_features_pfam_v
+		ii. pseq_featres_prosite_v
+
+II. build script changes
+-------------------------------
+
+1. run-scripts: The following run scripts will take -r run_id option
+	. run-pahmm
+		Default run with params_id and pmodelset_id.
+	. run-paprospect
+	. run-pfregexp
+	. load-papseq
+	. load-pmap
+	. run-pahmm
+	. run-paprospect
+	. run-pfbigpi
+	. run-pfpepcoil
+	. run-pfpsipred
+	. run-pfregexp
+	. run-pfseg
+	. run-pfsignalp
+	. run-pftmhmm
+	. run-psprotcomp ?
+
+2. load-scripts: The following load scripts will handle incremental updates
+	a. load-pmhmm
+		Store HMM's as a text column in pmhmm
+		use CKSUM to check if the model already exists
+	b. load-pmprospect
+		use acc to check if the model already exists
+	c. load-pmregexp
+		use regexp itself to check if it already exists
+
+3. Makefiles: 
+	Changes for run and load script commands
+	Rule for done.ids will include where run_id=?
+
+	pahmm-Makefile:
+	run-pahmm
+
+4. Modules:
+	run_history.pm
+		upd_run_history()
+		upd_run_histories()
+		already_ran()
+		get_run_timestamp()
+
+	pmodelset.pm
+		get_pmodelset_name_by_pmodelset_id
+		
+
+Remodel Plan:
+*************
+
+1. csb-test created by a backup-restore process.
+2. A single remodel sql script that makes all schema/data changes will be run to implement the changes.
+3. Updated run and load scripts will be tested against the test database.
+4. Performance testing on test database.
+5. Steps 2-4 untill all issues are resolved.
+6. Rerun remodel script on csb-dev.
+
+
