@@ -25,18 +25,16 @@ my $p = new Unison::WWW::EmbPage;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->ensure_required_params(qw(pseq_id params_id profiles));
-
+$p->ensure_required_params(qw(pseq_id params_id pmodelset_id profiles));
 
 try {
   my $html = _run_sequence($p);
   print $p->render("Unison:$v->{pseq_id} aligned to $v->{profiles}", 
-				   $html
-				  );
+		   $html
+		  );
 } catch Unison::Exception with {
   $p->die($_[0]);
 };
-
 
 
 sub _run_sequence() {
@@ -94,10 +92,15 @@ sub _run_sequence() {
 
 sub _get_model_file {
   my $data_url;
-  my $sql = "select o.data_url from origin o,run_history h where o.origin_id=h.origin_id and h.params_id=".$v->{params_id}." and h.pseq_id=".$v->{pseq_id};
+  my $sql = "select data_url from pmodelset where pmodelset_id=".$v->{pmodelset_id};
   try {
     $data_url = $u->selectrow_array($sql);
   };
-  $p->die("Could not get data_url for params_id = ".$v->{params_id}." and pseq_id = ".$v->{pseq_id}) if(!$data_url);
-  return $data_url;
+  $p->die("Could not get data_url for pmodelset_id = ".$v->{pmodelset_id}) if(!$data_url);
+
+  my $unison_home = $p->url(-absolute=>1);
+  $unison_home =~ s/unison.*/unison/;
+  $unison_home =~ s/^\///;
+
+  return "$unison_home/$data_url";
 }

@@ -26,10 +26,11 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->ensure_required_params(qw(pseq_id params_id profiles));
-$p->add_footer_lines('$Id: hmm_alignment.pl,v 1.9 2006/06/26 18:05:08 rkh Exp $');
+$p->ensure_required_params(qw(pseq_id params_id pmodelset_id profiles));
+$p->add_footer_lines('$Id: hmm_alignment.pl,v 1.10 2007/01/09 17:42:56 mukhyala Exp $');
 
 my $modelfile = _get_model_file();
+
 my ($hmmfh, $hmmfn) = $p->tempfile(SUFFIX=>'.hmm');
 my ($seqfh, $seqfn) = $p->tempfile(SUFFIX=>'.fasta');
 my ($htmlfh, $htmlfn) = $p->tempfile(SUFFIX=>'.html');
@@ -96,14 +97,16 @@ close($htmlfh);
 sub dummy_sub { return "";}
 
 sub _get_model_file {
-
   my $data_url;
-  my $sql = "select o.data_url from origin o,run_history h where o.origin_id=h.origin_id and h.params_id=".$v->{params_id}." and h.pseq_id=".$v->{pseq_id};
+  my $sql = "select data_url from pmodelset where pmodelset_id=".$v->{pmodelset_id};
   try {
     $data_url = $u->selectrow_array($sql);
-  } catch Unison::Exception with {
-    $p->die($_[0],"$sql");
   };
-  $p->die("Could not get data_url for params_id = ".$v->{params_id}." and pseq_id = ".$v->{pseq_id}) if(!$data_url);
-  return $data_url;
+  $p->die("Could not get data_url for pmodelset_id = ".$v->{pmodelset_id}) if(!$data_url);
+
+  my $unison_home = $p->url(-absolute=>1);
+  $unison_home =~ s/unison.*/unison/;
+  $unison_home =~ s/^\///;
+
+  return "$unison_home/$data_url";
 }

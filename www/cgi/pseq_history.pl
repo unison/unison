@@ -16,10 +16,10 @@ use Error qw(:try);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_history.pl,v 1.6 2005/07/18 20:56:24 rkh Exp $ ');
+$p->add_footer_lines('$Id: pseq_history.pl,v 1.7 2005/12/07 23:21:02 rkh Exp $ ');
 
 
-my $sql = qq/select params,origin,modelset,ran_on from run_history_v where pseq_id=$v->{pseq_id}/;
+my $sql = qq/select params,modelset,ran_on from run_history_v where pseq_id=$v->{pseq_id}/;
 my $ar;
 
 
@@ -32,7 +32,7 @@ try {
 };
 
 
-my @f = qw(params origin modelset ran_on);
+my @f = qw(params modelset ran_on);
 print $p->render("Run history for Unison:$v->{pseq_id}",
 				 $p->best_annotation($v->{pseq_id}),
 				 '<p>',
