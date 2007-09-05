@@ -5,27 +5,26 @@ include ../local.mk
 include ../params.mk
 
 N:=10
-QNAME=${SUBDIR}p${PAHMM_PARAMS_ID}
+QNAME:=${SUBDIR}-r${PAHMM_RUN_ID}
+QPPN:=2
 RUNSET=runC
 NPER:=500
 
+PFAM_FS_RUN_ID:=34
+PFAM_LS_RUN_ID:=37
 
-PAHMM_FS_PARAMS_ID:=52
-PAHMM_LS_PARAMS_ID:=53
+update: cleanest update-r${PFAM_FS_RUN_ID} update-r${PFAM_LS_RUN_ID}
 
-
-update: cleanest update-p${PAHMM_FS_PARAMS_ID} update-p${PAHMM_LS_PARAMS_ID}
-
-update-p%:
-	make ${RUNSET}.ids done-p$*.ids ${RUNSET}-p$*-todo.ids
-	PAHMM_PARAMS_ID=$* make ${RUNSET}-p$*-todo-N$N ${RUNSET}-p$*-todo-N$N-qload
+update-r%:
+	make ${RUNSET}.ids done-r$*.ids ${RUNSET}-r$*-todo.ids
+	PAHMM_RUN_ID=$* make ${RUNSET}-r$*-todo-N$N ${RUNSET}-r$*-todo-N$N-qload
 
 %.load: %.ids
-	(time -p run-pahmm -N${NPER} -p${PAHMM_PARAMS_ID} <$<) >$@.err 2>&1;
+	(time -p run-pahmm -N${NPER} -r${PAHMM_RUN_ID} <$<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
-${RUNSET}-p%-todo.ids: ${RUNSET}.ids done-p%.ids
+${RUNSET}-r%-todo.ids: ${RUNSET}.ids done-r%.ids
 	comm -23 $^ >$@
 
-.done-p%.ids:
-	${PSQL} -UPUBLIC -Atc 'select pseq_id from run_history where params_id=$*' >$@
+.done-r%.ids:
+	${PSQL} -Atc 'select pseq_id from run_history where run_id=$*' >$@
