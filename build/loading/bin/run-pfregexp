@@ -8,13 +8,14 @@ use warnings;
 use strict;
 
 use Unison;
+use Unison::run;
 use Unison::SQL;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use Error qw(:try);
 use Base::arrayUtilities qw(acomm);
 
-sub get_regexps($$$);
+sub get_regexps($$);
 sub get_matching_pseq_ids($@);
 sub firstN($@);
 
@@ -22,19 +23,30 @@ my %opts = (
 			'debug' => 0,
 			'params_id' => undef,
 			'pmodelset_id' => undef,
-			'origin_id' => undef,
+	                'run_id' => undef,
 	                'update'    => 0,
 			'verbose' => 1,
 		   );
 GetOptions(\%opts,
 		   'debug+',
-		   'pmodelset_id|M=i@',
-		   'origin_id|O=i@',
+	           'run_id|r=i',
 	           'update',
 		   'verbose!',
 		  )
   or die("$0: bad usage\n");
 
+if (defined $opts{params_id} || (defined $opts{pmodelset_id})) {
+    die("$0: use run_id (-r),  may not specify params_id/pmodelset_id\n");
+}
+
+my $u = new Unison();
+
+($opts{params_id},$opts{pmodelset_id}) = (defined $opts{run_id} ? ($u->get_run_params_id_pmodelset_id($opts{run_id})) :  die("$0: run not defined (-r)\n"));
+
+(defined $opts{params_id})
+    || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
+(defined $opts{pmodelset_id})
+    || die("$0: could not fetch modelset from run_id $opts{run_id}\n");
 
 if ($opts{debug}) {
   select STDERR; $|++;
@@ -42,23 +54,10 @@ if ($opts{debug}) {
   print Dumper(\%opts);
 }
 
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
 my %regexps;
 
-
-# regexp currently have only one params type, so we can get
-# it directly from Unison
-$opts{params_id} = $u->get_params_id_by_name('regexp');
-(defined $opts{params_id})
-  || die("$0: couldn't find params_id for params `regexp'\n");
-
-# for @ of pmodelset_id and/or @ of origin_id, get list of ppmodel_ids
-if (not (defined $opts{'pmodelset_id'} or defined $opts{'origin_id'})) {
-  die("$0: you must specify either --modelset_id or --origin_id to select models\n");
-}
-
 # get the models as a hash of pmodel_id => regexp
-%regexps = get_regexps($u,$opts{pmodelset_id},$opts{origin_id});
+%regexps = get_regexps($u,$opts{pmodelset_id});
 my @pmodel_ids = sort keys %regexps;
 printf("%d models selected\n", $#pmodel_ids+1);
 
@@ -82,9 +81,7 @@ if ($N >= 10000 and $M <= 100) {
 		 $nhits, $nhits/$N*100);
 }
 
-
 my $insert_sth = $u->prepare('insert into pfregexp (params_id,pseq_id,pmodel_id,start,stop) values (?,?,?,?,?)');
-
 
 PSEQ_ID:
 for(my $i=0; $i<=$#pseq_ids; $i++) {
@@ -92,19 +89,11 @@ for(my $i=0; $i<=$#pseq_ids; $i++) {
   my $leader = sprintf("\rUnison:%-8d %d/%d (%5.1f%%)", $pseq_id, $i+1, $N, ($i+1)/$N*100);
   print(STDERR $leader);
 
-  foreach my $m (defined $opts{pmodelset_id} ? @{$opts{pmodelset_id}} : undef) {
-  foreach my $o (defined $opts{origin_id} ? @{$opts{origin_id}} : undef) {
-	my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},$o,$m);
-	if (defined $ran_on and not $opts{update}) {
-	  ## IMPORTANT NOTE: This is arguably broken when running with
-	  ## multiple pmodelset_id and/or origin_id arguments. Specifically,
-	  ## this conservatively skips running this entire sequence if ANY of
-	  ## the m/o compbinations are present. This may leave some m/o
-	  ## combinations un-run.
-	  print(STDERR ": run with these options on $ran_on; skipping\n");
-	  next PSEQ_ID;
-	}
-  }}
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{run_id});
+  if (defined $ran_on and not $opts{update}) {
+    print(STDERR ": run with these options on $ran_on; skipping\n");
+    next PSEQ_ID;
+  }
 
   if (not %hits or exists $hits{$pseq_id}) {
 	my @mbe;
@@ -120,7 +109,6 @@ for(my $i=0; $i<=$#pseq_ids; $i++) {
 		push(@mbe,[$pmodel_id,$e-length($&)+1,$e])
 	  }
 	}
-
 	printf(STDERR "%4d features...", $#mbe+1);
 	foreach my $mbe (@mbe) {
 	  try {
@@ -138,27 +126,21 @@ for(my $i=0; $i<=$#pseq_ids; $i++) {
 		# else, ignore it
 	  };
 	}
-  }
-
-  $u->upd_run_histories($pseq_id,$opts{params_id},$opts{origin_ids},$opts{pmodelset_id});
+	my $z = $u->upd_run_history($pseq_id,$opts{run_id});
+      }
 }
 print(STDERR "\n");
 
 
-
-sub get_regexps($$$) {
-  # return hash of pmodel_id => regexp for pmodelset and origin ids.
-  my ($u,$m,$o) = @_;
+sub get_regexps($$) {
+  # return hash of pmodel_id => regexp for pmodelset.
+  my ($u,$m) = @_;
   my $sql = new Unison::SQL;
   $sql->columns('M.pmodel_id,M.regexp')
       ->table('pmregexp M');
   if (defined $m) {
 	$sql->join('pmsm_pmregexp S on M.pmodel_id=S.pmodel_id')
-	    ->where('S.pmodelset_id in (' . join(',',@$m) . ')');
-  }
-  if (defined $opts{origin_id}) {
-	$sql->where('M.origin_id in (' . join(',',@$o) . ')' );
-	$sql->order('M.origin_id');
+	    ->where('S.pmodelset_id =' . $m );
   }
   $sql->order('M.pmodel_id');
   return( map {$_->[0]=>$_->[1]} @{$u->selectall_arrayref("$sql")} );
