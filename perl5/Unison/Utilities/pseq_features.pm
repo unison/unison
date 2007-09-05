@@ -2,7 +2,7 @@
 
 Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.35 2007/01/09 19:42:50 mukhyala Exp $>
+S<$Id: pseq_features.pm,v 1.36 2007/05/12 17:43:22 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -43,6 +43,7 @@ our @EXPORT_OK = qw( pseq_features_panel %opts );
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::params;
+use Unison::run;
 use Unison::Utilities::misc qw( warn_deprecated unison_logo elide_sequence );
 use Unison::Utilities::pseq_structure;
 
@@ -150,11 +151,11 @@ sub pseq_features_panel($%) {
 										 -pad_bottom => $opts{pad},
 										 -key_style => 'between'
 									   );
-
+  my $ba = $u->best_alias($opts{pseq_id}, 'HUMAN') || $u->best_alias($opts{pseq_id});
   $panel->add_track( Bio::Graphics::Feature->new
 					 (-start => 1, -end => $len,
 					  -name => sprintf("Unison:%d; %d AA; %s",
-									   $opts{pseq_id}, $len, $u->best_alias($opts{pseq_id}))),
+									   $opts{pseq_id}, $len, $ba)),
 					 -glyph => 'arrow',
 					 -tick => $tick,
 					 -fgcolor => 'black',
@@ -180,7 +181,6 @@ sub pseq_features_panel($%) {
 
   # motifs and domains
   add_pfregexp     ( $u, $panel, $opts{pseq_id} ) if($opts{features}{regexp});
-  add_papssm       ( $u, $panel, $opts{pseq_id} ) if($opts{features}{pssm});
   add_pahmm        ( $u, $panel, $opts{pseq_id}, $opts{view}, $opts{structure}) if($opts{features}{hmm});
   add_paprospect   ( $u, $panel, $opts{pseq_id} ) if($opts{features}{prospect});
 
@@ -196,7 +196,7 @@ sub pseq_features_panel($%) {
   my $black = $gd->colorAllocate(0,0,0);
   my $IdFont = GD::Font->MediumBold;
   $gd->string($IdFont, $opts{logo_margin}, $dh-$opts{logo_margin}-$IdFont->height,
-			  '$Id: pseq_features.pm,v 1.35 2007/01/09 19:42:50 mukhyala Exp $',
+			  '$Id: pseq_features.pm,v 1.36 2007/05/12 17:43:22 rkh Exp $',
 			  $black);
   my $ugd = unison_logo();
   if (defined $ugd) {
@@ -517,12 +517,12 @@ sub add_paprospect {
   my ($u, $panel, $q, $params_id) = @_;
   my ($svm_thr,$topN) = (7,5);
   my $nadded = 0;
-
-  $params_id = $u->preferred_params_id_by_pftype('Prospect') unless defined $params_id;
+  my $run_id = $u->preferred_run_id_by_pftype('Prospect');
+  $params_id = $u->get_run_params_id($run_id) unless defined $params_id;
   return unless defined $params_id;
 
   my $params_name = $u->get_params_name_by_params_id($params_id);
-  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef);
+  my $z = $u->get_run_timestamp_ymd($q,$run_id);
 
   my $sth = $u->prepare(<<EOT);
 SELECT *
@@ -658,17 +658,18 @@ sub add_pahmm {
   my ($eval_thr,$topN) = (1,4);
   my $nadded = 0;
   ## XXX: don't hardwire the following
-  my $params_id = $u->preferred_params_id_by_pftype('HMM');
+  my $run_id = $u->preferred_run_id_by_pftype('HMM');
+  my $params_id = $u->get_run_params_id($run_id);
   my $params_name = $u->get_params_name_by_params_id($params_id);
-  my $z = $u->get_run_timestamp_ymd($q,$params_id,undef,undef);
+  my $z = $u->get_run_timestamp_ymd($q,$run_id);
 
   my $sql = <<EOSQL;
-SELECT start,stop,ends,score,eval,acc,name,descr
-FROM pahmm_v
-WHERE pseq_id=? AND params_id=? AND eval<=? ORDER BY start
+SELECT start,stop,score,eval,acc,feature,descr,link_url
+FROM pseq_features_pfam_v
+WHERE pseq_id=? AND eval<=? ORDER BY start
 EOSQL
   print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $featref = $u->selectall_arrayref( $sql, undef, $q, $params_id, $eval_thr );
+  my $featref = $u->selectall_arrayref( $sql, undef, $q, $eval_thr );
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 1,
 								 -max_score => 25,
@@ -688,17 +689,16 @@ EOSQL
   foreach my $r (@$featref) {
 	next unless defined $r->[0];
 	#printf(STDERR "[%d,%d] %s\n", @$r[0,1,2]);
-	### FIX: should use link_url
 	my $href = ($view
-				? $pseq_structure->region_script($r->[0],$r->[1],$r->[6])
-				:"http://pfam.janelia.org/cgi-bin/getdesc?name=$r->[6]");	
+				? $pseq_structure->region_script($r->[0],$r->[1],$r->[5])
+				: $r->[7]);	
 	$track->add_feature
 	  ( Bio::Graphics::Feature->new( -start => $r->[0],
 									 -end => $r->[1],
-									 -score => $r->[3],
-									 -name => sprintf("%s; %s; S=%s; E=%s)",
-													  @$r[6,2,3,4]),
-									 -attributes => { tooltip => sprintf("%d-%d: %s [%s]", @$r[0,1,6,7]),
+									 -score => $r->[2],
+									 -name => sprintf("%s; S=%s; E=%s)",
+													  @$r[5,2,3]),
+									 -attributes => { tooltip => sprintf("%d-%d: %s [%s]", @$r[0,1,5,6]),
 													  href => $href
 											},
 								   ) );
@@ -783,8 +783,10 @@ Add pfantigenic features to a panel and return the number of features added.
 sub add_pfantigenic {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
-  my $p = $u->preferred_params_id_by_pftype('EMBOSS/antigenic');
-  my $z = $u->get_run_timestamp_ymd($q,$p,undef,undef) || 'NOT RUN';
+
+  my $r = $u->preferred_run_id_by_pftype('EMBOSS/antigenic');
+  my $p = $u->get_run_params_id($r);
+  my $z = $u->get_run_timestamp_ymd($q,$r) || 'NOT RUN';
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 1,
 								 -max_score => 1.2,
@@ -828,8 +830,10 @@ Add pfpepcoil features to a panel and return the number of features added.
 sub add_pfpepcoil {
   my ($u, $panel, $q) = @_;
   my $nadded = 0;
-  my $p = $u->preferred_params_id_by_pftype('EMBOSS/pepcoil');
-  my $z = $u->get_run_timestamp_ymd($q,$p,undef,undef) || 'NOT RUN';
+
+  my $r = $u->preferred_run_id_by_pftype('EMBOSS/pepcoil');
+  my $p = $u->get_run_params_id($r);
+  my $z = $u->get_run_timestamp_ymd($q,$r) || 'NOT RUN';
   my $track = $panel->add_track( -glyph => 'graded_segments',
 								 -min_score => 0.5,
 								 -max_score => 1,
@@ -972,8 +976,8 @@ sub add_pfregexp {
 								 -height => 4,
 							   );
   my $sql = <<EOSQL;
-SELECT start,stop,acc,name,descr,substr(Q.seq,F.start,F.stop-F.start+1) as subseq,link_url(origin_id,acc)
-  FROM pfregexp_v F
+SELECT start,stop,acc,feature,descr,substr(Q.seq,F.start,F.stop-F.start+1) as subseq,link_url
+  FROM pseq_features_prosite_v F
   JOIN pseq Q on F.pseq_id=Q.pseq_id
  WHERE F.pseq_id=$q
 EOSQL
@@ -1022,10 +1026,12 @@ EOSQL
   # NOTE: the following layout is intended to facilitate looping over
   # disorder types (disprot VL3H, dispro, disembl, etc), even though this
   # isn't currently used.
-  $p = $u->preferred_params_id_by_pftype('disorder');
-  $z = $u->get_run_timestamp_ymd($q,$p,undef,undef) || 'NEVER RUN';
+
+  my $r = $u->preferred_run_id_by_pftype('disorder');
+  $p = $u->get_run_params_id($r);
+  $z = $u->get_run_timestamp_ymd($q,$r) || 'NEVER RUN';
   my ($pname,$pdesc) = $u->selectrow_array('select name,descr from params where params_id=?',undef,$p);
-  if (defined $u->get_run_timestamp($q,$p,undef,undef)) {
+  if (defined $z) {
 	my @pd = split( /,/ , $u->selectrow_array($sql,undef,$p) );
 	my @subfeat = map { Bio::Graphics::Feature->new
 		(-start => $_+1, -end => $_+1, -score => $pd[$_]*100) } 0..$#pd;
