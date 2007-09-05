@@ -1,7 +1,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.16 2006/02/15 04:06:37 rkh Exp $>
+S<$Id: params.pm,v 1.17 2006/11/06 22:01:13 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -162,7 +162,7 @@ sub preferred_params_id_by_pftype($$) {
   my ($self,$pfeature_name) = @_;
   $self->is_open()
   || croak("Unison connection not established");
-  my $id = $self->selectrow_array('select preferred_params_id_by_pftype( ? )',undef,$pfeature_name);
+  my $id = $self->selectrow_array('select params_id from run where run_id=preferred_run_id_by_pftype( ? )',undef,$pfeature_name);
   return $id;
 }
 
