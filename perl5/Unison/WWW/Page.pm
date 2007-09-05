@@ -2,7 +2,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.88 2006/11/04 03:48:25 rkh Exp $>
+S<$Id: Page.pm,v 1.89 2007/05/12 17:42:37 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -676,9 +676,12 @@ A best annotation is a guess about the most informative and reliable
 annotation for this sequence from all source databases.
 <br>Click the Aliases tab to see all annotations
 EOT
+  # try best human annotation first, otherwise get best annotation for any species
+  my $ba = $self->{unison}->best_annotation($pseq_id, 'HUMAN') || $self->{unison}->best_annotation($pseq_id);
+
   return( '<b>"best" annotation</b>&nbsp;',
 		  $self->tooltip( '?', $tooltip ), ': ',
-		  $self->{unison}->best_annotation($pseq_id,1) );
+		  $ba);
 }
 
 
