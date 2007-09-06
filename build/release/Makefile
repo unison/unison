@@ -1,5 +1,5 @@
 # Unison release Makefile -- builds unison releases
-# $Id: Makefile,v 1.18 2007/05/12 17:45:37 rkh Exp $
+# $Id: Makefile,v 1.19 2007/06/02 03:44:20 rkh Exp $
 
 # Usage:
 # eg$ make unison-1.0.0.tgz unison-1.0.0.tgz.md5 unison-1.0.0.tgz.asc
@@ -31,6 +31,7 @@ default all:
 pub:
 	sudo -u postgres make csb-pub.log PATH=${PATH} PERL5LIB=${PERL5LIB}
 
+.PRECIOUS: %-pub.log
 %-pub.log: 
 	-dropdb $*-pub
 	createdb -EUTF8 -Ounison $*-pub
@@ -40,6 +41,7 @@ pub:
 	psql -d '$*-pub' -c 'analyze verbose'
 
 # run as postgres
+.PRECIOUS: %.pgdfc
 %.pgdfc: %.log
 	(time pg_dump -Fc $* >$@.tmp) 2>$@.err 
 	/bin/mv -f "$@.tmp" "$@"
