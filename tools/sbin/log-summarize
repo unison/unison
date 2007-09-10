@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # log-summarize -- summarize postgresql logs by host, user, and database
-# $Id: log-summarize,v 1.6 2005/11/03 17:53:19 rkh Exp $
+# $Id: log-summarize,v 1.7 2005/11/07 23:43:07 rkh Exp $
 # Reece Hart <reece@harts.net>
 
 
@@ -38,18 +38,21 @@ my %user_delta;
 
 
 my $date_re = qr/200\d-\d\d-\d\d/;
-my $time_re = qr/\d\d:\d\d:\d\d/;
+my $time_re = qr/\d\d:\d\d:\d\d P[DS]T/;
 
 my %ex_user = map {$_=>1} @ex_user;
 
 my @pending;
-while(<>) {
+while (<>) {
   #2004-07-14 09:00:43 [26233] LOG:  connection received: host=tallac.gene.com port=34485
   #2004-07-14 09:00:43 [26233] LOG:  connection authorized: user=rkh database=csb-dev
 
-  if (m/^($date_re) ($time_re) \[(\d+)\] LOG:  connection received: host=(\S+)/) {
+  if (m/^($date_re) \s+ ($time_re) \s+ \[(\d+)\] \s+ [^%]+%\S+ \s+ LOG: \s+ connection \s received: \s+ host=(\S+)/x) {
 	$pending[$3] = { date=>$1, time=>$2, host=>$4 };
-  } elsif (m/^($date_re) ($time_re) \[(\d+)\] LOG:  connection authorized: user=(\S+) database=(\S+)/) {
+	next;
+  }
+
+  if (m/^($date_re) \s+ ($time_re) \s+ \[(\d+)\] \s+ [^%]+%\S+ \s+ LOG: \s+ connection \s authorized: \s+ user=(\S+) \s+ database=(\S+)/x) {
 	if (not defined $pending[$3]) {
 	  die("$.: connection never received!\n  $_");
 	}
@@ -65,7 +68,10 @@ while(<>) {
 	$host =~ s/\.gene\.com//;				# drop domain name
 	$host =~ s/^comp\d+/comp*/				# group connections into
 	  or $host =~ s/^(vpn-pc)-\d+/$1-*/	    # comp, vpn-pc, or dhcpNN- bins
-	  or $host =~ s/^(dhcp\d+)-\d+/$1-*/;
+	  or $host =~ s/^(dhcp[^-]+)-\d+/$1-*/
+	  or $host =~ s/^(\d+\.\d+\.\d+).+/$1\/24/
+	  or $host =~ s/ala|cys|cytosine|guanine|leu|met|thymine|trp/geneland/;
+
 	$date =~ s/-\d\d$//; 					# trim to month
 
 	push(@{$cb_user{$user}}, \%conn);
@@ -74,7 +80,14 @@ while(<>) {
 	push(@{$cb_user_db{$user}{$db}},\%conn);
 	push(@{$cb_date{$date}}, \%conn);
 	push(@{$cb_date_user{$date}{$user}}, \%conn);
+
+	next;
   }
+
+  if (m/LOG:\s+connection/) {
+	warn("! $.: missed /connection/:\n  $_");
+  }
+
 }
 
 foreach my $user (keys %cb_user) {
@@ -86,7 +99,7 @@ foreach my $user (keys %cb_user) {
 }
 
 
-print('$Id: log-summarize,v 1.6 2005/11/03 17:53:19 rkh Exp $ ', "\n\n");
+print('$Id: log-summarize,v 1.7 2005/11/07 23:43:07 rkh Exp $ ', "\n\n");
 
 printf("excluding statistics for %d users {%s}\n",
 	   $#ex_user+1, join(',',sort @ex_user));
@@ -116,7 +129,7 @@ foreach my $user (sort {   $user_delta{$b} <=> $user_delta{$a}
 
 
 printf("\nconnections by %d host(s):\n", scalar keys %cb_host);
-foreach my $host (sort keys %cb_host) {
+foreach my $host (sort {$#{$cb_host{$b}} <=> $#{$cb_host{$a}}} keys %cb_host) {
   printf("  %-30.30s %4d\n", $host, $#{$cb_host{$host}}+1);
 }
 
