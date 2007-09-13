@@ -24,7 +24,7 @@ S<$Id: unison-annotation,v 1.11 2007/02/07 00:56:44 rkh Exp $>
 =head1 OPTIONS
 
 
-unison-annotation [-S|-A|-F|-P|-G  -v|-f summary  |--pfam|--signalp|--tm|--protcomp|--regexp|--bigpi|--patents|--alias  -h|-V]
+unison-annotation [-S|-A|-F|-P|-G|-p  -v|-f summary  |--pfam|--signalp|--tm|--protcomp|--regexp|--bigpi|--patents|--alias  -h|-V]
 
                input choices
                -------------
@@ -47,6 +47,10 @@ unison-annotation [-S|-A|-F|-P|-G  -v|-f summary  |--pfam|--signalp|--tm|--protc
  unison-annotation -G <gi>
     or echo <gi> | unison-annotation -G
     or unison-annotation -G <range-of-gis>
+ #6 by Affy/Agilent probe id(s)
+ unison-annotation -p <probe_id>
+    or echo <probe_id> | unison-annotation -p
+    or cat probe_ids_file | unison-annotation -p
 
 
                annotation choices
@@ -67,11 +71,11 @@ unison-annotation [-S|-A|-F|-P|-G  -v|-f summary  |--pfam|--signalp|--tm|--protc
                output format choices
                --------------
  #1 summary (one line per protein)
- unison-annotation -f summary [-S|-A|-F|-P] <input>
+ unison-annotation -f summary [-S|-A|-F|-P|-G|-p] <input>
  #2 detailed (default)
- unison-annotation [-S|-A|-F|-P] <input>
+ unison-annotation [-S|-A|-F|-P|-G|-p] <input>
  #3 verbose
- unison-annotation -v [-S|-A|-F|-P] <input>
+ unison-annotation -v [-S|-A|-F|-P|-G|-p] <input>
  #4 help and Version
  perldoc unison-annotation
  unison-annotation -V
@@ -80,7 +84,7 @@ unison-annotation [-S|-A|-F|-P|-G  -v|-f summary  |--pfam|--signalp|--tm|--protc
                filtering choices
                --------------
  #1 human sequences only
- unison-annotation --human [-S|-A|-F|-P] <input>
+ unison-annotation --human [-S|-A|-F|-P|-G|-p] <input>
 
 =head1 DESCRIPTION
 
@@ -249,6 +253,19 @@ sub map_args_to_pseq_ids($@) {
 	}	
 	push(@pseq_ids, map {$_->[0]} @ids);
 	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
+  }  elsif ($or->{'select-by-probe'}) {
+	my %ids;
+	foreach my $pi (@_) {
+	  my @Q = @{$u->selectall_arrayref("select distinct (r.t_pseq_id) from pmap_locus_representative_mv r join pseq_probe_mv p on r.q_pseq_id=p.pseq_id where probe_id='$pi'")};
+	  map {$ids{$_->[0]}++} @Q if($#Q>=0);
+	  if (not @Q) {
+		warn("#$0: no sequences found for probe_id '$pi'\n");
+	  } elsif ($#Q > 0) {
+		warn("#$0: multiple sequences found for probe_id '$pi'\n");
+	  }
+	}
+	push(@pseq_ids, keys %ids);
+	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
   }
   return @pseq_ids;
 }
@@ -384,6 +401,7 @@ sub parse_options() {
 	 'select-by-alias-fuzzy' => 0,
 	 'select-by-unison-id' => 0,
 	 'select-by-gi' => 0,
+	 'select-by-probe' => 0,
 
 	 #data type
 	 'pfam' => 0,
@@ -413,6 +431,7 @@ sub parse_options() {
 			  'select-by-alias-fuzzy|F+',
 			  'select-by-unison-id|P+',
 			  'select-by-gi|G+',
+	                  'select-by-probe|p+',
 
 			  'pfam',
 			  'signalp',
@@ -435,7 +454,7 @@ sub parse_options() {
   my $optot;
   my @opts;
   @opts = qw(select-by-seq select-by-alias select-by-alias-fuzzy
-	     select-by-unison-id select-by-gi);
+	     select-by-unison-id select-by-gi select-by-probe);
   $optot = eval join('+', map {$opts{$_}?1:0} @opts);
   if ($optot == 0) {
     $opts{'select-by-unison-id'}++;
