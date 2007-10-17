@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Unison;
 use Unison::Exceptions;
+use Unison::run;
 use Getopt::Long qw(:config gnu_getopt);
 use File::Temp qw(tempfile);
 use IO::Pipe;
@@ -16,6 +17,7 @@ sub _fetch_sequences ($$@);
 
 my %opts = 
   (
+   run_id => undef,
    commit_interval => 1,
    force => 0,
    params_id => undef,
@@ -24,23 +26,25 @@ my %opts =
    'seqs-per-run' => 50
   );
 GetOptions(\%opts,
+	           'run_id|r=i',
 		   'force|f+',
 		   'commit_interval=i',
-		   #'params_id|p=i',
-		   #'pmodelset_id|M=i@',
 		   'verbose|v+',
 		   'seqs-per-run|N=i',
 		  ) || die("$0: you got usage issues, short stack\n");
 
 
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+my $u = new Unison();
 
-
-# get params_id for loading
-$opts{params_id} = $u->get_params_id_by_name('protcomp default');
-if (not defined $opts{params_id}) {
-  die("couldn't find params_id for 'protcomp default'\n");
+if (defined $opts{params_id}) {
+    die("$0: use run_id (-r),  may not specify params_id\n");
 }
+
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
+(defined $opts{params_id})
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
+
 my $cl = $u->run_commandline_by_params_id( $opts{params_id} );
 if (not defined $cl) {
   die("couldn't get command line for params_id $opts{params_id}\n");
@@ -85,7 +89,7 @@ while( @Q ) {
   my @q = splice( @Q, 0, $opts{'seqs-per-run'} );
   for(my $i=$#q; $i>=0; $i--) {
 	next;
-	if ($u->already_ran($q[$i],$opts{params_id},$opts{origin_id},$opts{pmodelset_id})) {
+	if ($u->already_ran($q[$i],$opts{run_id})) {
 	  warn("Unison:$q[$i] already run with these parameters\n");
 	  splice(@q,$i,1);
 	}
@@ -107,7 +111,7 @@ while( @Q ) {
   if (not defined $blk) {
 	if ($#q == 0 and $nseq == 1) {
 	  warn("pseq_id $q[0] failed and was flagged in run_history\n");
-	  $u->upd_run_history( $q[0], $opts{params_id}, undef, undef, 1 ); # 1=>FAILED
+	  $u->upd_run_history( $q[0], $opts{run_id}, 1 ); # 1=>FAILED
 	} else {
 	  warn("! one or more of pseq_ids in (@q) failed\n");
 	}
@@ -165,7 +169,7 @@ while( @Q ) {
 						@weights,
 						$pb->{features},
 						$blk);
-	  $u->upd_run_history( $pseq_id, $opts{params_id}, undef, undef );
+	  $u->upd_run_history( $pseq_id, $opts{run_id});
 	  print(STDERR "# inserted psprotcomp for Unison:$pseq_id\n") if $opts{verbose};
 	} catch Unison::Exception with {
 	  $u->commit();

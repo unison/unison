@@ -2,7 +2,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: run_history.pm,v 1.11 2006/06/16 17:53:38 rkh Exp $>
+S<$Id: run_history.pm,v 1.12 2006/06/26 18:05:08 rkh Exp $>
 
 =head1 SYNOPSIS
 
@@ -12,7 +12,7 @@ S<$Id: run_history.pm,v 1.11 2006/06/16 17:53:38 rkh Exp $>
 
 =head1 DESCRIPTION
 
-B<Unison::blat> provides BLAT-related methods to the B<Unison::>
+B<Unison::blat> provides run_history-related methods to the B<Unison::>
 namespace.
 
 =cut
@@ -40,64 +40,33 @@ use warnings;
 
 =pod
 
-=item B<< $u->upd_run_history( C<pseq_id>, C<params_id>, C<origin_id>, C<pmodelset_id>, failed ) >>
+=item B<< $u->upd_run_history( C<pseq_id>, C<run_id>, failed ) >>
 
 =cut
 
 sub upd_run_history(@) {
   my $u = shift;
-  my ($q,$p,$o,$m,$f) = @_;
+  my ($q,$r,$f) = @_;
   $f ||= 'FALSE';
-  return $u->selectrow_array("select upd_run_history(?,?,?,?,?)"
-							 ,undef, $q,$p,$o,$m,$f);
+  return $u->selectrow_array("select upd_run_history(?,?,?)"
+							 ,undef, $q,$r,$f);
 }
-
-
-######################################################################
-## upd_run_histories
-
-=pod
-
-=item B<< $u->upd_run_histories( C<pseq_id>, C<params_id>, C<[origin_ids]>, C<[pmodelset_ids]>  ) >>
-
-=cut
-
-sub upd_run_histories($$$$$) {
-  my ($u,$pseq_id,$params_id,$O,$M,$f) = @_;
-  my (@O) = defined $O ? ref $O ? @$O : ($O) : (undef);
-  my (@M) = defined $M ? ref $M ? @$M : ($M) : (undef);
-  my $z;
-  foreach my $o (@O) {
-	foreach my $m (@M) {
-	  $z = $u->upd_run_history($pseq_id,$params_id,$o,$m,$f);
-	}
-  }
-  return $z;
-}
-
-
 
 ######################################################################
 ## already_ran
 
 =pod
 
-=item B<< $u->already_ran( C<pseq_id>, C<params_id>, C<[origin_ids]>, C<[pmodelset_ids]> ) >>
+=item B<< $u->already_ran( C<pseq_id>, C<run_id> ) >>
 
 =cut
 
 sub already_ran ($$$$$) {
-  my ($u,$pseq_id,$params_id,$O,$M) = @_;
-  my (@O) = defined $O ? ref $O ? @$O : ($O) : (undef);
-  my (@M) = defined $M ? ref $M ? @$M : ($M) : (undef);
+  my ($u,$pseq_id,$run_id) = @_;
 
-  foreach my $o (@O) {
-	foreach my $m (@M) {
-	  if (defined( my $z = $u->get_run_timestamp($pseq_id,$params_id,$o,$m ))) {
-		# arbitrarily return this timestamp (others might have matched)
-		return $z ;
-	  }
-	}
+  if (defined( my $z = $u->get_run_timestamp($pseq_id,$run_id))) {
+    # arbitrarily return this timestamp (others might have matched)
+    return $z ;
   }
   return undef;
 }
@@ -109,17 +78,17 @@ sub already_ran ($$$$$) {
 
 =pod
 
-=item B<< $u->get_run_timestamp( C<pseq_id>, C<params_id>, C<origin_id>, C<pmodelset_id> ) >>
+=item B<< $u->get_run_timestamp( C<pseq_id>, C<run_id> ) >>
 
 =cut
 
 sub get_run_timestamp(@) {
   my $u = shift;
-  return $u->selectrow_array("select get_run_timestamp(?,?,?,?)",undef,@_);
+  return $u->selectrow_array("select get_run_timestamp(?,?)",undef,@_);
 }
 sub get_run_timestamp_ymd(@) {
   my $u = shift;
-  return $u->selectrow_array("select to_char(get_run_timestamp(?,?,?,?),'YYYY-MM-DD')",undef,@_);
+  return $u->selectrow_array("select to_char(get_run_timestamp(?,?),'YYYY-MM-DD')",undef,@_);
 }
 
 

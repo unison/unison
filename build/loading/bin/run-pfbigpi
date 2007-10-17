@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: run-pfbigpi,v 1.1 2005/03/22 05:49:54 rkh Exp $
+# $Id: run-pfbigpi,v 1.2 2005/08/08 21:40:54 rkh Exp $
 # run-pahmm -- run hmmer on specified sequences
 
 use warnings;
@@ -12,6 +12,7 @@ use IO::Pipe;
 use Getopt::Long qw(:config gnu_getopt);
 use Unison::Exceptions;
 use Unison::SQL;
+use Unison::run;
 use Unison;
 
 
@@ -20,27 +21,29 @@ my $data_re = '(.)\s+(\d+) Sc:\s*(\S+) Pv:\s*(\S+)';
 my %opts = 
   (
    force => 0,
-   params => 'BIG-PI default',
-   params_id => undef,
-   pmodelset_id => undef,
+   run_id => undef,
+   params_id=>undef,
    verbose => 0,
   );
 GetOptions(\%opts,
 		   'force|f+',
-		   'params_id|p=i',
-		   'pmodelset_id|M=i@',
+		   'run_id|r=i',
 		   'verbose|v+',
 		  ) || die("$0: you got usage issues, short stack\n");
 
 
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+my $u = new Unison();
 
-if (not defined $opts{params_id}) {
-  $opts{params_id} = $u->get_params_id_by_name($opts{params});
-  if (not defined $opts{params_id}) {
-	die("$0: couldn't find params_id for params `$opts{params}'\n");
-  }
+if (defined $opts{params_id}) {
+    die("$0: use run_id (-r),  may not specify params_id\n");
 }
+
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
+(defined $opts{params_id})
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
+
+my %run_me;  # track pseqs to run
 
 my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 my ($tmpfh, $tmpfn) = tempfile( UNLINK=>1 );
@@ -51,7 +54,7 @@ my $so = new Bio::SeqIO( -format => 'fasta',
 
 PSEQ_ID:
 foreach my $pseq_id (@pseq_ids) {
-  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{run_id});
   if (defined $ran_on and not $opts{update}) {
 	if (not $opts{update}) {
 	  print(STDERR "Unison:$pseq_id run with these options on $ran_on; skipping\n");
@@ -59,7 +62,7 @@ foreach my $pseq_id (@pseq_ids) {
 	}
 	print(STDERR "Unison:$pseq_id run with these options on $ran_on; running anyway\n");
   }
-
+  $run_me{ $pseq_id }++;
   my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
   if (not defined $seq) {
 	warn("\n! couldn't find sequence for pseq_id=$pseq_id\n");
@@ -70,42 +73,46 @@ foreach my $pseq_id (@pseq_ids) {
 }
 $so->close();
 
+if ( scalar(keys %run_me) > 0 ) {
 
-# prepare the insert statement
-my @fields = qw(pseq_id params_id site_no quality start score pvalue);
-my $sth = $u->prepare_cached(sprintf("insert into pfbigpi (%s) values (%s)",
+  # prepare the insert statement
+  my @fields = qw(pseq_id params_id site_no quality start score pvalue);
+  my $sth = $u->prepare_cached(sprintf("insert into pfbigpi (%s) values (%s)",
 									 join(',',@fields), join(',',map {'?'} @fields)));
 
 
-# command line and open the pipe
-my $clo = $u->run_commandline_by_params_id($opts{params_id});
-my $cmd = sprintf($clo,$tmpfn);
-my @cl = split(' ',$cmd);
+  # command line and open the pipe
+  my $clo = $u->run_commandline_by_params_id($opts{params_id});
+  my $cmd = sprintf($clo,$tmpfn);
+  my @cl = split(' ',$cmd);
 
-my $pipe = new IO::Pipe;
-$pipe->reader( @cl )
-  || die("couldn't do @cl\n");
+  my $pipe = new IO::Pipe;
+  $pipe->reader( @cl )
+    || die("couldn't do @cl\n");
 
+  $u->begin_work();
+  while( my $line = <$pipe> ) {
+    my ($pseq_id) = $line =~ m/Unison:(\d+)/;
+    if (not defined $pseq_id) {
+      die("Couldn't parse Unison pseq_id:\n$_");
+    }
 
-my $N = $#pseq_ids+1;
-my $n = 0;
-
-$u->begin_work();
-while( my $line = <$pipe> ) {
-  my ($pseq_id) = $line =~ m/Unison:(\d+)/;
-  if (not defined $pseq_id) {
-	die("Couldn't parse Unison pseq_id:\n$_");
+    if (my ($siten,$quality,$start,$score,$pvalue) = $line =~ m/(1):$data_re/) {
+      $sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$pvalue);
+    }
+    if (my ($siten,$quality,$start,$score,$pvalue) = $line =~ m/(2):$data_re/) {
+      $sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$pvalue);
+    }
+    my $z = $u->upd_run_history($pseq_id,$opts{run_id});
+    printf(STDERR "Unison:$pseq_id: $z\n");
   }
-
-  if (my ($siten,$quality,$start,$score,$pvalue) = $line =~ m/(1):$data_re/) {
-	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$pvalue);
-  }
-  if (my ($siten,$quality,$start,$score,$pvalue) = $line =~ m/(2):$data_re/) {
-	$sth->execute($pseq_id,$opts{params_id},$siten,$quality,$start,$score,$pvalue);
-  }
-
-  my $z = $u->upd_run_histories($pseq_id,$opts{params_id},undef,undef);
-  printf(STDERR "Unison:$pseq_id: $z\n");
+  $u->commit();
+  $pipe->close();
 }
-$u->commit();
-$pipe->close();
+
+foreach my $pseq_id ( keys %run_me ) {
+  $u->upd_run_history($pseq_id,$opts{run_id});
+}
+
+exit(0);
+

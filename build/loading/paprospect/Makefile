@@ -8,19 +8,21 @@ PSIPRED_PATH:=${UNISON_HOME}/loading/pfpsipred/
 
 export PSIPRED_PATH
 
+PAPROSPECT_RUN_ID:=`${PSQL_DCMD} "select preferred_run_id_by_pftype('Prospect')"`
+
 N:=5
-QNAME=${SUBDIR}p${PAPROSPECT_PARAMS_ID}
+QNAME=${SUBDIR}-r${PAPROSPECT_RUN_ID}
+QPPN:=2
 RUNSET=runA-human
 
 update:
 	make cleanest
-	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
+	make ${RUNSET}.ids done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
 	make ${RUNSET}-todo-N${N}-qload
 
-%.load: %-M${PAPROSPECT_PMODELSET_ID}.load;
-%-M${PAPROSPECT_PMODELSET_ID}.load: %.ids
-	(time -p xargs -n10 <$< run-paprospect -p${PAPROSPECT_PARAMS_ID} -M${PAPROSPECT_PMODELSET_ID}) >$@.err 2>&1
-	/bin/mv -f $@.err $@.log
+%.load: %.ids
+	(time -p xargs -n10 <$< run-paprospect -r${PAPROSPECT_RUN_ID} <$<) >$@.err 2>&1;
+	/bin/mv -f $@.err $@.log; touch $@
 
 .done.ids:
-	psql -Atc 'select pseq_id from run_history where params_id=${PAPROSPECT_PARAMS_ID} and pmodelset_id=${PAPROSPECT_PMODELSET_ID}' >$@
+	${PSQL_DCMD} "select pseq_id from run_history where run_id=${PAPROSPECT_RUN_ID}" >$@

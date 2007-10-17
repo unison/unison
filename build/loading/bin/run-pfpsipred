@@ -6,7 +6,7 @@
 #   --update: force update (i.e. delete cooresponding rows in unison before inserting) (optional)
 # usage: run-pfpsipred [psql options] --params_id <params_id> <list of pseq_ids>] [--update]
 #
-# $Id: run-pfpsipred,v 1.6 2006/08/10 20:59:53 mukhyala Exp $
+# $Id: run-pfpsipred,v 1.7 2007/05/17 21:18:32 mukhyala Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
@@ -14,6 +14,8 @@ use warnings;
 
 use Bio::SeqIO;
 use Unison;
+use Unison::run;
+
 use Error qw(:try);
 use File::Temp qw/tempfile/;
 use Getopt::Long;
@@ -24,14 +26,16 @@ my $MAXSEQLEN = 10000;
 my %opts = 
   (
    debug     => 0,
+   run_id    => undef,
    params_id => undef,
    pset_id   => undef,
-   verbose   => 0,
+   verbose   => 1,
    sql       => 0,
    update    => 0,# try update before insert
    );
 GetOptions( \%opts,
 	    'debug|d+',
+	    'run_id|r=i',
 	    'params_id|p=i',
 	    'pset_id|Q=i@',
 	    'sql',
@@ -40,12 +44,19 @@ GetOptions( \%opts,
 	  )
   || die("$0: usage\n");
 
+my $u = new Unison();
+
+if (defined $opts{params_id}) {
+    die("$0: use run_id (-r),  may not specify params_id\n");
+}
+
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
 (defined $opts{params_id})
-  || die( "$0: --params_id|-p parameter missing\n" );
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
 
 unshift(@PATH, '/gne/research/apps/psipred/current/i686-linux-2.6/bin/');
 
-my $u = new Unison();
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
 
 my @pseq_ids;
@@ -71,12 +82,6 @@ if ( scalar(keys %run_me) == 0 ) {
   exit(0);
 }
 
-
-# get pftype_ids for psipred
-my $pftype_id = &get_pftype_id( $u, 'PSIPRED' );
-die( "Can't retrieve pftype_id for psipred" ) if ( ! defined $pftype_id );
-
-
 # fetch sequences and run psipred on each
 PSEQ_ID:
 foreach my $pseq_id (@pseq_ids ) {
@@ -101,7 +106,7 @@ foreach my $pseq_id (@pseq_ids ) {
     next PSEQ_ID;
   }
 
-  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{run_id});
   if (defined $ran_on) {
     if (not $opts{update}) {
       print(STDERR "$leader: run with these options on $ran_on; skipping\n");
@@ -160,20 +165,20 @@ foreach my $pseq_id (@pseq_ids ) {
   };
 
   foreach my $f (@$ss_elements) {
-    my $sql2 = 'insert into pfpsipred (pseq_id,pftype_id,start,stop,type,params_id) values (?,?,?,?,?,?)';
+    my $sql2 = 'insert into pfpsipred (pseq_id,start,stop,type,params_id) values (?,?,?,?,?)';
     my $sth2 = $u->prepare( $sql2 );
 
-    print "$sql2\t$pseq_id, $pftype_id, $f->[0], $f->[1], $f->[2],$opts{params_id}\n" if($opts{sql});
+    print "$sql2\t$pseq_id, $f->[0], $f->[1], $f->[2],$opts{params_id}\n" if($opts{sql});
 
     try {
-	$sth2->execute( $pseq_id, $pftype_id, $f->[0], $f->[1], $f->[2],$opts{params_id}) if(!$opts{sql});
+	$sth2->execute( $pseq_id, $f->[0], $f->[1], $f->[2],$opts{params_id}) if(!$opts{sql});
     } catch Unison::Exception with {
-      die("\n$_[0] pseq_id=$pseq_id<= sql = :\n$sql2\nvalues:\n$pseq_id\n$pftype_id\n$f->[0]\n$f->[1]\n$f->[2]\n$opts{params_id}\n");
+      die("\n$_[0] pseq_id=$pseq_id<= sql = :\n$sql2\nvalues:\n$pseq_id\n$f->[0]\n$f->[1]\n$f->[2]\n$opts{params_id}\n");
     };
   }
 
   if(!$opts{sql}) {
-    my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+    my $z = $u->upd_run_history($pseq_id,$opts{run_id});
     print("Unison:$pseq_id: run_history tickled $z\n");
   }
   $u->commit();
@@ -189,7 +194,7 @@ if(!$opts{sql}) {
   # results... update their run_history (see `delete $run_me{}') above.
   foreach my $pseq_id ( keys %run_me ) {
     print("Unison:$pseq_id: no results; run_history tickled ",
-	  $u->upd_run_history($pseq_id,$opts{params_id},undef,undef),
+	  $u->upd_run_history($pseq_id,$opts{run_id}),
 	  "\n");
   }
 }
@@ -198,19 +203,6 @@ exit(0);
 ############################################################################
 ## INTERNAL FUNCTIONS
 
-
-#-------------------------------------------------------------------------------
-# NAME: get_pftype_id
-# PURPOSE: retrieve a pftype_id for a given name
-#-------------------------------------------------------------------------------
-
-sub get_pftype_id {
-  my ($u,$name) = @_;
-  my $sql = "select pftype_id from pftype where name='$name'";
-  print STDERR "get_pftype_id(), sql=[$sql]\n" if $opts{verbose};
-  my $ary_ref = $u->selectall_arrayref( $sql );
-  return( $ary_ref->[0][0] );
-}
 
 #-------------------------------------------------------------------------------
 # NAME: parse_psipred_results
