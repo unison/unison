@@ -62,8 +62,8 @@ EOT
 my @ps = $u->get_params_info_by_pftype('prospect');
 my %ps = map { $_->[0] => "$_->[1] (set $_->[0])" } @ps;
 
-$v->{params_id} = 1 unless defined $v->{params_id};
-$v->{pmodelset_id} = undef unless defined $v->{params_id};
+$v->{params_id} = 50 unless defined $v->{params_id};
+$v->{pmodelset_id} = undef unless defined $v->{pmodelset_id};
 $v->{offset} = 0 unless defined $v->{offset};
 $v->{limit} = 25 unless defined $v->{limit};
 $v->{raw_max} = 0 unless defined $v->{raw_max};
