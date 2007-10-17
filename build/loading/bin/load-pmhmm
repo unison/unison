@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id: load-pmhmm,v 1.12 2006/08/04 03:00:26 rkh Exp $
+# $Id: load-pmhmm,v 1.13 2007/04/30 05:05:12 rkh Exp $
 # load pfam HMM into unison
 # eg$ load-pmhmm /path/to/pfam-14.0/Pfam_fs
 
@@ -11,6 +11,8 @@
 use strict;
 use warnings;
 use Unison;
+use Unison::pmodelset;
+use Unison::pmhmm;
 use Getopt::Long qw(:config gnu_getopt);
 use Data::Dumper;
 use IO::Pipe;
@@ -19,41 +21,47 @@ use IO::File;
 
 my %opts =
   (
+   'deprecate' => 0,
    'origin' => undef,
-   'descr' => undef,
+   'version' => undef,
+   'pmodelset' => undef
   );
 
 GetOptions(\%opts,
 		   'origin=s',
-		   'descr=s',
+                   'pmodelset=s',
+         	   'version|V=s',
 		   'verbose|v+',
+          	   'deprecate+'
 		  ) || die("$0: you got usage issues, short stack\n");
-
 
 my $fn;
 ($fn = shift and $fn =~ m%^/%)
   || die("$0: please privide the full path to the HMM models\n");
 
-if ($fn =~ m/pfam/i) {
-  my ($pfam_version,$fl) = $fn =~ m%pfam-([\.\d]+)/Pfam_([lf]s)%;
-  (defined $fl)
-	|| die("$0: couldn't parse origin (pfam-<version>/Pfam_([fl]s) from $fn\n");
-  $opts{origin} = "Pfam $pfam_version $fl";
-  $opts{descr} = "Pfam_$fl version $pfam_version";
+if ($fn =~ m/Pfam/i) {
+    my ($fl) = $fn =~ m%Pfam_([lf]s)%;
+    (defined $fl)
+	|| die("$0: couldn't parse origin (Pfam_([fl]s) from $fn\n");
+    $opts{origin} = "Pfam $fl";
+    (defined $opts{version})
+        || die("version must be specified when loading Pfam\n");
+    $opts{descr} = "Pfam $fl models version $opts{version}";
+    $opts{pmodelset} = "Pfam_$fl $opts{version}";
 } else {
-  (defined $opts{origin})
-	|| die("origin my be specified when loading from other than Pfam\n");
-  $opts{descr} = $opts{origin} unless defined $opts{descr};
+    (defined $opts{origin})
+        || die("origin my be specified when loading from other than Pfam\n");
+    $opts{descr} = $opts{origin} unless defined $opts{descr};
+    $opts{pmodelset} = $opts{origin} unless defined $opts{pmodelset};
 }
 
-
 my $data_url = $fn;
-$data_url =~ s/\.hmm$//;
+$data_url =~ s/\.gz$//;
 $data_url .= '.hmmb';
 
 (-f $data_url)
   || die("$0: You must make `$data_url' before proceeding\n");
-
+($data_url) = $data_url  =~ m/(runtime.*)/;
 
 my $in;
 if ($fn =~ m/.gz/) {
@@ -67,37 +75,46 @@ if ($fn =~ m/.gz/) {
 	|| die("$0: $fn: $!\n");
 }
 
+my $u = new Unison( );
 
+# pmodel_ids_to_deprecate -- Initially, a hash of all pmodel ids in this
+# origin.  As models are loaded, we delete from this hash.  When we're
+# done loading sequences, any remaining pmodel ids refer to accessions
+# that are no longer in the source database.
+my %pmodel_ids_to_deprecate;
+if ($opts{deprecate}) {
+  %pmodel_ids_to_deprecate = map {$_->[0]=>1}
+	@{$u->selectall_arrayref("select pmodel_id from pmhmm where origin_id=origin_id('$opts{origin}')")};
+}
 
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+$u->begin_work();
 
 my $origin_id = $u->origin_si_origin_id($opts{origin});
 (defined $origin_id)
   || die("$0: origin $opts{origin}: $@\n");
 
-my $sth = $u->prepare('update origin set url=?,link_url=?,descr=?,data_url=?,is_public=TRUE,version=? where origin_id=?');
-$sth->execute('http://pfam.janelia.org/',
-			  'http://pfam.janelia.org/cgi-bin/getdesc?acc=%s',
-			  $opts{descr},
+my $sth = $u->prepare('update origin set version=? where origin_id=?');
+$sth->execute($opts{version},$origin_id)
+    || die("$0: update origin: $@\n");
+
+my $pmodelset_id = $u->pmodelset_si_pmodelset_id($opts{pmodelset});
+(defined $pmodelset_id)
+  || die("$0: pmodelset $opts{pmodelset}: $@\n");
+
+my $update_pmodelset_sth = $u->prepare('update pmodelset set descr=?,pmsm_table=?,def=?,locked=?,data_url=? where pmodelset_id=?');
+
+#unlocking pmodelset here.
+$update_pmodelset_sth->execute($opts{descr},
+			  'pmsm_pmhmm',
+			  "select pmodel_id from pmhmm where origin_id=origin_id('$opts{origin}') and is_current=TRUE",
+			  'f',
 			  $data_url,
-			  $pfam_version,
-			  $origin_id)
-  || die("$0: update origin: $@\n");
+			  $pmodelset_id)
+  || die("$0: update pmodelset: $@\n");
 
-printf(STDERR "# loading models into $opts{origin} (origin_id=$origin_id)\n");
-
-
-my @insert_fields = qw(origin_id name acc descr len nseq cksum
-					ga_seq ga_dom tc_seq tc_dom nc_seq nc_dom);
-my $insert_stmt = sprintf('insert into pmhmm (%s) values (%s)',
-						  join(',',@insert_fields),
-						  join(',',map {'?'} @insert_fields) );
-my $sth_insert_pmhmm = $u->prepare($insert_stmt);
-
-
+printf(STDERR "# loading models into origin=$opts{origin} (origin_id=$origin_id) \n\t pmodelset=$opts{pmodelset} (pmodelset_id=$pmodelset_id) \n");
 
 $/ = "\n//\n";
-$u->begin_work();
 while(my $blk = <$in>) {
   chomp($blk);
   my @F = qw(NAME ACC DESC LENG NSEQ CKSUM GA TC NC);
@@ -105,16 +122,45 @@ while(my $blk = <$in>) {
 	= map {my ($r) = $blk =~ m/^$_\s+(.+)/m; $r||undef}  @F;
   $acc = $name unless defined $acc;
   $descr = $name unless defined $descr;
+
   my ($gas,$gad) = defined $ga ? split(' ',$ga) : (undef,undef);
   my ($tcs,$tcd) = defined $tc ? split(' ',$tc) : (undef,undef);
   my ($ncs,$ncd) = defined $nc ? split(' ',$nc) : (undef,undef);
-  $sth_insert_pmhmm->execute($origin_id,$name,$acc,$descr,$len,$nseq,$cksum,
-							 $gas,$gad, $tcs,$tcd, $ncs,$ncd);
 
+  my ($pmodel_id) = $u->pmhmm_si_pmodel_id($origin_id,$name,$acc,$descr,$len,$nseq,$cksum,$gas,$gad, $tcs,$tcd, $ncs,$ncd) 
+      || die("$0: pmhmm_si_pmhmm: $@\n");
+  delete $pmodel_ids_to_deprecate{$pmodel_id};
   print(STDERR "loaded $acc: $name ($descr)\n");
 }
 
-printf("done; last updated=%s\n", $u->origin_last_updated($origin_id,1));
+if ($opts{deprecate}) {
+  my $n_per_line = 8;
+	my (@pmodel_ids_to_deprecate) = sort {$a<=>$b} keys %pmodel_ids_to_deprecate;
+	printf("# Deprecating %d pmodel_ids\n",$#pmodel_ids_to_deprecate+1);
+	if ($opts{verbose}) {
+	  for(my $i=0; $i<=$#pmodel_ids_to_deprecate; $i += $n_per_line) {
+	    my $top = $i+$n_per_line-1;
+	    $top = $#pmodel_ids_to_deprecate if $top>$#pmodel_ids_to_deprecate;
+	    print(join("\t",'',@pmodel_ids_to_deprecate[$i..$top]),"\n");
+	  }
+	}
+	# Note:
+	# The only hmms we care about are those which aren't in the source
+	# database any longer, i.e., have is_current=TRUE still.
+	my $sth = $u->prepare('update pmhmm set is_current=false where pmodel_id=? and is_current=TRUE');
+	$sth->execute($_) foreach (@pmodel_ids_to_deprecate);
+      }
+
+my $update_pmsm_sth = $u->prepare('select update_pmodelset(?)');
+$update_pmsm_sth->execute($pmodelset_id)
+    || die("$0: update pmsm_pmhmm: $@\n");
+#lock pmodelset
+my $lock_pmodelset_sth = $u->prepare('update pmodelset set locked=? where pmodelset_id=?');
+$lock_pmodelset_sth->execute('t',
+			  $pmodelset_id)
+  || die("$0: lock pmodelset: $@\n");
+printf("done; origin last updated=%s\n", $u->origin_last_updated($origin_id,1));
+printf("pmodelset last_updated=%s\n", $u->pmodelset_last_updated($pmodelset_id,1));
 
 print("Committing...\n");
 $u->commit();

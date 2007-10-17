@@ -5,12 +5,13 @@
 # PURPOSE: run sigcleave and load results into unison
 # USAGE: run-pfsignalp [pseq_ids]
 #
-# $Id: run-pfsignalp,v 1.9 2005/08/20 00:00:27 rkh Exp $
+# $Id: run-pfsignalp,v 1.10 2005/11/24 22:09:58 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;
 use warnings;
 use Unison;
+use Unison::run;
 use IO::File;
 use Bio::SeqIO;
 use Bio::PrimarySeq;
@@ -21,19 +22,29 @@ use File::Temp qw(tempdir);
 my %opts = 
   (
    debug => 0,
+   run_id => undef,
    params_id => undef,
    verbose => 0,
   );
 GetOptions( \%opts,
 			'debug|d+',
+	                'run_id|r=i',
 			'force|f+',
 			'params_id|p=i',
 			'verbose|v+',
 		  )
   || die("$0: usage\n");
 
+my $u = new Unison();
+
+if (defined $opts{params_id}) {
+    die("$0: use run_id (-r),  may not specify params_id\n");
+}
+
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
 (defined $opts{params_id})
-  || die("$0: parameters not defined (-p)\n");
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
 
 my $dir = tempdir( 'run-pfsignalp-XXXXXX', CLEANUP => 1, TMPDIR => 1 );
 my $temp_in_fn =  "$dir/seqs.fa";
@@ -50,8 +61,6 @@ die( "Signalp barfs on many seqs and large seq files.\n" .
 	"Therfore, run-pfsignalp allows only $max_seq_cnt seqs at a time\n" ) if
 	( $#ARGV >  $max_seq_cnt );
 
-my $u = new Unison;
-
 my $cmd = $u->run_commandline_by_params_id( $opts{params_id} ) . " $temp_in_fn 1>$temp_out_fn";
 my $seqio = new Bio::SeqIO( -format => 'fasta', -file => ">$temp_in_fn" );
 my $sthnn = $u->prepare( 'insert into pfsignalpnn(pseq_id,start,stop,d_score,signal_peptide,params_id) values (?,?,?,?,?,?)' );
@@ -62,7 +71,7 @@ my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 
 PSEQ_ID: foreach my $pseq_id ( @pseq_ids ) {
 
-  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{params_id},undef,undef);
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{run_id});
   if (defined $ran_on and not $opts{update}) {
     print(STDERR "Unison:$pseq_id: run with these options on $ran_on; skipping\n");
     next PSEQ_ID;
@@ -106,7 +115,7 @@ if ( scalar(keys %run_me) > 0 ) {
       # that signalp'd was run on but had no results.  we'll update
       # the run_history table below for those fellas.
       delete $run_me{ $pseq_id };
-      $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+      $u->upd_run_history($pseq_id,$opts{run_id});
 	  printf(STDERR "loaded signalp results for Unison:$pseq_id\n");
 	  if ($opts{verbose}) {
 		printf(STDERR "   NN:  sig_pep_prob: %.2f, cleavage_site: %d\n",
@@ -124,7 +133,7 @@ if ( scalar(keys %run_me) > 0 ) {
 # (the above block of code parses the signalp results and updates the
 # run history for those seqs with results).
 foreach my $pseq_id ( keys %run_me ) {
-  $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+  $u->upd_run_history($pseq_id,$opts{run_id},undef);
 }
 
 unlink $temp_in_fn, $temp_out_fn unless $ENV{'DEBUG'};

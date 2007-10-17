@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 ## emb_genome_map.pl -- genome features as a Unison embeddable page
-## $Id: emb_genome_map.pl,v 1.2 2006/01/02 05:41:11 rkh Exp $
+## $Id: emb_genome_map.pl,v 1.3 2006/08/10 16:43:43 mukhyala Exp $
 
 
 use strict;
@@ -47,7 +47,8 @@ try {
 	my $fname = $feature->name; # should be unique
 	next if not defined $fname;
 	if (my ($pseq_id) = $fname =~ m/^Unison:(\d+)/) {
-	  my $text = $u->best_annotation($pseq_id) || '?';
+	  my $ba = $u->best_annotation($v->{pseq_id}, 'HUMAN') || $u->best_annotation($v->{pseq_id});
+	  my $text = $ba || '?';
 	  $imagemap .= qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summary.pl?pseq_id=$pseq_id">\n);
 	}
 	else {

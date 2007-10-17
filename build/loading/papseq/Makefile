@@ -7,12 +7,18 @@ include ../params.mk
 DB:=uniblast
 RUNSET:=runC-human
 N:=10
+QPPN:=2
 
 update:
 	make cleaner
-	make done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
+	make ${RUNSET}.ids done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
 	make ${RUNSET}-todo-N${N}-qload
 
+PAPSEQ_RUN_ID:=`${PSQL_DCMD} "select preferred_run_id_by_pftype('BLAST')"`
+
+PAPSEQ_CMDLINE:=$(shell ${PSQL_DCMD} "select p.commandline||' -a "${QPPN}"' from params p join run r on r.params_id=p.params_id where r.run_id=${PAPSEQ_RUN_ID}")
+
+PAPSEQ_DATA_DIR:=${UNISON_HOME}/runtime/data/papseq
 
 # alias .load := -unisondb.load
 .PHONY: %.load
@@ -20,12 +26,12 @@ update:
 
 .PRECIOUS: %-${DB}.load
 %-${DB}.load: %-${DB}.bo
-	(time -p load-papseq -p ${BLAST_PARAMS_ID} --verbose <$<) >$@.err 2>&1
+	(time -p load-papseq -r ${PAPSEQ_RUN_ID} --verbose <$<) >$@.err 2>&1
 	/bin/mv -f $@.err $@.log; touch $@
 
 .PRECIOUS: %-${DB}.bo
-%-${DB}.bo: %.fa ${DB}.pal
-	(time -p ${PAPSEQ_CMDLINE} -i $< -d ./${DB}) >$@.tmp 2>&1
+%-${DB}.bo: %.fa ${PAPSEQ_DATA_DIR}/${DB}.pal
+	(time -p ${PAPSEQ_CMDLINE} -i $< -d ${PAPSEQ_DATA_DIR}/${DB}) >$@.tmp 2>&1
 	/bin/mv -f $@.tmp $@
 
 .PRECIOUS: %.log %.fa
@@ -36,10 +42,10 @@ update:
 .PRECIOUS: uniblast.fa
 uniblast.fa:
 	unison-get-seq -v -SS uniblast >$@.tmp
-	/bin/mv -f $@.tmp $@
+	/bin/mv -f $@.tmp ${PAPSEQ_DATA_DIR}/$@
 
 .done.ids:
-	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${BLAST_PARAMS_ID}' >$@.tmp
+	${PSQL_DCMD} "select pseq_id from run_history where run_id=${PAPSEQ_RUN_ID}" >$@.tmp
 	/bin/mv -f $@.tmp $@
 
 
@@ -53,6 +59,9 @@ db: .${DB}-built
 #	touch $@
 
 
-
-cleandb:
+clean::
+cleaner::
+	/bin/rm -f *.bo *.log *.ids .*.ids
+	/bin/rm -fr *-N[1-9] *-N[1-9][0-9] *-N[1-9][0-9][0-9]
+cleanest::
 	/bin/rm -f .*-built *.fa *.phr *.pin *.psq

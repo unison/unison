@@ -128,9 +128,9 @@ COMMENT ON VIEW pseq_features_tmhmm_v IS 'current TMHMM features';
 CREATE OR REPLACE VIEW pseq_features_v AS
   SELECT * FROM pseq_features_bigpi_v
  UNION
-  SELECT * FROM pseq_features_hmm_v
+  SELECT * FROM pseq_features_pfam_v
  UNION
-  SELECT * FROM pseq_features_regexp_v
+  SELECT * FROM pseq_features_prosite_v
  UNION
   SELECT * FROM pseq_features_signalpnn_v
  UNION

@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# $Id$
+# $Id: run-pfseg,v 1.1 2006/07/24 19:59:37 mukhyala Exp $
 
 use warnings;
 use strict;
@@ -11,6 +11,7 @@ use Getopt::Long qw(:config gnu_getopt);
 use IO::Pipe;
 use Unison::Exceptions;
 use Unison;
+use Unison::run;
 use Env qw(@PATH);
 
 sub fetch_sequences ($$@);
@@ -19,12 +20,14 @@ sub load_seq_segs ($@);
 
 my %opts = 
   (
+   run_id  => undef,
    params_id => undef,
    verbose => 0,
    'seqs-per-run' => 50,
    update    => 0
   );
 GetOptions(\%opts,
+	           'run_id|r=i',
 		   'params_id|p=i',
 		   'verbose|v+',
 		   'seqs-per-run|N=i',
@@ -32,17 +35,20 @@ GetOptions(\%opts,
 		  )  || die("$0: you got usage issues, short stack\n");
 
 unshift(@PATH, '/gne/research/apps/seg/current/i686-linux-2.6/bin/');
-my $u = new Unison( dbname=>'csb-dev', username=>'loader' );
+my $u = new Unison();
 
 # prepare the insert statement
 my @fields = qw(pseq_id params_id start stop score);
 my $sth = $u->prepare_cached(sprintf("insert into pfseg (%s) values (%s)",
 									 join(',',@fields), join(',',map {'?'} @fields)));
+if (defined $opts{params_id}) {
+    die("$0: use run_id (-r),  may not specify params_id\n");
+}
 
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
 
 (defined $opts{params_id})
-  || die("$0: parameters not defined (-p)\n");
-
+  || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
 
 my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
 my %all_ids = map {$_=>1} @pseq_ids;
@@ -72,7 +78,7 @@ while ( @pseq_ids ) {
 		 $Ncomp / $N * 100);
 }
 
-$u->upd_run_history($_,$opts{params_id},undef,undef) foreach (keys %all_ids);
+$u->upd_run_history($_,$opts{run_id}) foreach (keys %all_ids);
 
 
 sub fetch_sequences ($$@) {
@@ -87,7 +93,7 @@ sub fetch_sequences ($$@) {
 	|| die("! couldn't open $seqfn for writing\n");
 
   foreach my $pseq_id (@pseq_ids) {
-    if ($u->already_ran($pseq_id,$opts{params_id},undef,undef)) {
+    if ($u->already_ran($pseq_id,$opts{run_id})) {
       if (not $opts{update}) {
 	warn("Unison:$pseq_id already run with these parameters; skipping\n");
 	next;
@@ -190,7 +196,7 @@ sub load_seq_segs ($@) {
 	  }
 	}
 
-	my $z = $u->upd_run_history($pseq_id,$opts{params_id},undef,undef);
+	my $z = $u->upd_run_history($pseq_id,$opts{run_id});
 	$u->commit();
 	print(STDERR "  run_history tickled and load committed at $z\n");
 
