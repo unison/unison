@@ -1,7 +1,33 @@
 /* $Id: unison.css,v 1.39 2006/11/04 03:48:25 rkh Exp $     emacs: -*-c-*-  */
 
+/*
+  color scheme generated from:
+  http://wellstyled.com/tools/colorscheme2/index-en.html?tetrad;50;0;120;0;1;0.5;0.75;0.1;1;0.5;1;0.25;1;0.5;0.75;0.1;1;0.5;1;0.25;1;0.5;0.75;0.1;1;0.5;1;0.25;1;0.5;0.75;0.1;1;0.5;1;0
+
+  background: 	#FFFFFF  #BFBF60  #FFFFE6  #FFFF80
+  set1: 	#EABFFF  #9F60BF  #F7E6FF  #D580FF
+  set2:		#FFBFDC  #BF608A  #FFE6F1  #FF80B8
+  set3:		#CCFFBF  #73BF60  #EBFFE6  #99FF80
+*/
+
+/*
+  Genentech Colors:
+  #004b8c	Genentech Blue (294)
+  #f5cc06	Genentech Yellow (123)
+  #ff9900	Genentech Orange (144)
+  #e1293e	Genentech Red (1795)
+  #913745	Genentech Maroon (202)
+  #8cd5f9	Genentech Light Blue (297)
+  #496a08	Genentech Green (371)
+  #b7d98b	Genentech Light Green (367)
+  #150067	Genentech Blue (old)
+*/
+
+
+
+
 BODY {
- background: #FFFFED;
+ background: #FFFFFF;
  font-family: sans-serif;
 }
 
@@ -357,12 +383,3 @@ div.sql {
 
 
 
-/* background: #004b8c; /* Genentech Blue (294) */
-/* background: #f5cc06; /* Genentech Yellow (123) */
-/* background: #ff9900; /* Genentech Orange (144) */
-/* background: #e1293e; /* Genentech Red (1795) */
-/* background: #913745; /* Genentech Maroon (202) */
-/* background: #8cd5f9; /* Genentech Light Blue (297) */
-/* background: #496a08; /* Genentech Green (371) */
-/* background: #b7d98b; /* Genentech Light Green (367) */
-/* background: #150067; /* Genentech Blue (old) */
