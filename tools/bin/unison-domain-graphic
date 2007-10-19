@@ -76,10 +76,11 @@ B<unison-domain-graphic> generates image of sequence features from Unison
 
 =cut
 
-use lib '/gne/home/mukhyala/opt/lib/perl/lib/perl5/site_perl/5.8.3';
-
 use strict;
 use warnings;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
 
 use Unison;
 use Unison::SQL;
@@ -509,7 +510,6 @@ sub resize {
 ############################################################################
 ## argument processing
 sub map_args_to_pseq_ids {
-
   my $or = shift;
   my (@pseq_ids);
   my %user_anns;
@@ -665,7 +665,6 @@ my %opts =
   );
 
 GetOptions( \%opts,
-
 	                  'select-by-seq|S+',
 			  'select-by-alias|A+',
 			  'select-by-alias-fuzzy|F+',
