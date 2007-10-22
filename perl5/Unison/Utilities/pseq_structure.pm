@@ -83,7 +83,7 @@ sub find_structures {
 
 sub find_templates {
   my $self = shift;
-  my $st_sql = <<EOSQL
+  my $st_sql = <<EOSQL;
 SELECT
 	DISTINCT ON (pct_coverage,t_pseq_id,substr(template,1,4))
 	q_pseq_id, template, q_start, q_stop, t_start, t_stop, gaps, eval, score, pct_ident, len, pct_coverage,method, descr
