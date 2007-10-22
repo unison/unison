@@ -51,9 +51,12 @@ $pseq_structure->jmol($jmol);
 my %opts = (%Unison::Utilities::pseq_features::opts, %$v);
 
 try {
-    my $structures_ar=$pseq_structure->find_structures();
-    my $templates_ar=$pseq_structure->find_templates();
-    $p->die("Sorry no structures/templates found\n") if($pseq_structure->{'num_structures'} == 0 and $pseq_structure->{'num_templates'} == 0);
+    my $structures_ar = $pseq_structure->find_structures();
+    my $templates_ar = $pseq_structure->find_templates();
+	if ($pseq_structure->{'num_structures'} == 0 
+		and $pseq_structure->{'num_templates'} == 0) {
+		$p->die("Sorry no structures and no suitable templates were found\n");
+	}
     $pseq_structure->find_snps();
 
     $structures_ar = edit_structure_rows($structures_ar);

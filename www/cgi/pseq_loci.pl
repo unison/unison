@@ -22,12 +22,7 @@ $p->add_footer_lines('$Id: pseq_loci.pl,v 1.24 2006/04/09 09:01:22 rkh Exp $ ');
 
 
 my @ps = $u->get_params_info_by_pftype('pmap');
-
-if (not defined $v->{params_id}) {
-  $v->{params_id} =
-	$u->preferred_params_id_by_pftype($v->{pseq_id},'pmap')
-	|| $ps[0]->[0];
-}
+$v->{params_id} = $ps[0]->[0] unless (defined $v->{params_id});
 
 ## BUG: the genasm_id isn't passed to the Unison or geode views.
 # genasm_id=2 (NHGD 35) because that's all geode supports and I don't want

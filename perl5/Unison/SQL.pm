@@ -134,7 +134,8 @@ sub distinct {
 
 =cut
 
-sub table { $_[0]->join(splice(@_,1)) }
+sub table  { $_[0]->join(splice(@_,1)) }
+sub tables { $_[0]->join(splice(@_,1)) }
 sub join {
   my $self = shift;
   if (@_) {

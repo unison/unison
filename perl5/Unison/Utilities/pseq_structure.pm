@@ -73,12 +73,9 @@ sub jmol {
 }
 
 sub find_structures {
-
      my $self = shift;
-
      my $structures_sql = "select a.pdbc, a.descr, p.len from alias_pdbcs_v a join pseq p on a.pseq_id=p.pseq_id where a.pseq_id=$self->{'pseq_id'}";
      my $structures_ar = $self->{'unison'}->selectall_arrayref($structures_sql);
-
      return undef unless defined($structures_ar);
      $self->initialize_structures($structures_ar);
      return $structures_ar;
@@ -86,7 +83,15 @@ sub find_structures {
 
 sub find_templates {
   my $self = shift;
-  my $st_sql = "select distinct on (pct_coverage,t_pseq_id,substr(template,1,4)) B.q_pseq_id,B.template, B.q_start,B.q_stop,B.t_start,B.t_stop,B.gaps,B.eval,B.score,B.pct_ident,B.len,B.pct_coverage,method, B.descr from pseq_template_v B where B.q_pseq_id = $self->{'pseq_id'} order by pct_coverage desc, t_pseq_id, substr(template,1,4) limit 20";
+  my $st_sql = <<EOSQL
+SELECT
+	DISTINCT ON (pct_coverage,t_pseq_id,substr(template,1,4))
+	q_pseq_id, template, q_start, q_stop, t_start, t_stop, gaps, eval, score, pct_ident, len, pct_coverage,method, descr
+FROM pseq_template_v
+WHERE q_pseq_id = $self->{'pseq_id'}
+ORDER BY pct_coverage desc, t_pseq_id, substr(template,1,4)
+LIMIT 20
+EOSQL
   my $templates_ar = $self->{'unison'}->selectall_arrayref($st_sql);
   return undef unless defined $templates_ar;
   $self->initialize_templates($templates_ar);

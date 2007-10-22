@@ -612,6 +612,8 @@ exits with status 0 (so that webservers will actually return the page).
 =cut
 
 
+## TODO: get the error text to the error_log
+
 sub die {
   if ( ref($_[1]) and $_[1]->isa('Unison::Exception') ) {
 	goto &_die_with_exception;
@@ -628,7 +630,7 @@ sub _die {
 					  '<b>Error:</b> ', $t, '<br>',
 					  join(' ',@_), 
 					  '</div>', "\n" );
-  exit(0);
+  exit(0);						# => doesn't appear to be a server error to user
 }
 
 sub _die_with_exception {
@@ -644,6 +646,7 @@ sub _die_with_exception {
   }
 
   my $ex_text = ( defined $ex->{error} ? CGI::escapeHTML($ex->{error}) : '(no exception summary)' );
+
   $self->_die($ex->error(),'<pre>'.$ex.'</pre>', (@_ ? ('<hr>', @_) : '') );
   # no return
 }
@@ -848,6 +851,7 @@ sub _page_connect ($) {
   if ($v->{username}) { $ENV{PGUSER}     = $v->{username} } else { delete $ENV{PGUSER}     };
   if ($v->{password}) { $ENV{PGPASSWORD} = $v->{password} } else { delete $ENV{PGPASSWORD} };
 
+  # TODO: consider setting search_path here in lieu of a per-database search_path
   $self->{unison} -> do('set statement_timeout = 300000'); # milliseconds
 
   return $self->{unison};
@@ -858,23 +862,27 @@ sub _page_connect ($) {
 ## _set_connection_params
 ## sets connection parameters in the Page's instance variables
 sub _set_connection_params ($) {
-  my $self = shift;
-  my $v = $self->Vars();
+  my $p = shift;
+  my $v = $p->Vars();
 
   if (not defined $ENV{SERVER_ADDR}) {
-	# command line debugging
+	# debugging from the command line
 	$v->{username} = $ENV{USER} || `/usr/bin/id -un`;
 	$v->{dbname} = $v->{dbname} || 'csb-dev';
 	return;
  }
 
-  # These are the defaults expected for public versions of Unison
-  # May have been preset in U::WWW::Page::new()
-  $v->{dbname} 	 = 'unison'	unless defined $v->{dbname};
-  $v->{username} = 'PUBLIC'	unless defined $v->{username};
+  # Default connections params for public versions of Unison
+  # Some hash values may have been preset in U::WWW::Page::new()
+  if (not defined $v->{dbname}) {
+	  $v->{dbname} 	 = $p->is_dev_instance() ? 'unison-dev' : 'unison';
+  }
+  if (not defined $v->{username}) {
+	  $v->{username} = 'PUBLIC';
+  }
   # $v->{host}, $v->{password}->{host} may be undef
 
-  _genentech_connection_params($self) if ($ENV{SERVER_ADDR} =~ '^128\.137\.');
+  $p->_genentech_connection_params() if ($ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)');
 }
 
 ######################################################################

@@ -78,13 +78,21 @@ sub summary_table ($) {
 	 '<tr><th><div>Best Annotation</div></th> <td>', $ba , '</td></tr>',
 
 	 '<tr><th><div>Entrez Annotations</div></th> <td>', 
-	 (map { sprintf("%s %s; %s (%s)", @{%$_}{qw(common symbol descr map_loc)}) }
-	  $u->entrez_annotations($v->{pseq_id}) ),
+	 join( '<br>',
+		   (map
+			{ sprintf("%s %s; %s", @{%$_}{qw(common symbol descr)}) 
+			  . (defined $_->{map_loc} ? " ($_->{map_loc})" : '')
+			  }
+			$u->entrez_annotations($v->{pseq_id})
+			)
+		   ),
 	 '</td></tr>',
 
-	 ($p->{unison}->is_public() ? '' : 
-	  '<tr><th><div>Protcomp Localization</div></th> <td>', protcomp_info($p), '</td></tr>'),
-
+	 ($p->{unison}->is_public()
+	  ? ''
+	  : '<tr><th><div>Protcomp Localization</div></th> <td>', protcomp_info($p), '</td></tr>'
+	  ),
+	 
 	 '<tr><th><div>Human Locus</div></th> <td>', $locus||'N/A', '</td></tr>',
 
 	 '</table>'

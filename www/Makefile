@@ -18,6 +18,10 @@ renav: FORCE
 push-offline: FORCE
 	rsync -e 'ssh -lreece' -Rav offline.html styles/unison.css av harts.net:harts.net/unison/
 
+www-prep:
+	mkdir -p tmp; chmod 777 tmp
+	mkdir -p ../log; chmod 777 ../log
+
 clean:
 	/bin/rm perl5/Unison perl5/Prospect2
 	rmdir perl5
