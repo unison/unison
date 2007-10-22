@@ -47,6 +47,7 @@ sub _conn_info_html ($) {
 	my $www_rel = ($p->is_public_instance ? $pub_str : '') . ' ' . ($Unison::WWW::RELEASE || $dev_str);
 	my $api_rel = $Unison::RELEASE || $dev_str;
 	my $db_rel = ($u->is_public_instance ? $pub_str : '') . ' ' . ($u->release_timestamp() || $dev_str);
+	my $www_user = (defined $ENV{REMOTE_USER}) ? $ENV{REMOTE_USER} : '(unauthenticated)';
 
 	my $db_host = $u->{host}
 	  ? sprintf("%s:%s",$u->{host},$u->{port}||'&lt;default&gt;')
@@ -58,7 +59,7 @@ sub _conn_info_html ($) {
 <tr><th rowspan=4>web</th>		<td><b>release:</b></td>	<td>$www_rel</td></tr>
 <tr>                      		<td><b>host:</b></td>	  	<td>$ENV{SERVER_NAME}</td></tr>
 <tr>							<td><b>client:</b></td>  	<td>$ENV{REMOTE_ADDR}</td></tr>
-<tr>							<td><b>user:</b></td>	  	<td>$ENV{REMOTE_USER}</td></tr>
+<tr>							<td><b>user:</b></td>	  	<td>$www_user</td></tr>
 
 <tr><td colspan=3 class="sw_stack_sep"></td></tr>
 

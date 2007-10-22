@@ -38,14 +38,18 @@ print $p->render
    (map { "$_: " . ((defined $p->{unison} and defined $p->{unison}->{$_})
 					? $p->{unison}->{$_} : '<i>undef</i>') . "\n" }
 	qw(username host dbname)),
+   ( (defined $ENV{KRB5CCNAME})
+	 ? (`klist -5 2>/dev/null`)
+	 : 'Kerberos authentication is not in use (KRB5CCNAME is undefined)'),
    "</pre>\n",
 
-   '<hr><u>Kerberos and user information:</u>',
-   '<br><pre>', `klist -5`, '</pre>',
-
    '<hr><u>Environment variables:</u>',
-   '<br><pre>', (map { "$_=$ENV{$_}\n"} qw(PATH PERL5LIB LD_LIBRARY_PATH)) ,'</pre>',
-
+   '<br><pre>', 
+   (map
+	{ "$_=".(defined $ENV{$_}? $ENV{$_}:'<i>undef</i>')."\n"}
+	qw(PATH PERL5LIB LD_LIBRARY_PATH)
+	),
+   '</pre>',
 
    "<hr><u>Perl:</u>\n",
    "<br>perl binary: <code>$^X</code>\n",
