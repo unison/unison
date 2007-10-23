@@ -27,15 +27,18 @@ STAGE_DATABASE=csb-stage
 default all:
 	@echo "Ain't no stinking $@ target" 1>&2; exit 1
 
-.PHONY: pub
-pub:
-	sudo -u postgres make csb-pub.log PATH=${PATH} PERL5LIB=${PERL5LIB}
+# do it all, including sudo
+# eg$ make csb-dev-pub
+.PHONY: csb-pub csb-dev-pub
+csb-pub csb-dev-pub: %:
+	sudo -u postgres make $*.log PATH=${PATH} PERL5LIB=${PERL5LIB}
+
 
 .PRECIOUS: %-pub.log
 %-pub.log: 
 	-dropdb $*-pub
 	createdb -EUTF8 -Ounison $*-pub
-	(time ~rkh/unison/tools/sbin/publicize $* | psql -d $*-pub -qa -f -) >$@.tmp 2>&1
+	(time ../../tools/sbin/publicize $* | psql -d $*-pub -qa -f -) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
 	psql -d '$*-pub' -c 'alter database "$*-pub" set search_path = "$$user",unison,pdb,gong,scop,tax,public'
 	psql -d '$*-pub' -c 'analyze verbose'
@@ -46,7 +49,7 @@ pub:
 	(time pg_dump -Fc $* >$@.tmp) 2>$@.err 
 	/bin/mv -f "$@.tmp" "$@"
 
-# NB: `./' is to prevent rsync from interpreting colons
+# NB: `./' is to prevent rsync from interpreting colons in timestamps
 # run as rkh
 %-wepush: % %.md5
 	(time rsync --progress ./$* ./$*.md5 we:tmp/) >$@.tmp 2>&1
@@ -135,7 +138,7 @@ unison-%-schema.psql.gz: csb-%.pgdump
 	/bin/mv $@.tmp $@
 .PRECIOUS: unison-%-data.psql.gz
 unison-%-data.psql.gz: csb-%.psql.gz
-	(time -p gzip -cdq <$< | ../../sbin/publicize | gzip >$@.tmp) 2>$@.err
+	(time -p gzip -cdq <$< | ../../tools/sbin/publicize | gzip >$@.tmp) 2>$@.err
 	/bin/mv $@.err $@.log
 	/bin/mv $@.tmp $@
 unison-%-restore.log: unison-%-data.psql.gz
