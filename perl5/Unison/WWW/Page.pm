@@ -604,6 +604,8 @@ sub warn {
 
 =pod
 
+=item B<< $p->die( C<exception> ) >>
+
 =item B<< $p->die( C<text> ) >>
 
 Returns a Unison error page with C<text>.  This returns a new page and
@@ -611,8 +613,7 @@ exits with status 0 (so that webservers will actually return the page).
 
 =cut
 
-
-## TODO: get the error text to the error_log
+## TODO: get the error text to the apache error_log or to a Unison log
 
 sub die {
   if ( ref($_[1]) and $_[1]->isa('Unison::Exception') ) {
@@ -621,15 +622,9 @@ sub die {
   goto &_die;
 }
 
-
 sub _die {
   my $self = shift;
-  my $t = shift;
-  print $self->render("Error: $t",
-					  '<p><div class="warning">',
-					  '<b>Error:</b> ', $t, '<br>',
-					  join(' ',@_), 
-					  '</div>', "\n" );
+  $self->_error_page(@_);
   exit(0);						# => doesn't appear to be a server error to user
 }
 
@@ -650,6 +645,18 @@ sub _die_with_exception {
   $self->_die($ex->error(),'<pre>'.$ex.'</pre>', (@_ ? ('<hr>', @_) : '') );
   # no return
 }
+
+sub _error_page {
+  my $self = shift;
+  my $t = shift;
+  print $self->render("Error: $t",
+					  '<p><div class="warning">',
+					  '<b>Error:</b> ', $t, '<br>',
+					  join(' ',@_), 
+					  '</div>', "\n" );
+}
+
+
 
 
 

@@ -315,7 +315,7 @@ div.domTTUnison {
 div.domTTUnison .caption {
   font-family: serif;
   font-size: 13px;
-  _font-size: 12px;
+  /* _font-size: 12px; */
   font-weight: bold;
   font-style: italic;
  padding: 1px 2px;
@@ -324,10 +324,10 @@ div.domTTUnison .caption {
 div.domTTUnison .contents {
  color: black;
  font-size: 13px;
- _font-size: 12px;
+  /* font-size: 12px; */
  font-family: Arial, sans-serif;
  padding: 1px 2px;
- _padding-bottom: 0;
+  /* padding-bottom: 0; */
 }
 
 
@@ -373,13 +373,18 @@ div.sql {
  font-family: monospace;
  font-size: xx-small;
 }
-#div.tip {
-# border: black thin solid;
-# padding: 2px;
-# margin: 20px;
-# background: lightgrey;
-#}
 
+/*
+  I haven't a clue why I disabled this
+  2007-10-19 Reece Hart <reece@harts.net>
+
+div.tip {
+ border: black thin solid;
+ padding: 2px;
+ margin: 20px;
+ background: lightgrey;
+}
+*/
 
 
 
