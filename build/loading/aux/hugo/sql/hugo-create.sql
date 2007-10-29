@@ -15,7 +15,7 @@ create table "unison_aux".hugo (
 	enzyme_ids			text,				   -- Enzyme IDs					
 	entrez_gene_id		text,				   -- Entrez Gene ID				
 	mgd_id				text,				   -- MGD ID						
-	misc_ids			text,				   -- Misc IDs					
+	specialist_db_links	text,				   -- spcialist DB links					
 	pubmed_ids			text,				   -- Pubmed IDs					
 	refseq_ids			text,				   -- RefSeq IDs					
 	gene_family_name	text,				   -- Gene Family Name			
@@ -57,8 +57,8 @@ comment on column "unison_aux".hugo.date_name_changed	is 'Date Name Changed';
 comment on column "unison_aux".hugo.accession_numbers	is 'Accession Numbers';
 comment on column "unison_aux".hugo.enzyme_ids			is 'Enzyme IDs';
 comment on column "unison_aux".hugo.entrez_gene_id		is 'Entrez Gene ID';
-comment on column "unison_aux".hugo.mgd_id				is 'MGD ID';
-comment on column "unison_aux".hugo.misc_ids			is 'Misc IDs';
+comment on column "unison_aux".hugo.mgd_id			is 'MGD ID';
+comment on column "unison_aux".hugo.specialist_db_links		is 'links to specialist databases';
 comment on column "unison_aux".hugo.pubmed_ids			is 'Pubmed IDs';
 comment on column "unison_aux".hugo.refseq_ids			is 'RefSeq IDs';
 comment on column "unison_aux".hugo.gene_family_name	is 'Gene Family Name';
