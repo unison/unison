@@ -99,7 +99,7 @@ perl5-prereq-${DATE}.tgz: %.tgz:
 stage.log:
 	export PGHOST=localhost PGUSER=postgres; \
 	dropdb "${STAGE_DATABASE}" || true; \
-	./dev2stage "${STAGE_DATABASE}" >$@.err 2>&1
+	../../tools/sbin/dev2stage "${STAGE_DATABASE}" >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
