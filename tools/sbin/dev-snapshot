@@ -20,7 +20,7 @@ snap_name="$snap_pfx-$ts"
 
 
 DUMP_OPTS=
-PSQL_OPTS=-qa
+PSQL_OPTS='-qa -v ON_ERROR_STOP=1'
 ECHO=
 if [ -n "$SNAPSHOT_DEBUG" ]; then
 		DUMP_OPTS=-s
@@ -37,29 +37,37 @@ pg_dump $DUMP_OPTS "$SRC_DATNAME" | psql $PSQL_OPTS -d "tmp_$snap_name"
 )
 STATUS=$?
 
+
 if [ "$STATUS" = "0" ]; then
-		psql -d "tmp_$snap_name" <<EOF
+	# update the snapshot's datconfig (e.g., search_path) to be identical
+	# to the source's
+	psql -d "tmp_$snap_name" <<EOF
 UPDATE pg_database D SET datconfig=S.datconfig,datacl=S.datacl
   FROM pg_database S
  WHERE S.datname='$SRC_DATNAME' AND D.datname='tmp_$snap_name';
 EOF
 
-		psql -d "tmp_$snap_name" -c 'analyze verbose'
-
-		psql -d template1 -c "alter database \"tmp_$snap_name\" rename to \"$snap_name\""
-
-		# keep only the most recent MAX_SNAPS snapshots
-		psql -Atc "select datname from pg_database where datname~'^$snap_pfx-' order by datname desc offset $MAX_SNAPS" \
-		| while read datname; do
-				(set -x; $ECHO dropdb "$datname")
-		done
+	psql -d "tmp_$snap_name" -c 'analyze verbose'
+	
+	psql -d template1 -c "alter database \"tmp_$snap_name\" rename to \"$snap_name\""
+	
+	# keep only the most recent MAX_SNAPS snapshots
+	psql -Atc "select datname from pg_database where datname~'^$snap_pfx-' order by datname desc offset $MAX_SNAPS" \
+	| while read datname; do
+		(set -x; $ECHO dropdb "$datname")
+	done
 fi
 
-psql -c "select datname as \"database\",pg_size_pretty(pg_database_size(oid)) as \"size\" from pg_database where datname~'^csb' order by datname"
+psql <<EOF
+SELECT datname AS "database",pg_size_pretty(pg_database_size(oid)) AS "size"
+  FROM pg_database
+ WHERE datname~'^csb'
+ ORDER by datname
+EOF
 
 df -h /srv
 
-/bin/date +'%F %T: finished'
+/bin/date +"%F %T: finished [STATUS=$STATUS]"
 
 
 exit $STATUS
