@@ -98,9 +98,10 @@ sub _get_model_file {
   };
   $p->die("Could not get data_url for pmodelset_id = ".$v->{pmodelset_id}) if(!$data_url);
 
-  my $unison_home = $p->url(-absolute=>1);
-  $unison_home =~ s/unison.*/unison/;
-  $unison_home =~ s/^\///;
+  my $abs_url = $p->url(-absolute=>1);
+  $abs_url =~ s/.*(cgi\/.*)/$1/;
 
-  return "$unison_home/$data_url";
+  #this is the relative path for unison runtime dir
+  my $return_path='../' x (scalar split /\//, $abs_url);
+  return $return_path.$data_url;
 }
