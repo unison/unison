@@ -139,7 +139,7 @@ for(my $qi=0; $qi < scalar @$pseq_ids; $qi++ ) {
 
   # the sequence ids on RHS
   $im->string(gdSmallFont,
-			  ($opts{width}-150), $ymidline - gdSmallFont->height/2,
+			  ($opts{width}-100), $ymidline - gdSmallFont->height/2,
 			  $ba,
 			  $c->{black});
   draw($im,$c,$xscale,$ymidline,\%{$si->{$q}},$feature_colors,$q);
@@ -287,40 +287,40 @@ sub new_gd_canvas {
 	   black => $im->colorAllocate(0,0,0),
 	   blue => $im->colorAllocate(0,0,255),
 	   steelblue4 => $im->colorAllocate(54,100,139),
+	   sbrown=> $im->colorAllocate(139,69,19),
 	   lightblue => $im->colorAllocate(135,206,250),
 	   blueviolet => $im->colorAllocate(138,43,226),
 	   purple => $im->colorAllocate(85,26,139),
+	   dseagreen => $im->colorAllocate(193,255,193),
 	   plum => $im->colorAllocate(255,187,255),
-	   blue_cadet => $im->colorAllocate(95,158,160),
 	   slateblue => $im->colorAllocate(132,112,255),
-	   navublue => $im->colorAllocate(0,0,128),
-	   turquoise => $im->colorAllocate(0,206,209),
-	   sbrown=> $im->colorAllocate(139,69,19),
 	   brass => $im->colorAllocate(181,166,66),
-	   bronze => $im->colorAllocate(166,125,61),
-	   gold => $im->colorAllocate(205,127,50),
 	   navajowhite => $im->colorAllocate(139,121,94),
 	   newtan=> $im->colorAllocate(235,199,158),
 	   tan=> $im->colorAllocate(219,147,112),
 	   cyan => $im->colorAllocate(0,255,255),
 	   green => $im->colorAllocate(0,255,0),
-	   dgreen => $im->colorAllocate(0,100,0),
-	   seagreen => $im->colorAllocate(143,188,143),
-	   dseagreen => $im->colorAllocate(193,255,193),
-	   olivedrab => $im->colorAllocate(107,142,35),
-	   hgreen => $im->colorAllocate(35,142,35),
+	   bronze => $im->colorAllocate(166,125,61),
 	   aquamarine => $im->colorAllocate(127,255,212),
 	   grey => $im->colorAllocate(211,211,211),
+	   gold => $im->colorAllocate(205,127,50),
 	   wgrey => $im->colorAllocate(84,84,84),
 	   slategrey => $im->colorAllocate(108,123,139),
 	   fsgrey => $im->colorAllocate(99,86,136),
 	   magenta => $im->colorAllocate(255,0,255),
 	   maroon => $im->colorAllocate(176,48,96),
+	   olivedrab => $im->colorAllocate(107,142,35),
+	   blue_cadet => $im->colorAllocate(95,158,160),
 	   lpink => $im->colorAllocate(255,182,193),
+	   hgreen => $im->colorAllocate(35,142,35),
 	   orange =>  $im->colorAllocate(255,165,0),
+	   turquoise => $im->colorAllocate(0,206,209),
 	   red => $im->colorAllocate(255,0,0),
+	   navublue => $im->colorAllocate(0,0,128),
+	   dgreen => $im->colorAllocate(0,100,0),
 	   tomate => $im->colorAllocate(255,99,71),
 	   indianred => $im->colorAllocate(205,92,92),
+	   seagreen => $im->colorAllocate(143,188,143),
 	   yellow => $im->colorAllocate(255,255,0),
 	   white => $im->colorAllocate(255,255,255)
 	);
@@ -335,10 +335,10 @@ sub assign_colors {
   my %feature_color;
   my %cc = %$c;
   delete $cc{$_} foreach(qw(black orange red grey white blue dgreen));
-  my @colors=sort keys %cc;
+  my @colors=keys %cc;
   my $cnum = 0;
 
-    foreach my $f (sort keys %$feats) {
+    foreach my $f (keys %$feats) {
       $cnum = 0 if $cnum > $#colors;
       $feature_color{$f} = $colors[$cnum++] if not defined $feature_color{$f};
       $feature_color{$f} = 'red' if ($f eq 'TM');
