@@ -47,7 +47,7 @@ use strict;
 use warnings;
 
 our $RELEASE = '';
-if (q$HeadURL$ =~ m/tags\/rel_(\S*)\//) { ($RELEASE = $1) =~ s/-/./g; }
+if (q$HeadURL$ =~ m/tags\/rel_(\S*?)\//) { ($RELEASE = $1) =~ s/-/./g; }
 
 use Unison::DBI;
 use Unison::Exceptions;
