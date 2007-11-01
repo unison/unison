@@ -152,7 +152,7 @@ my $optsum = eval join('+', map {$opts{$_}?1:0} @outcols);
 
 my ($params,$id_alias,$fmt);
 my $ba_sth = $u->prepare_cached( 'select best_annotation(?)' );
-my $rh_sth = $u->prepare_cached( 'select params_id,params,ran_on from run_history_v where pseq_id=? and params_id=?' );
+my $rh_sth = $u->prepare_cached( 'select params_id,params,ran_on from run_history_v where pseq_id=? and run_id=?' );
 
 print_headers();
 foreach my $pseq_id (@pseq_ids) {
@@ -305,13 +305,13 @@ sub get_data($) {
     $id_alias->{$pseq_id}{alias} = $u->best_alias($pseq_id);
 
     if ($data ne 'patents' and $data ne 'alias') {
-      #tie annotation choice to pftype to get the latest params(->preferred_params_id_by_pftype)
+      #tie annotation choice to pftype to get the latest params/run(->preferred_run_id_by_pftype)
       my %pftypes=('signalp'=>'SignalP','tm'=>'TMHMM','protcomp'=>'Protcomp','pfam'=>'hmm','regexp'=>'regexp','bigpi'=>'BIG-PI');
 
-      my $params_id=$u->selectrow_array("select preferred_params_id_by_pftype('".$pftypes{$_->[0]}."')");
-      (defined $params_id)
+      my $run_id=$u->selectrow_array("select preferred_run_id_by_pftype('".$pftypes{$_->[0]}."')");
+      (defined $run_id)
 		|| die($pftypes{$_->[0]}.": No such parameter set name\n");
-      $params->{$data} = $u->selectrow_hashref($rh_sth,undef,$pseq_id,$params_id);
+      $params->{$data} = $u->selectrow_hashref($rh_sth,undef,$pseq_id,$run_id);
     }
   }
   return ($r);
