@@ -14,6 +14,7 @@ use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 use Unison::Utilities::pseq_features;
 
 sub protcomp_info ($);
+sub summary_group ($);
 sub sequence_group ($);
 sub aliases_group ($);
 sub features_group ($);
@@ -36,14 +37,14 @@ try {
   $p->is_valid_pseq_id($v->{pseq_id});
 } catch Unison::Exception with {
   $p->die(shift, <<EOT);
-You've provided a bogus pseq_id. Please verify the
+You\'ve provided a bogus pseq_id. Please verify the
 id an try again, or consider <a href="search_alias.pl">searching for it by name</a>.
 EOT
 };
 
 try {
   print $p->render("Summary of Unison:$v->{pseq_id}",
-				   '<p>', summary_table($p),
+				   '<p>', summary_group($p),
 				   '<p>', sequence_group($p),
 				   '<p>', aliases_group($p),
 				   '<p>', features_group($p),
@@ -58,6 +59,48 @@ exit(0);
 
 
 ############################################################################
+
+sub summary_group ($) {
+  my $p = shift;
+  my $u = $p->{unison};
+  my $v = $p->Vars();
+
+  # locus will only work for human sequences
+  my $locus = $u->selectrow_array('select chr||band from pseq_cytoband_v where pseq_id=? and params_id=48',
+								  undef, $v->{pseq_id});
+
+  # try best human annotation first, otherwise get best annotation for any species
+  my $ba = $u->best_annotation($v->{pseq_id}, 'HUMAN') || $u->best_annotation($v->{pseq_id});
+
+  return
+	  $p->group(
+		  'Summary',
+
+		  '<table class="summary">',
+		  
+		  '<tr><th><div>Best Annotation</div></th> <td>', $ba , '</td></tr>',
+
+		  '<tr><th><div>Entrez Annotations</div></th> <td>', 
+		  join( '<br>',
+				(map
+				 { sprintf("%s %s; %s", @{%$_}{qw(common symbol descr)}) 
+					   . (defined $_->{map_loc} ? " ($_->{map_loc})" : '')
+				 }
+				 $u->entrez_annotations($v->{pseq_id})
+				)
+		  ),
+		  '</td></tr>',
+
+		  ($p->{unison}->is_public()
+		   ? ''
+		   : '<tr><th><div>Protcomp Localization</div></th> <td>', protcomp_info($p), '</td></tr>'
+		  ),
+		  
+		  '<tr><th><div>Human Locus</div></th> <td>', $locus||'N/A', '</td></tr>',
+
+		  '</table>'
+	  );
+}
 
 sub summary_table ($) {
   my $p = shift;

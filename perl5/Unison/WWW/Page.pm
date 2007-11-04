@@ -683,9 +683,15 @@ EOT
   # try best human annotation first, otherwise get best annotation for any species
   my $ba = $self->{unison}->best_annotation($pseq_id, 'HUMAN') || $self->{unison}->best_annotation($pseq_id);
 
-  return( '<b>"best" annotation</b>&nbsp;',
-		  $self->tooltip( '?', $tooltip ), ': ',
-		  $ba);
+  return
+	  ( 
+		'<table class="summary">',
+		'<tr>',
+	      '<th><div>best annotation', $self->tooltip( '?', $tooltip ), '</div></th>',
+  	      '<td>', $ba , '</td>',
+		'</tr>',
+		'</table>'
+	  );
 }
 
 
@@ -1125,16 +1131,17 @@ sub _navbar {
 	. "    </tr>\n"
 	. "    <!-- 'V' graphic -->\n"
 	. "    <tr>"
-	. ($navi==0      ? '' : sprintf("<td colspan=%d></td>",$navi))
-	. '<td align="center"><img src="../av/subnav.gif"></td>'
-	. ($navi==$#navs ? '' : sprintf("<td colspan=%d></td>",$#navs-$navi))
+## options sub menu graphic:
+#	. ($navi==0      ? '' : sprintf("<td colspan=%d></td>",$navi))
+#	. '<td align="center"><img src="../av/subnav.gif"></td>'
+#	. ($navi==$#navs ? '' : sprintf("<td colspan=%d></td>",$#navs-$navi))
 	. "</tr>\n"
 	. "  </table>\n";
 
   my @nav = @{$navs[$navi]};
   shift @nav;				# menu header is first item; subnav items remain
   $rv .= 
-      "  <table class=\"nav\" width=\"100%\">\n"
+      "  <table class=\"nav\" style=\"border-top: medium solid;\" width=\"100%\">\n"
 	. "    <!-- sub nav -->\n"
 	. "    <tr>\n"
 	. _make_navrow($subnavi, @nav)
@@ -1232,7 +1239,6 @@ sub _make_navrow {
 	  next;
 	}
 
-	$tab_label = "<span style=\"white-space: nowrap;\">$tab_label</span>";
 	$url .= "?$params" if defined $params;
 	my $cl = 'unselected';
 	if (defined $sel and $sel == $i) {
