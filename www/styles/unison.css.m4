@@ -1,5 +1,19 @@
 /* $Id: unison.css,v 1.39 2006/11/04 03:48:25 rkh Exp $     emacs: -*-c-*-  */
 
+/*
+  The color palette should be decomposed into the simplest set of colors,
+  such as:
+  FG, BG
+  HIGHLIGHT_FG, BG
+  HIGHLIGHT2_FG, BG
+
+  or consider:
+  HUE{1,2,3,4}{A,B,C,D}_{FG,BG} where HUE1 is a color group, A-D are
+  specifc colors, and FG,BG provide contrast for highlighting
+
+ */
+
+
 BODY {
  background: U_BACKGROUND;
  font-family: sans-serif;
@@ -14,10 +28,11 @@ IMG {
 A {
  border: 1px solid U_BACKGROUND;
 }
-A:hover {
- border: 1px solid U_HOVER_HIGHLIGHT;
-}
 */
+A:hover {
+ background: U_HOVER_HIGHLIGHT_BG;
+ color: U_HOVER_HIGHLIGHT_FG;
+}
 
 
 
@@ -53,38 +68,38 @@ TABLE.page TD.navbar {
 TABLE.nav {
  border: none;
  color: U_NAV_FG;
+ background: U_BACKGROUND;
 }
 TABLE.nav TD.unselected {
- width: 50px;
- border: thin solid U_NAV_BG;
+ background: U_NAV_BG;
+ border: thin solid U_FRAME;
+ color: U_NAV_FG;
  padding-left: 5px;
  padding-right: 5px;
- background: U_NAV_BG;
- color: U_NAV_FG;
+ width: 50px;
 }
 TABLE.nav TD.selected {
- width: 50px;
+ background: U_NAV_FG;
  border: thin solid U_FRAME;
+ color: U_NAV_BG;
+ font-weight: bold;
  padding-left: 5px;
  padding-right: 5px;
- background: U_NAV_SELECTED_BG;
- font-weight: bold;
  white-space: nowrap;
- color: U_NAV_SELECTED_FG;
+ width: 50px;
 }
 TABLE.nav TD.unselected:hover {
  background: U_HOVER_HIGHLIGHT;
  border: U_FRAME thin solid;
- cursor:pointer;cursor:hand;
  color: U_NAV_FG;
+ cursor:pointer;cursor:hand;
 }
 TABLE.nav TD.selected A {
+ color: U_NAV_FG;
  font-weight: bold;
  text-decoration: none;
- color: U_NAV_FG;
 }
 TABLE.nav TD.unselected A {
-  /*  color: black; */
  text-decoration: none;
  color: U_NAV_FG;
 }
@@ -133,15 +148,16 @@ TABLE.subnav TD.unselected A {
 TABLE.group {
  width: 100%;
  margin: 0px;
- border: thin solid U_FRAME;
+ padding: 0px;
+ border: 0px;
 }
 
 TABLE.group TH.grouptag {
  border: thin solid U_FRAME;
- background-color: U_UNHIGHLIGHTED;
+ background-color: U_FRAME;
  width: 20%;
  font-size: largest;
- color: white;
+ color: U_BACKGROUND;
 }
 
 TABLE.group TD {
@@ -151,20 +167,30 @@ TABLE.group TD {
 
 TABLE.summary {
  width: 100%;
- border: thin solid U_FRAME;
+ border: none;
+ background: U_BACKGROUND;
+ margin: none;
+ border: none;
 }
 TABLE.summary TH {
+ background-color: U_BACKGROUND;
+ border: 0px;
+ padding: 0px;
+ color: U_NAV_FG;
  text-align: right;
  vertical-align: top;
- color: white;
+ white-space: nowrap;
 }
 TABLE.summary TH DIV {
- background-color: U_UNHIGHLIGHTED;
- padding-right: 5px;
+ border: thin solid U_FRAME;
+ background-color: U_FRAME;
+ color: U_BACKGROUND;
  white-space: nowrap;
 }
 TABLE.summary TD {
-  vertical-align: top;
+ vertical-align: top;
+ border: none;
+ margin: none;
 }
 
 
@@ -173,15 +199,16 @@ table.quicklinks {
   /* border:  U_FRAME thin solid; */
 }
 TD.quicklinks_title {
- background:  U_FRAME;
-  /* color: white; */
+ background:  U_NAV_BG;
+ color: U_NAV_FG;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
  font-style: italic; 
 }
 TD.quicklinks {
- border:  U_FRAME thin solid;
+ border:  thin solid U_NAV_BG;
+ color: U_NAV_FG;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
@@ -213,11 +240,11 @@ TABLE.uwtable TBODY {
 }
 TABLE.uwtable TH {
  border: thin solid U_FRAME;
- background-color: U_FRAME;
- color: white;
+ background-color: U_TABLE_TH_BG;
+ color: U_TABLE_TH_FG;
 }
 TABLE.uwtable TH.highlighted {
- border: black thin solid;
+ border: thin solid U_FRAME;
  background-color: U_TABLE_HIGHLIGHT_BG;
 }
 TABLE.uwtable TD {
@@ -278,20 +305,6 @@ SPAN.button:hover {
    } */
 
 
-/* tooltip */
-SPAN.tooltip {
- border: 1px solid U_POPUP_FRAME;
- background-color: U_POPUP_BG;
- color: U_POPUP_FG;
- font-weight: bold;
- font-size: smaller;
- padding: 0px 1px 0px 1px;
- margin: 0px;
-}
-SPAN.tooltip:hover {
- cursor:pointer;cursor:help;
-}
-
 
 DIV.important {
  border: red medium solid;
@@ -301,9 +314,36 @@ DIV.important {
  background-color: U_IMPORTANT_BG;
 }
 
+
+
+/* tooltip */
+SPAN.tooltip_old {
+ border: 1px solid U_POPUP_FRAME;
+ background-color: U_POPUP_BG;
+ color: U_POPUP_FG;
+ font-weight: bold;
+ font-size: smaller;
+ padding: 0px 1px 0px 1px;
+ margin: 0px;
+}
+SPAN.tooltip {
+ border: none;
+ background-color: U_TOOLTIP_BG;
+ color: U_TOOLTIP_FG;
+ font-weight: bold;
+ font-size: smaller;
+ padding: none;
+ margin: none;
+}
+
+SPAN.tooltip:hover {
+ cursor:pointer;cursor:help;
+}
+
+
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
- border: 3px solid U_POPUP_FRAME;
+ border: 2px solid U_POPUP_FRAME;
  background-color: U_POPUP_BG;
 }
 div.domTTUnison .caption {
@@ -323,6 +363,7 @@ div.domTTUnison .contents {
  padding: 1px 2px;
   /* padding-bottom: 0; */
 }
+
 
 
 pre.code {

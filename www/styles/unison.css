@@ -32,7 +32,28 @@
 
 
 
+
+
+
+
+
+
+
 /* $Id: unison.css,v 1.39 2006/11/04 03:48:25 rkh Exp $     emacs: -*-c-*-  */
+
+/*
+  The color palette should be decomposed into the simplest set of colors,
+  such as:
+  FG, BG
+  HIGHLIGHT_FG, BG
+  HIGHLIGHT2_FG, BG
+
+  or consider:
+  HUE{1,2,3,4}{A,B,C,D}_{FG,BG} where HUE1 is a color group, A-D are
+  specifc colors, and FG,BG provide contrast for highlighting
+
+ */
+
 
 BODY {
  background: #FFFFFF;
@@ -48,10 +69,11 @@ IMG {
 A {
  border: 1px solid #FFFFFF;
 }
-A:hover {
- border: 1px solid #FF9900;
-}
 */
+A:hover {
+ background: #FF9900;
+ color: #004B8C;
+}
 
 
 
@@ -86,55 +108,55 @@ TABLE.page TD.navbar {
 /* nav and subnav bars */
 TABLE.nav {
  border: none;
- color: white;
+ color: #004B8C;
+ background: #FFFFFF;
 }
 TABLE.nav TD.unselected {
- width: 50px;
+ background: white;
  border: thin solid #004B8C;
+ color: #004B8C;
  padding-left: 5px;
  padding-right: 5px;
- background: #004B8C;
- color: white;
+ width: 50px;
 }
 TABLE.nav TD.selected {
- width: 50px;
+ background: #004B8C;
  border: thin solid #004B8C;
+ color: white;
+ font-weight: bold;
  padding-left: 5px;
  padding-right: 5px;
- background: white;
- font-weight: bold;
  white-space: nowrap;
- color: #004B8C;
+ width: 50px;
 }
 TABLE.nav TD.unselected:hover {
  background: #FF9900;
  border: #004B8C thin solid;
+ color: #004B8C;
  cursor:pointer;cursor:hand;
- color: white;
 }
 TABLE.nav TD.selected A {
+ color: #004B8C;
  font-weight: bold;
  text-decoration: none;
- color: white;
 }
 TABLE.nav TD.unselected A {
-  /*  color: black; */
  text-decoration: none;
- color: white;
+ color: #004B8C;
 }
 
 
 TABLE.subnav {
  border: #004B8C medium solid;
- color: white;
+ color: #004B8C;
 }
 TABLE.subnav TD.unselected {
  width: 50px;
- border: #004B8C thin solid;
+ border: white thin solid;
  padding-left: 5px;
  padding-right: 5px;
- background: #004B8C;
- color: white;
+ background: white;
+ color: #004B8C;
 }
 TABLE.subnav TD.selected {
  width: 50px;
@@ -143,21 +165,21 @@ TABLE.subnav TD.selected {
  padding-right: 5px;
  background: #004B8C;
  font-weight: bold;
- color: white;
+ color: #004B8C;
 }
 TABLE.subnav TD.unselected:hover {
  background: #FF9900;
  border: #004B8C thin solid;
  cursor:pointer;cursor:hand;
- color: white;
+ color: #004B8C;
 }
 TABLE.subnav TD.selected A {
- color: white;
+ color: #004B8C;
  font-weight: bold;
  text-decoration: none;
 }
 TABLE.subnav TD.unselected A {
- color: white;
+ color: #004B8C;
  text-decoration: none;
 }
 
@@ -167,7 +189,8 @@ TABLE.subnav TD.unselected A {
 TABLE.group {
  width: 100%;
  margin: 0px;
- border: thin solid #004B8C;
+ padding: 0px;
+ border: 0px;
 }
 
 TABLE.group TH.grouptag {
@@ -175,7 +198,7 @@ TABLE.group TH.grouptag {
  background-color: #004B8C;
  width: 20%;
  font-size: largest;
- color: white;
+ color: #FFFFFF;
 }
 
 TABLE.group TD {
@@ -185,20 +208,30 @@ TABLE.group TD {
 
 TABLE.summary {
  width: 100%;
- border: thin solid #004B8C;
+ border: none;
+ background: #FFFFFF;
+ margin: none;
+ border: none;
 }
 TABLE.summary TH {
+ background-color: #FFFFFF;
+ border: 0px;
+ padding: 0px;
+ color: #004B8C;
  text-align: right;
  vertical-align: top;
- color: white;
+ white-space: nowrap;
 }
 TABLE.summary TH DIV {
+ border: thin solid #004B8C;
  background-color: #004B8C;
- padding-right: 5px;
+ color: #FFFFFF;
  white-space: nowrap;
 }
 TABLE.summary TD {
-  vertical-align: top;
+ vertical-align: top;
+ border: none;
+ margin: none;
 }
 
 
@@ -207,15 +240,16 @@ table.quicklinks {
   /* border:  #004B8C thin solid; */
 }
 TD.quicklinks_title {
- background:  #004B8C;
-  /* color: white; */
+ background:  white;
+ color: #004B8C;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
  font-style: italic; 
 }
 TD.quicklinks {
- border:  #004B8C thin solid;
+ border:  thin solid white;
+ color: #004B8C;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
@@ -251,7 +285,7 @@ TABLE.uwtable TH {
  color: white;
 }
 TABLE.uwtable TH.highlighted {
- border: black thin solid;
+ border: thin solid #004B8C;
  background-color: yellow;
 }
 TABLE.uwtable TD {
@@ -312,20 +346,6 @@ SPAN.button:hover {
    } */
 
 
-/* tooltip */
-SPAN.tooltip {
- border: 1px solid #FF9900;
- background-color: #F5CC06;
- color: black;
- font-weight: bold;
- font-size: smaller;
- padding: 0px 1px 0px 1px;
- margin: 0px;
-}
-SPAN.tooltip:hover {
- cursor:pointer;cursor:help;
-}
-
 
 DIV.important {
  border: red medium solid;
@@ -335,9 +355,36 @@ DIV.important {
  background-color: red;
 }
 
+
+
+/* tooltip */
+SPAN.tooltip_old {
+ border: 1px solid #FF9900;
+ background-color: #F5CC06;
+ color: black;
+ font-weight: bold;
+ font-size: smaller;
+ padding: 0px 1px 0px 1px;
+ margin: 0px;
+}
+SPAN.tooltip {
+ border: none;
+ background-color: #F5CC06;
+ color: black;
+ font-weight: bold;
+ font-size: smaller;
+ padding: none;
+ margin: none;
+}
+
+SPAN.tooltip:hover {
+ cursor:pointer;cursor:help;
+}
+
+
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
- border: 3px solid #FF9900;
+ border: 2px solid #FF9900;
  background-color: #F5CC06;
 }
 div.domTTUnison .caption {
@@ -357,6 +404,7 @@ div.domTTUnison .contents {
  padding: 1px 2px;
   /* padding-bottom: 0; */
 }
+
 
 
 pre.code {

@@ -24,7 +24,7 @@ unison.css.m4:;
 
 unison-%.css: %.m4 unison.css.m4
 	m4 $^ >$@
-	ln -fns $@ unison.css
+	cp -b $@ unison.css
 
 
 .PHONY: clean cleaner cleanest
