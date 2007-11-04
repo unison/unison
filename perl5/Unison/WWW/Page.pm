@@ -1134,8 +1134,8 @@ sub _navbar {
   my @nav = @{$navs[$navi]};
   shift @nav;				# menu header is first item; subnav items remain
   $rv .= 
-      "  <table class=\"subnav\" width=\"100%\">\n"
-	. "    <!-- minor nav -->\n"
+      "  <table class=\"nav\" width=\"100%\">\n"
+	. "    <!-- sub nav -->\n"
 	. "    <tr>\n"
 	. _make_navrow($subnavi, @nav)
     . "    </tr>\n"
@@ -1154,7 +1154,7 @@ sub __format_tab_labels(@) {
 		push(@tooltip_tags,'public');
 	  }
 	  if (not $navs[$i]->[$j]->[0]) {
-		$navs[$i]->[$j]->[2] = "<span style=\"color: red;\">$navs[$i]->[$j]->[2]</span>" if defined $navs[$i]->[$j]->[2];
+		$navs[$i]->[$j]->[2] = "<u>$navs[$i]->[$j]->[2]</u>" if defined $navs[$i]->[$j]->[2];
 		push(@tooltip_tags,'production');
 	  }
 	  if (@tooltip_tags) {

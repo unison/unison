@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+my %u_tags;
+
+my $fn = 'unison.css.m4';
+open(F,"<$fn")
+	|| die("$fn: $1\n");
+while (<F>) {
+	$u_tags{$&}++ while m/U_\w+/g;
+}
+close(F);
+
+
+
+while (<>) {
+	delete $u_tags{$1} if m/^(\w+)=/;
+	print;
+}
+
+print map { "$_=\n" } sort keys %u_tags;
+
+printf(STDERR "! %d color tags undefined\n", scalar keys %u_tags);
