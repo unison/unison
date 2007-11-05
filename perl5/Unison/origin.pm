@@ -1,3 +1,4 @@
+
 =head1 NAME
 
  Unison::origin -- Unison origin table utilities
@@ -21,7 +22,6 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-
 =pod
 
 =head1 ROUTINES AND METHODS
@@ -29,7 +29,6 @@ use warnings;
 =over
 
 =cut
-
 
 ######################################################################
 ## origin_si_origin_id()
@@ -47,16 +46,14 @@ ensure that origin is in the origin table, return origin_id
 =cut
 
 sub origin_si_origin_id($$) {
-  my ($self,$origin) = @_;
-  $self->is_open()
-	|| throw Unison::Exception('Unison connection not established');
-  (defined $origin and $origin =~ m/\w/)
-	|| throw Unison::Exception("can't lookup a null origin");
-  my ($rv) = $self->selectrow_array("select origin_si_origin_id ('$origin')");
-  return $rv;
+    my ( $self, $origin ) = @_;
+    $self->is_open()
+      || throw Unison::Exception('Unison connection not established');
+    ( defined $origin and $origin =~ m/\w/ )
+      || throw Unison::Exception("can't lookup a null origin");
+    my ($rv) = $self->selectrow_array("select origin_si_origin_id ('$origin')");
+    return $rv;
 }
-
-
 
 ######################################################################
 ## origin_origin_by_origin_id()
@@ -72,15 +69,15 @@ sub origin_si_origin_id($$) {
 =cut
 
 sub origin_origin_by_origin_id($$) {
-  my ($self,$origin_id) = @_;
-  $self->is_open()
-	|| throw Unison::Exception('Unison connection not established');
-  (defined $origin_id)
-	|| throw Unison::Exception("can't lookup a null origin_id");
-  my ($rv) = $self->selectrow_array("select origin from origin where origin_id=$origin_id");
-  return $rv;
+    my ( $self, $origin_id ) = @_;
+    $self->is_open()
+      || throw Unison::Exception('Unison connection not established');
+    ( defined $origin_id )
+      || throw Unison::Exception("can't lookup a null origin_id");
+    my ($rv) = $self->selectrow_array(
+        "select origin from origin where origin_id=$origin_id");
+    return $rv;
 }
-
 
 ######################################################################
 ## origin_origin_id_by_origin
@@ -96,20 +93,19 @@ sub origin_origin_by_origin_id($$) {
 =cut
 
 sub origin_origin_id_by_origin($) {
-  my ($self,$origin) = @_;
-  $self->is_open()
-	|| throw Unison::Exception('Unison connection not established');
-  (defined $origin and $origin =~ m/\w/)
-	|| throw Unison::Exception("can't lookup a null origin");
-  my ($rv) = $self->selectrow_array("select origin_id from origin where upper(origin)=upper('$origin')");
-  return $rv;
+    my ( $self, $origin ) = @_;
+    $self->is_open()
+      || throw Unison::Exception('Unison connection not established');
+    ( defined $origin and $origin =~ m/\w/ )
+      || throw Unison::Exception("can't lookup a null origin");
+    my ($rv) = $self->selectrow_array(
+        "select origin_id from origin where upper(origin)=upper('$origin')");
+    return $rv;
 }
 
 sub get_origin_id_by_origin {
-  goto &origin_origin_id_by_origin;
+    goto &origin_origin_id_by_origin;
 }
-
-
 
 ######################################################################
 ## get_origin_name_by_origin_id()
@@ -123,15 +119,14 @@ Returns name for the given origin_id.
 =cut
 
 sub get_origin_name_by_origin_id($$) {
-  my ($self,$origin_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my (@rv) = $self->selectrow_array('select origin from origin where origin_id=?',
-									undef,$origin_id);
-  return @rv ? $rv[0] : undef;
+    my ( $self, $origin_id ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my (@rv) =
+      $self->selectrow_array( 'select origin from origin where origin_id=?',
+        undef, $origin_id );
+    return @rv ? $rv[0] : undef;
 }
-
-
 
 ######################################################################
 ## origin_last_updated
@@ -150,19 +145,20 @@ set the last_updated field to now.  In any case, the last_updated value is retur
 =cut
 
 sub origin_last_updated($$) {
-  my ($self,$origin_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  if (defined $_[2]) {
-	$self->do("update origin set last_updated=now() where origin_id=$origin_id");
-  }
-  my $sth = $self->prepare("select last_updated from origin where origin_id=?");
-  $sth->execute( $origin_id );
-  my ($rv) = $sth->fetchrow_array();
-  $sth->finish();
-  return $rv;
-  }
-
+    my ( $self, $origin_id ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    if ( defined $_[2] ) {
+        $self->do(
+            "update origin set last_updated=now() where origin_id=$origin_id");
+    }
+    my $sth =
+      $self->prepare("select last_updated from origin where origin_id=?");
+    $sth->execute($origin_id);
+    my ($rv) = $sth->fetchrow_array();
+    $sth->finish();
+    return $rv;
+}
 
 ######################################################################
 ## origin_version
@@ -181,18 +177,20 @@ set the version field to it.  In any case, the version value is returned.
 =cut
 
 sub origin_version($$) {
-  my ($self,$origin_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  if (defined $_[2]) {
-	$self->do("update origin set version='$_[2]' where origin_id=$origin_id");
-  }
-  my $sth = $self->prepare("select version from origin where origin_id=?");
-  $sth->execute( $origin_id );
-  my ($rv) = $sth->fetchrow_array();
-  $sth->finish();
-  return $rv;
-  }
+    my ( $self, $origin_id ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    if ( defined $_[2] ) {
+        $self->do(
+            "update origin set version='$_[2]' where origin_id=$origin_id");
+    }
+    my $sth = $self->prepare("select version from origin where origin_id=?");
+    $sth->execute($origin_id);
+    my ($rv) = $sth->fetchrow_array();
+    $sth->finish();
+    return $rv;
+}
+
 =pod
 
 =back

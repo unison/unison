@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::options -- Unison:: standardized option processing
@@ -15,7 +16,6 @@ modules.
 
 =cut
 
-
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -24,47 +24,45 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+our %opts = (
 
-our %opts = 
-  (
-   # use PGHOST if it's not '', otherwise set based on whether we're
-   # on csb (local), comp* (csb), else exo-cluster (csb)
-   # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
-   host => ((exists $ENV{PGHOST}) and ($ENV{PGHOST} =~ m/\w/)) ? $ENV{PGHOST} : 'csb',
+    # use PGHOST if it's not '', otherwise set based on whether we're
+    # on csb (local), comp* (csb), else exo-cluster (csb)
+    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
+    host => ( ( exists $ENV{PGHOST} ) and ( $ENV{PGHOST} =~ m/\w/ ) )
+    ? $ENV{PGHOST}
+    : 'csb',
 
-   # by default, use the production db
-   dbname => $ENV{PGDATABASE} || 'csb',
+    # by default, use the production db
+    dbname => $ENV{PGDATABASE} || 'csb',
 
-   # by default, connect as the invoking user
-   username => $ENV{PGUSER} || eval {my $tmp = `/usr/bin/id -un`; chomp $tmp; $tmp},
+    # by default, connect as the invoking user
+    username => $ENV{PGUSER}
+      || eval { my $tmp = `/usr/bin/id -un`; chomp $tmp; $tmp },
 
-   # PGPASSWORD may be unset (as for kerberos authentication)
-   password => $ENV{PGPASSWORD},
+    # PGPASSWORD may be unset (as for kerberos authentication)
+    password => $ENV{PGPASSWORD},
 
-   # DBI options
-   attr => {
-			PrintError => 0,
-			RaiseError => 0,
-			AutoCommit => 1,
-			# XXX: does the following work?
-			# HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
-		   },
+    # DBI options
+    attr => {
+        PrintError => 0,
+        RaiseError => 0,
+        AutoCommit => 1,
+
+     # XXX: does the following work?
+     # HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
+    },
 );
 
-
-my @options =
-  (
-   'dbname|d=s' => \$Unison::opts{dbname},
-   'host|h=s' => \$Unison::opts{host},
-   'username|U=s' => \$Unison::opts{username}
-  );
+my @options = (
+    'dbname|d=s'   => \$Unison::opts{dbname},
+    'host|h=s'     => \$Unison::opts{host},
+    'username|U=s' => \$Unison::opts{username}
+);
 
 my $parser = new Getopt::Long::Parser;
-$parser->configure( qw(gnu_getopt pass_through) );
-$parser->getoptions( @options );
-
-
-
+$parser->configure(qw(gnu_getopt pass_through));
+$parser->getoptions(@options);
 
 =pod
 

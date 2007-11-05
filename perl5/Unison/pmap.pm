@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::pmap -- PMAP-related functions for Unison
@@ -18,9 +19,7 @@ namespace.
 
 =cut
 
-
 package Unison;
-
 
 =pod
 
@@ -43,13 +42,13 @@ B<pseq_id> B<prams_id> from the pmap_v view.
 =cut
 
 sub get_pmapaln_info {
-  my ($u, $pseq_id, $params_id) = @_;
-  my $sql = "select genasm_id,chr,gstart,gstop,aln_id from pmap_v where pseq_id=? and params_id=?";
-  print(STDERR $sql, ";\n\n") if $opts{verbose};
-  my $sth = $u->prepare_cached($sql);
-  return @{ $u->selectall_arrayref($sth,undef,$pseq_id,$params_id) };
+    my ( $u, $pseq_id, $params_id ) = @_;
+    my $sql =
+"select genasm_id,chr,gstart,gstop,aln_id from pmap_v where pseq_id=? and params_id=?";
+    print( STDERR $sql, ";\n\n" ) if $opts{verbose};
+    my $sth = $u->prepare_cached($sql);
+    return @{ $u->selectall_arrayref( $sth, undef, $pseq_id, $params_id ) };
 }
-
 
 =pod
 

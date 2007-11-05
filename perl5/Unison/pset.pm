@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::pset -- Unison pset table utilities
@@ -28,7 +29,6 @@ use strict;
 use warnings;
 use Unison::Utilities::misc;
 
-
 =pod
 
 =head1 ROUTINES AND METHODS
@@ -36,7 +36,6 @@ use Unison::Utilities::misc;
 =over
 
 =cut
-
 
 ######################################################################
 ## pseq_ids_by_pset
@@ -50,14 +49,14 @@ returns an array of pseq_ids for a given pset name
 =cut
 
 sub pseq_ids_by_pset {
-  my ($self, $name) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my $dbh = $self->{'dbh'};
-  my $sth = $dbh->prepare_cached('select pseq_id from pseqset where pset_id=pset_id(?)');
-  return map {$_->[0]} @{$dbh->selectall_arrayref($sth,undef,$name)};
+    my ( $self, $name ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $dbh = $self->{'dbh'};
+    my $sth = $dbh->prepare_cached(
+        'select pseq_id from pseqset where pset_id=pset_id(?)');
+    return map { $_->[0] } @{ $dbh->selectall_arrayref( $sth, undef, $name ) };
 }
-
 
 ######################################################################
 ## pseq_ids_by_pset_id
@@ -71,17 +70,14 @@ returns an array of pseq_ids for a given pset_id
 =cut
 
 sub pseq_ids_by_pset_id {
-  my ($self, $name) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my $dbh = $self->{'dbh'};
-  my $sth = $dbh->prepare_cached('select pseq_id from pseqset where pset_id=?');
-  return map {$_->[0]} @{$dbh->selectall_arrayref($sth,undef,$name)};
+    my ( $self, $name ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $dbh = $self->{'dbh'};
+    my $sth =
+      $dbh->prepare_cached('select pseq_id from pseqset where pset_id=?');
+    return map { $_->[0] } @{ $dbh->selectall_arrayref( $sth, undef, $name ) };
 }
-
-
-
-
 
 =pod
 

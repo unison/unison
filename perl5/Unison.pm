@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison -- Unison database API for perl
@@ -17,7 +18,6 @@ information about the Unison API.
 
 =cut
 
-
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -28,7 +28,6 @@ use warnings;
 use base 'Exporter';
 
 use Unison::common;
-
 
 =pod
 

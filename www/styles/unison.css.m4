@@ -77,6 +77,7 @@ TABLE.nav TD.unselected {
  padding-left: 5px;
  padding-right: 5px;
  width: 50px;
+ white-space: nowrap;
 }
 TABLE.nav TD.selected {
  background: U_NAV_FG;
@@ -317,15 +318,6 @@ DIV.important {
 
 
 /* tooltip */
-SPAN.tooltip_old {
- border: 1px solid U_POPUP_FRAME;
- background-color: U_POPUP_BG;
- color: U_POPUP_FG;
- font-weight: bold;
- font-size: smaller;
- padding: 0px 1px 0px 1px;
- margin: 0px;
-}
 SPAN.tooltip {
  border: none;
  background-color: U_TOOLTIP_BG;

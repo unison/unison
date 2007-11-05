@@ -26,23 +26,22 @@ B<tflush>
 ## Nothing to modify beyond this line
 ##############################################################################
 
-BEGIN
-  {
-  $RCSHeader = '$Header: /usr/local/cvs/site_perl/CBT/SwissProt/DB.pm,v 1.1 2003/04/30 21:11:22 rkh Exp $ ';
-  print("# $RCSHeader\n") if (defined $main::DEBUG and $main::DEBUG);
-  }
+BEGIN {
+    $RCSHeader =
+'$Header: /usr/local/cvs/site_perl/CBT/SwissProt/DB.pm,v 1.1 2003/04/30 21:11:22 rkh Exp $ ';
+    print("# $RCSHeader\n") if ( defined $main::DEBUG and $main::DEBUG );
+}
 
 package CBT::Derwent::DB;
 use CBT::EBI::DB;
 @ISA = qw( CBT::EBI::DB );
 
-sub read_parse_record
-  {
-  my($self, $r) = @_;
-  my($block);
-  $block = $self->read_record($r)
-	|| return(undef);
-  my($record) = new CBT::Derwent::Record;
-  $record->parse_block($block);
-  return($record);
-  }
+sub read_parse_record {
+    my ( $self, $r ) = @_;
+    my ($block);
+    $block = $self->read_record($r)
+      || return (undef);
+    my ($record) = new CBT::Derwent::Record;
+    $record->parse_block($block);
+    return ($record);
+}

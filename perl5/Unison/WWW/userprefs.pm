@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::userprefs -- BLAT-related functions for Unison
@@ -25,7 +26,6 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-
 =pod
 
 =head1 ROUTINES AND METHODS
@@ -33,7 +33,6 @@ use warnings;
 =over
 
 =cut
-
 
 ######################################################################
 ## get_userprefs
@@ -47,31 +46,34 @@ return user prefs as hashref
 =cut
 
 sub get_userprefs {
-  my $self = shift;
-  my $userprefs;
-  $self->is_open()
-	|| croak("Unison connection not established");
+    my $self = shift;
+    my $userprefs;
+    $self->is_open()
+      || croak("Unison connection not established");
 
-  my $sth = $self->prepare('select userprefs.* from userprefs  natural join pg_user where usename=?');
+    my $sth =
+      $self->prepare(
+'select userprefs.* from userprefs  natural join pg_user where usename=?'
+      );
 
-  # try for this user
-  $userprefs = $self->selectrow_hashref($sth,undef,$self->{username});
+    # try for this user
+    $userprefs = $self->selectrow_hashref( $sth, undef, $self->{username} );
 
-  # else use PUBLIC user's prefs
-  if (not defined $userprefs) {
-	$userprefs = $self->selectrow_hashref($sth,undef,'PUBLIC');
-  }
+    # else use PUBLIC user's prefs
+    if ( not defined $userprefs ) {
+        $userprefs = $self->selectrow_hashref( $sth, undef, 'PUBLIC' );
+    }
 
-  # ack! at least return a reasonable guess
-  if (not defined $userprefs) {
-	$userprefs = { show_sql => 1,
-				   show_tips => 1
-				 };
-  }
+    # ack! at least return a reasonable guess
+    if ( not defined $userprefs ) {
+        $userprefs = {
+            show_sql  => 1,
+            show_tips => 1
+        };
+    }
 
-  return $userprefs;
+    return $userprefs;
 }
-
 
 =pod
 

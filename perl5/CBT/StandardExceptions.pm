@@ -6,12 +6,12 @@ our ($VERSION) = q$Revision: 1.2 $ =~ m/Revision: ([\d\.]+)/;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
-
 package CBT::Exception::IOError;
 use base 'CBT::Exception';
 
 package CBT::Exception::BadUsage;
 use base 'CBT::Exception';
+
 # Use Pod::Usage w/calling module/app
 
 package CBT::Exception::NotImplemented;

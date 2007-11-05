@@ -4,7 +4,8 @@ use warnings;
 use strict;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq",
+  "$FindBin::Bin/../../perl5";
 
 use Unison::Exceptions;
 use Unison::WWW;
@@ -18,11 +19,12 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines('$Id$');
+$p->add_footer_lines(
+    '$Id$');
 
 try {
 
- my $js = <<EOJS;
+    my $js = <<EOJS;
 <script type="text/javascript" language="javascript">
 var all_features = '';
 var global_q = '';
@@ -58,18 +60,20 @@ if (emb_query) {
 </script>
 EOJS
 
-  print $p->render("Search by Sequence Features",
-		   '$Id$',
-		   $js,
-		   '<p>',
-		   '<div align="left">',
-		   '<iframe frameborder="0" src="emb_search_category.pl" width="25%" height="550"></iframe>',
-		   '<iframe frameborder="0" src="emb_search_form.pl" width="75%" height="550" id="emb_search_form"></iframe>',
-		   '<iframe frameborder="0" src="emb_search_query.pl" width="100%" height="300" id="emb_search_query"></iframe>',
-		   '</div>',
-		  );
-} catch Unison::Exception with {
-  $p->die(shift);
+    print $p->render(
+        "Search by Sequence Features",
+        '$Id$',
+        $js,
+        '<p>',
+        '<div align="left">',
+'<iframe frameborder="0" src="emb_search_category.pl" width="25%" height="550"></iframe>',
+'<iframe frameborder="0" src="emb_search_form.pl" width="75%" height="550" id="emb_search_form"></iframe>',
+'<iframe frameborder="0" src="emb_search_query.pl" width="100%" height="300" id="emb_search_query"></iframe>',
+        '</div>',
+    );
+}
+catch Unison::Exception with {
+    $p->die(shift);
 };
 exit(0);
 

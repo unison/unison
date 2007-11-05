@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::SQL -- simplified generation of SQL queries
@@ -41,7 +42,6 @@ use warnings;
 use overload '""' => \&stringify;
 use Unison::Exceptions;
 
-
 =pod
 
 =head1 ROUTINES AND METHODS
@@ -49,7 +49,6 @@ use Unison::Exceptions;
 =over
 
 =cut
-
 
 ######################################################################
 ## new
@@ -63,18 +62,21 @@ Generates a new Unison::SQL object and returns the reference to it.
 =cut
 
 sub new {
-  my $class = shift;
-  bless({columns => [],
-		 distinct => [],
-		 limit => undef,
-		 tables => [],
-		 offset => undef,
-		 group => [],
-		 order => [],
-		 where => [],
-		},$class);
-  }
-
+    my $class = shift;
+    bless(
+        {
+            columns  => [],
+            distinct => [],
+            limit    => undef,
+            tables   => [],
+            offset   => undef,
+            group    => [],
+            order    => [],
+            where    => [],
+        },
+        $class
+    );
+}
 
 ######################################################################
 ## columns
@@ -90,17 +92,17 @@ reorder the order of the columns. (If you need to do this, fiddle with the
 =cut
 
 sub columns {
-  my $self = shift;
-  if (@_) {
-	if (defined $_[0]) {
-	  push( @{$self->{columns}}, @_);
-	} else {
-	  $self->{columns} = [];
-	}
-  }
-  return $self;
+    my $self = shift;
+    if (@_) {
+        if ( defined $_[0] ) {
+            push( @{ $self->{columns} }, @_ );
+        }
+        else {
+            $self->{columns} = [];
+        }
+    }
+    return $self;
 }
-
 
 ######################################################################
 ## distinct
@@ -112,15 +114,16 @@ sub columns {
 =cut
 
 sub distinct {
-  my $self = shift;
-  if (@_) {
-	if (defined $_[0]) {
-	  push( @{$self->{distinct}}, @_);
-	} else {
-	  $self->{distinct} = [];
-	}
-  }
-  return $self;
+    my $self = shift;
+    if (@_) {
+        if ( defined $_[0] ) {
+            push( @{ $self->{distinct} }, @_ );
+        }
+        else {
+            $self->{distinct} = [];
+        }
+    }
+    return $self;
 }
 
 ######################################################################
@@ -134,18 +137,20 @@ sub distinct {
 
 =cut
 
-sub table  { $_[0]->join(splice(@_,1)) }
-sub tables { $_[0]->join(splice(@_,1)) }
+sub table  { $_[0]->join( splice( @_, 1 ) ) }
+sub tables { $_[0]->join( splice( @_, 1 ) ) }
+
 sub join {
-  my $self = shift;
-  if (@_) {
-	if (defined $_[0]) {
-	  push( @{$self->{tables}}, @_);
-	} else {
-	  $self->{tables} = [];
-	}
-  }
-  return $self;
+    my $self = shift;
+    if (@_) {
+        if ( defined $_[0] ) {
+            push( @{ $self->{tables} }, @_ );
+        }
+        else {
+            $self->{tables} = [];
+        }
+    }
+    return $self;
 }
 
 ######################################################################
@@ -158,15 +163,16 @@ sub join {
 =cut
 
 sub where {
-  my $self = shift;
-  if (@_) {
-	if (defined $_[0]) {
-	  push( @{$self->{where}}, @_);
-	} else {
-	  $self->{where} = [];
-	}
-  }
-  return $self;
+    my $self = shift;
+    if (@_) {
+        if ( defined $_[0] ) {
+            push( @{ $self->{where} }, @_ );
+        }
+        else {
+            $self->{where} = [];
+        }
+    }
+    return $self;
 }
 
 ######################################################################
@@ -179,15 +185,16 @@ sub where {
 =cut
 
 sub order {
-  my $self = shift;
-  if (@_) {
-	if (defined $_[0]) {
-	  push( @{$self->{order}}, @_);
-	} else {
-	  $self->{order} = [];
-	}
-  }
-  return $self;
+    my $self = shift;
+    if (@_) {
+        if ( defined $_[0] ) {
+            push( @{ $self->{order} }, @_ );
+        }
+        else {
+            $self->{order} = [];
+        }
+    }
+    return $self;
 }
 
 ######################################################################
@@ -200,15 +207,16 @@ sub order {
 =cut
 
 sub group {
-  my $self = shift;
-  if (@_) {
-	if (defined $_[0]) {
-	  push( @{$self->{group}}, @_);
-	} else {
-	  $self->{group} = [];
-	}
-  }
-  return $self;
+    my $self = shift;
+    if (@_) {
+        if ( defined $_[0] ) {
+            push( @{ $self->{group} }, @_ );
+        }
+        else {
+            $self->{group} = [];
+        }
+    }
+    return $self;
 }
 
 ######################################################################
@@ -221,11 +229,10 @@ sub group {
 =cut
 
 sub limit {
-  my $self = shift;
-  $self->{limit} = $_[0];
-  return $self;
+    my $self = shift;
+    $self->{limit} = $_[0];
+    return $self;
 }
-
 
 ######################################################################
 ## offset
@@ -237,11 +244,10 @@ sub limit {
 =cut
 
 sub offset {
-  my $self = shift;
-  $self->{offset} = $_[0];
-  return $self;
+    my $self = shift;
+    $self->{offset} = $_[0];
+    return $self;
 }
-
 
 ######################################################################
 ## sql
@@ -253,27 +259,35 @@ sub offset {
 =cut
 
 sub sql {
-  my $self = shift;
+    my $self = shift;
 
-  (@{$self->{columns}})
-	|| throw Unison::Exception::RuntimeError('Nothing selected in Unison::SQL object');
+    ( @{ $self->{columns} } )
+      || throw Unison::Exception::RuntimeError(
+        'Nothing selected in Unison::SQL object');
 
-  my @sql = 'SELECT';
-  push(@sql, 'DISTINCT ON', '(', CORE::join( ',', @{$self->{distinct}}), ')') if @{$self->{distinct}};
-  push(@sql, CORE::join( ',', @{$self->{columns}} ) );
-  push(@sql, 'FROM', CORE::join( "   JOIN ", @{$self->{tables}})) if @{$self->{tables}};
-  push(@sql, 'WHERE', CORE::join( '  AND  ', @{$self->{where}})) if @{$self->{where}};
-  push(@sql, 'GROUP BY', CORE::join( ',', @{$self->{group}})) if @{$self->{group}};
-  push(@sql, 'ORDER BY', CORE::join( ',', @{$self->{distinct}},@{$self->{order}})) if @{$self->{distinct}} or @{$self->{order}};
-  push(@sql, 'OFFSET', $self->{offset}) if defined $self->{offset};
-  push(@sql, 'LIMIT', $self->{limit}) if defined $self->{limit};
+    my @sql = 'SELECT';
+    push( @sql,
+        'DISTINCT ON', '(', CORE::join( ',', @{ $self->{distinct} } ), ')' )
+      if @{ $self->{distinct} };
+    push( @sql, CORE::join( ',', @{ $self->{columns} } ) );
+    push( @sql, 'FROM', CORE::join( "   JOIN ", @{ $self->{tables} } ) )
+      if @{ $self->{tables} };
+    push( @sql, 'WHERE', CORE::join( '  AND  ', @{ $self->{where} } ) )
+      if @{ $self->{where} };
+    push( @sql, 'GROUP BY', CORE::join( ',', @{ $self->{group} } ) )
+      if @{ $self->{group} };
+    push( @sql,
+        'ORDER BY',
+        CORE::join( ',', @{ $self->{distinct} }, @{ $self->{order} } ) )
+      if @{ $self->{distinct} }
+          or @{ $self->{order} };
+    push( @sql, 'OFFSET', $self->{offset} ) if defined $self->{offset};
+    push( @sql, 'LIMIT',  $self->{limit} )  if defined $self->{limit};
 
-  CORE::join(' ', @sql);
+    CORE::join( ' ', @sql );
 }
 
 sub stringify { $_[0]->sql() }
-
-
 
 =pod
 

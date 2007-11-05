@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::params -- Unison params table utilities
@@ -34,7 +35,6 @@ use Unison::Utilities::misc qw( warn_deprecated unison_logo use_at_runtime );
 
 =cut
 
-
 ######################################################################
 ## run_commandline_by_params_id()
 
@@ -47,15 +47,15 @@ Returns the command line for a params_id.
 =cut
 
 sub run_commandline_by_params_id($$) {
-  my ($self,$params_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my $cl = $self->selectrow_array('select commandline from params where params_id=?',
-                  undef,$params_id);
-  return $cl;
+    my ( $self, $params_id ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $cl =
+      $self->selectrow_array(
+        'select commandline from params where params_id=?',
+        undef, $params_id );
+    return $cl;
 }
-
-
 
 ######################################################################
 ## get_params_name_by_params_id()
@@ -69,14 +69,14 @@ Returns name for the given params_id.
 =cut
 
 sub get_params_name_by_params_id($$) {
-  my ($self,$params_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my (@rv) = $self->selectrow_array('select name from params where params_id=?',
-									undef,$params_id);
-  return @rv ? $rv[0] : undef;
+    my ( $self, $params_id ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my (@rv) =
+      $self->selectrow_array( 'select name from params where params_id=?',
+        undef, $params_id );
+    return @rv ? $rv[0] : undef;
 }
-
 
 ######################################################################
 ## get_params_info_by_pftype_id()
@@ -91,12 +91,14 @@ decreasing relevance.
 =cut
 
 sub get_params_info_by_pftype_id($$) {
-  my ($self,$pftype_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my $a = $self->selectall_arrayref('select params_id,name from params where pftype_id=? order by params_id desc',
-									undef,$pftype_id);
-  return @$a;
+    my ( $self, $pftype_id ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $a = $self->selectall_arrayref(
+'select params_id,name from params where pftype_id=? order by params_id desc',
+        undef, $pftype_id
+    );
+    return @$a;
 }
 
 ######################################################################
@@ -112,16 +114,15 @@ decreasing relevance.
 =cut
 
 sub get_params_info_by_pftype($$) {
-  my ($self,$pftype) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my $a = $self->selectall_arrayref('select params_id,name from only params where pftype_id=pftype_id(?) order by params_id desc',
-									undef,$pftype);
-  return @$a;
+    my ( $self, $pftype ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $a = $self->selectall_arrayref(
+'select params_id,name from only params where pftype_id=pftype_id(?) order by params_id desc',
+        undef, $pftype
+    );
+    return @$a;
 }
-
-
-
 
 ######################################################################
 ## params_id_by_name()
@@ -137,14 +138,16 @@ Returns the params_id for a parameter set name.
 =cut
 
 sub params_id_by_name($$) {
-  my ($self,$params_name) = @_;
-  $self->is_open()
-  || croak("Unison connection not established");
-  my $id = $self->selectrow_array('select params_id(?)',undef,uc($params_name));
-  return $id;
+    my ( $self, $params_name ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $id =
+      $self->selectrow_array( 'select params_id(?)', undef, uc($params_name) );
+    return $id;
 }
+
 sub get_params_id_by_name($$) {
-  goto &params_id_by_name;
+    goto &params_id_by_name;
 }
 
 ######################################################################
@@ -159,18 +162,20 @@ Returns the preferred params_id for a pfeature type.
 =cut
 
 sub preferred_params_id_by_pftype($$) {
-  my ($self,$pfeature_name) = @_;
-  $self->is_open()
-  || croak("Unison connection not established");
-  my $id = $self->selectrow_array('select params_id from run where run_id=preferred_run_id_by_pftype( ? )',undef,$pfeature_name);
-  return $id;
+    my ( $self, $pfeature_name ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $id = $self->selectrow_array(
+'select params_id from run where run_id=preferred_run_id_by_pftype( ? )',
+        undef, $pfeature_name
+    );
+    return $id;
 }
 
 sub current_params_id_by_pftype($$) {
-  warn_deprecated();
-  goto &preferred_params_id_by_pftype;
+    warn_deprecated();
+    goto &preferred_params_id_by_pftype;
 }
-
 
 ######################################################################
 ## get_p2options_by_params_id()
@@ -189,24 +194,23 @@ presence here is historical.
 =cut
 
 sub get_p2options_by_params_id($$) {
-  my ($self,$run_id) = @_;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my $h = $self->selectrow_hashref("select * from params where params_id=$run_id");
+    my ( $self, $run_id ) = @_;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $h =
+      $self->selectrow_hashref("select * from params where params_id=$run_id");
 
-  ## FIX: only seqfile threading is supported below:
-  use_at_runtime 'Bio::Prospect::Options';
-  my $po = Bio::Prospect::Options->new
-	( 
-	 $h->{commandline} =~ m/-global_local/ 	? (global_local=>1,global=>0) : (global_local=>0,global=>1),
-	 $h->{commandline} =~ m/-scop/ 			? (scop=>1)   : (scop=>0),
-	 seq=>1,
-	);
-  return $po;
-  }
-
-
-
+    ## FIX: only seqfile threading is supported below:
+    use_at_runtime 'Bio::Prospect::Options';
+    my $po = Bio::Prospect::Options->new(
+        $h->{commandline} =~ m/-global_local/
+        ? ( global_local => 1, global => 0 )
+        : ( global_local => 0, global => 1 ),
+        $h->{commandline} =~ m/-scop/ ? ( scop => 1 ) : ( scop => 0 ),
+        seq => 1,
+    );
+    return $po;
+}
 
 =pod
 

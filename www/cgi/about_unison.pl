@@ -4,7 +4,8 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq",
+  "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page;
@@ -12,10 +13,10 @@ use Unison::WWW::Page;
 sub _conn_info_html($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines('$Id: about_unison.pl,v 1.17 2006/01/02 05:41:11 rkh Exp $ ');
+$p->add_footer_lines(
+    '$Id: about_unison.pl,v 1.17 2006/01/02 05:41:11 rkh Exp $ ');
 
-
-print $p->render("About Unison", <<EOHTML, _conn_info_html($p) );
+print $p->render( "About Unison", <<EOHTML, _conn_info_html($p) );
 
 Unison is a comprehensive database of protein sequences and precomputed
 sequence prediction results.  Integration of these data enables
@@ -35,25 +36,33 @@ download sites.
 
 EOHTML
 
-
 sub _conn_info_html ($) {
-  my $p = shift;
-  my $u = $p->{unison};
-  my $info = 'not connected to the Unison database';
+    my $p    = shift;
+    my $u    = $p->{unison};
+    my $info = 'not connected to the Unison database';
 
-  if (ref $p and defined $u and $u->is_open()) {
-	my $dev_str = '<span style="color: red">development</span> (no release tag)';
-	my $pub_str = '<span style="color: green">public</span>';
-	my $www_rel = ($p->is_public_instance ? $pub_str : '') . ' ' . ($Unison::WWW::RELEASE || $dev_str);
-	my $api_rel = $Unison::RELEASE || $dev_str;
-	my $db_rel = ($u->is_public_instance ? $pub_str : '') . ' ' . ($u->release_timestamp() || $dev_str);
-	my $www_user = (defined $ENV{REMOTE_USER}) ? $ENV{REMOTE_USER} : '(unauthenticated)';
+    if ( ref $p and defined $u and $u->is_open() ) {
+        my $dev_str =
+          '<span style="color: red">development</span> (no release tag)';
+        my $pub_str = '<span style="color: green">public</span>';
+        my $www_rel =
+            ( $p->is_public_instance ? $pub_str : '' ) . ' '
+          . ( $Unison::WWW::RELEASE || $dev_str );
+        my $api_rel = $Unison::RELEASE || $dev_str;
+        my $db_rel =
+            ( $u->is_public_instance ? $pub_str : '' ) . ' '
+          . ( $u->release_timestamp() || $dev_str );
+        my $www_user =
+          ( defined $ENV{REMOTE_USER} )
+          ? $ENV{REMOTE_USER}
+          : '(unauthenticated)';
 
-	my $db_host = $u->{host}
-	  ? sprintf("%s:%s",$u->{host},$u->{port}||'&lt;default&gt;')
-	  : 'local';
+        my $db_host =
+          $u->{host}
+          ? sprintf( "%s:%s", $u->{host}, $u->{port} || '&lt;default&gt;' )
+          : 'local';
 
-	$info = <<EOHTML;
+        $info = <<EOHTML;
 <center>
 <table class="sw_stack">
 <tr><th rowspan=4>web</th>		<td><b>release:</b></td>	<td>$www_rel</td></tr>
@@ -77,7 +86,7 @@ sub _conn_info_html ($) {
 </center>
 
 EOHTML
-  }
+    }
 
-  return $info;
+    return $info;
 }
