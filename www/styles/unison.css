@@ -71,7 +71,7 @@ A {
 }
 */
 A:hover {
- background: #FF9900;
+ background: #F5CC06;
  color: #004B8C;
 }
 
@@ -130,7 +130,7 @@ TABLE.nav TD.selected {
  width: 50px;
 }
 TABLE.nav TD.unselected:hover {
- background: #FF9900;
+ background: #F5CC06;
  border: #004B8C thin solid;
  color: #004B8C;
  cursor:pointer;cursor:hand;
@@ -168,7 +168,7 @@ TABLE.subnav TD.selected {
  color: #004B8C;
 }
 TABLE.subnav TD.unselected:hover {
- background: #FF9900;
+ background: #F5CC06;
  border: #004B8C thin solid;
  cursor:pointer;cursor:hand;
  color: #004B8C;
@@ -286,13 +286,13 @@ TABLE.uwtable TH {
 }
 TABLE.uwtable TH.highlighted {
  border: thin solid #004B8C;
- background-color: yellow;
+ background-color: #F5CC06;
 }
 TABLE.uwtable TD {
   background-color: #FFFFFF;
 }
 TABLE.uwtable TD.highlighted {
-  background-color: yellow;
+  background-color: #F5CC06;
 }
 
 
@@ -337,7 +337,7 @@ SPAN.button {
  border: black thin solid;
 }
 SPAN.button:hover {
- background: #FF9900;
+ background: #F5CC06;
 }
 /* SPAN.button A {
    color: white;
@@ -359,7 +359,7 @@ DIV.important {
 
 /* tooltip */
 SPAN.tooltip_old {
- border: 1px solid #FF9900;
+ border: 1px solid #913745;
  background-color: #F5CC06;
  color: black;
  font-weight: bold;
@@ -384,7 +384,7 @@ SPAN.tooltip:hover {
 
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
- border: 2px solid #FF9900;
+ border: 2px solid #913745;
  background-color: #F5CC06;
 }
 div.domTTUnison .caption {

@@ -22,23 +22,23 @@ export PGUSER:=postgres
 unexport PGDATABASE
 
 STAGE_DATABASE=csb-stage
+PG_SUDO:=sudo -u postgres env PERL5LIB=$PERL5LIB PATH=$PATH
 
 
 default all:
 	@echo "Ain't no stinking $@ target" 1>&2; exit 1
 
-# do it all, including sudo
-# eg$ make csb-dev-pub
-.PHONY: csb-pub csb-dev-pub
-csb-pub csb-dev-pub: %:
-	sudo -u postgres make $*.log PATH=${PATH} PERL5LIB=${PERL5LIB}
 
+.PHONY: csb-pub-push csb-dev-pub-push
+csb-pub-push csb-dev-pub-push: %-push: 
+	@[ `id -u` == 13922 ] || { echo "You're not Reece; this is guaranteed to fail" 1>&2; exit 1; }
+	ssh-agent /bin/sh -c 'ssh-add; make $*.pgdfc.d-wepush.log'
 
 .PRECIOUS: %-pub.log
 %-pub.log: 
 	-dropdb $*-pub
 	createdb -EUTF8 -Ounison $*-pub
-	(time ../../tools/sbin/publicize $* | psql -d $*-pub -qa -f -) >$@.tmp 2>&1
+	(time ${PG_SUDO} ../../tools/sbin/publicize $* | psql -d $*-pub -qa -f -) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
 	psql -d '$*-pub' -c 'alter database "$*-pub" set search_path = "$$user",unison,pdb,gong,scop,tax,public'
 	psql -d '$*-pub' -c 'analyze verbose'
@@ -46,17 +46,18 @@ csb-pub csb-dev-pub: %:
 # run as postgres
 .PRECIOUS: %.pgdfc
 %.pgdfc: %.log
-	(time pg_dump -Fc $* >$@.tmp) 2>$@.err 
+	(time ${PG_SUDO} pg_dump -Fc $* >$@.tmp) 2>$@.err 
 	/bin/mv -f "$@.tmp" "$@"
+
+# file-split is in Reece's directory. This will fail if you're not me.
+%.d: %
+	file-split $<
 
 # NB: `./' is to prevent rsync from interpreting colons in timestamps
 # run as rkh
-%-wepush: % %.md5
+%.d-wepush.log: %.d
 	(time rsync --progress ./$* ./$*.md5 we:tmp/) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
-
-
-
 
 
 
