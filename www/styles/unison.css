@@ -118,6 +118,7 @@ TABLE.nav TD.unselected {
  padding-left: 5px;
  padding-right: 5px;
  width: 50px;
+ white-space: nowrap;
 }
 TABLE.nav TD.selected {
  background: #004B8C;
@@ -358,19 +359,10 @@ DIV.important {
 
 
 /* tooltip */
-SPAN.tooltip_old {
- border: 1px solid #913745;
- background-color: #F5CC06;
- color: black;
- font-weight: bold;
- font-size: smaller;
- padding: 0px 1px 0px 1px;
- margin: 0px;
-}
 SPAN.tooltip {
  border: none;
- background-color: #F5CC06;
- color: black;
+ background-color: white;
+ color: #496A08;
  font-weight: bold;
  font-size: smaller;
  padding: none;
@@ -384,8 +376,8 @@ SPAN.tooltip:hover {
 
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
- border: 2px solid #913745;
- background-color: #F5CC06;
+ border: 2px solid #496A08;
+ background-color: white;
 }
 div.domTTUnison .caption {
   font-family: serif;
@@ -394,7 +386,7 @@ div.domTTUnison .caption {
   font-weight: bold;
   font-style: italic;
  padding: 1px 2px;
- background: #F5CC06;
+ background: white;
 }
 div.domTTUnison .contents {
  color: black;

@@ -3,49 +3,45 @@
 use strict;
 use warnings;
 
-my $ql_table = join('',<DATA>);
+my $ql_table     = join( '', <DATA> );
 my $ql_start_tag = "<!-- quicklinks start -->\n";
-my $ql_end_tag = "<!-- quicklinks end -->\n";
+my $ql_end_tag   = "<!-- quicklinks end -->\n";
 
 local $/ = undef;
 
-while( my $fn = shift ) {
-  my $bakfn = "$fn.bak";
-  if ( -e $bakfn ) {
-	warn("$bakfn: already exists; skipping $fn\n");
-	next;
-  }
+while ( my $fn = shift ) {
+    my $bakfn = "$fn.bak";
+    if ( -e $bakfn ) {
+        warn("$bakfn: already exists; skipping $fn\n");
+        next;
+    }
 
-  open(F,"<$fn")
-	|| die("$fn: $!\n");
-  my $html = scalar <F>;
-  close(F);
+    open( F, "<$fn" )
+      || die("$fn: $!\n");
+    my $html = scalar <F>;
+    close(F);
 
-  my $my_ql_table = $ql_table;
-  $html =~ s/$ql_start_tag.*$ql_end_tag/$ql_start_tag$my_ql_table$ql_end_tag/s;
-  if (not $&) {
-	warn("$fn: no substitution tags found\n");
-	next;
-  }
+    my $my_ql_table = $ql_table;
+    $html =~
+      s/$ql_start_tag.*$ql_end_tag/$ql_start_tag$my_ql_table$ql_end_tag/s;
+    if ( not $& ) {
+        warn("$fn: no substitution tags found\n");
+        next;
+    }
 
-  my $newfn = "$fn.tmp";
-  open(F,">$newfn")
-	|| die("$newfn: $!\n");
-  print(F $html);
-  close(F);
+    my $newfn = "$fn.tmp";
+    open( F, ">$newfn" )
+      || die("$newfn: $!\n");
+    print( F $html );
+    close(F);
 
-  rename($fn,$bakfn)
-	|| die("rename($fn,$bakfn): $!\n");
-  rename($newfn,$fn)
-	|| die("rename($fn,$bakfn): $!\n");
+    rename( $fn, $bakfn )
+      || die("rename($fn,$bakfn): $!\n");
+    rename( $newfn, $fn )
+      || die("rename($fn,$bakfn): $!\n");
 
-  print("processed $fn\n");
+    print("processed $fn\n");
 }
-
-
-
-
-
 
 __DATA__
 <SCRIPT TYPE="text/javascript" SRC="searchplugin/webinstall.js"></script>

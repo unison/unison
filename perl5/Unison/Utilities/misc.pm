@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::Utilities::misc -- general Unison utilities
@@ -22,18 +23,16 @@ use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use base Exporter;
-@EXPORT = ();
+@EXPORT    = ();
 @EXPORT_OK = qw/ warn_deprecated range_to_enum clean_sequence
-				 sequence_md5 wrap unison_logo elide_sequence
- 				 use_at_runtime /;
+  sequence_md5 wrap unison_logo elide_sequence
+  use_at_runtime /;
 
 use strict;
 use warnings;
 
 use Carp qw(cluck);
 use Digest::MD5 qw(md5_hex);
-
-
 
 =pod
 
@@ -42,7 +41,6 @@ use Digest::MD5 qw(md5_hex);
 =over
 
 =cut
-
 
 ######################################################################
 ## warn_deprecated
@@ -64,27 +62,27 @@ missing stack frame info due to optimization.
 =cut
 
 my %already_warned;
+
 sub warn_deprecated(;$) {
-  my $msg = shift;
-  my ($pkg,$fn,$line,$dep_routine) = caller(1);
-  my $instance = "$dep_routine:$fn:$line";	# defines distinct warnings
-  if (not $already_warned{$instance}++) {
-	if (defined $msg) {
-	  chomp($msg);
-	  $msg = "RECOMMENDATION: $msg\n";
-	} else {
-	  $msg = '';
-	}
-	cluck("WARNING: $dep_routine() is deprecated\n", $msg);
-  }
-  #print(STDERR "warn_deprecated($instance) = $already_warned{$instance}\n");
+    my $msg = shift;
+    my ( $pkg, $fn, $line, $dep_routine ) = caller(1);
+    my $instance = "$dep_routine:$fn:$line";    # defines distinct warnings
+    if ( not $already_warned{$instance}++ ) {
+        if ( defined $msg ) {
+            chomp($msg);
+            $msg = "RECOMMENDATION: $msg\n";
+        }
+        else {
+            $msg = '';
+        }
+        cluck( "WARNING: $dep_routine() is deprecated\n", $msg );
+    }
+
+    #print(STDERR "warn_deprecated($instance) = $already_warned{$instance}\n");
 }
 
-
-
-
-
 ######################################################################
+
 =pod
 
 =item B<< range_to_enum( C<range-strings> ) >>
@@ -97,13 +95,11 @@ range_to_enum('1..3','4,5,6..10')) returns (1,2,3,4,5,6,7,8,9,10)
 =cut
 
 sub range_to_enum (@) {
-  eval join(',',@_);
+    eval join( ',', @_ );
 }
 
-
-
-
 ######################################################################
+
 =pod
 
 =item B<< clean_sequence( C<sequence> ) >>
@@ -123,14 +119,13 @@ yourself.
 =cut
 
 sub clean_sequence($) {
-  my $seq = shift;
-  $seq =~ s/[^-\w\*\?]//g;
-  return uc($seq);
+    my $seq = shift;
+    $seq =~ s/[^-\w\*\?]//g;
+    return uc($seq);
 }
 
-
-
 ######################################################################
+
 =pod
 
 =item B<< sequence_md5( C<sequence> ) >>
@@ -145,12 +140,12 @@ and therefore is subject to the same caveats as clean_sequence (see above).
 =cut
 
 sub sequence_md5 ($) {
-  my $seq = shift;
-  return md5_hex(clean_sequence($seq));
+    my $seq = shift;
+    return md5_hex( clean_sequence($seq) );
 }
 
-
 ######################################################################
+
 =pod
 
 =item B<< wrap( C<sequence> ) >>
@@ -160,14 +155,13 @@ wraps the sequence at 60 columns
 =cut
 
 sub wrap ($) {
-  my $seq = shift;
-  $seq =~ s/.{1,60}/$&\n/g;
-  return $seq;
+    my $seq = shift;
+    $seq =~ s/.{1,60}/$&\n/g;
+    return $seq;
 }
 
-
-
 ######################################################################
+
 =pod
 
 =item B<< true_or_false( value ) >>
@@ -177,14 +171,12 @@ return 'true' if value is defined and non-zero, 'false' otherwise
 =cut
 
 sub true_or_false ($) {
-  return 'true' if (defined $_[0] and $_[0] ne '0');
-  return 'false';
+    return 'true' if ( defined $_[0] and $_[0] ne '0' );
+    return 'false';
 }
 
-
-
-
 ######################################################################
+
 =pod
 
 =item B<< unison_logo( value ) >>
@@ -194,14 +186,14 @@ returns a Unison logo as a GD::Image;
 =cut
 
 sub unison_logo () {
-  my ($unison_fn) = __FILE__ =~ m%^(.+)/[^/]+%;
-  $unison_fn .= '/../data/unison.gif';
-  return GD::Image->new($unison_fn) if ( -f $unison_fn );
-  return undef;
+    my ($unison_fn) = __FILE__ =~ m%^(.+)/[^/]+%;
+    $unison_fn .= '/../data/unison.gif';
+    return GD::Image->new($unison_fn) if ( -f $unison_fn );
+    return undef;
 }
 
-
 ######################################################################
+
 =pod
 
 =item B<< elide_sequence( seq, clip, gap ) >>
@@ -211,15 +203,15 @@ returns sequence, perhaps gapped with gap if longer that 2*clip+|gap|.
 =cut
 
 sub elide_sequence ($$$) {
-  my ($seq,$clip,$gap) = @_;
-  if (length($seq) > $clip*2+length($gap)) {
-	$seq = substr($seq,0,$clip) . $gap . substr($seq,-$clip);
-  }
-  return $seq;
+    my ( $seq, $clip, $gap ) = @_;
+    if ( length($seq) > $clip * 2 + length($gap) ) {
+        $seq = substr( $seq, 0, $clip ) . $gap . substr( $seq, -$clip );
+    }
+    return $seq;
 }
 
-
 ######################################################################
+
 =pod
 
 =item B<< use_at_runtime( module ) >>
@@ -230,16 +222,17 @@ I haven't tried use args, such as 'use Mod qw(sub)'.
 =cut
 
 sub use_at_runtime ($) {
-  eval "use @_";
-  if ($@) {
-	my ($mfile,$line) = (caller(0))[1,2];
-	die(sprintf("Runtime loading of module %s failed at %s:%d:\n$@\n",
-				$_[0], $mfile, $line));
-  }
+    eval "use @_";
+    if ($@) {
+        my ( $mfile, $line ) = ( caller(0) )[ 1, 2 ];
+        die(
+            sprintf(
+                "Runtime loading of module %s failed at %s:%d:\n$@\n",
+                $_[0], $mfile, $line
+            )
+        );
+    }
 }
-
-
-
 
 =pod
 

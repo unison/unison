@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::template -- Unison:: module template
@@ -15,8 +16,6 @@ B<Unison::template> is template for building new perl modules.
 
 =cut
 
-
-
 =pod
 
 =head1 PUBLIC METHODS
@@ -24,8 +23,6 @@ B<Unison::template> is template for building new perl modules.
 =over
 
 =cut
-
-
 
 =pod
 
@@ -35,8 +32,6 @@ B<Unison::template> is template for building new perl modules.
 
 =cut
 
-
-
 =pod
 
 =head1 INTERNAL ROUTINES (__ prefix)
@@ -44,9 +39,6 @@ B<Unison::template> is template for building new perl modules.
 =over
 
 =cut
-
-
-
 
 ######################################################################
 ## functionName
@@ -61,14 +53,6 @@ B<Unison::template> is template for building new perl modules.
 
 sub functionName {
 }
-
-
-
-
-
-
-
-
 
 =pod
 

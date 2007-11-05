@@ -80,50 +80,51 @@ use IO::File;
 
 sub next_aln {
     my $self = shift;
-    my ($start,$end,$name,$seqname,$seq,$seqchar);
-    my $aln =  Bio::SimpleAlign->new(-source => 'prospect');
+    my ( $start, $end, $name, $seqname, $seq, $seqchar );
+    my $aln = Bio::SimpleAlign->new( -source => 'prospect' );
 
-		# get Prospect2::File object to parse the prospect xml output
-		if ( ! defined $self->{'prospectobj'} ) {
-			$self->{'prospectobj'} = new Prospect2::File;
-			$self->{'prospectobj'}->fdopen( $self->_fh, "r" );
-		}
-		my $t = $self->{'prospectobj'}->next_thread();
-		return if ! defined $t;
-    
+    # get Prospect2::File object to parse the prospect xml output
+    if ( !defined $self->{'prospectobj'} ) {
+        $self->{'prospectobj'} = new Prospect2::File;
+        $self->{'prospectobj'}->fdopen( $self->_fh, "r" );
+    }
+    my $t = $self->{'prospectobj'}->next_thread();
+    return if !defined $t;
+
     $seqchar = $t->qseq_align();
-    $start = $t->target_start;
-    $end = $t->target_end;
+    $start   = $t->target_start;
+    $end     = $t->target_end;
     $seqname = $t->qname();
 
-    unless ($seqchar && $start && $end ) {return 0} ;  
+    unless ( $seqchar && $start && $end ) { return 0 }
 
-    $seq = new Bio::LocatableSeq('-seq'=>$seqchar,
-         '-id'=>$seqname,
-         '-start'=>$start,
-         '-end'=>$end,
-         );
+    $seq = new Bio::LocatableSeq(
+        '-seq'   => $seqchar,
+        '-id'    => $seqname,
+        '-start' => $start,
+        '-end'   => $end,
+    );
 
     $aln->add_seq($seq);
 
     $seqchar = $t->tseq_align();
-    $start = $t->template_start();
-    $end = $t->template_end();
+    $start   = $t->template_start();
+    $end     = $t->template_end();
     $seqname = $t->tname();
 
-    unless ($seqchar && $start && $end  && $seqname) {return 0} ;  
+    unless ( $seqchar && $start && $end && $seqname ) { return 0 }
 
-    $seq = new Bio::LocatableSeq('-seq'=>$seqchar,
-         '-id'=>$seqname,
-         '-start'=>$start,
-         '-end'=>$end,
-         );
+    $seq = new Bio::LocatableSeq(
+        '-seq'   => $seqchar,
+        '-id'    => $seqname,
+        '-start' => $start,
+        '-end'   => $end,
+    );
 
     $aln->add_seq($seq);
 
     return $aln;
 }
-  
 
 =head2 write_aln
 
@@ -137,7 +138,7 @@ sub next_aln {
 =cut
 
 sub write_aln {
-    my ($self,@aln) = @_;
+    my ( $self, @aln ) = @_;
 
     $self->throw("Sorry: writing prospect output is not available! /n");
 }

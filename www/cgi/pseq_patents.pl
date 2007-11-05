@@ -4,7 +4,8 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq", "$FindBin::Bin/../../perl5";
+use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq",
+  "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page;
@@ -14,56 +15,62 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines('$Id: pseq_patents.pl,v 1.18 2006/06/26 18:05:08 rkh Exp $ ');
-
-if ($u->is_public()) {
-  $p->die('Patents not available.', <<EOT);
+if ( $u->is_public() ) {
+    $p->die( 'Patents not available.', <<EOT);
 Sorry, patents are not part of the public Unison release. We load
 patent data from Derwent Geneseq, and the tools do this yourself are
 part of the Unison source code distribution.
 EOT
 }
 
-$v->{pct_ident} = 98 unless exists $v->{pct_ident};
+$v->{pct_ident}    = 98 unless exists $v->{pct_ident};
 $v->{pct_coverage} = 98 unless exists $v->{pct_coverage};
-$v->{pseq_id} = $p->_infer_pseq_id(); # internal function called. Shame on me.
+$v->{pseq_id} = $p->_infer_pseq_id();   # internal function called. Shame on me.
 
-print $p->render("Patents 'near' Unison:$v->{pseq_id}",
-				 $p->best_annotation($v->{pseq_id}),
+print $p->render(
+    "Patents 'near' Unison:$v->{pseq_id}",
+    $p->best_annotation( $v->{pseq_id} ),
 
-				 $p->start_form(-method => 'GET'),
-#								-action => $p->make_url()),
+    $p->start_form( -method => 'GET' ),
 
-				 "show patents within ",
-				 $p->popup_menu(-name=>'pct_ident',
-								-values => [qw(100 99 98 97 96 95 90)],
-								-default => $v->{pct_ident}),
-				 " % identity and ",
-				 $p->popup_menu(-name=>'pct_coverage',
-								-values => [qw(100 99 98 97 96 95 90)],
-								-default => $v->{pct_coverage}),
-				 " % coverage of Unison:",
-				 $p->textfield(-name => 'pseq_id',
-							   -size => 8,
-							   -value => $v->{pseq_id}),
+    #								-action => $p->make_url()),
 
-				 $p->submit(-value=>'submit'),
-				 $p->end_form(), "\n",
+    "show patents within ",
+    $p->popup_menu(
+        -name    => 'pct_ident',
+        -values  => [qw(100 99 98 97 96 95 90)],
+        -default => $v->{pct_ident}
+    ),
+    " % identity and ",
+    $p->popup_menu(
+        -name    => 'pct_coverage',
+        -values  => [qw(100 99 98 97 96 95 90)],
+        -default => $v->{pct_coverage}
+    ),
+    " % coverage of Unison:",
+    $p->textfield(
+        -name  => 'pseq_id',
+        -size  => 8,
+        -value => $v->{pseq_id}
+    ),
 
-				 do_search($p)
-				);
+    $p->submit( -value => 'submit' ),
+    $p->end_form(),
+    "\n",
 
+    do_search($p)
+);
 
 sub do_search {
-  my $p = shift;
-  my $v = $p->Vars();
-  return '' unless (defined $v->{pseq_id} and $v->{pseq_id} ne '');
+    my $p = shift;
+    my $v = $p->Vars();
+    return '' unless ( defined $v->{pseq_id} and $v->{pseq_id} ne '' );
 
-  # substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([^\\\\s\\\\]]+)') as patent_authority,
-  # I'd much prefer to have this query view-ized, but as of 2006-06-25,
-  # the subquery below joined with patents_v is extremely slow.  I think the problem
-  # is the join across the union.  
-  my $sql = <<EOSQL;
+# substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([^\\\\s\\\\]]+)') as patent_authority,
+# I'd much prefer to have this query view-ized, but as of 2006-06-25,
+# the subquery below joined with patents_v is extremely slow.  I think the problem
+# is the join across the union.
+    my $sql = <<EOSQL;
 SELECT
 	X1.*,
 	origin_alias_fmt(O.origin,AO.alias),
@@ -90,11 +97,10 @@ WHERE SA.is_current=true
 ORDER BY pct_coverage desc,pct_ident desc,patent_date,patent_authority,alias
 EOSQL
 
-  my $ar = $u->selectall_arrayref($sql);
-  my @f = qw( pseq_id len %IDE %COV alias species date authority description );
-  return( "<hr>\n",
-		  $p->group("Patent Results",
-					Unison::WWW::Table::render(\@f,$ar)),
-		  $p->sql($sql)
-		);
-  }
+    my $ar = $u->selectall_arrayref($sql);
+    my @f =
+      qw( pseq_id len %IDE %COV alias species date authority description );
+    return ( "<hr>\n",
+        $p->group( "Patent Results", Unison::WWW::Table::render( \@f, $ar ) ),
+        $p->sql($sql) );
+}

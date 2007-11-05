@@ -1,4 +1,5 @@
 package Bio::Graphics::Glyph::sec_str::myarrow;
+
 # package to use for drawing an arrow
 
 use strict;
@@ -7,24 +8,26 @@ use Bio::Graphics::Glyph::minmax;
 use Bio::Graphics::Glyph::graded_segments;
 use Bio::Graphics::Glyph::generic;
 @ISA = qw (
-	 Bio::Graphics::Glyph::minmax
-	 Bio::Graphics::Glyph::generic;
-	 Bio::Graphics::Glyph::graded_segments
-	 #Bio::Graphics::Glyph::arrow
-           );
+  Bio::Graphics::Glyph::minmax
+  Bio::Graphics::Glyph::generic;
+  Bio::Graphics::Glyph::graded_segments
+  #Bio::Graphics::Glyph::arrow
+);
 
-my %UNITS = (n => 1e-12,
-	          n => 1e-9,
-	          u => 1e-6,
-	          m => 0.001,
-	          c => 0.01,
-	          k => 1000,
-	          M => 1_000_000,
-	     G => 1_000_000_000);
+my %UNITS = (
+    n => 1e-12,
+    n => 1e-9,
+    u => 1e-6,
+    m => 0.001,
+    c => 0.01,
+    k => 1000,
+    M => 1_000_000,
+    G => 1_000_000_000
+);
 
 sub pad_bottom {
     my $self = shift;
-    my $val = $self->SUPER::pad_bottom(@_);
+    my $val  = $self->SUPER::pad_bottom(@_);
     $val += $self->font->height if $self->option('tick');
     $val;
 }
@@ -45,76 +48,77 @@ sub partcolor {
 
     my @parts = $self->parts;
 
-    my ($min_score,$max_score) = $self->minmax(\@parts);
+    my ( $min_score, $max_score ) = $self->minmax( \@parts );
 
     return $self->draw_component(@_)
-        unless defined($max_score) && defined($min_score)
-        && $min_score < $max_score;
+      unless defined($max_score)
+          && defined($min_score)
+          && $min_score < $max_score;
 
     my $span = $max_score - $min_score;
 
     # allocate colors
-    my $fill   = $self->bgcolor;
-    my ($red,$green,$blue) = $self->panel->rgb($fill);
+    my $fill = $self->bgcolor;
+    my ( $red, $green, $blue ) = $self->panel->rgb($fill);
 
     foreach my $part (@parts) {
         my $s = eval { $part->feature->score };
-        unless (defined $s) {
+        unless ( defined $s ) {
             $part->{partcolor} = $fill;
             next;
         }
-        my ($r,$g,$b) = $self->calculate_color($s,[$red,$green,$blue],$min_score,$span);
-        my $idx      = $self->panel->translate_color($r,$g,$b);
+        my ( $r, $g, $b ) = $self->calculate_color( $s, [ $red, $green, $blue ],
+            $min_score, $span );
+        my $idx = $self->panel->translate_color( $r, $g, $b );
         $part->{partcolor} = $idx;
         $self->{partcolor} = $idx;
     }
 }
 
-
-
-
 sub draw_perpendicular {
     my $self = shift;
-    my $gd = shift;
-    my ($dx,$dy) = @_;
-    my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
+    my $gd   = shift;
+    my ( $dx, $dy ) = @_;
+    my ( $x1, $y1, $x2, $y2 ) = $self->bounds(@_);
 
     my $ne = $self->option('northeast');
     my $sw = $self->option('southwest');
     $ne = $sw = 1 unless defined($ne) || defined($sw);
 
-  # draw a perpendicular arrow at position indicated by $x1
+    # draw a perpendicular arrow at position indicated by $x1
     my $fg = $self->set_pen;
-    my $a2 = ($y2-$y1)/4;
+    my $a2 = ( $y2 - $y1 ) / 4;
 
-    my @positions = $x1 == $x2 ? ($x1) : ($x1,$x2);
+    my @positions = $x1 == $x2 ? ($x1) : ( $x1, $x2 );
     for my $x (@positions) {
-	if ($ne) {
-	    $gd->line($x,$y1,$x,$y2,$fg);
-	    $gd->line($x-$a2,$y1+$a2,$x,$y1,$fg);
-	    $gd->line($x+$a2,$y1+$a2,$x,$y1,$fg);
-	}
-	if ($sw) {
-	    $gd->line($x,$y1,$x,$y2,$fg);
-	    $gd->line($x-$a2,$y2-$a2,$x,$y2,$fg);
-	    $gd->line($x+$a2,$y2-$a2,$x,$y2,$fg);
-	}
+        if ($ne) {
+            $gd->line( $x,       $y1,       $x, $y2, $fg );
+            $gd->line( $x - $a2, $y1 + $a2, $x, $y1, $fg );
+            $gd->line( $x + $a2, $y1 + $a2, $x, $y1, $fg );
+        }
+        if ($sw) {
+            $gd->line( $x,       $y1,       $x, $y2, $fg );
+            $gd->line( $x - $a2, $y2 - $a2, $x, $y2, $fg );
+            $gd->line( $x + $a2, $y2 - $a2, $x, $y2, $fg );
+        }
     }
 
-  # add a label if requested
-    $self->draw_label($gd,$dx,$dy) if $self->option('label');  # this draws the label aligned to the left
+    # add a label if requested
+    $self->draw_label( $gd, $dx, $dy )
+      if $self->option('label');    # this draws the label aligned to the left
 }
 
 sub draw_parallel {
     my $self = shift;
-    my $gd = shift;
-    my ($dx,$dy) = @_;
-    my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
+    my $gd   = shift;
+    my ( $dx, $dy ) = @_;
+    my ( $x1, $y1, $x2, $y2 ) = $self->bounds(@_);
 
-    my $fg = $self->set_pen($self->linewidth,$self->{partcolor});
+    my $fg = $self->set_pen( $self->linewidth, $self->{partcolor} );
+
     #y $fg = $self->set_pen;
-    my $a2 = ($self->height)/2;
-    my $center = $y1+$a2;
+    my $a2     = ( $self->height ) / 2;
+    my $center = $y1 + $a2;
 
     my $trunc_left  = $x1 < $self->panel->left;
     my $trunc_right = $x2 > $self->panel->right;
@@ -127,166 +131,205 @@ sub draw_parallel {
     $trunc_left  = 0 if $self->no_trunc;
     $trunc_right = 0 if $self->no_trunc;
 
-    my ($sw,$ne,$base_w,$base_e) = $self->arrowheads;
-    $gd->line($x1,$center,$x2,$center,$fg);
-    $self->arrowhead($gd,$x1,$center,$a2,-1) if $sw && !$trunc_left;  # west arrow
+    my ( $sw, $ne, $base_w, $base_e ) = $self->arrowheads;
+    $gd->line( $x1, $center, $x2, $center, $fg );
+    $self->arrowhead( $gd, $x1, $center, $a2, -1 )
+      if $sw && !$trunc_left;    # west arrow
 
-    for(my $i=$x2;$i>$x1+6;) {
-	$self->arrowhead($gd,$i,$center,$a2-1,+1) if $ne && !$trunc_right; # east arrow
-	$self->arrowhead($gd,$i-1,$center,$a2-1,+1) if $ne && !$trunc_right; # east arrow
-	$self->arrowhead($gd,$i-2 ,$center,$a2-1,+1) if $ne && !$trunc_right; # east arrow
-	$i = $i-8 ;
+    for ( my $i = $x2 ; $i > $x1 + 6 ; ) {
+        $self->arrowhead( $gd, $i, $center, $a2 - 1, +1 )
+          if $ne && !$trunc_right;    # east arrow
+        $self->arrowhead( $gd, $i - 1, $center, $a2 - 1, +1 )
+          if $ne && !$trunc_right;    # east arrow
+        $self->arrowhead( $gd, $i - 2, $center, $a2 - 1, +1 )
+          if $ne && !$trunc_right;    # east arrow
+        $i = $i - 8;
     }
-    $gd->line($x1,$center-$a2,$x1,$center+$a2,$fg) if $base_w && !$trunc_left;  #west base
-    $gd->line($x2,$center-$a2,$x2,$center+$a2,$fg) if $base_e && !$trunc_right; #east base
+    $gd->line( $x1, $center - $a2, $x1, $center + $a2, $fg )
+      if $base_w && !$trunc_left;     #west base
+    $gd->line( $x2, $center - $a2, $x2, $center + $a2, $fg )
+      if $base_e && !$trunc_right;    #east base
 
-  # turn on ticks
- # turn on ticks
-    if ($self->option('tick')) {
-	local $^W = 0;  # dumb uninitialized variable warning
-	my $font       = $self->font;
-	my $width      = $font->width;
-	my $font_color = $self->fontcolor;
-	my $height     = $self->height;
+    # turn on ticks
+    # turn on ticks
+    if ( $self->option('tick') ) {
+        local $^W = 0;                # dumb uninitialized variable warning
+        my $font       = $self->font;
+        my $width      = $font->width;
+        my $font_color = $self->fontcolor;
+        my $height     = $self->height;
 
-	my $relative               = $self->option('relative_coords');
-	my $reversed = exists $self->{flip} || ($relative && $self->feature->strand < 0);
-	my $relative_coords_offset = $self->option('relative_coords_offset');
-	$relative_coords_offset    = 1 unless defined $relative_coords_offset;
+        my $relative = $self->option('relative_coords');
+        my $reversed = exists $self->{flip}
+          || ( $relative && $self->feature->strand < 0 );
+        my $relative_coords_offset = $self->option('relative_coords_offset');
+        $relative_coords_offset = 1 unless defined $relative_coords_offset;
 
-	my $start    = $relative ? $relative_coords_offset : $self->feature->start-1;
-	my $stop     = $start + $self->feature->length - 1;
+        my $start =
+          $relative ? $relative_coords_offset : $self->feature->start - 1;
+        my $stop = $start + $self->feature->length - 1;
 
-    # WARNING: THIS IS NOT WELL THOUGHT OUT, REVERSED SEGMENTS MAY NOT INTERACT
-    # WITH RELATIVE COORDINATES OFFSET CORRECTLY
-    my $offset   = $relative ? 
-                   $reversed ? ($self->feature->end   - $relative_coords_offset) 
-                             : ($self->feature->start - $relative_coords_offset) 
-			     : 0;
+     # WARNING: THIS IS NOT WELL THOUGHT OUT, REVERSED SEGMENTS MAY NOT INTERACT
+     # WITH RELATIVE COORDINATES OFFSET CORRECTLY
+        my $offset =
+            $relative
+          ? $reversed
+              ? ( $self->feature->end - $relative_coords_offset )
+              : ( $self->feature->start - $relative_coords_offset )
+          : 0;
 
-	my $unit_label   = $self->option('units') || '';
-	my $unit_divider = $self->option('unit_divider') || 1;
+        my $unit_label   = $self->option('units')        || '';
+        my $unit_divider = $self->option('unit_divider') || 1;
 
-	my $units      = $self->calculate_units($start/$unit_divider,$self->feature->length/$unit_divider);
-	my $divisor    = $UNITS{$units} || 1;
+        my $units = $self->calculate_units( $start / $unit_divider,
+            $self->feature->length / $unit_divider );
+        my $divisor = $UNITS{$units} || 1;
 
-	$divisor *= $unit_divider;
+        $divisor *= $unit_divider;
 
-    my $format     = min($self->feature->length,$self->panel->length)/$divisor > 10
-	? "%d$units%s" : "%.6g$units%s";
+        my $format =
+          min( $self->feature->length, $self->panel->length ) / $divisor > 10
+          ? "%d$units%s"
+          : "%.6g$units%s";
 
-	my $scale  = $self->option('scale') || 1;  ## Does the user want to override the internal scale?
+        my $scale = $self->option('scale')
+          || 1;    ## Does the user want to override the internal scale?
 
-	my $model  = sprintf("$format ",$stop/($divisor*$scale),$unit_label);
-	my $minlen = $width * length($model);
+        my $model =
+          sprintf( "$format ", $stop / ( $divisor * $scale ), $unit_label );
+        my $minlen = $width * length($model);
 
-	my ($major_interval,$minor_interval) = $self->panel->ticks(($stop-$start+1)/$unit_divider,$minlen);
+        my ( $major_interval, $minor_interval ) =
+          $self->panel->ticks( ( $stop - $start + 1 ) / $unit_divider,
+            $minlen );
 
-	my $left  = $sw ? $x1+$height : $x1;
-	my $right = $ne ? $x2-$height : $x2;
+        my $left  = $sw ? $x1 + $height : $x1;
+        my $right = $ne ? $x2 - $height : $x2;
 
-    # adjust for portions of arrow that are outside panel
-    $start += $self->panel->start - $self->feature->start
-	if $self->feature->start < $self->panel->start;
-    $stop  -= $self->feature->end - $self->panel->end
-	if $self->feature->end   > $self->panel->end;
+        # adjust for portions of arrow that are outside panel
+        $start += $self->panel->start - $self->feature->start
+          if $self->feature->start < $self->panel->start;
+        $stop -= $self->feature->end - $self->panel->end
+          if $self->feature->end > $self->panel->end;
 
-	my $first_tick = $major_interval * int(0.5 + $start/$major_interval);
-	my $last_tick  = $major_interval * int(0.5 + $stop/$major_interval);
+        my $first_tick =
+          $major_interval * int( 0.5 + $start / $major_interval );
+        my $last_tick = $major_interval * int( 0.5 + $stop / $major_interval );
 
-	for (my $i = $first_tick; $i <= $last_tick; $i += $major_interval) {
+        for ( my $i = $first_tick ; $i <= $last_tick ; $i += $major_interval ) {
 
-      my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
-			   : $self->map_pt($i + $offset));
-      next if $tickpos < $left or $tickpos > $right;
+            my $tickpos = $dx + (
+                  $reversed
+                ? $self->map_pt( $stop - $i + $offset )
+                : $self->map_pt( $i + $offset )
+            );
+            next if $tickpos < $left or $tickpos > $right;
 
-      $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
-      my $label = $scale ? $i / $scale : $i;
-      my $scaled = $label/$divisor;
-      $label = sprintf($format,$scaled,$unit_label);
+            $gd->line( $tickpos, $center - $a2, $tickpos, $center + $a2, $fg );
+            my $label = $scale ? $i / $scale : $i;
+            my $scaled = $label / $divisor;
+            $label = sprintf( $format, $scaled, $unit_label );
 
-      my $middle = $tickpos - (length($label) * $width)/2;
-      next if $middle < $left or $middle > $right;
+            my $middle = $tickpos - ( length($label) * $width ) / 2;
+            next if $middle < $left or $middle > $right;
 
-      $gd->string($font,$middle,$center+$a2-1,$label,$font_color)
-	  unless ($self->option('no_tick_label'));
-  }
+            $gd->string( $font, $middle, $center + $a2 - 1,
+                $label, $font_color )
+              unless ( $self->option('no_tick_label') );
+        }
 
-	if ($self->option('tick') >= 2) {
+        if ( $self->option('tick') >= 2 ) {
 
-	    $first_tick = $minor_interval * int(0.5 + $start/$minor_interval);
-	    $last_tick  = $minor_interval * int(0.5 + $stop/$minor_interval);
+            $first_tick =
+              $minor_interval * int( 0.5 + $start / $minor_interval );
+            $last_tick = $minor_interval * int( 0.5 + $stop / $minor_interval );
 
-	    my $a4 = $self->height/4;
-	    for (my $i = $first_tick; $i <= $last_tick; $i += $minor_interval) {
-		my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
-				     : $self->map_pt($i + $offset));
-		next if $tickpos < $left or $tickpos > $right;
+            my $a4 = $self->height / 4;
+            for (
+                my $i = $first_tick ;
+                $i <= $last_tick ;
+                $i += $minor_interval
+              )
+            {
+                my $tickpos = $dx + (
+                      $reversed
+                    ? $self->map_pt( $stop - $i + $offset )
+                    : $self->map_pt( $i + $offset )
+                );
+                next if $tickpos < $left or $tickpos > $right;
 
-		$gd->line($tickpos,$center-$a4,$tickpos,$center+$a4,$fg);
-	    }
-	}
+                $gd->line( $tickpos, $center - $a4,
+                    $tickpos, $center + $a4, $fg );
+            }
+        }
     }
 
-  # add a label if requested
-    $self->draw_label($gd,$dx,$dy)       if $self->option('label');
-    $self->draw_description($gd,$dx,$dy) if $self->option('description');
+    # add a label if requested
+    $self->draw_label( $gd, $dx, $dy ) if $self->option('label');
+    $self->draw_description( $gd, $dx, $dy ) if $self->option('description');
 }
 
 sub arrowheads {
     my $self = shift;
-    my ($ne,$sw,$base_e,$base_w);
-    if ($self->option('double')) {
-	$ne = $sw = 1;
-    } else {
-	$ne   = $self->option('northeast') || $self->option('east');
-	$sw   = $self->option('southwest') || $self->option('west');
+    my ( $ne, $sw, $base_e, $base_w );
+    if ( $self->option('double') ) {
+        $ne = $sw = 1;
     }
-  # otherwise use strandedness to define the arrow
-    unless (defined($ne) || defined($sw)) {
-    # turn on both if neither specified
-	$ne = 1 if $self->feature->strand > 0;
-	$sw = 1 if $self->feature->strand < 0;
-	($ne,$sw) = ($sw,$ne) if $self->{flip};
+    else {
+        $ne = $self->option('northeast') || $self->option('east');
+        $sw = $self->option('southwest') || $self->option('west');
     }
-    return ($sw,$ne,0,0) unless $self->option('base');
-  return ($sw,$ne,
-	    (!$sw && $self->feature->start>= $self->panel->start),
-	  (!$ne && $self->feature->end  <= $self->panel->end));
+
+    # otherwise use strandedness to define the arrow
+    unless ( defined($ne) || defined($sw) ) {
+
+        # turn on both if neither specified
+        $ne = 1 if $self->feature->strand > 0;
+        $sw = 1 if $self->feature->strand < 0;
+        ( $ne, $sw ) = ( $sw, $ne ) if $self->{flip};
+    }
+    return ( $sw, $ne, 0, 0 ) unless $self->option('base');
+    return (
+        $sw, $ne,
+        ( !$sw && $self->feature->start >= $self->panel->start ),
+        ( !$ne && $self->feature->end <= $self->panel->end )
+    );
 }
 
 sub arrowhead {
-    my $self = shift;
+    my $self  = shift;
     my $image = shift;
-    my ($x,$y,$height,$orientation) = @_;
+    my ( $x, $y, $height, $orientation ) = @_;
 
-    my $fg = $self->set_pen($self->linewidth,$self->{partcolor});
+    my $fg = $self->set_pen( $self->linewidth, $self->{partcolor} );
     my $style = $self->option('arrowstyle') || 'regular';
 
-    if ($style eq 'filled') {
+    if ( $style eq 'filled' ) {
         my $poly_pkg = $self->polygon_package;
-        my $poly = $poly_pkg->new();
-        if ($orientation >= 0) {
-            my $newheight=$height-2;
-            my $newx=$x-2;
-            $poly->addPt($x-$height,$y-$newheight);
-            $poly->addPt($newx,$y);
-            $poly->addPt($x-$height,$y+$newheight);
+        my $poly     = $poly_pkg->new();
+        if ( $orientation >= 0 ) {
+            my $newheight = $height - 2;
+            my $newx      = $x - 2;
+            $poly->addPt( $x - $height, $y - $newheight );
+            $poly->addPt( $newx,        $y );
+            $poly->addPt( $x - $height, $y + $newheight );
 
-        } else {
-            $poly->addPt($x+$height,$y-$height);
-            $poly->addPt($x,$y);
-            $poly->addPt($x+$height,$y+$height,$y);
         }
-        $image->filledPolygon($poly,$fg);
+        else {
+            $poly->addPt( $x + $height, $y - $height );
+            $poly->addPt( $x,           $y );
+            $poly->addPt( $x + $height, $y + $height, $y );
+        }
+        $image->filledPolygon( $poly, $fg );
     }
     else {
-        if ($orientation >= 0) {
-            $image->line($x,$y,$x-$height,$y-$height,$fg);
-            $image->line($x,$y,$x-$height,$y+$height,$fg);
-        } else {
-            $image->line($x,$y,$x+$height,$y-$height,$fg);
-            $image->line($x,$y,$x+$height,$y+$height,$fg);
+        if ( $orientation >= 0 ) {
+            $image->line( $x, $y, $x - $height, $y - $height, $fg );
+            $image->line( $x, $y, $x - $height, $y + $height, $fg );
+        }
+        else {
+            $image->line( $x, $y, $x + $height, $y - $height, $fg );
+            $image->line( $x, $y, $x + $height, $y + $height, $fg );
         }
     }
 }
@@ -294,8 +337,8 @@ sub arrowhead {
 sub no_trunc { 0; }
 
 sub calculate_units {
-    my $self   = shift;
-    my ($start,$length) = @_;
+    my $self = shift;
+    my ( $start, $length ) = @_;
     return 'G' if $length >= 1e9;
     return 'M' if $length >= 1e6;
     return 'k' if $length >= 1e3;
@@ -307,7 +350,7 @@ sub calculate_units {
     return 'p';
 }
 
-sub min { $_[0]<$_[1] ? $_[0] : $_[1] }
+sub min { $_[0] < $_[1] ? $_[0] : $_[1] }
 
 1;
 

@@ -63,6 +63,7 @@ methods. Internal methods are usually preceded with a _
 package Bio::AlignIO::blast;
 use vars qw(@ISA);
 use strict;
+
 # Object preamble - inherits from Bio::Root::Object
 
 use Bio::AlignIO;
@@ -83,55 +84,56 @@ use Bio::Tools::BPlite;
 
 sub next_aln {
     my $self = shift;
-    my ($start,$end,$name,$seqname,$seq,$seqchar);
-    my $aln =  Bio::SimpleAlign->new(-source => 'blast');
-    $self->{'blastobj'} =
-      $self->{'blastobj'} || Bio::Tools::BPlite->new(-fh => $self->_fh);
-    
-    $self->{'subj'} = 
-      $self->{'subj'} || $self->{'blastobj'}->nextSbjct(); 
-    my $hsp =  $self->{'subj'}->nextHSP();
+    my ( $start, $end, $name, $seqname, $seq, $seqchar );
+    my $aln = Bio::SimpleAlign->new( -source => 'blast' );
+    $self->{'blastobj'} = $self->{'blastobj'}
+      || Bio::Tools::BPlite->new( -fh => $self->_fh );
+
+    $self->{'subj'} = $self->{'subj'} || $self->{'blastobj'}->nextSbjct();
+    my $hsp = $self->{'subj'}->nextHSP();
+
     # if we run out of hsps for this subject alignment, get
     # the next subject alignment.  if no more subjects
-		# then we're done.
-    if ( ! defined $hsp ) {
-       $self->{'subj'} = $self->{'blastobj'}->nextSbjct();
-       return (0) if ! defined $self->{'subj'};
-       $hsp = $self->{'subj'}->nextHSP();
+    # then we're done.
+    if ( !defined $hsp ) {
+        $self->{'subj'} = $self->{'blastobj'}->nextSbjct();
+        return (0) if !defined $self->{'subj'};
+        $hsp = $self->{'subj'}->nextHSP();
     }
     $seqchar = $hsp->querySeq;
-    $start = $hsp->query->start;
-    $end = $hsp->query->end;
+    $start   = $hsp->query->start;
+    $end     = $hsp->query->end;
     $seqname = $self->{'blastobj'}->query();
 
-    unless ($seqchar && $start && $end ) {return 0} ;  
+    unless ( $seqchar && $start && $end ) { return 0 }
 
-    $seq = new Bio::LocatableSeq('-seq'=>$seqchar,
-         '-id'=>$seqname,
-         '-start'=>$start,
-         '-end'=>$end,
-         );
+    $seq = new Bio::LocatableSeq(
+        '-seq'   => $seqchar,
+        '-id'    => $seqname,
+        '-start' => $start,
+        '-end'   => $end,
+    );
 
     $aln->add_seq($seq);
 
     $seqchar = $hsp->sbjctSeq;
-    $start = $hsp->hit->start;
-    $end = $hsp->hit->end;
+    $start   = $hsp->hit->start;
+    $end     = $hsp->hit->end;
     $seqname = $self->{'subj'}->name;
 
-    unless ($seqchar && $start && $end  && $seqname) {return 0} ;  
+    unless ( $seqchar && $start && $end && $seqname ) { return 0 }
 
-    $seq = new Bio::LocatableSeq('-seq'=>$seqchar,
-         '-id'=>$seqname,
-         '-start'=>$start,
-         '-end'=>$end,
-         );
+    $seq = new Bio::LocatableSeq(
+        '-seq'   => $seqchar,
+        '-id'    => $seqname,
+        '-start' => $start,
+        '-end'   => $end,
+    );
 
     $aln->add_seq($seq);
 
     return $aln;
 }
-  
 
 =head2 write_aln
 
@@ -145,7 +147,7 @@ sub next_aln {
 =cut
 
 sub write_aln {
-    my ($self,@aln) = @_;
+    my ( $self, @aln ) = @_;
 
     $self->throw("Sorry: writing blast output is not available! /n");
 }

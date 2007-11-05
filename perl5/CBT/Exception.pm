@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 CBT::Exception -- base class for exceptions
@@ -58,7 +59,6 @@ When thrown, a B<CBT::Exception> looks like this:
 
 =cut
 
-
 package CBT::Exception;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -75,34 +75,37 @@ use Carp;
 our $show_stacktrace = $CBT::debug || $ENV{EX_STACKTRACE} || 0;
 our $show_advice = exists $ENV{EX_ADVICE} ? $ENV{EX_ADVICE} : 1;
 
-
 sub new {
-  my $class = shift;
-  my %ex;
-  if (ref $_[0]) {							# throw Ex ( {...} )
-	%ex = %{$_[0]};
-	$ex{error} = $ex{text} if not exists $ex{error} and exists $ex{text};
-  } else {									# throw Ex (  ...  )
-	$ex{error} = shift if @_;
-	$ex{detail} = shift if @_;
-	$ex{advice} = shift if @_;
-  }
+    my $class = shift;
+    my %ex;
+    if ( ref $_[0] ) {    # throw Ex ( {...} )
+        %ex = %{ $_[0] };
+        $ex{error} = $ex{text} if not exists $ex{error} and exists $ex{text};
+    }
+    else {                # throw Ex (  ...  )
+        $ex{error}  = shift if @_;
+        $ex{detail} = shift if @_;
+        $ex{advice} = shift if @_;
+    }
 
-  if (not defined $ex{error}) {
-	if ($!)	{
-	  $ex{error} = $!;
-	} else {
-	  croak("Exception created without error string\n") if $ENV{DEBUG};
-	  $ex{error} = 'unknown error';
-	}
-  }
-  #$ex{detail} = $! if (not defined $ex{detail} and $!);
+    if ( not defined $ex{error} ) {
+        if ($!) {
+            $ex{error} = $!;
+        }
+        else {
+            croak("Exception created without error string\n") if $ENV{DEBUG};
+            $ex{error} = 'unknown error';
+        }
+    }
 
-  local $Error::Debug = exists $ex{stacktrace} ? $ex{stacktrace} : $show_stacktrace;
-  local $Error::Depth = $Error::Depth + 1;
+    #$ex{detail} = $! if (not defined $ex{detail} and $!);
 
-  my $self = $class->SUPER::new(%ex,@_);
-  return $self;
+    local $Error::Debug =
+      exists $ex{stacktrace} ? $ex{stacktrace} : $show_stacktrace;
+    local $Error::Depth = $Error::Depth + 1;
+
+    my $self = $class->SUPER::new( %ex, @_ );
+    return $self;
 
 =pod
 
@@ -120,35 +123,32 @@ creates a new exception with the spe
 
 =cut
 
-  }
-
+}
 
 ## INTERNAL FUNCTIONS
 sub stringify($) {
-  my $self = shift;
-  my $r = "! " . (ref($self)||$self) . " occurred: " . $self->error() . "\n";
-  if ( $self->detail() ) {
-	$r .= "Detail:" . wrap("\t", "\t", $self->detail()) . "\n";
-  }
-  if ( $show_advice and $self->advice() ) {
-	$r .= "Advice:" . wrap("\t", "\t", $self->advice()) . "\n";
-  }
-  if ( $show_stacktrace ) {
-	$r .= "Trace:\t" . $self->stacktrace() . "\n";
-  }
-  return $r;
+    my $self = shift;
+    my $r =
+      "! " . ( ref($self) || $self ) . " occurred: " . $self->error() . "\n";
+    if ( $self->detail() ) {
+        $r .= "Detail:" . wrap( "\t", "\t", $self->detail() ) . "\n";
+    }
+    if ( $show_advice and $self->advice() ) {
+        $r .= "Advice:" . wrap( "\t", "\t", $self->advice() ) . "\n";
+    }
+    if ($show_stacktrace) {
+        $r .= "Trace:\t" . $self->stacktrace() . "\n";
+    }
+    return $r;
 }
-sub error($)   { $_[0]->{error};  }
-sub detail($)  { $_[0]->{detail}; }
-sub advice($)  { $_[0]->{advice}; }
+sub error($)  { $_[0]->{error}; }
+sub detail($) { $_[0]->{detail}; }
+sub advice($) { $_[0]->{advice}; }
 
 # backward compatibility
-sub text($)    { $_[0]->error();  }
-
+sub text($) { $_[0]->error(); }
 
 1;
-
-
 
 =pod
 
@@ -162,8 +162,6 @@ Error.pm -- where all the hard work's done
  http://www.in-machina.com/~reece/
 
 =cut
-
-
 
 ## TODO-
 ## -- on-the-fly exception class creation, e.g.,

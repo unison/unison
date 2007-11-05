@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::pmprospect -- Unison p2params table utilities
@@ -22,7 +23,6 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-
 =pod
 
 =head1 ROUTINES AND METHODS
@@ -30,7 +30,6 @@ use warnings;
 =over
 
 =cut
-
 
 ###############################################################################################
 ## add_pmprospect
@@ -41,18 +40,15 @@ use warnings;
 
 =cut
 
-sub add_pmprospect
-  {
-  my $self = shift;
-  $self->is_open()
-	|| croak("Unison connection not established");
-  my ($origin_id,$pseq_id,$id,$len,$ncores) = @_;
-  $self->do( "insert into pmprospect (origin_id,pseq_id,acc,len,ncores) "
-			 . "values ($origin_id,$pseq_id,'$id',$len,$ncores);" );
-  return;
-  }
-
-
+sub add_pmprospect {
+    my $self = shift;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my ( $origin_id, $pseq_id, $id, $len, $ncores ) = @_;
+    $self->do( "insert into pmprospect (origin_id,pseq_id,acc,len,ncores) "
+          . "values ($origin_id,$pseq_id,'$id',$len,$ncores);" );
+    return;
+}
 
 =pod
 

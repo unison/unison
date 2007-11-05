@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 CBT::Hash -- Hash record superclass
@@ -15,12 +16,12 @@ hashes.
 
 =cut
 
-
 package CBT::Hash;
-BEGIN{
-use CBT::debug;
-our $VERSION = CBT::debug::RCSVersion( '$Revision: 1.2 $ ' );
-CBT::debug::identify_file() if ($CBT::debug::trace_uses);
+
+BEGIN {
+    use CBT::debug;
+    our $VERSION = CBT::debug::RCSVersion('$Revision: 1.2 $ ');
+    CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 }
 
 use strict;
@@ -30,54 +31,56 @@ use base 'CBT::Root';
 use overload '""' => \&stringify;
 
 sub new {
-  my $type = shift;
-  my $self = _initialize(@_);
-  return( bless($self, $type) );
+    my $type = shift;
+    my $self = _initialize(@_);
+    return ( bless( $self, $type ) );
 }
-
 
 sub _initialize {
-  my %self;
-  return {} unless defined $_[0];
-  if (ref $_[0])							# new blah ( {-text=>blah, -advice=>soakhead, ...} )
-	{ %self = %{$_[0]}; }
-  elsif ( $_[0] =~ m/^-/ )					# new blah ( -text=>blah, -advice=>soakhead, ... )
-	{ %self = @_; }
-  return \%self;
+    my %self;
+    return {} unless defined $_[0];
+    if ( ref $_[0] )    # new blah ( {-text=>blah, -advice=>soakhead, ...} )
+    {
+        %self = %{ $_[0] };
+    }
+    elsif ( $_[0] =~ m/^-/ )  # new blah ( -text=>blah, -advice=>soakhead, ... )
+    {
+        %self = @_;
+    }
+    return \%self;
 }
 
-sub stringify
-  {
-  my $self = shift;
-  my $t = (ref $self) . " contains:\n";
-  foreach my $k (sort keys %{$self})
-	{ $t .= $k . ' = ' . ( defined $self->{$k} ? $self->{$k} : '(undef)' ) ."\n"; }
-  return($t);
-  }
+sub stringify {
+    my $self = shift;
+    my $t    = ( ref $self ) . " contains:\n";
+    foreach my $k ( sort keys %{$self} ) {
+        $t .=
+          $k . ' = ' . ( defined $self->{$k} ? $self->{$k} : '(undef)' ) . "\n";
+    }
+    return ($t);
+}
 
+sub _getset {
+    my $self = shift;
+    my $iv   = shift;
+    return ( @_ ? $self->{$iv} = shift : $self->{$iv} );
+}
 
-sub _getset
-  {
-  my $self = shift;
-  my $iv = shift;
-  return( @_ ? $self->{$iv} = shift : $self->{$iv} );
-  }
+sub AUTOLOAD {
+    my $self = shift;
+    use vars qw/$AUTOLOAD/;
+    return if $AUTOLOAD =~ /::DESTROY$/;    # don't propagate DESTROY messages
+    dprint( 4, "autoloading $AUTOLOAD" );
+    my $tag;
+    ( $tag = $AUTOLOAD ) =~ s/.*:://;
 
-sub AUTOLOAD
-  {
-  my $self = shift;
-  use vars qw/$AUTOLOAD/;
-  return if $AUTOLOAD =~ /::DESTROY$/;		# don't propagate DESTROY messages
-  dprint(4,"autoloading $AUTOLOAD");
-  my $tag; ($tag = $AUTOLOAD) =~ s/.*:://;
-  # return( $self->_getset($tag, @_) );
-  # code function on the fly; tag is a valid (nonexistant) method name
-  my $code = "sub $tag { my \$self = shift; \@_ ? \$self->{$tag} = shift : \$self->{$tag}; }";
-  eval $code;
-  return( $self->$tag(@_) );
-  }
-
-
+    # return( $self->_getset($tag, @_) );
+    # code function on the fly; tag is a valid (nonexistant) method name
+    my $code =
+"sub $tag { my \$self = shift; \@_ ? \$self->{$tag} = shift : \$self->{$tag}; }";
+    eval $code;
+    return ( $self->$tag(@_) );
+}
 
 =pod
 

@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::WWW::Page -- Unison web page framework
@@ -15,7 +16,6 @@ B<Unison::WWW::Page> provides a class for consistent rendering of Unison
 web pages. It's simple and not powerful.
 
 =cut
-
 
 ## BEGIN {
 ##   # if $log_fn below exists and is writable, then we'll open it for logging.
@@ -39,7 +39,6 @@ web pages. It's simple and not powerful.
 ##   }
 ## }
 
-
 package Unison::WWW::Page;
 use Unison::WWW;
 use CBT::debug;
@@ -50,7 +49,7 @@ use warnings;
 use base Exporter;
 use CGI qw(-debug -nosticky -newstyle_urls);
 use CGI::Carp qw(fatalsToBrowser);
-push(@ISA, 'CGI');
+push( @ISA, 'CGI' );
 
 use strict;
 
@@ -75,7 +74,6 @@ sub __filter_navs($$@);
 
 our $infer_pseq_id = 0;
 
-
 =pod
 
 =head1 PUBLIC METHODS
@@ -83,7 +81,6 @@ our $infer_pseq_id = 0;
 =over
 
 =cut
-
 
 ######################################################################
 ## new
@@ -95,70 +92,88 @@ our $infer_pseq_id = 0;
 =cut
 
 sub new {
-  my $class = shift;
-  my $self = $class->SUPER::new( @_ );
-  $self->{starttime} = time;
-  my $v = $self->Vars();
-  $v->{debug} = 0 unless defined $v->{debug};
+    my $class = shift;
+    my $self  = $class->SUPER::new(@_);
+    $self->{starttime} = time;
+    my $v = $self->Vars();
+    $v->{debug} = 0 unless defined $v->{debug};
 
-  try {
-	$self->_set_connection_params();
-	_page_connect($self);
-  } catch Unison::Exception with {
-	$self->die($_[0],
-			   # plus some addition stuff to tack on...
-			   'Relevant environment settings:',
-			   join('', map( { "<br><code>$_: "
-							   .(defined $ENV{$_} ? 
-								 $ENV{$_} : '<i>undef</i>')
-							   ."</code>\n" }
-							 qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT) ))
-			  );
-  };
+    try {
+        $self->_set_connection_params();
+        _page_connect($self);
+    }
+    catch Unison::Exception with {
+        $self->die(
+            $_[0],
 
+            # plus some addition stuff to tack on...
+            'Relevant environment settings:',
+            join(
+                '',
+                map( {
+                            "<br><code>$_: "
+                          . ( defined $ENV{$_} ? $ENV{$_} : '<i>undef</i>' )
+                          . "</code>\n"
+                    } qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT)
+                )
+            )
+        );
+    };
 
-  $self->{userprefs} = $self->{unison}->get_userprefs();
-  $self->{readonly} = 1;
-  $self->{js_tags} = [
-					  {-language => 'JAVASCRIPT', 
-					   -src => '../js/domTT/domLib.js'},
-					  {-language => 'JAVASCRIPT',
-					   -src => '../js/domTT/domTT.js'},
-					  {-language => 'JAVASCRIPT',
-					   -src => '../js/unison_domTT.js'},
-					  {-language => 'JAVASCRIPT', 
-					   -code => "var domTT_styleClass = 'domTTUnison';"}
-					 ];
+    $self->{userprefs} = $self->{unison}->get_userprefs();
+    $self->{readonly}  = 1;
+    $self->{js_tags}   = [
+        {
+            -language => 'JAVASCRIPT',
+            -src      => '../js/domTT/domLib.js'
+        },
+        {
+            -language => 'JAVASCRIPT',
+            -src      => '../js/domTT/domTT.js'
+        },
+        {
+            -language => 'JAVASCRIPT',
+            -src      => '../js/unison_domTT.js'
+        },
+        {
+            -language => 'JAVASCRIPT',
+            -code     => "var domTT_styleClass = 'domTTUnison';"
+        }
+    ];
 
-  # all pseq_id inference should be moved elsewhere...
-  if (not exists $v->{pseq_id} and $infer_pseq_id) {
-	my @st = grep {exists $v->{$_}} qw(q pseq_id seq md5 alias);
-	if (@st > 1) {
-	  $self->die("please don't provide more than one search parameter",
-				 sprintf('You provided criteria for %d terms (%s)',
-						 $#st+1, join(',',@st) ));
-	}
-	try {
-	  $v->{pseq_id} = _infer_pseq_id($self);
-	} catch Unison::Exception with {
-	  $self->die($_[0]);
-	};
-	if (not defined $v->{pseq_id}) {
-	  $self->die("couldn't infer pseq_id from arguments");
-	}
+    # all pseq_id inference should be moved elsewhere...
+    if ( not exists $v->{pseq_id} and $infer_pseq_id ) {
+        my @st = grep { exists $v->{$_} } qw(q pseq_id seq md5 alias);
+        if ( @st > 1 ) {
+            $self->die(
+                "please don't provide more than one search parameter",
+                sprintf(
+                    'You provided criteria for %d terms (%s)',
+                    $#st + 1, join( ',', @st )
+                )
+            );
+        }
+        try {
+            $v->{pseq_id} = _infer_pseq_id($self);
+        }
+        catch Unison::Exception with {
+            $self->die( $_[0] );
+        };
+        if ( not defined $v->{pseq_id} ) {
+            $self->die("couldn't infer pseq_id from arguments");
+        }
 
-	# hereafter, we don't want these polluting our variables
-	delete $v->{'q'};
-	delete $v->{alias};
-	delete $v->{md5};
-	delete $v->{seq};
-  }
+        # hereafter, we don't want these polluting our variables
+        delete $v->{'q'};
+        delete $v->{alias};
+        delete $v->{md5};
+        delete $v->{seq};
+    }
 
-  $self->start_html;
+    $self->start_html;
 
-  return $self;
+    return $self;
 }
-
 
 ######################################################################
 ## Vars()
@@ -174,15 +189,13 @@ calls are trivial.
 =cut
 
 sub Vars {
-  my $self = shift;
-  return unless ref $self;
-  if (not exists $self->{Vars}) {
-	$self->{Vars} = $self->SUPER::Vars();
-  }
-  return $self->{Vars};
+    my $self = shift;
+    return unless ref $self;
+    if ( not exists $self->{Vars} ) {
+        $self->{Vars} = $self->SUPER::Vars();
+    }
+    return $self->{Vars};
 }
-
-
 
 ######################################################################
 ## tempfile()
@@ -205,24 +218,22 @@ yet.
 =cut
 
 sub tempfile {
-  my $self = shift;
-  $self->_make_temp_dir(); 					# no return if failure
-  my %opts = (								# order is important:
-			  UNLINK=>0, 					# - items before @_ are defaults
-			  @_,							# - items after @_ override any
-			  DIR=>$self->{tmpdir}			#   calling arguments
-			 );
+    my $self = shift;
+    $self->_make_temp_dir();    # no return if failure
+    my %opts = (                # order is important:
+        UNLINK => 0,            # - items before @_ are defaults
+        @_,                     # - items after @_ override any
+        DIR => $self->{tmpdir}  #   calling arguments
+    );
 
-  if ( my ($fh,$fn) = File::Temp::tempfile( %opts ) ) {
-	my ($urn) = $fn =~ m/^$self->{tmproot}(\/.+)/;
-	$urn = $fn unless defined $urn;			# command-line
-	return ($fh,$fn,$urn);
-  }
+    if ( my ( $fh, $fn ) = File::Temp::tempfile(%opts) ) {
+        my ($urn) = $fn =~ m/^$self->{tmproot}(\/.+)/;
+        $urn = $fn unless defined $urn;    # command-line
+        return ( $fh, $fn, $urn );
+    }
 
-  return undef;
+    return undef;
 }
-
-
 
 ######################################################################
 ## ensure_required_params()
@@ -237,16 +248,18 @@ request. If not, the page C<dies> (which see) with an appropriate error.
 =cut
 
 sub ensure_required_params {
-  my $self = shift;
-  my @undefd = grep { not defined $self->param($_)
-						or $self->param($_) eq '' } @_;
-  return 0 unless @undefd;
-  $self->die('Missing parameters',
-		  '<br>The follow parameters were missing:',
-		  '<br>&nbsp;&nbsp;&nbsp; <code>' . join(', ', @undefd) . '</code>' );
-  # doesn't return
-}
+    my $self = shift;
+    my @undefd =
+      grep { not defined $self->param($_) or $self->param($_) eq '' } @_;
+    return 0 unless @undefd;
+    $self->die(
+        'Missing parameters',
+        '<br>The follow parameters were missing:',
+        '<br>&nbsp;&nbsp;&nbsp; <code>' . join( ', ', @undefd ) . '</code>'
+    );
 
+    # doesn't return
+}
 
 ######################################################################
 ## ensure_required_params()
@@ -260,13 +273,12 @@ Ensure that the pseq_id is valid and throw an exception if not.
 =cut
 
 sub is_valid_pseq_id {
-  my $self = shift;
-  my $q = shift;
-  return 1 unless defined $q;
-  return 1 if $self->{unison}->get_sequence_by_pseq_id($q);
-  throw Unison::Exception("Unison:$q doesn't exist");
+    my $self = shift;
+    my $q    = shift;
+    return 1 unless defined $q;
+    return 1 if $self->{unison}->get_sequence_by_pseq_id($q);
+    throw Unison::Exception("Unison:$q doesn't exist");
 }
-
 
 ######################################################################
 ## header()
@@ -280,9 +292,9 @@ returns the HTML header
 =cut
 
 sub header {
-  my $self = shift;
-  return '' if ref $self and $self->{already_did_header}++;
-  return $self->SUPER::header();
+    my $self = shift;
+    return '' if ref $self and $self->{already_did_header}++;
+    return $self->SUPER::header();
 }
 
 ######################################################################
@@ -295,17 +307,18 @@ sub header {
 adds HTML tags
 
 =cut
-sub add_html {
-  my $self = shift;
-  my (@params) = @_;
-  foreach my $i (0..$#params) {
-	if ($params[$i] eq '-script'
-		and ref($params[$i+1]) eq 'HASH') {
-	  push(@{$self->{js_tags}}, $params[$i+1]);
-	}
-  }
-}
 
+sub add_html {
+    my $self = shift;
+    my (@params) = @_;
+    foreach my $i ( 0 .. $#params ) {
+        if ( $params[$i] eq '-script'
+            and ref( $params[ $i + 1 ] ) eq 'HASH' )
+        {
+            push( @{ $self->{js_tags} }, $params[ $i + 1 ] );
+        }
+    }
+}
 
 ######################################################################
 ## start_html()
@@ -319,21 +332,24 @@ returns a Unison-specific preamble for a web page.
 =cut
 
 sub start_html {
-  my $self = shift;
+    my $self = shift;
 
-  return $self->SUPER::start_html
-	( @_,
-	  -head => [
-				$self->Link({-rel => 'shortcut icon',
-					     -href => '../av/favicon.png'})
-			   ],
-	  -style => { -src => ['../styles/unison.css'] },
-	  -target => '_top',
-	  -onload => 'javascript:{ unison_activateTooltips(); }',
-	  -script => $self->{js_tags},
-	);
+    return $self->SUPER::start_html(
+        @_,
+        -head => [
+            $self->Link(
+                {
+                    -rel  => 'shortcut icon',
+                    -href => '../av/favicon.png'
+                }
+            )
+        ],
+        -style  => { -src => ['../styles/unison.css'] },
+        -target => '_top',
+        -onload => 'javascript:{ unison_activateTooltips(); }',
+        -script => $self->{js_tags},
+    );
 }
-
 
 ######################################################################
 ## render()
@@ -347,60 +363,68 @@ page-specific content provided by an array of C<body elems>.
 
 =cut
 
-
 sub render {
-  my $self = shift;
-  my $title = shift;
+    my $self  = shift;
+    my $title = shift;
 
-  my $elapsed = time - $self->{starttime};
-  my $elapsed_msg = sprintf('page generated in %s second%s', $elapsed, $elapsed==1 ? '' : 's');
+    my $elapsed     = time - $self->{starttime};
+    my $elapsed_msg = sprintf( 'page generated in %s second%s',
+        $elapsed, $elapsed == 1 ? '' : 's' );
 
-  return ($self->header(),
+    return (
+        $self->header(),
 
-		  $self->start_html(-title=>"Unison: $title"), "\n\n\n",
+        $self->start_html( -title => "Unison: $title" ), "\n\n\n",
 
-		  '<table class="page">', "\n",
-		  "\n<!-- ========== begin banner bar ========== -->\n",
-		  '<tr>', "\n",
-		  '  <td class="logo" width="10%">',
-		  '<a href="../index.html"><img class="logo" src="../av/unison.gif"></a>',
-		  '</td>',"\n",
-		  '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
-		  '</tr>', "\n",
+        '<table class="page">', "\n",
+        "\n<!-- ========== begin banner bar ========== -->\n",
+        '<tr>', "\n",
+        '  <td class="logo" width="10%">',
+        '<a href="../index.html"><img class="logo" src="../av/unison.gif"></a>',
+        '</td>', "\n",
+        '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
+        '</tr>',                           "\n",
 
-		  "<!-- ========== end banner bar ========== -->\n",
+        "<!-- ========== end banner bar ========== -->\n",
 
+        "\n<!-- ========== begin body ========== -->\n",
+        '<tr><td colspan=2 class="body">', "\n",
+        '<span class="page_title">', $title, '</span>', "\n",
+        '<br>',                      @_,     "\n",
+        '</td></tr>',                "\n",
+        "\n<!-- ========== end body ========== -->\n",
 
-		  "\n<!-- ========== begin body ========== -->\n",
-		  '<tr><td colspan=2 class="body">', "\n",
-		  '<span class="page_title">',$title,'</span>', "\n", 
-		  '<br>', @_, "\n",
-		  '</td></tr>', "\n",
-		  "\n<!-- ========== end body ========== -->\n",
+        "\n<!-- ========== begin footer ========== -->\n",
+        '<tr>', "\n",
+'  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
+        ' src="../av/poweredby_postgresql.gif"></a></td>',
+        "\n",
+        '  <td class="footer">',
+'  Questions?  Email <a href="mailto:unison@unison-db.org?subject=Unison Question&body=Regarding ',
+        $self->url(),
+        ' : ',
+        '">unison@unison-db.org</a>.',
+        '  &nbsp; &nbsp; ',
+'  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
+        '     <br>',
+        $elapsed_msg,
+        "\n",
+        (
+            defined $self->{footer}
+            ? ( map { "<br>$_" } @{ $self->{footer} } )
+            : ''
+        ),
+        "  </td>\n",
+        "</tr>\n",
+        "\n<!-- ========== end footer ========== -->\n",
 
+        "</table>\n",
 
-		  "\n<!-- ========== begin footer ========== -->\n",
-		  '<tr>', "\n",
-		  '  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
-		        ' src="../av/poweredby_postgresql.gif"></a></td>', "\n",
-		  '  <td class="footer">',
-		  '  Questions?  Email <a href="mailto:unison@unison-db.org?subject=Unison Question&body=Regarding ',
-		     $self->url(), ' : ',
-		     '">unison@unison-db.org</a>.',
-		  '  &nbsp; &nbsp; ',
-		  '  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
-		  '     <br>',$elapsed_msg, "\n",
-		  (defined $self->{footer} ? (map {"<br>$_"} @{$self->{footer}}) : ''),
-		  "  </td>\n",
-		  "</tr>\n",
-		  "\n<!-- ========== end footer ========== -->\n",
-
-		  "</table>\n",
-
-		  "\n", $self->end_html(),"\n"
-		 );
+        "\n",
+        $self->end_html(),
+        "\n"
+    );
 }
-
 
 ######################################################################
 ## group()
@@ -412,23 +436,27 @@ sub render {
 =cut
 
 sub group {
-  my $self = shift;
-  my $name = shift;
-  my $ctl = '';
-  # for backward compatibility, $name may be a scalar
-  # to introduce a new feature, I unforunately needed to permit
-  # $name to be an array ref, in which case it is expected to contain
-  # the group name (as before) and HTML to be right justified on the same tr
-  if (ref $name eq 'ARRAY') {
-	($name,$ctl) = @$name;
-  }
-  $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;	# don't nbsp-ize HTML
-  return("<table class=\"group\">\n",
-	   "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
-	   "<tr><td colspan=\"2\">\n",@_,"\n</td></tr>\n",
-	   "</table>\n");
-}
+    my $self = shift;
+    my $name = shift;
+    my $ctl  = '';
 
+    # for backward compatibility, $name may be a scalar
+    # to introduce a new feature, I unforunately needed to permit
+    # $name to be an array ref, in which case it is expected to contain
+    # the group name (as before) and HTML to be right justified on the same tr
+    if ( ref $name eq 'ARRAY' ) {
+        ( $name, $ctl ) = @$name;
+    }
+    $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;    # don't nbsp-ize HTML
+    return (
+        "<table class=\"group\">\n",
+"<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
+        "<tr><td colspan=\"2\">\n",
+        @_,
+        "\n</td></tr>\n",
+        "</table>\n"
+    );
+}
 
 ######################################################################
 ## make_url()
@@ -443,28 +471,28 @@ variable list
 =cut
 
 sub make_url {
-  my $self = shift;
-  my $vars = $self->Vars();
-  my $addlvars = ref $_[0] ? shift : {};
-  my %vars = (%$vars, %$addlvars);
+    my $self     = shift;
+    my $vars     = $self->Vars();
+    my $addlvars = ref $_[0] ? shift : {};
+    my %vars     = ( %$vars, %$addlvars );
 
-  my @keys;
-  if (@_) {									# specified query vars only
-	my %keys = map { $_=>1 } @_, keys %$addlvars;
-	@keys = sort keys %keys;
-  } else {									# or default is all vars
-	@keys = sort keys %vars;
-  }
+    my @keys;
+    if (@_) {    # specified query vars only
+        my %keys = map { $_ => 1 } @_, keys %$addlvars;
+        @keys = sort keys %keys;
+    }
+    else {       # or default is all vars
+        @keys = sort keys %vars;
+    }
 
-  my $url = $self->url(-relative=>1);
+    my $url = $self->url( -relative => 1 );
 
-  my $qargs = join( ';', map {"$_=$vars{$_}"} grep {defined $vars{$_}} @keys);
-  $url .= '?' . $qargs if $qargs ne '';
+    my $qargs =
+      join( ';', map { "$_=$vars{$_}" } grep { defined $vars{$_} } @keys );
+    $url .= '?' . $qargs if $qargs ne '';
 
-  return $url;
+    return $url;
 }
-
-
 
 =pod
 
@@ -473,7 +501,6 @@ sub make_url {
 =over
 
 =cut
-
 
 ######################################################################
 ## sql()
@@ -487,25 +514,25 @@ format C<text> as a SQL block on the web page
 =cut
 
 sub sql {
-  my $self = shift;
-  #return '' unless $self->{userprefs}->{'show_sql'};
-  # poor man's SQL pretty-printer.  This is not a bulletproof general
-  # reformatter, but it suffices for most Unison queries.
-  my $sql =  join( '', map {CGI::escapeHTML($_)} text_wrap(@_) );
-  $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
-  $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
-  $sql =~ s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
-  $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
-  $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
-  $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
-  $sql =~ s/\s+LIMIT\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LIMIT /ix;
-  $sql =~ s/\s+OFFSET\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;OFFSET /ix;
+    my $self = shift;
 
-  return( "\n", '<p><div class="sql"><b>SQL query:</b>',
-		  $sql,
-		  '</div>', "\n" );
+    #return '' unless $self->{userprefs}->{'show_sql'};
+    # poor man's SQL pretty-printer.  This is not a bulletproof general
+    # reformatter, but it suffices for most Unison queries.
+    my $sql = join( '', map { CGI::escapeHTML($_) } text_wrap(@_) );
+    $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
+    $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
+    $sql =~
+s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
+    $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
+    $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
+    $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
+    $sql =~ s/\s+LIMIT\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LIMIT /ix;
+    $sql =~ s/\s+OFFSET\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;OFFSET /ix;
+
+    return ( "\n", '<p><div class="sql"><b>SQL query:</b>', $sql, '</div>',
+        "\n" );
 }
-
 
 ######################################################################
 ## tip()
@@ -519,11 +546,10 @@ format C<text> as a "tip" block on the web page
 =cut
 
 sub tip {
-  my $self = shift;
-  return '' unless $self->{userprefs}->{'show_tips'};
-  return( "\n",'<p><div class="tip"><b>Tip:</b> ', @_, '</div>', "\n");
+    my $self = shift;
+    return '' unless $self->{userprefs}->{'show_tips'};
+    return ( "\n", '<p><div class="tip"><b>Tip:</b> ', @_, '</div>', "\n" );
 }
-
 
 ######################################################################
 ## popup()
@@ -540,16 +566,17 @@ C<text>.
 =cut
 
 sub popup {
-  shift if ref $_[0];						# method or fx
-  my $cue = shift;							# cue, caption, content may contain HTML tags!
-  my $caption = shift;
-  my $content = join('',@_);
-  $content =~ s/\n/ /g;
-  $content =~ s/"/&quot;/g;
-  return sprintf('<span onmouseover="domTT_activate(this, event, \'caption\', \'%s\', \'content\', \'%s\', \'trail\', \'x\');">%s</span>',
-				 $caption, $content, $cue);
+    shift if ref $_[0];    # method or fx
+    my $cue     = shift;          # cue, caption, content may contain HTML tags!
+    my $caption = shift;
+    my $content = join( '', @_ );
+    $content =~ s/\n/ /g;
+    $content =~ s/"/&quot;/g;
+    return
+      sprintf(
+'<span onmouseover="domTT_activate(this, event, \'caption\', \'%s\', \'content\', \'%s\', \'trail\', \'x\');">%s</span>',
+        $caption, $content, $cue );
 }
-
 
 ######################################################################
 ## tooltip()
@@ -566,19 +593,19 @@ C<text>.
 =cut
 
 sub tooltip {
-  shift if ref $_[0];						# method or fx
-  my ($text,$tooltip,$class) = @_;
-  return $text unless defined $tooltip;
-  local $Text::Wrap::columns = 80;
-  $tooltip =~ s/\s+/ /g;
-  # NOTE: wrap() doesn't work correctly on HTML (e.g., embedded <br> tags)
-  $tooltip = Text::Wrap::wrap('','',$tooltip);
-  $tooltip =~ s/\n+/<br>/g;
-  $class = 'tooltip' unless defined $class;
-  my $cltag = $class eq '' ? '' : "class=\"$class\"" ;
-  return( "<span $cltag tooltip=\"$tooltip\">$text</span>" );
-}
+    shift if ref $_[0];    # method or fx
+    my ( $text, $tooltip, $class ) = @_;
+    return $text unless defined $tooltip;
+    local $Text::Wrap::columns = 80;
+    $tooltip =~ s/\s+/ /g;
 
+    # NOTE: wrap() doesn't work correctly on HTML (e.g., embedded <br> tags)
+    $tooltip = Text::Wrap::wrap( '', '', $tooltip );
+    $tooltip =~ s/\n+/<br>/g;
+    $class = 'tooltip' unless defined $class;
+    my $cltag = $class eq '' ? '' : "class=\"$class\"";
+    return ("<span $cltag tooltip=\"$tooltip\">$text</span>");
+}
 
 ######################################################################
 ## warn()
@@ -593,11 +620,10 @@ with other Unison::Page "body" elements.
 =cut
 
 sub warn {
-  my $self = shift;
-  return( "\n",'<p><div class="warning"><b>Warning:</b> ', 
-		  @_, '</div>', "\n" );
+    my $self = shift;
+    return ( "\n", '<p><div class="warning"><b>Warning:</b> ', @_, '</div>',
+        "\n" );
 }
-
 
 ######################################################################
 ## die()
@@ -616,49 +642,57 @@ exits with status 0 (so that webservers will actually return the page).
 ## TODO: get the error text to the apache error_log or to a Unison log
 
 sub die {
-  if ( ref($_[1]) and $_[1]->isa('Unison::Exception') ) {
-	goto &_die_with_exception;
-  }
-  goto &_die;
+    if ( ref( $_[1] ) and $_[1]->isa('Unison::Exception') ) {
+        goto &_die_with_exception;
+    }
+    goto &_die;
 }
 
 sub _die {
-  my $self = shift;
-  $self->_error_page(@_);
-  exit(0);						# => doesn't appear to be a server error to user
+    my $self = shift;
+    $self->_error_page(@_);
+    exit(0);    # => doesn't appear to be a server error to user
 }
 
 sub _die_with_exception {
-  my $self = shift;
-  my $ex = shift;
+    my $self = shift;
+    my $ex   = shift;
 
-  if (not defined $ex or not ref $ex or not $ex->isa('Unison::Exception')) {
-	$self->_die(__FILE__.':'.__LINE__
-				. ": die_with_exception called without an exception\n"
-				. '(instead it was called with a '
-				. (ref($ex)||'non-reference')
-				. ').');
-  }
+    if ( not defined $ex or not ref $ex or not $ex->isa('Unison::Exception') ) {
+        $self->_die( __FILE__ . ':' 
+              . __LINE__
+              . ": die_with_exception called without an exception\n"
+              . '(instead it was called with a '
+              . ( ref($ex) || 'non-reference' )
+              . ').' );
+    }
 
-  my $ex_text = ( defined $ex->{error} ? CGI::escapeHTML($ex->{error}) : '(no exception summary)' );
+    my $ex_text =
+      (
+        defined $ex->{error}
+        ? CGI::escapeHTML( $ex->{error} )
+        : '(no exception summary)' );
 
-  $self->_die($ex->error(),'<pre>'.$ex.'</pre>', (@_ ? ('<hr>', @_) : '') );
-  # no return
+    $self->_die(
+        $ex->error(),
+        '<pre>' . $ex . '</pre>',
+        ( @_ ? ( '<hr>', @_ ) : '' )
+    );
+
+    # no return
 }
 
 sub _error_page {
-  my $self = shift;
-  my $t = shift;
-  print $self->render("Error: $t",
-					  '<p><div class="warning">',
-					  '<b>Error:</b> ', $t, '<br>',
-					  join(' ',@_), 
-					  '</div>', "\n" );
+    my $self = shift;
+    my $t    = shift;
+    print $self->render(
+        "Error: $t",
+        '<p><div class="warning">',
+        '<b>Error:</b> ',
+        $t, '<br>', join( ' ', @_ ),
+        '</div>', "\n"
+    );
 }
-
-
-
-
 
 ######################################################################
 ## best_annotation()
@@ -673,27 +707,26 @@ C<pseq_id>
 =cut
 
 sub best_annotation {
-  my $self = shift;
-  my $pseq_id = shift;
-  my $tooltip = <<EOT;
+    my $self    = shift;
+    my $pseq_id = shift;
+    my $tooltip = <<EOT;
 A best annotation is a guess about the most informative and reliable
 annotation for this sequence from all source databases.
 <br>Click the Aliases tab to see all annotations
 EOT
-  # try best human annotation first, otherwise get best annotation for any species
-  my $ba = $self->{unison}->best_annotation($pseq_id, 'HUMAN') || $self->{unison}->best_annotation($pseq_id);
 
-  return
-	  ( 
-		'<table class="summary">',
-		'<tr>',
-	      '<th><div>best annotation', $self->tooltip( '?', $tooltip ), '</div></th>',
-  	      '<td>', $ba , '</td>',
-		'</tr>',
-		'</table>'
-	  );
+# try best human annotation first, otherwise get best annotation for any species
+    my $ba = $self->{unison}->best_annotation( $pseq_id, 'HUMAN' )
+      || $self->{unison}->best_annotation($pseq_id);
+
+    return (
+        '<table class="summary">', '<tr>',
+        '<th><div>best annotation ', $self->tooltip( '?', $tooltip ),
+        '</div></th>',              '<td>',
+        $ba,                        '</td>',
+        '</tr>',                    '</table>'
+    );
 }
-
 
 ######################################################################
 ## entrez_annotation()
@@ -708,29 +741,29 @@ C<pseq_id>
 =cut
 
 sub entrez_annotation_UNIMPLEMENTED {
-  my $self = shift;
-  my $pseq_id = shift;
-  my $u = $self->{unison};
-  my $entrez = '<br><b>Entrez annotation</b>&nbsp;'
-	. $self->tooltip( '?', 'Entrez Gene annotation' )
-	. ': ';
+    my $self    = shift;
+    my $pseq_id = shift;
+    my $u       = $self->{unison};
+    my $entrez  = '<br><b>Entrez annotation</b>&nbsp;'
+      . $self->tooltip( '?', 'Entrez Gene annotation' ) . ': ';
 
-  my (@entrez) = $u->entrez_annotations($pseq_id);
-  $entrez .= '<div style="width: 80%; padding-left: 50px;">';
-  if (@entrez) {
-	$entrez .= '<table padding: 0; style="width: 100%;">';
-	foreach my $res (@entrez) {
-	  $entrez .= '<tr>' . (join('',map {"<td>$_</td>"} @$res)) . '</tr>';
-	}
-	$entrez .= "</table>\n";
-  } else {
-	$entrez .= '<i>no Entrez Gene information for this sequence</i>';
-  }
-  $entrez .= '</div>';
+    my (@entrez) = $u->entrez_annotations($pseq_id);
+    $entrez .= '<div style="width: 80%; padding-left: 50px;">';
+    if (@entrez) {
+        $entrez .= '<table padding: 0; style="width: 100%;">';
+        foreach my $res (@entrez) {
+            $entrez .=
+              '<tr>' . ( join( '', map { "<td>$_</td>" } @$res ) ) . '</tr>';
+        }
+        $entrez .= "</table>\n";
+    }
+    else {
+        $entrez .= '<i>no Entrez Gene information for this sequence</i>';
+    }
+    $entrez .= '</div>';
 
-  return $entrez;
+    return $entrez;
 }
-
 
 ######################################################################
 ## add_footer_lines()
@@ -744,10 +777,9 @@ adds the specified lines to the footer
 =cut
 
 sub add_footer_lines {
-  my $self = shift;
-  push(@{$self->{footer}}, @_);
+    my $self = shift;
+    push( @{ $self->{footer} }, @_ );
 }
-
 
 ######################################################################
 ## debug()
@@ -761,19 +793,22 @@ render C<message> in a special debugging block
 =cut
 
 sub debug {
-  my $self = shift;
-  print $self->render("debug: $_[0]",'<span class="debug">',
-				   join('<br>',@_),'</span>');
+    my $self = shift;
+    print $self->render(
+        "debug: $_[0]",
+        '<span class="debug">',
+        join( '<br>', @_ ), '</span>'
+    );
 }
 
 ######################################################################
 ## import
 
 sub import {
-  my $self = shift;
-  for (@_) {
-	$infer_pseq_id=1 if ($_ eq 'infer_pseq_id');
-  }
+    my $self = shift;
+    for (@_) {
+        $infer_pseq_id = 1 if ( $_ eq 'infer_pseq_id' );
+    }
 }
 
 ######################################################################
@@ -786,12 +821,13 @@ sub import {
 Return true if this is a production version of Unison.
 
 =cut
-sub is_prd_instance {
-  # should ~user/ paths be dev?
-  return 1 if (defined $ENV{SERVER_PORT} and $ENV{SERVER_PORT}==80);
-  return 0;
-}
 
+sub is_prd_instance {
+
+    # should ~user/ paths be dev?
+    return 1 if ( defined $ENV{SERVER_PORT} and $ENV{SERVER_PORT} == 80 );
+    return 0;
+}
 
 ######################################################################
 ## is_dev_instance
@@ -804,10 +840,10 @@ Return true if this is NOT on the production port (80) OR if the page is
 being served by a user development directory
 
 =cut
-sub is_dev_instance {
-  return not is_prd_instance();
-}
 
+sub is_dev_instance {
+    return not is_prd_instance();
+}
 
 ######################################################################
 ## is_public
@@ -821,12 +857,14 @@ method is intended to facilitate hiding features which will fail because
 they depend on data that are not released with Unison.
 
 =cut
+
 sub is_public_instance {
-  return 1 if defined $ENV{SERVER_ADDR} and $ENV{SERVER_ADDR} !~ m/^128\.137\./; # .gene.com domain
-  return 0;
+    return 1
+      if defined $ENV{SERVER_ADDR}
+          and $ENV{SERVER_ADDR} !~ m/^128\.137\./;    # .gene.com domain
+    return 0;
 }
 sub is_public { goto &is_public_instance; }
-
 
 ######################################################################
 
@@ -840,88 +878,99 @@ These methods typically begin with one underscore (e.g., _internal_method).
 
 =cut
 
-
 ######################################################################
 ## _page_connect
 
 sub _page_connect ($) {
-  my $self = shift;
-  my $v = $self->Vars();
+    my $self = shift;
+    my $v    = $self->Vars();
 
-  $self->{unison} = new Unison( host => $v->{host},
-								dbname => $v->{dbname},
-								username => $v->{username},
-								password => $v->{password}
-								# NB: KRB5CCNAME may affect connection success
-							  );
-  # Errors are caught by exceptions.
+    $self->{unison} = new Unison(
+        host     => $v->{host},
+        dbname   => $v->{dbname},
+        username => $v->{username},
+        password => $v->{password}
 
-  # If the connection succeeded, then set PG vars so that spawned apps
-  # connect to the same database.  The krb credential, if any, is
-  # implicitly passed in KRB5CCNAME.
-  if ($v->{host}	) { $ENV{PGHOST}     = $v->{host}	  } else { delete $ENV{PGHOST}     };
-  if ($v->{database}) { $ENV{PGDATABASE} = $v->{database} } else { delete $ENV{PGDATABASE} };
-  if ($v->{username}) { $ENV{PGUSER}     = $v->{username} } else { delete $ENV{PGUSER}     };
-  if ($v->{password}) { $ENV{PGPASSWORD} = $v->{password} } else { delete $ENV{PGPASSWORD} };
+          # NB: KRB5CCNAME may affect connection success
+    );
 
-  # TODO: consider setting search_path here in lieu of a per-database search_path
-  $self->{unison} -> do('set statement_timeout = 300000'); # milliseconds
+    # Errors are caught by exceptions.
 
-  return $self->{unison};
+    # If the connection succeeded, then set PG vars so that spawned apps
+    # connect to the same database.  The krb credential, if any, is
+    # implicitly passed in KRB5CCNAME.
+    if ( $v->{host} ) { $ENV{PGHOST} = $v->{host} }
+    else              { delete $ENV{PGHOST} }
+    if ( $v->{database} ) { $ENV{PGDATABASE} = $v->{database} }
+    else                  { delete $ENV{PGDATABASE} }
+    if ( $v->{username} ) { $ENV{PGUSER} = $v->{username} }
+    else                  { delete $ENV{PGUSER} }
+    if ( $v->{password} ) { $ENV{PGPASSWORD} = $v->{password} }
+    else                  { delete $ENV{PGPASSWORD} }
+
+ # TODO: consider setting search_path here in lieu of a per-database search_path
+    $self->{unison}->do('set statement_timeout = 300000');    # milliseconds
+
+    return $self->{unison};
 }
-
 
 ######################################################################
 ## _set_connection_params
 ## sets connection parameters in the Page's instance variables
 sub _set_connection_params ($) {
-  my $p = shift;
-  my $v = $p->Vars();
+    my $p = shift;
+    my $v = $p->Vars();
 
-  if (not defined $ENV{SERVER_ADDR}) {
-	# debugging from the command line
-	$v->{username} = $ENV{USER} || `/usr/bin/id -un`;
-	$v->{dbname} = $v->{dbname} || 'csb-dev';
-	return;
- }
+    if ( not defined $ENV{SERVER_ADDR} ) {
 
-  # Default connections params for public versions of Unison
-  # Some hash values may have been preset in U::WWW::Page::new()
-  if (not defined $v->{dbname}) {
-	  $v->{dbname} 	 = $p->is_dev_instance() ? 'unison-dev' : 'unison';
-  }
-  if (not defined $v->{username}) {
-	  $v->{username} = 'PUBLIC';
-  }
-  # $v->{host}, $v->{password}->{host} may be undef
+        # debugging from the command line
+        $v->{username} = $ENV{USER}   || `/usr/bin/id -un`;
+        $v->{dbname}   = $v->{dbname} || 'csb-dev';
+        return;
+    }
 
-  $p->_genentech_connection_params() if ($ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)');
+    # Default connections params for public versions of Unison
+    # Some hash values may have been preset in U::WWW::Page::new()
+    if ( not defined $v->{dbname} ) {
+        $v->{dbname} = $p->is_dev_instance() ? 'unison-dev' : 'unison';
+    }
+    if ( not defined $v->{username} ) {
+        $v->{username} = 'PUBLIC';
+    }
+
+    # $v->{host}, $v->{password}->{host} may be undef
+
+    $p->_genentech_connection_params()
+      if ( $ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)' );
 }
 
 ######################################################################
 ## _genentech_connection_params
 sub _genentech_connection_params ($) {
-  my $self = shift;
-  my $v = $self->Vars();
+    my $self = shift;
+    my $v    = $self->Vars();
 
-  # If KRB5CCNAME is set, we're doing kerberos authentication.
-  if (defined $ENV{KRB5CCNAME}) {
-	$v->{username} = $ENV{REMOTE_USER};		# what about krb5 outside of webserver?!
-	$v->{username} =~ s/@.+//;				# strip realm from krb identity
-	$v->{host} = 'csb';
-  } else {
-	$v->{username} = 'PUBLIC';
-	CORE::warn("_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user.");
-  }
+    # If KRB5CCNAME is set, we're doing kerberos authentication.
+    if ( defined $ENV{KRB5CCNAME} ) {
+        $v->{username} =
+          $ENV{REMOTE_USER};    # what about krb5 outside of webserver?!
+        $v->{username} =~ s/@.+//;    # strip realm from krb identity
+        $v->{host} = 'csb';
+    }
+    else {
+        $v->{username} = 'PUBLIC';
+        CORE::warn(
+"_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user."
+        );
+    }
 
-  if    ($ENV{SERVER_PORT} ==   80)  { $v->{dbname} = 'csb'       }
-  elsif ($ENV{SERVER_PORT} == 8000)  { $v->{dbname} = 'csb-pub'   }
-  elsif ($ENV{SERVER_PORT} == 8040)  { $v->{dbname} = 'csb-stage' }
-  elsif ($ENV{SERVER_PORT} == 8080)  { $v->{dbname} = 'csb-dev'   }
+    if    ( $ENV{SERVER_PORT} == 80 )   { $v->{dbname} = 'csb' }
+    elsif ( $ENV{SERVER_PORT} == 8000 ) { $v->{dbname} = 'csb-pub' }
+    elsif ( $ENV{SERVER_PORT} == 8040 ) { $v->{dbname} = 'csb-stage' }
+    elsif ( $ENV{SERVER_PORT} == 8080 ) { $v->{dbname} = 'csb-dev' }
 
-  return;
+    return;
 }
-
 
 ######################################################################
 ## _infer_pseq_id
@@ -933,90 +982,104 @@ sub _genentech_connection_params ($) {
 =cut
 
 sub _infer_pseq_id ($) {
-  # Most pages should refer to sequences by pseq_id. If pseq_id isn't
-  # defined, then we attempt to infer it from given 'seq', 'md5', or
-  # 'alias' (in that order).  Furthermore, if none of those are defined
-  # but 'q' is, then we heuristically attempt to guess whether q is a
-  # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
-  # right thing' lookups (e.g., from a browswer toolbar)
 
-  my $self = shift;
-  my $v = $self->Vars();
+    # Most pages should refer to sequences by pseq_id. If pseq_id isn't
+    # defined, then we attempt to infer it from given 'seq', 'md5', or
+    # 'alias' (in that order).  Furthermore, if none of those are defined
+    # but 'q' is, then we heuristically attempt to guess whether q is a
+    # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
+    # right thing' lookups (e.g., from a browswer toolbar)
 
-  # if q is defined, quess what type it is and assign it to
-  # an appropriate query term
-  if ( exists $v->{'q'} ) {
-	my $q = $v->{'q'};
-	if ($q !~ m/\D/) {						# only numbers
-	  $v->{pseq_id} = $q;
-	} elsif (length($q)==32 and $q!~m/[^0-9a-f]/i) { # md5
-	  $v->{md5} = $q;
-	} elsif (length($q)>20 and $q!~m/[^A-Z]/) {
-	  $v->{seq} = $q;
-	} else {
-	  $v->{alias} = $q;
-	}
-  }
+    my $self = shift;
+    my $v    = $self->Vars();
 
-  if (defined $v->{pseq_id}) {
-	return $v->{pseq_id}
-  }
+    # if q is defined, quess what type it is and assign it to
+    # an appropriate query term
+    if ( exists $v->{'q'} ) {
+        my $q = $v->{'q'};
+        if ( $q !~ m/\D/ ) {    # only numbers
+            $v->{pseq_id} = $q;
+        }
+        elsif ( length($q) == 32 and $q !~ m/[^0-9a-f]/i ) {    # md5
+            $v->{md5} = $q;
+        }
+        elsif ( length($q) > 20 and $q !~ m/[^A-Z]/ ) {
+            $v->{seq} = $q;
+        }
+        else {
+            $v->{alias} = $q;
+        }
+    }
 
-  if (exists $v->{seq}) {
-	my $pseq_id = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
-	if (not defined $pseq_id) {
-	  $self->die('sequence not found',
-				 'The sequence you provided wasn\'t found in Unison.');
-	}
-	return $pseq_id;
-  }
+    if ( defined $v->{pseq_id} ) {
+        return $v->{pseq_id};
+    }
 
-  if (exists $v->{md5}) {
-	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
-	if ($#ids == -1) {
-	  $self->die('md5 checksum not found',
-				 'The md5 checksum you provided wasn\'t found in Unison.');
-	} elsif ($#ids > 0) {
-	  # md5 collision! (hasn't happened yet and I don't expect it), but just in case...
-	  $self->die('md5 collision!',
-				 'The md5 checksum you provided corresponds to more than one sequence.');
-	}
-	return $ids[0];
-  }
+    if ( exists $v->{seq} ) {
+        my $pseq_id = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
+        if ( not defined $pseq_id ) {
+            $self->die( 'sequence not found',
+                'The sequence you provided wasn\'t found in Unison.' );
+        }
+        return $pseq_id;
+    }
 
-  if (exists $v->{alias}) {
-	my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
-	if ($#ids == -1) {
-	  $self->die('alias not found',
-				 'The alias you provided wasn\'t found in Unison (exact search, case insensitive).');
-	} elsif ($#ids > 0) {
-	  print CGI::redirect("search_alias.pl?alias=$v->{alias}");
-	  exit(0);
-	}
-	return $ids[0];
-  }
+    if ( exists $v->{md5} ) {
+        my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
+        if ( $#ids == -1 ) {
+            $self->die( 'md5 checksum not found',
+                'The md5 checksum you provided wasn\'t found in Unison.' );
+        }
+        elsif ( $#ids > 0 ) {
 
-  # if we don't have a pseq_id by this point, we need to
-  # throw up a generic search box
-  print $self->render('Please specify a sequence',
-					  '<p>Please specify a protein sequence by sequence alias/accession, Unison pseq_id, or md5 checksum.',
-					  '<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>',
+# md5 collision! (hasn't happened yet and I don't expect it), but just in case...
+            $self->die(
+                'md5 collision!',
+'The md5 checksum you provided corresponds to more than one sequence.'
+            );
+        }
+        return $ids[0];
+    }
 
-					  $self->start_form(-method => 'GET'),
-					  'query: ',
-					  $self->textfield(-name=>'q',
-									   -size=>32,
-									   -maxlength=>32),
-					  $self->submit(-value=>'submit'),
-					  '<p>',
-					  $self->end_form(), "\n",
-					  'You may wish to use the more advanced search abilities under the "Search" tab instead.'
-					 );
-  exit(0);
+    if ( exists $v->{alias} ) {
+        my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
+        if ( $#ids == -1 ) {
+            $self->die(
+                'alias not found',
+'The alias you provided wasn\'t found in Unison (exact search, case insensitive).'
+            );
+        }
+        elsif ( $#ids > 0 ) {
+            print CGI::redirect("search_alias.pl?alias=$v->{alias}");
+            exit(0);
+        }
+        return $ids[0];
+    }
 
-  # NO RETURN
+    # if we don't have a pseq_id by this point, we need to
+    # throw up a generic search box
+    print $self->render(
+        'Please specify a sequence',
+'<p>Please specify a protein sequence by sequence alias/accession, Unison pseq_id, or md5 checksum.',
+'<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>',
+
+        $self->start_form( -method => 'GET' ),
+        'query: ',
+        $self->textfield(
+            -name      => 'q',
+            -size      => 32,
+            -maxlength => 32
+        ),
+        $self->submit( -value => 'submit' ),
+        '<p>',
+        $self->end_form(),
+        "\n",
+'You may wish to use the more advanced search abilities under the "Search" tab instead.'
+    );
+    exit(0);
+
+    # NO RETURN
 }
-
 
 ######################################################################
 ## NAVBAR CODE
@@ -1026,244 +1089,344 @@ sub _infer_pseq_id ($) {
 ## that works.  Long live inertia!
 
 sub _nav_dump {
-  eval 'use Data::Dumper;  $Data::Dumper::Indent = 0;';
-  my $n = shift;
-  my $d = Dumper(\@_);
-  $d =~ s/\],/],\n/g;
-  print(STDERR "$n: ",$#_+1," items:\n",$d,"\n");
+    eval 'use Data::Dumper;  $Data::Dumper::Indent = 0;';
+    my $n = shift;
+    my $d = Dumper( \@_ );
+    $d =~ s/\],/],\n/g;
+    print( STDERR "$n: ", $#_ + 1, " items:\n", $d, "\n" );
 }
 
 sub _navbar {
-  my $self = shift;
-  my $v = $self->Vars() || {};
-  my $pseq_id = exists $v->{pseq_id} ? "pseq_id=$v->{pseq_id}" : '';
-  my @navs =
-	## format: @navs = ( menu, menu, ... );
-	## where each menu is
-	## [
-	##   [ prd, pub, major_name, tooltip ],
-	##   [ prd, pub, minor_name, tooltip, script, args ],
-	##   [ prd, pub, minor_name, tooltip, script, args ],
-	##   ...
-	## ]
-	## prd = production? 1=yes, 0=no (i.e., show ONLY in production)
-	## pub = public? 1=yes, 0=no (i.e., show ONLY in public version)
-	(
-	 [	# Search menu
-	  [1,1,'Search', 		'Text- and Feature-based mining',	'search_alias.pl'],
-	  [1,1,'By Alias',		'search for sequences by alias/name/accession', 'search_alias.pl'],
-	  [1,1,'By Properties',	'mine for sequences based on properties', 'search_properties.pl'],
-	  [1,0,'Compare Sets',	'compare a set of sequences to a set of models ', 'search_sets.pl'],
-	  [1,0,'Framework',   	'search for sequences matching a set of sequence regions', 'search_framework.pl'],
-	 ],
+    my $self    = shift;
+    my $v       = $self->Vars() || {};
+    my $pseq_id = exists $v->{pseq_id} ? "pseq_id=$v->{pseq_id}" : '';
+    my @navs =
+      ## format: @navs = ( menu, menu, ... );
+      ## where each menu is
+      ## [
+      ##   [ prd, pub, major_name, tooltip ],
+      ##   [ prd, pub, minor_name, tooltip, script, args ],
+      ##   [ prd, pub, minor_name, tooltip, script, args ],
+      ##   ...
+      ## ]
+      ## prd = production? 1=yes, 0=no (i.e., show ONLY in production)
+      ## pub = public? 1=yes, 0=no (i.e., show ONLY in public version)
+      (
+        [    # Search menu
+            [
+                1, 1, 'Search', 'Text- and Feature-based mining',
+                'search_alias.pl'
+            ],
+            [
+                1, 1, 'By Alias',
+                'search for sequences by alias/name/accession',
+                'search_alias.pl'
+            ],
+            [
+                1, 1,
+                'By Properties',
+                'mine for sequences based on properties',
+                'search_properties.pl'
+            ],
+            [
+                1, 0, 'Compare Sets',
+                'compare a set of sequences to a set of models ',
+                'search_sets.pl'
+            ],
+            [
+                1, 0, 'Framework',
+                'search for sequences matching a set of sequence regions',
+                'search_framework.pl'
+            ],
+        ],
 
-	 [	# Browse menu
-	  [1,1,'Browse', 		'browse curated queries and precomputed sequences sets', 'browse_views.pl'],
-	  [1,1,'Views', 		'browse dynamic queries of protein sequences', 'browse_views.pl'],
-	  [1,1,'Sets', 			'browse precomputed sets of proteins', 'browse_sets.pl'],
-	 ],
+        [    # Browse menu
+            [
+                1, 1, 'Browse',
+                'browse curated queries and precomputed sequences sets',
+                'browse_views.pl'
+            ],
+            [
+                1, 1, 'Views', 'browse dynamic queries of protein sequences',
+                'browse_views.pl'
+            ],
+            [
+                1, 1, 'Sets', 'browse precomputed sets of proteins',
+                'browse_sets.pl'
+            ],
+        ],
 
-	 [	# Analyze menu
-	  [1,1,'Analyze', 		'display precomputed analyses for a single sequence', 'pseq_summary.pl' ],
-	  [1,1,'Summary', 		'summary of sequence information', 	'pseq_summary.pl', 	$pseq_id ],
-	  [1,1,'Aliases', 		'all aliases of this sequence', 	'pseq_paliases.pl', $pseq_id ],
-	  [1,0,'Patents', 		'patents on this sequence', 		'pseq_patents.pl', 	$pseq_id ],
-	  [1,1,'Features',		'sequences features', 				'pseq_features.pl', $pseq_id ],
-	  [1,1,'Structure',		'structural features', 				'pseq_structure.pl', $pseq_id ],
-	  [0,1,'BLAST', 		'BLAST-related sequences', 			'pseq_blast.pl', 	$pseq_id ],
-	  [1,0,'Prospect',	 	'Prospect threadings', 				'pseq_paprospect.pl', $pseq_id],
-	  [1,1,'HMM', 			'Hidden Markov Model alignments', 	'pseq_pahmm.pl', 	$pseq_id ],
-	  [0,1,'PSSM',			'PSSM alignments', 					'pseq_papssm.pl', 	$pseq_id ],
-	  [0,1,'Interactions',		'Protein-Protein Interactions', 	'pseq_intx.pl',		$pseq_id ],
-	  [1,1,'Loci',			'genomic localization', 			'pseq_loci.pl', 	$pseq_id ],
-	  [0,0,'Notes',			'user notes on this sequence',		'pseq_notes.pl', 	$pseq_id ],
-	  [1,1,'History',		'run history',						'pseq_history.pl', 	$pseq_id ],
-	 ],
+        [    # Analyze menu
+            [
+                1, 1, 'Analyze',
+                'display precomputed analyses for a single sequence',
+                'pseq_summary.pl'
+            ],
+            [
+                1, 1, 'Summary', 'summary of sequence information',
+                'pseq_summary.pl', $pseq_id
+            ],
+            [
+                1, 1, 'Aliases', 'all aliases of this sequence',
+                'pseq_paliases.pl', $pseq_id
+            ],
+            [
+                1, 0, 'Patents', 'patents on this sequence',
+                'pseq_patents.pl', $pseq_id
+            ],
+            [
+                1, 1, 'Features', 'sequences features',
+                'pseq_features.pl', $pseq_id
+            ],
+            [
+                1, 1, 'Structure', 'structural features',
+                'pseq_structure.pl', $pseq_id
+            ],
+            [
+                0, 1, 'BLAST', 'BLAST-related sequences',
+                'pseq_blast.pl', $pseq_id
+            ],
+            [
+                1, 0, 'Prospect', 'Prospect threadings',
+                'pseq_paprospect.pl', $pseq_id
+            ],
+            [
+                1, 1, 'HMM', 'Hidden Markov Model alignments',
+                'pseq_pahmm.pl', $pseq_id
+            ],
+            [ 0, 1, 'PSSM', 'PSSM alignments', 'pseq_papssm.pl', $pseq_id ],
+            [
+                0, 1, 'Interactions', 'Protein-Protein Interactions',
+                'pseq_intx.pl', $pseq_id
+            ],
+            [ 1, 1, 'Loci', 'genomic localization', 'pseq_loci.pl', $pseq_id ],
+            [
+                0, 0, 'Notes', 'user notes on this sequence',
+                'pseq_notes.pl', $pseq_id
+            ],
+            [ 1, 1, 'History', 'run history', 'pseq_history.pl', $pseq_id ],
+        ],
 
-	 [	# Assess menu
-	  [0,0,'Assess', 		'compare sequence sets and analysis methods', 'compare_scores.pl'],
-	  [0,0,'Scores', 		'compare scoring systems',			'compare_scores.pl'],
-	  [0,0,'Methods', 		'compare threading methods',		'compare_methods.pl'],
-	 ],
+        [    # Assess menu
+            [
+                0, 0, 'Assess', 'compare sequence sets and analysis methods',
+                'compare_scores.pl'
+            ],
+            [ 0, 0, 'Scores', 'compare scoring systems', 'compare_scores.pl' ],
+            [
+                0, 0, 'Methods', 'compare threading methods',
+                'compare_methods.pl'
+            ],
+        ],
 
-	 # empty list forces right-justification of subsequent menus
-	 [ [ '' ]  ],
+        # empty list forces right-justification of subsequent menus
+        [ [''] ],
 
-	 [	# About menu
-	  [1,1,'About', 		'more information about Unison', 	'about_unison.pl'],
-	  [1,1,'About Unison',	'Unison overview', 					'about_unison.pl'],
-	  [1,1,'Statistics',	'Unison summary statistics',		'about_statistics.pl'],
-	  [1,1,'Origins', 		'Unison data sources',			 	'about_origins.pl'],
-	  [1,1,'Params', 		'Unison precomputed data types', 	'about_params.pl'],
-	  [0,1,'Env', 			'environment info', 				'about_env.pl'],
-	  [0,1,'Prefs',			'user prefs', 						'about_prefs.pl'],
-	 ],
+        [    # About menu
+            [
+                1, 1, 'About', 'more information about Unison',
+                'about_unison.pl'
+            ],
+            [ 1, 1, 'About Unison', 'Unison overview', 'about_unison.pl' ],
+            [
+                1, 1, 'Statistics', 'Unison summary statistics',
+                'about_statistics.pl'
+            ],
+            [ 1, 1, 'Origins', 'Unison data sources', 'about_origins.pl' ],
+            [
+                1, 1, 'Params', 'Unison precomputed data types',
+                'about_params.pl'
+            ],
+            [ 0, 1, 'Env',   'environment info', 'about_env.pl' ],
+            [ 0, 1, 'Prefs', 'user prefs',       'about_prefs.pl' ],
+        ],
 
-	  #[ # run menu
-	  # [1,1,'Run', 'run analyses on sequences for which precomputed results aren\'t available'],
-	  # [1,1,'BLAST', undef, 'run_blast.pl'],
-	  # [1,1,'Pfam', undef, 'run_pfam.pl']
-	  #],
+#[ # run menu
+# [1,1,'Run', 'run analyses on sequences for which precomputed results aren\'t available'],
+# [1,1,'BLAST', undef, 'run_blast.pl'],
+# [1,1,'Pfam', undef, 'run_pfam.pl']
+#],
 
-	  #[ # special menu
-	  # [1,1,'Special', 'special projects'],
-	  # [1,1,'Preferences', 'user preferences']
-	  # [1,1,'UNQ', 'UNQ browsing']
-	  #],
+        #[ # special menu
+        # [1,1,'Special', 'special projects'],
+        # [1,1,'Preferences', 'user preferences']
+        # [1,1,'UNQ', 'UNQ browsing']
+        #],
 
-	  #[ # admin menu
-	  # [1,1,'Admin', 'Unison administration'],
-	  # [1,1,'Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
-	  #],
+        #[ # admin menu
+        # [1,1,'Admin', 'Unison administration'],
+        # [1,1,'Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
+        #],
 
-	);
+      );
 
-  @navs = __format_tab_labels(@navs);
-  @navs = __filter_navs($self->is_prd_instance(),$self->is_public(),@navs);
-  my ($navi,$subnavi) = $self->_find_nav_ids(@navs);
-  $navi = -1 unless defined $navi;
-  my $rv = '';
-  $rv = "\n"
-    . "  <table    class=\"nav\" width=\"100%\">\n"
-	. "    <!-- major nav -->\n"
-	. "    <tr>\n"
-    . _make_navrow($navi, map {$_->[0]} @navs)
-	. "    </tr>\n"
-	. "    <!-- 'V' graphic -->\n"
-	. "    <tr>"
+    @navs = __format_tab_labels(@navs);
+    @navs =
+      __filter_navs( $self->is_prd_instance(), $self->is_public(), @navs );
+    my ( $navi, $subnavi ) = $self->_find_nav_ids(@navs);
+    $navi = -1 unless defined $navi;
+    my $rv = '';
+    $rv = "\n"
+      . "  <table    class=\"nav\" width=\"100%\">\n"
+      . "    <!-- major nav -->\n"
+      . "    <tr>\n"
+      . _make_navrow( $navi, map { $_->[0] } @navs )
+      . "    </tr>\n"
+      . "    <!-- 'V' graphic -->\n"
+      . "    <tr>"
 ## options sub menu graphic:
-#	. ($navi==0      ? '' : sprintf("<td colspan=%d></td>",$navi))
-#	. '<td align="center"><img src="../av/subnav.gif"></td>'
-#	. ($navi==$#navs ? '' : sprintf("<td colspan=%d></td>",$#navs-$navi))
-	. "</tr>\n"
-	. "  </table>\n";
+      #	. ($navi==0      ? '' : sprintf("<td colspan=%d></td>",$navi))
+      #	. '<td align="center"><img src="../av/subnav.gif"></td>'
+      #	. ($navi==$#navs ? '' : sprintf("<td colspan=%d></td>",$#navs-$navi))
+      . "</tr>\n" . "  </table>\n";
 
-  my @nav = @{$navs[$navi]};
-  shift @nav;				# menu header is first item; subnav items remain
-  $rv .= 
-      "  <table class=\"nav\" style=\"border-top: medium solid;\" width=\"100%\">\n"
-	. "    <!-- sub nav -->\n"
-	. "    <tr>\n"
-	. _make_navrow($subnavi, @nav)
-    . "    </tr>\n"
-    . "  </table>\n";
+    my @nav = @{ $navs[$navi] };
+    shift @nav;    # menu header is first item; subnav items remain
+    $rv .=
+"  <table class=\"nav\" style=\"border-top: medium solid;\" width=\"100%\">\n"
+      . "    <!-- sub nav -->\n"
+      . "    <tr>\n"
+      . _make_navrow( $subnavi, @nav )
+      . "    </tr>\n"
+      . "  </table>\n";
 
-  return $rv;
+    return $rv;
 }
 
 sub __format_tab_labels(@) {
-  my @navs = @_;
-  for (my $i=0; $i<=$#navs; $i++) {
-	for (my $j=0; $j<=$#{$navs[$i]}; $j++) {
-	  my @tooltip_tags = ();
-	  if (not $navs[$i]->[$j]->[1]) {
-		$navs[$i]->[$j]->[2] = "<i>$navs[$i]->[$j]->[2]</i>" if defined $navs[$i]->[$j]->[2];
-		push(@tooltip_tags,'public');
-	  }
-	  if (not $navs[$i]->[$j]->[0]) {
-		$navs[$i]->[$j]->[2] = "<u>$navs[$i]->[$j]->[2]</u>" if defined $navs[$i]->[$j]->[2];
-		push(@tooltip_tags,'production');
-	  }
-	  if (@tooltip_tags) {
-		$navs[$i]->[$j]->[3] = '' unless $navs[$i]->[$j]->[3];
-		$navs[$i]->[$j]->[3] .= ( '<hr>NOTE: This tab contains data that will not appear in '
-								  . join(' or ', @tooltip_tags) . ' versions of Unison.' );
-	  }
-	}
-  }
-  return @navs;
+    my @navs = @_;
+    for ( my $i = 0 ; $i <= $#navs ; $i++ ) {
+        for ( my $j = 0 ; $j <= $#{ $navs[$i] } ; $j++ ) {
+            my @tooltip_tags = ();
+            if ( not $navs[$i]->[$j]->[1] ) {
+                $navs[$i]->[$j]->[2] = "<i>$navs[$i]->[$j]->[2]</i>"
+                  if defined $navs[$i]->[$j]->[2];
+                push( @tooltip_tags, 'public' );
+            }
+            if ( not $navs[$i]->[$j]->[0] ) {
+                $navs[$i]->[$j]->[2] = "<u>$navs[$i]->[$j]->[2]</u>"
+                  if defined $navs[$i]->[$j]->[2];
+                push( @tooltip_tags, 'production' );
+            }
+            if (@tooltip_tags) {
+                $navs[$i]->[$j]->[3] = '' unless $navs[$i]->[$j]->[3];
+                $navs[$i]->[$j]->[3] .=
+                  ( '<hr>NOTE: This tab contains data that will not appear in '
+                      . join( ' or ', @tooltip_tags )
+                      . ' versions of Unison.' );
+            }
+        }
+    }
+    return @navs;
 }
-
 
 sub __filter_navs($$@) {
-  ## Purpose: remove development tabs from production environments, and remove
-  ## proprietary tabs from public environments.  The result is a modified navbar 
-  ## array WITHOUT the prd and pub bits (array elems 0 and 1).
+    ## Purpose: remove development tabs from production environments, and remove
+    ## proprietary tabs from public environments.  The result is a modified navbar
+    ## array WITHOUT the prd and pub bits (array elems 0 and 1).
 
-  my ($is_prd,$is_pub,@navs) = @_;
-  for(my $i=$#navs; $i>=0; $i--) {
-	if ($navs[$i][0][0] eq '') {
-	  # menu break
-	  next;
-	}
+    my ( $is_prd, $is_pub, @navs ) = @_;
+    for ( my $i = $#navs ; $i >= 0 ; $i-- ) {
+        if ( $navs[$i][0][0] eq '' ) {
 
-	if (    ($is_prd and not $navs[$i][0][0])
-		 or ($is_pub and not $navs[$i][0][1]) ) {
-	  splice(@navs,$i,1);					# entire major menu is tossed
-	  next;
-	}
+            # menu break
+            next;
+        }
 
-	# else...
-	@{$navs[$i]} = grep {(    (not $is_prd or $_->[0])
-						  and (not $is_pub or $_->[1]) )} @{$navs[$i]};
-	@{$navs[$i]} = map { [splice(@$_,2)] } @{$navs[$i]};
-  }
-  #_nav_dump("is_prd=$is_prd; is_pub=$is_pub; returned=",@navs);
-  return @navs;
+        if (   ( $is_prd and not $navs[$i][0][0] )
+            or ( $is_pub and not $navs[$i][0][1] ) )
+        {
+            splice( @navs, $i, 1 );    # entire major menu is tossed
+            next;
+        }
+
+        # else...
+        @{ $navs[$i] } =
+          grep { ( ( not $is_prd or $_->[0] ) and ( not $is_pub or $_->[1] ) ) }
+          @{ $navs[$i] };
+        @{ $navs[$i] } = map { [ splice( @$_, 2 ) ] } @{ $navs[$i] };
+    }
+
+    #_nav_dump("is_prd=$is_prd; is_pub=$is_pub; returned=",@navs);
+    return @navs;
 }
 
-
-
-
 sub _find_nav_ids {
-  # identify indexes in  major and minor @nav entries for
-  # the current page
-  my $self = shift;
-  my @navs = @_;
-  my $script = $self->url(-relative => 1);
-  $script =~ s/\?$//;
-  for(my $i=0; $i<=$#navs; $i++) {
-	my @snavs = @{$navs[$i]};
-	shift @snavs;							# menu title
-	for(my $j=0; $j<=$#snavs; $j++) {
-	  return($i,$j) if (defined $snavs[$j]->[2] and $snavs[$j]->[2] eq $script);
-	}}
-  return;
-  }
 
-
-
+    # identify indexes in  major and minor @nav entries for
+    # the current page
+    my $self   = shift;
+    my @navs   = @_;
+    my $script = $self->url( -relative => 1 );
+    $script =~ s/\?$//;
+    for ( my $i = 0 ; $i <= $#navs ; $i++ ) {
+        my @snavs = @{ $navs[$i] };
+        shift @snavs;    # menu title
+        for ( my $j = 0 ; $j <= $#snavs ; $j++ ) {
+            return ( $i, $j )
+              if ( defined $snavs[$j]->[2] and $snavs[$j]->[2] eq $script );
+        }
+    }
+    return;
+}
 
 sub _make_navrow {
-  # makes one row of the navbar as an array of <td>...</td> objects
-  # $sel is which is selected, and may be undef
-  # @tu = array ref of [tab_label,tooltip,url,params]
-  my ($sel,@tu) = @_;
-  my $spacer = ' ' x 8 . '<td width="%80">&nbsp;</td>' . "\n";
-  my @nav = ();
-  for(my $i=0; $i<=$#tu; $i++) {
-	my ($tab_label,$tooltip,$url,$params) = @{$tu[$i]};
-	if ($tab_label eq '') {
-	  push(@nav, $spacer);
-	  $spacer = '';
-	  next;
-	}
 
-	$url .= "?$params" if defined $params;
-	my $cl = 'unselected';
-	if (defined $sel and $sel == $i) {
-	  $cl = 'selected';
-	  $url = undef;
-	}
-	push(@nav,
-		 ' ' x 8
-		 . "<td class=\"$cl\">"
-		 . tooltip( (defined $url ? "<a href=\"$url\">$tab_label</a>" : $tab_label), $tooltip, '' )
-		 . "</td>\n" );
-  }
-  return( join('', @nav) . $spacer );
+    # makes one row of the navbar as an array of <td>...</td> objects
+    # $sel is which is selected, and may be undef
+    # @tu = array ref of [tab_label,tooltip,url,params]
+    my ( $sel, @tu ) = @_;
+    my $spacer = ' ' x 8 . '<td width="%80">&nbsp;</td>' . "\n";
+    my @nav    = ();
+    for ( my $i = 0 ; $i <= $#tu ; $i++ ) {
+        my ( $tab_label, $tooltip, $url, $params ) = @{ $tu[$i] };
+        if ( $tab_label eq '' ) {
+            push( @nav, $spacer );
+            $spacer = '';
+            next;
+        }
+
+        $url .= "?$params" if defined $params;
+        my $cl = 'unselected';
+        if ( defined $sel and $sel == $i ) {
+            $cl  = 'selected';
+            $url = undef;
+        }
+        push(
+            @nav,
+            ' ' x 8 
+              . "<td class=\"$cl\">"
+              . tooltip(
+                (
+                    defined $url
+                    ? "<a href=\"$url\">$tab_label</a>"
+                    : $tab_label
+                ),
+                $tooltip, ''
+              )
+              . "</td>\n"
+        );
+    }
+    return ( join( '', @nav ) . $spacer );
 }
 
 sub _conn_info_html ($) {
-  my $self = shift;
-  my $info = 'not connected to the Unison database';
+    my $self = shift;
+    my $info = 'not connected to the Unison database';
 
-  if (ref $self and defined $self->{unison} and $self->{unison}->is_open()) {
-	my $state = is_dev_instance() ? '<center><span style="background-color: red">development</span></center>' : '';
-	my $db_rel = $self->{unison}->selectrow_array('select value::date from meta where key=\'release timestamp\'') || '';
-	my $db_host = $self->{unison}->{host} || 'local';
+    if ( ref $self and defined $self->{unison} and $self->{unison}->is_open() )
+    {
+        my $state =
+          is_dev_instance()
+          ? '<center><span style="background-color: red">development</span></center>'
+          : '';
+        my $db_rel =
+          $self->{unison}->selectrow_array(
+            'select value::date from meta where key=\'release timestamp\'')
+          || '';
+        my $db_host = $self->{unison}->{host} || 'local';
 
-	$info = <<EOHTML;
+        $info = <<EOHTML;
 $state
 
 <p><u>versions</u>
@@ -1281,60 +1444,58 @@ $state
 <br>- database $self->{unison}->{dbname}
 <br>- username: $self->{unison}->{username}
 EOHTML
-  }
+    }
 
-  return $info;
+    return $info;
 }
 
 sub _make_temp_dir () {
-  # set the temporary file directory and ensure that it exists
-  # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
-  # as a CGI, or in /tmp/ if run on the command line 
-  # sets: $self->{tmproot} as the root of the tmp directory
-  # 		(either /tmp/ or DOCUMENT_ROOT/tmp/)
-  #       $self->{tmpuri} as the URI-portion of the temporary file
-  #         directory which may be used in URLs
-  #       $self->{tmpdir} is the full local path of the actual location of
-  #       temporary files
 
-  my $self = shift;
+    # set the temporary file directory and ensure that it exists
+    # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
+    # as a CGI, or in /tmp/ if run on the command line
+    # sets: $self->{tmproot} as the root of the tmp directory
+    # 		(either /tmp/ or DOCUMENT_ROOT/tmp/)
+    #       $self->{tmpuri} as the URI-portion of the temporary file
+    #         directory which may be used in URLs
+    #       $self->{tmpdir} is the full local path of the actual location of
+    #       temporary files
 
-  return if exists $self->{tmpdir};			# been here before
+    my $self = shift;
 
-  my @lt = localtime();
-  my $date = sprintf("%4d-%02d-%02d", $lt[5]+1900, $lt[4]+1, $lt[3]);
-  $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '/';
-  $self->{tmpuri} = "tmp/$date";
-  $self->{tmpdir} = "$self->{tmproot}/$self->{tmpuri}";
+    return if exists $self->{tmpdir};    # been here before
 
-  if ( not -d $self->{tmpdir} ) {
-	mkdir($self->{tmpdir})
-	  || $self->die("mkdir($self->{tmpdir}: $!\n");
-	$self->_cleanup_temp($date);			# cleanup dirs before date
-  }
+    my @lt = localtime();
+    my $date = sprintf( "%4d-%02d-%02d", $lt[5] + 1900, $lt[4] + 1, $lt[3] );
+    $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '/';
+    $self->{tmpuri}  = "tmp/$date";
+    $self->{tmpdir}  = "$self->{tmproot}/$self->{tmpuri}";
 
-  return $self->{tmpdir};
+    if ( not -d $self->{tmpdir} ) {
+        mkdir( $self->{tmpdir} )
+          || $self->die("mkdir($self->{tmpdir}: $!\n");
+        $self->_cleanup_temp($date);     # cleanup dirs before date
+    }
+
+    return $self->{tmpdir};
 }
-
 
 sub _cleanup_temp ($$) {
-  # This is intended to provide self-cleaning for Unison web page temp files
-  my $self = shift;
-  my $date = shift;
-  my $root = "$self->{tmproot}/tmp";
-  my @old = grep {m%^$root/\d{4}-\d{2}-\d{2}$% and $_ lt "$root/$date"} 
-	glob("$root/*");
-  foreach my $dir (@old) {
-	if (system("/bin/rm -fr $dir")) {
-	  print(STDERR "FAILED: $dir: $!\n");
-	}
-	print(STDERR "temp dir cleanup: removed $dir/\n");
-  }
+
+    # This is intended to provide self-cleaning for Unison web page temp files
+    my $self = shift;
+    my $date = shift;
+    my $root = "$self->{tmproot}/tmp";
+    my @old =
+      grep { m%^$root/\d{4}-\d{2}-\d{2}$% and $_ lt "$root/$date" }
+      glob("$root/*");
+    foreach my $dir (@old) {
+        if ( system("/bin/rm -fr $dir") ) {
+            print( STDERR "FAILED: $dir: $!\n" );
+        }
+        print( STDERR "temp dir cleanup: removed $dir/\n" );
+    }
 }
-
-
-
-
 
 ######################################################################
 ## page_variables()
@@ -1348,9 +1509,9 @@ FOR DEBUGGING: render a list pf page variables
 =cut
 
 sub page_variables {
-  my $self = shift;
-  my $v = $self->Vars();
-  return map {"<br><code>$_: $v->{$_}</code>\n"} (sort keys %$v);
+    my $self = shift;
+    my $v    = $self->Vars();
+    return map { "<br><code>$_: $v->{$_}</code>\n" } ( sort keys %$v );
 }
 
 ######################################################################
@@ -1365,13 +1526,12 @@ page-specific content provided by an array of C<body elems>.
 
 =cut
 
-
 sub iframe {
-  my $self = shift;
-  my $title = shift;
-  my $src= shift;
+    my $self  = shift;
+    my $title = shift;
+    my $src   = shift;
 
-  return <<EOHTML;
+    return <<EOHTML;
 <style type="text/css">
 div.iframe { text-align:center;}
 </style>
@@ -1389,7 +1549,5 @@ These methods typically begin with two underscores (e.g., __internal_routine).
 =over
 
 =cut
-
-
 
 1;

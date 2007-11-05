@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::WWW::Page -- Unison web page framework
@@ -16,12 +17,9 @@ web pages without Unison's header tabs. It's simple and not powerful.
 
 =cut
 
-
 package Unison::WWW::EmbPage;
 
-
 use base Unison::WWW::Page;
-
 
 ######################################################################
 ## render()
@@ -35,26 +33,26 @@ block element.
 
 =cut
 
-
 sub render {
-  my $self = shift;
-  my $title = shift;
+    my $self  = shift;
+    my $title = shift;
 
-  return ($self->header(),
-		  $self->start_html(-title=>"Unison: $title"),
-		  '<table width="100%">', "\n",
-		  '<tr>', "\n",
-		  "\n<!-- ========== begin page content ========== -->\n",
-		  '  <td class="body">', "\n",
-		  "  <b>$title</b><br>", "\n", 
-		  '  ', @_, "\n",
-		  '  </td>', "\n",
-		  "\n<!-- ========== end page content ========== -->\n",
-		  '</tr>', "\n",
-		  '</table>', "\n",
-		  $self->end_html(),
-		  "\n"
-	 );
+    return (
+        $self->header(),
+        $self->start_html( -title => "Unison: $title" ),
+        '<table width="100%">', "\n",
+        '<tr>',                 "\n",
+        "\n<!-- ========== begin page content ========== -->\n",
+        '  <td class="body">', "\n",
+        "  <b>$title</b><br>", "\n",
+        '  ',      @_, "\n",
+        '  </td>', "\n",
+        "\n<!-- ========== end page content ========== -->\n",
+        '</tr>',    "\n",
+        '</table>', "\n",
+        $self->end_html(),
+        "\n"
+    );
 }
 
 1;

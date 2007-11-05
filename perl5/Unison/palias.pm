@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
@@ -27,7 +28,6 @@ use warnings;
 
 use Unison::Exceptions;
 
-
 =pod
 
 =head1 ROUTINES AND METHODS
@@ -35,7 +35,6 @@ use Unison::Exceptions;
 =over
 
 =cut
-
 
 ######################################################################
 ## assign_alias( )
@@ -52,13 +51,12 @@ same name.
 =cut
 
 sub assign_alias($$$$) {
-  my $self = shift;
-  my ($pseq_id,$origin_id,$alias,$descr,$tax_id) = @_;
-  my $sth = $self->prepare_cached('select assign_alias(?,?,?,?,?)');
-  return $self->selectrow_array($sth,undef,$pseq_id,$origin_id,$alias,$descr,$tax_id);
+    my $self = shift;
+    my ( $pseq_id, $origin_id, $alias, $descr, $tax_id ) = @_;
+    my $sth = $self->prepare_cached('select assign_alias(?,?,?,?,?)');
+    return $self->selectrow_array( $sth, undef, $pseq_id, $origin_id, $alias,
+        $descr, $tax_id );
 }
-
-
 
 ######################################################################
 ## get_pseq_id_from_alias( )
@@ -77,69 +75,75 @@ search is tried.
 =cut
 
 sub get_pseq_id_from_alias {
-  my ($u,$alias,$ori) = @_;
-  $u->is_open()
-	|| throw Unison::RuntimeError("Unison connection not established");
-  (defined $alias)
-	|| throw Unison::RuntimeError("alias not defined");
-  my @ids;
+    my ( $u, $alias, $ori ) = @_;
+    $u->is_open()
+      || throw Unison::RuntimeError("Unison connection not established");
+    ( defined $alias )
+      || throw Unison::RuntimeError("alias not defined");
+    my @ids;
 
-  # Unison pseq_ids, qualified by origin
-  # this should be extended to other origins
-  if ($alias =~ m/Unison:(\d+)/i) {
-	return $1;
-  }
+    # Unison pseq_ids, qualified by origin
+    # this should be extended to other origins
+    if ( $alias =~ m/Unison:(\d+)/i ) {
+        return $1;
+    }
 
-  # RefSeq
-  if ($alias =~ s/^RefSeq://i or $alias =~ m/^[NXZAY]P_\d+/) {
-	# looks like a RefSeq alias.  This requires special handling because
-	# we want to account for versioned identifier
-	# official protein sequence prefixes are listed in
-	# ftp://ftp.ncbi.nih.gov/refseq/release/release-notes/RefSeq-release4.txt
-	# and http://www.ncbi.nih.gov/RefSeq/key.html#accessions
-	(@ids) = $u->get_pseq_id_from_alias_regexp( "^$alias",'RefSeq' );
-	return(@ids);
-  }
+    # RefSeq
+    if ( $alias =~ s/^RefSeq://i or $alias =~ m/^[NXZAY]P_\d+/ ) {
 
-  # Genentech UNQ, DNA, or PRO ids
-  if ($alias =~ m%^(?:GenenGenes:)?(UNQ|DNA|PRO|FAM)(\d+)$%i) {
-	my ($type,$id) = (uc($1),$2);
-	my $sql;
+       # looks like a RefSeq alias.  This requires special handling because
+       # we want to account for versioned identifier
+       # official protein sequence prefixes are listed in
+       # ftp://ftp.ncbi.nih.gov/refseq/release/release-notes/RefSeq-release4.txt
+       # and http://www.ncbi.nih.gov/RefSeq/key.html#accessions
+        (@ids) = $u->get_pseq_id_from_alias_regexp( "^$alias", 'RefSeq' );
+        return (@ids);
+    }
 
-	# Genengenes occasionally has sequences which aren't in Unison,
-	# in which case the view returns rows with empty pseq_ids.  This
-	# is the origin of the 'and pseq_id is not null' condition.
-	if ($type eq 'PRO' or $type eq 'DNA' or $type eq 'UNQ') {
-	  $sql = "select distinct pseq_id from pseq_sst_v where ${type}ID=$id and pseq_id is not null";
-	} elsif ($type eq 'FAM') {
-	  $sql = "select distinct pseq_id from gg_famid_pseq_id_v where ${type}ID=$id and pseq_id is not null";
-	} else {
-	  throw Unison::Exception('Unmatched SST entry type',
-							  "I don't know what a $type entry is");
-	};
+    # Genentech UNQ, DNA, or PRO ids
+    if ( $alias =~ m%^(?:GenenGenes:)?(UNQ|DNA|PRO|FAM)(\d+)$%i ) {
+        my ( $type, $id ) = ( uc($1), $2 );
+        my $sql;
 
-	(@ids) = map {@$_} @{ $u->selectall_arrayref($sql) };
-	return(@ids) if @ids;					# some ids might have been removed from sst; in that
-											# case, @ids will be empty and we'll continue with an
-											# alias lookup below
-  }
+        # Genengenes occasionally has sequences which aren't in Unison,
+        # in which case the view returns rows with empty pseq_ids.  This
+        # is the origin of the 'and pseq_id is not null' condition.
+        if ( $type eq 'PRO' or $type eq 'DNA' or $type eq 'UNQ' ) {
+            $sql =
+"select distinct pseq_id from pseq_sst_v where ${type}ID=$id and pseq_id is not null";
+        }
+        elsif ( $type eq 'FAM' ) {
+            $sql =
+"select distinct pseq_id from gg_famid_pseq_id_v where ${type}ID=$id and pseq_id is not null";
+        }
+        else {
+            throw Unison::Exception( 'Unmatched SST entry type',
+                "I don't know what a $type entry is" );
+        }
 
-  if (not $alias =~ m%^[~/^]%) {
-	# doesn't smell like a regexp
-	(@ids) = $u->get_pseq_id_from_alias_casefolded( $alias,$ori );
-	return(@ids) if @ids;
-  }
+        (@ids) = map { @$_ } @{ $u->selectall_arrayref($sql) };
+        return (@ids)
+          if @ids;    # some ids might have been removed from sst; in that
+                      # case, @ids will be empty and we'll continue with an
+                      # alias lookup below
+    }
 
-  if ($alias =~ /^[~^]/) {
-	# looks like a regexp OR exact match above failed
-	(@ids) = $u->get_pseq_id_from_alias_regexp( $alias,$ori );
-	return(@ids);
-  }
+    if ( not $alias =~ m%^[~/^]% ) {
 
-  return;
+        # doesn't smell like a regexp
+        (@ids) = $u->get_pseq_id_from_alias_casefolded( $alias, $ori );
+        return (@ids) if @ids;
+    }
+
+    if ( $alias =~ /^[~^]/ ) {
+
+        # looks like a regexp OR exact match above failed
+        (@ids) = $u->get_pseq_id_from_alias_regexp( $alias, $ori );
+        return (@ids);
+    }
+
+    return;
 }
-
-
 
 ######################################################################
 ## get_pseq_id_from_alias_exact( )
@@ -154,16 +158,15 @@ the given alias
 =cut
 
 sub get_pseq_id_from_alias_exact {
-  my ($u,$alias,$ori) = @_;
-  $u->is_open()
-	|| throw Unison::RuntimeError("Unison connection not established");
-  (defined $alias) 
-	|| throw Unison::RuntimeError("alias not defined");
-  my $sql = 'select distinct pseq_id from palias where alias = ?';
-  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
-  return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
+    my ( $u, $alias, $ori ) = @_;
+    $u->is_open()
+      || throw Unison::RuntimeError("Unison connection not established");
+    ( defined $alias )
+      || throw Unison::RuntimeError("alias not defined");
+    my $sql = 'select distinct pseq_id from palias where alias = ?';
+    $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
+    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $alias ) } );
 }
-
 
 ######################################################################
 ## get_pseq_id_from_alias_casefolded( )
@@ -178,16 +181,16 @@ to the given alias
 =cut
 
 sub get_pseq_id_from_alias_casefolded {
-  my ($u,$alias,$ori) = @_;
-  $u->is_open()
-	|| throw Unison::RuntimeError("Unison connection not established");
-  (defined $alias) 
-	|| throw Unison::RuntimeError("alias not defined");
-  my $sql = 'select distinct pseq_id from palias where upper(alias) = ?';
-  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
-  return( map {@$_} @{ $u->selectall_arrayref($sql, undef, uc($alias)) } );
+    my ( $u, $alias, $ori ) = @_;
+    $u->is_open()
+      || throw Unison::RuntimeError("Unison connection not established");
+    ( defined $alias )
+      || throw Unison::RuntimeError("alias not defined");
+    my $sql = 'select distinct pseq_id from palias where upper(alias) = ?';
+    $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
+    return ( map { @$_ }
+          @{ $u->selectall_arrayref( $sql, undef, uc($alias) ) } );
 }
-
 
 ######################################################################
 ## get_pseq_id_from_alias_regexp( )
@@ -206,24 +209,25 @@ explicitly specified by preceeding the regexp with ~ or ~* respectively.
 =cut
 
 sub get_pseq_id_from_alias_regexp {
-  my ($u,$alias,$ori) = @_;
-  $u->is_open() 
-	|| throw Unison::RuntimeError("Unison connection not established");
-  (defined $alias)
-	|| throw Unison::RuntimeError("alias not defined");
-  my $op = $alias =~ s/^(~\*?)//g ? $1 : '~';
-  #$alias =~ s%^/(.+)/$%$1%;          # remove // from /<regexp>/
-  my $sql = 'select distinct pseq_id from palias where ';
-  if ($op eq '~') {
-	$sql .= 'alias ~ ?';
-  } else {
-	$sql .= 'upper(alias) ~ ?';
-	$alias = uc($alias);
-  }
-  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
-  return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
-}
+    my ( $u, $alias, $ori ) = @_;
+    $u->is_open()
+      || throw Unison::RuntimeError("Unison connection not established");
+    ( defined $alias )
+      || throw Unison::RuntimeError("alias not defined");
+    my $op = $alias =~ s/^(~\*?)//g ? $1 : '~';
 
+    #$alias =~ s%^/(.+)/$%$1%;          # remove // from /<regexp>/
+    my $sql = 'select distinct pseq_id from palias where ';
+    if ( $op eq '~' ) {
+        $sql .= 'alias ~ ?';
+    }
+    else {
+        $sql .= 'upper(alias) ~ ?';
+        $alias = uc($alias);
+    }
+    $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
+    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $alias ) } );
+}
 
 ######################################################################
 ## get_pseq_id_from_alias_fuzzy( )
@@ -238,20 +242,17 @@ expression with ilike.
 =cut
 
 sub get_pseq_id_from_alias_fuzzy {
-  my ($u,$alias,$ori) = @_;
-  $u->is_open()
-	|| throw Unison::RuntimeError("Unison connection not established");
-  (defined $alias) 
-	|| throw Unison::RuntimeError("alias not defined");
-  my $sql = 'select distinct pseq_id from palias where alias ilike ?';
-  $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
-  return( map {@$_} @{ $u->selectall_arrayref($sql, undef, $alias) } );
+    my ( $u, $alias, $ori ) = @_;
+    $u->is_open()
+      || throw Unison::RuntimeError("Unison connection not established");
+    ( defined $alias )
+      || throw Unison::RuntimeError("alias not defined");
+    my $sql = 'select distinct pseq_id from palias where alias ilike ?';
+    $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
+    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $alias ) } );
 }
 
-
-
 #### DEPRECATED FUNCTIONS
-
 
 ######################################################################
 ## add_palias( )
@@ -268,46 +269,49 @@ tables for the existing origin_id and pseq_id.
 =cut
 
 sub add_palias {
-  warn_deprecated();
+    warn_deprecated();
 
-  my ($self,$pseq_id,$origin_id,$alias,$descr,$tax_id) = @_;
+    my ( $self, $pseq_id, $origin_id, $alias, $descr, $tax_id ) = @_;
 
-  $self->is_open()
-	|| croak("Unison connection not established");
+    $self->is_open()
+      || croak("Unison connection not established");
 
-  if (defined $descr and $descr =~ /\w/) {
-    $descr =~ s/([\'])/\\$1/g;
-    $descr =~ s/^\s+//; $descr =~ s/\s+$//; $descr =~ s/\s{2,}/ /;
-    $descr = "'$descr'";
-  } else {
-    $descr = 'NULL';
-  }
+    if ( defined $descr and $descr =~ /\w/ ) {
+        $descr =~ s/([\'])/\\$1/g;
+        $descr =~ s/^\s+//;
+        $descr =~ s/\s+$//;
+        $descr =~ s/\s{2,}/ /;
+        $descr = "'$descr'";
+    }
+    else {
+        $descr = 'NULL';
+    }
 
-  $tax_id = ( defined $tax_id ) ? $tax_id : 'NULL';
+    $tax_id = ( defined $tax_id ) ? $tax_id : 'NULL';
 
-  if ( not defined $pseq_id 
-	   or not defined $origin_id
-	   or not defined $alias 
-	   or not defined $descr) {
-	die("Assertion failed\n",
-		sprintf("<pseq_id,origin_id,alias,descr>=<%s,%s,%s,%s>",
-				defined $pseq_id ? $pseq_id : 'undef',
-				defined $origin_id ? $origin_id : 'undef',
-				defined $alias ? $alias : 'undef',
-				defined $descr ? $descr : 'undef' )
-	   );
-  }
+    if (   not defined $pseq_id
+        or not defined $origin_id
+        or not defined $alias
+        or not defined $descr )
+    {
+        die(
+            "Assertion failed\n",
+            sprintf(
+                "<pseq_id,origin_id,alias,descr>=<%s,%s,%s,%s>",
+                defined $pseq_id   ? $pseq_id   : 'undef',
+                defined $origin_id ? $origin_id : 'undef',
+                defined $alias     ? $alias     : 'undef',
+                defined $descr     ? $descr     : 'undef'
+            )
+        );
+    }
 
-  my $sql = "insert into palias (pseq_id,origin_id,alias,descr,tax_id) "
-	. "values ($pseq_id,$origin_id,'$alias',$descr,$tax_id)";
-  print STDERR "sql: $sql\n" if $ENV{DEBUG};
-  $self->do( $sql, { PrintError=>1 } );
-  return;
+    my $sql = "insert into palias (pseq_id,origin_id,alias,descr,tax_id) "
+      . "values ($pseq_id,$origin_id,'$alias',$descr,$tax_id)";
+    print STDERR "sql: $sql\n" if $ENV{DEBUG};
+    $self->do( $sql, { PrintError => 1 } );
+    return;
 }
-
-
-
-
 
 =pod
 

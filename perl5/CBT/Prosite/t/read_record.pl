@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-BEGIN {unshift(@INC,$ENV{'HOME'}.'/cbc/opt/lib/perl5')}
+BEGIN { unshift( @INC, $ENV{'HOME'} . '/cbc/opt/lib/perl5' ) }
 
 use Prosite::DB;
 use Prosite::Record;

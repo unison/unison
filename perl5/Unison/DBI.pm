@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
@@ -21,7 +22,6 @@ B<Unison::Exception> when the underlying DBI fails.
 
 =cut
 
-
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -34,49 +34,53 @@ use DBI;
 use Unison::Exceptions;
 use Getopt::Long;
 
-our %opts =
-  (
-   # use PGHOST if it's not '', otherwise set based on whether we're
-   # on csb (local), comp* (cvs), else exo-cluster (csb)
-   # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
-   host => ( (exists $ENV{PGHOST})
-			 and ($ENV{PGHOST} =~ m/\w/) ) ? $ENV{PGHOST} : 'csb',
-   dbname => $ENV{PGDATABASE} || 'csb',
-   username => $ENV{PGUSER} || eval {my $tmp = `/usr/bin/id -un`;
-									 chomp $tmp; $tmp},
-   password => $ENV{PGPASSWORD},
-   attr => {
-			# we should migrate to AutoCommit => 0, but this requires
-			# coordination with loading clients
-			AutoCommit => 1,
+our %opts = (
 
-			PrintError => 0,
-			RaiseError => 0,
+    # use PGHOST if it's not '', otherwise set based on whether we're
+    # on csb (local), comp* (cvs), else exo-cluster (csb)
+    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
+    host => ( ( exists $ENV{PGHOST} ) and ( $ENV{PGHOST} =~ m/\w/ ) )
+    ? $ENV{PGHOST}
+    : 'csb',
+    dbname => $ENV{PGDATABASE}
+      || 'csb',
+    username => $ENV{PGUSER}
+      || eval {
+        my $tmp = `/usr/bin/id -un`;
+        chomp $tmp;
+        $tmp;
+      },
+    password => $ENV{PGPASSWORD},
+    attr     => {
 
-			# Does the following work as an alternative to
-			# setting HandleError explicitly below?
-			# HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
-		   },
-  );
+        # we should migrate to AutoCommit => 0, but this requires
+        # coordination with loading clients
+        AutoCommit => 1,
 
+        PrintError => 0,
+        RaiseError => 0,
+
+     # Does the following work as an alternative to
+     # setting HandleError explicitly below?
+     # HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
+    },
+);
 
 # Really, this should probably all be moved to an import subroutine (or a
 # separate Unison::Options module?) which does this optionally.  By doing
 # it here, we get standardized options but at the expense of prohibiting
 # the use of these flags for other meanings.
 our @options;
-push( 
-	 @options, 
-	 'dbname|d=s' => \$opts{dbname},
-	 'host|h=s' => \$opts{host},
-	 'username|U=s' => \$opts{username}
-	);
+push(
+    @options,
+    'dbname|d=s'   => \$opts{dbname},
+    'host|h=s'     => \$opts{host},
+    'username|U=s' => \$opts{username}
+);
 
 my $parser = new Getopt::Long::Parser;
-$parser->configure( qw(gnu_getopt pass_through) );
-$parser->getoptions( @options );
-
-
+$parser->configure(qw(gnu_getopt pass_through));
+$parser->getoptions(@options);
 
 =pod
 
@@ -85,7 +89,6 @@ $parser->getoptions( @options );
 =over
 
 =cut
-
 
 ######################################################################
 ## new
@@ -104,15 +107,12 @@ in:
 =cut
 
 sub new {
-  my $type = shift;
-  my %self = (%opts, @_);
-  my $self = bless(\%self,$type);
-  $self->connect();
-  return $self;
+    my $type = shift;
+    my %self = ( %opts, @_ );
+    my $self = bless( \%self, $type );
+    $self->connect();
+    return $self;
 }
-
-
-
 
 ######################################################################
 ## connect
@@ -130,65 +130,64 @@ Genentech environment are used.
 =cut
 
 sub connect {
-  my $self = shift;
-  if (not defined $self->{dbname}) {
-	throw Unison::Exception::ConnectionFailed
-	  ( "couldn't connect to Unison",
-		'dbname undefined' );
-  }
-  if (not defined $self->{username}) {
-	throw Unison::Exception::ConnectionFailed
-	  ( "couldn't connect to Unison",
-		'username undefined' );
-  }
+    my $self = shift;
+    if ( not defined $self->{dbname} ) {
+        throw Unison::Exception::ConnectionFailed( "couldn't connect to Unison",
+            'dbname undefined' );
+    }
+    if ( not defined $self->{username} ) {
+        throw Unison::Exception::ConnectionFailed( "couldn't connect to Unison",
+            'username undefined' );
+    }
 
-  my $dsn = "dbi:Pg:dbname=$self->{dbname}";
-  if (defined $self->{host}) {				# never happens: host eq ''
-	$dsn .= ";host=$self->{host}" ;
-  }
+    my $dsn = "dbi:Pg:dbname=$self->{dbname}";
+    if ( defined $self->{host} ) {    # never happens: host eq ''
+        $dsn .= ";host=$self->{host}";
+    }
 
-  if (    defined $self->{username} and $self->{username} eq 'PUBLIC'
-	  and defined $self->{host}     and $self->{host} =~ m/^csb/ ) {
-	warn(<<EOT);
+    if (    defined $self->{username}
+        and $self->{username} eq 'PUBLIC'
+        and defined $self->{host}
+        and $self->{host} =~ m/^csb/ )
+    {
+        warn(<<EOT);
 ! You are using the PUBLIC login to Unison. This is -- and has
 ! always been -- deprecated, and it will be discontinued
 ! eventually. You should use Kerberos authentiation whenever
 ! possible by typing `kinit' and your password.
 EOT
-  }
+    }
 
-
-  my $dbh = DBI->connect($dsn,
-						 $self->{username},
-						 $self->{password},
-						 $self->{attr});
-  if (not defined $dbh)	{
-	throw Unison::Exception::ConnectionFailed
-	  ( "couldn't connect to Unison: ",
-		join("\n", 
-			 'DBI ERROR: '.DBI->errstr(),
-			 "dsn=$dsn",
-			 'host='.(defined $self->{host} ? $self->{host} : '<undef>'),
-			 'username='.(defined $self->{username} ? $self->{username} : '<undef>'),
-			 'password='.(defined $self->{password} ? '<hidden>' : '<undef>')),
-		<<EOT) ;
+    my $dbh =
+      DBI->connect( $dsn, $self->{username}, $self->{password}, $self->{attr} );
+    if ( not defined $dbh ) {
+        throw Unison::Exception::ConnectionFailed(
+            "couldn't connect to Unison: ",
+            join( "\n",
+                'DBI ERROR: ' . DBI->errstr(),
+                "dsn=$dsn",
+                'host=' . ( defined $self->{host} ? $self->{host} : '<undef>' ),
+                'username='
+                  . (
+                    defined $self->{username} ? $self->{username} : '<undef>' ),
+                'password='
+                  . ( defined $self->{password} ? '<hidden>' : '<undef>' ) ),
+            <<EOT);
 Please ensure that you have a valid Kerberos ticket, or check
 your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE
 (-d). To check for a valid Kerberos ticket, type 'klist'. To
 get a Kerberos ticket, type 'kinit'.
 EOT
-  }
+    }
 
-  # ALL DBI errors should be handled by Unison::Exception::DBIError
-  $dbh->{HandleError} = sub { throw Unison::Exception::DBIError ($dbh->errstr()) };
+    # ALL DBI errors should be handled by Unison::Exception::DBIError
+    $dbh->{HandleError} =
+      sub { throw Unison::Exception::DBIError( $dbh->errstr() ) };
 
-  $self->{dbh} = $dbh;
+    $self->{dbh} = $dbh;
 
-  return($self);
+    return ($self);
 }
-
-
-
 
 ######################################################################
 ## connect
@@ -202,9 +201,8 @@ Disconnects from the database before destroying the database handle.
 =cut
 
 sub DESTROY {
-  $_[0]->dbh()->disconnect() if $_[0]->dbh();
+    $_[0]->dbh()->disconnect() if $_[0]->dbh();
 }
-
 
 ######################################################################
 ## dbh
@@ -218,10 +216,8 @@ returns the internal database handle
 =cut
 
 sub dbh {
-  $_[0]->{dbh};
+    $_[0]->{dbh};
 }
-
-
 
 ######################################################################
 ## is_open
@@ -235,11 +231,8 @@ returns true if a connection to the database is open.
 =cut
 
 sub is_open {
-  defined $_[0]->{'dbh'}
-};
-
-
-
+    defined $_[0]->{'dbh'};
+}
 
 ######################################################################
 ## AUTOLOAD
@@ -257,22 +250,25 @@ shadow method on-the-fly.
 =cut
 
 sub AUTOLOAD {
-  my $self = $_[0];
-  my $method = our $AUTOLOAD;
-  $method =~ s/^.*:://;
-  return if $method eq 'DESTROY';
+    my $self   = $_[0];
+    my $method = our $AUTOLOAD;
+    $method =~ s/^.*:://;
+    return if $method eq 'DESTROY';
 
-  confess("AUTOLOAD called on undefined object!\n\t") if (not defined $self);
+    confess("AUTOLOAD called on undefined object!\n\t")
+      if ( not defined $self );
 
-  # define all DBI methods on the fly as though they were
-  # Unison:: methods
-  if (defined $self->dbh()
-	  and $self->dbh()->can($method)) {
-	warn("AUTOLOAD $AUTOLOAD ($self)\n") if $ENV{DEBUG};
-	my $tracer = '';
-	#$tracer = 'print($method,"\n");' if ($method =~ m/^(?:begin_work|commit|end|rollback)$/);
-	## REMINDER: errors are caught by the HandleError setting above
-	my $sub = <<EOF;
+    # define all DBI methods on the fly as though they were
+    # Unison:: methods
+    if ( defined $self->dbh()
+        and $self->dbh()->can($method) )
+    {
+        warn("AUTOLOAD $AUTOLOAD ($self)\n") if $ENV{DEBUG};
+        my $tracer = '';
+
+#$tracer = 'print($method,"\n");' if ($method =~ m/^(?:begin_work|commit|end|rollback)$/);
+        ## REMINDER: errors are caught by the HandleError setting above
+        my $sub = <<EOF;
     sub $AUTOLOAD {
 		my \$u = shift;
         $tracer
@@ -281,18 +277,17 @@ sub AUTOLOAD {
         \$dbh->$method(\@_);
 	}
 EOF
-	eval $sub;
-	goto &$AUTOLOAD;
-  }
+        eval $sub;
+        goto &$AUTOLOAD;
+    }
 
-  # Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
-  # die("$method...ooops");
-  throw Unison::Exception::NotImplemented ("can't find method $method");
+    # Carp::cluck("failed to AUTOLOAD $AUTOLOAD ($self)\n");
+    # die("$method...ooops");
+    throw Unison::Exception::NotImplemented("can't find method $method");
 }
 
-
-
 ######################################################################
+
 =pod
 
 =item B<< is_public_instance( ) >>
@@ -302,18 +297,19 @@ returns 1 if this is a public database, per meta table
 =cut
 
 sub is_public_instance ($) {
-  my $self = shift;
-  if (not defined $self->{is_public_instance}) {
-	$self->{is_public_instance} = $self->selectrow_array(
-      "select case when exists (select * from meta where key='publicized by') then 1 else 0 end;" );
-  }
-  return $self->{is_public_instance};
+    my $self = shift;
+    if ( not defined $self->{is_public_instance} ) {
+        $self->{is_public_instance} =
+          $self->selectrow_array(
+"select case when exists (select * from meta where key='publicized by') then 1 else 0 end;"
+          );
+    }
+    return $self->{is_public_instance};
 }
 sub is_public { goto &is_public_instance; }
 
-
-
 ######################################################################
+
 =pod
 
 =item B<< is_prd_instance( ) >>
@@ -323,16 +319,18 @@ returns 1 if this is a production database, per meta table
 =cut
 
 sub is_prd_instance ($) {
-  my $self = shift;
-  if (not defined $self->{is_prd_instance}) {
-	$self->{is_prd_instance} = $self->selectrow_array(
-      "select case when exists (select * from meta where key='released on') then 1 else 0 end;" );
-  }
-  return $self->{is_prd_instance};
+    my $self = shift;
+    if ( not defined $self->{is_prd_instance} ) {
+        $self->{is_prd_instance} =
+          $self->selectrow_array(
+"select case when exists (select * from meta where key='released on') then 1 else 0 end;"
+          );
+    }
+    return $self->{is_prd_instance};
 }
 
-
 ######################################################################
+
 =pod
 
 =item B<< release_timestamp( ) >>
@@ -343,15 +341,13 @@ database hasn't been released.
 =cut
 
 sub release_timestamp ($) {
-  my $self = shift;
-  if (not defined $self->{release_timestamp}) {
-	$self->{release_timestamp} = 
-	  $self->selectrow_array('select value::date from meta where key=\'release timestamp\'');
-  }
-  return $self->{release_timestamp};
+    my $self = shift;
+    if ( not defined $self->{release_timestamp} ) {
+        $self->{release_timestamp} = $self->selectrow_array(
+            'select value::date from meta where key=\'release timestamp\'');
+    }
+    return $self->{release_timestamp};
 }
-
-
 
 =pod
 

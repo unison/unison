@@ -12,6 +12,5 @@
 #   ...
 #   throw Some::Exception;
 
-
 use Error qw(:try);
 1;

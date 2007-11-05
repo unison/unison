@@ -1,3 +1,4 @@
+
 =head1 NAME
 
 Unison::template -- Unison:: module template
@@ -14,7 +15,6 @@ S<$Id: init.pm,v 1.1 2005/07/18 20:32:57 rkh Exp $>
 B<Unison::template> is template for building new perl modules.
 
 =cut
-
 
 package Unison::WWW;
 use CBT::debug;
