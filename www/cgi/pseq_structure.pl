@@ -1,5 +1,4 @@
 #!/usr/bin/env perl
-#$ID = q$Id: pseq_structure.pl,v 1.13 2005/10/11 20:54:30 mukhyala Exp $;
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;
@@ -38,8 +37,6 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines(
-    '$Id: pseq_structure.pl,v 1.13 2005/10/11 20:54:30 mukhyala Exp $ ');
 
 # these files are for the image map
 my ( $png_fh, $png_fn, $png_urn ) = $p->tempfile( SUFFIX => '.png' );

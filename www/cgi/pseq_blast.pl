@@ -15,8 +15,6 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines(
-    '$Id: pseq_blast.pl,v 1.14 2005/07/25 22:15:33 rkh Exp $ ');
 
 my $sql = <<EOSQL;
 SELECT t_pseq_id,best_annotation(t_pseq_id),

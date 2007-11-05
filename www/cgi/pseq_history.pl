@@ -16,8 +16,6 @@ use Error qw(:try);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines(
-    '$Id: pseq_history.pl,v 1.7 2005/12/07 23:21:02 rkh Exp $ ');
 
 my $sql =
 qq/select params,modelset,ran_on from run_history_v where pseq_id=$v->{pseq_id}/;

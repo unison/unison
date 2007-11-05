@@ -1,4 +1,4 @@
-# $Id: blast.pm,v 1.1 2003/06/23 21:39:12 cavs Exp $
+# $Id$
 #
 # BioPerl module for Bio::AlignIO::blast
 

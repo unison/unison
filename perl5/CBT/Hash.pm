@@ -3,7 +3,7 @@
 
 CBT::Hash -- Hash record superclass
 
-S<$Id: Hash.pm,v 1.2 2003/07/31 23:58:32 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -20,7 +20,7 @@ package CBT::Hash;
 
 BEGIN {
     use CBT::debug;
-    our $VERSION = CBT::debug::RCSVersion('$Revision: 1.2 $ ');
+    our $VERSION = CBT::debug::RCSVersion('$Revision$ ');
     CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 }
 

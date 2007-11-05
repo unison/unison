@@ -15,8 +15,6 @@ use Unison::SQL;
 sub origin_group($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines(
-    '$Id: about_origins.pl,v 1.3 2006/02/15 04:06:57 rkh Exp $ ');
 
 # FIXME: make * red, as in about_params
 

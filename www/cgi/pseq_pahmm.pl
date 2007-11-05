@@ -21,8 +21,6 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id));
-$p->add_footer_lines(
-    '$Id: pseq_pahmm.pl,v 1.21 2007/01/09 17:43:02 mukhyala Exp $ ');
 
 try {
     my @ps = $u->get_params_info_by_pftype('hmm');

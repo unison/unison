@@ -1,7 +1,6 @@
 #!/usr/bin/env perl
 # cgi-test -- test Unison cgis
 # You must be sitting in the CGI directory you wish to test.
-# $Id: cgi-test.pl,v 1.18 2007/06/04 22:50:54 mukhyala Exp $
 
 use warnings;
 use strict;
@@ -24,7 +23,6 @@ my $usage = <<'EOU';
 #       -db <dbname>  # database name to connect to
 #       -q  <pseq_id> # pseq_id commonly used for testing
 #       -v            # verbose option to see the commnd line used for testing
-# $Id: cgi-test.pl,v 1.18 2007/06/04 22:50:54 mukhyala Exp $
 #------------------------------------------------------------------------------
 EOU
 
@@ -155,7 +153,7 @@ my @badwords =
   ( 'Server Error', 'Object not found', 'DBIError', 'Exception', 'Error' );
 my $npassed = 0;
 
-print( '$Id: cgi-test.pl,v 1.18 2007/06/04 22:50:54 mukhyala Exp $ ', "\n\n" );
+print( '$Id$ ', "\n\n" );
 
 printf( "%-30.30s\tstatus\t%7s\tmessage\n", 'script', 'time' );
 print( '=' x 76, "\n" );

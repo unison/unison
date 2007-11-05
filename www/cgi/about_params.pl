@@ -17,8 +17,6 @@ my $star = '<span style="color: red;">*</span>';
 sub params_group($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines(
-    '$Id: about_params.pl,v 1.3 2006/01/02 05:41:11 rkh Exp $ ');
 
 print $p->render(
     "Available parameters",

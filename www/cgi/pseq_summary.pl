@@ -25,8 +25,6 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw( pseq_id ));
-$p->add_footer_lines(
-    '$Id: pseq_summary.pl,v 1.49 2006/12/20 22:54:25 rkh Exp $ ');
 if ( defined $v->{plugin_id} ) {
 
     #$p->add_footer_lines('Thanks for using the plugin!');

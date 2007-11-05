@@ -13,8 +13,6 @@ use Unison::WWW::Page;
 use Unison::WWW::Table;
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines(
-    '$Id: pseq_summary.pl,v 1.41 2005/11/21 18:00:26 rkh Exp $ ');
 my $u = $p->{unison};
 my $v = $p->Vars();
 

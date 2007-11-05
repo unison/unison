@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::pmprospect -- Unison p2params table utilities
-S<$Id: pmprospect.pm,v 1.6 2005/12/07 21:36:38 mukhyala Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

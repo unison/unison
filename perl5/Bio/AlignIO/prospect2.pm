@@ -1,4 +1,4 @@
-# $Id: prospect.pm,v 1.1 2003/06/25 18:59:24 cavs Exp $
+# $Id$
 #
 # BioPerl module for Bio::AlignIO::prospect2
 

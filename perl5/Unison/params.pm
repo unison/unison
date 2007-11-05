@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::params -- Unison params table utilities
-S<$Id: params.pm,v 1.17 2006/11/06 22:01:13 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

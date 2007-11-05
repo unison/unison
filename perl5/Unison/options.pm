@@ -3,7 +3,7 @@
 
 Unison::options -- Unison:: standardized option processing
 
-S<$Id: template.pm,v 1.1.2.1 2005/01/16 00:39:00 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

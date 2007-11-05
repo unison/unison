@@ -2,7 +2,7 @@
 =head1 NAME
 
  Unison::origin -- Unison origin table utilities
- $Id: origin.pm,v 1.11 2006/06/27 21:30:42 rkh Exp $
+ $Id$
 
 =head1 SYNOPSIS
 

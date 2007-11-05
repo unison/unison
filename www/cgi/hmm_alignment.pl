@@ -28,8 +28,6 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id params_id pmodelset_id profiles));
-$p->add_footer_lines(
-    '$Id: hmm_alignment.pl,v 1.10 2007/01/09 17:42:56 mukhyala Exp $');
 
 my $modelfile = _get_model_file();
 

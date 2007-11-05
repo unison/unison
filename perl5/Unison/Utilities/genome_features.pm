@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::genome_features -- draw genomic features from Unison
-S<$Id: genome_features.pm,v 1.11 2006/09/20 22:49:09 mukhyala Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -142,7 +142,7 @@ sub genome_features_panel ($%) {
         -bgcolor  => 'green',
         -bump     => +1,
         -key =>
-          '$Id: genome_features.pm,v 1.11 2006/09/20 22:49:09 mukhyala Exp $',
+          '$Id$',
         add_probes( $u, $panel, %opts )
     );
 

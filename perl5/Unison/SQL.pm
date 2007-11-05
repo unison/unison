@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::SQL -- simplified generation of SQL queries
-S<$Id: SQL.pm,v 1.5 2005/01/20 01:05:17 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

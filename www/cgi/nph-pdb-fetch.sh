@@ -1,6 +1,5 @@
 #!/bin/sh
 # pdb-fetch -- PDB file gateway via http non-parsed header
-# $Id: nph-pdb-fetch.sh,v 1.4 2006/08/15 18:54:09 rkh Exp $
 # Reece Hart <rkh@gene.com>
 #
 # Given a PDB id (e.g., 2tnf), this script returns the PDB file on STDOUT

@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::Exception -- base class for exceptions
-S<$Id: Exception.pm,v 1.1 2007/02/10 00:58:47 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -66,7 +66,7 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-our ($VERSION) = q$Revision: 1.1 $ =~ m/Revision: ([\d\.]+)/;
+our ($VERSION) = q$Revision$ =~ m/Revision: ([\d\.]+)/;
 
 use base qw(Error);
 use Text::Wrap qw(wrap);

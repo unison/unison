@@ -3,7 +3,7 @@
 
 PDBML
 
-S<$Id: PDBML.pm,v 1.1 2005/06/15 17:15:15 mukhyala Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -267,10 +267,11 @@ sub summary {
     my $method = $att{exptl}{method}{ $pdbid . ":" } || $self->_check("method");
     my $resolution = $att{refine}{ls_d_res_high}{ $pdbid . ":" }
       || $self->_check("resolution");
-    my $title =
-      (   $att{struct}{title}{ $pdbid . ":" }
+    my $title = (
+          $att{struct}{title}{ $pdbid . ":" }
         ? $att{struct}{title}{ $pdbid . ":" }
-        : $att{struct}{pdbx_descriptor}{ $pdbid . ":" } )
+        : $att{struct}{pdbx_descriptor}{ $pdbid . ":" }
+      )
       || $self->_check("title");
     my $header = $att{struct_keywords}{pdbx_keywords}{ $pdbid . ":" }
       || $self->_check("header");
@@ -314,8 +315,10 @@ sub chain {
     my $ret   = '';
 
     #from pdbx_poly_seq_scheme (where you can map seqres to atoim res)
-    foreach my $pri_col ( sort { $order->{$a} <=> $order->{$b} }
-        sort keys %{ $att{pdbx_poly_seq_scheme}{pdb_seq_num} } )
+    foreach my $pri_col (
+        sort { $order->{$a} <=> $order->{$b} }
+        sort keys %{ $att{pdbx_poly_seq_scheme}{pdb_seq_num} }
+      )
     {
 
         my ( $asym_id, $entity_id, $seq_res, $seq_num ) =
@@ -355,11 +358,11 @@ sub chain {
         my $ec = $self->{entities}{ $ent . ":" }{ec}
           || $self->_check("Enzyme Classification");
         $ec =~ s/E\.C\.\s//;
-        my $name =
-          (
+        my $name = (
             defined( $self->{entities}{$ent}{name} )
             ? $self->{entities}{$ent}{name}
-            : $self->{entities}{ $ent . ":" }{descr} )
+            : $self->{entities}{ $ent . ":" }{descr}
+          )
           || $self->_check("Chain Name");
 
 # this is where we change the chainid to blank if pdbx_blank_PDB_chainid_flag is set to Y(true)
@@ -406,8 +409,10 @@ sub residue {
     my $ret   = '';
 
     #sequence structure mapping
-    foreach my $pri_col ( sort { $order->{$a} <=> $order->{$b} }
-        sort keys %{ $att{pdbx_poly_seq_scheme}{pdb_seq_num} } )
+    foreach my $pri_col (
+        sort { $order->{$a} <=> $order->{$b} }
+        sort keys %{ $att{pdbx_poly_seq_scheme}{pdb_seq_num} }
+      )
     {
 
         my ( $asym_id, $entity_id, $seq_res, $seq_num ) =
@@ -426,15 +431,16 @@ sub residue {
             )
           );
 
-        my $atom_res =
-          (
+        my $atom_res = (
             defined( $att{pdbx_poly_seq_scheme}{pdb_mon_id}{$pri_col} )
             ? $att{pdbx_poly_seq_scheme}{pdb_mon_id}{$pri_col}
-            : '' );
-        my $res_id =
-          (   $att{pdbx_poly_seq_scheme}{pdb_mon_id}{$pri_col}
+            : ''
+        );
+        my $res_id = (
+              $att{pdbx_poly_seq_scheme}{pdb_mon_id}{$pri_col}
             ? $att{pdbx_poly_seq_scheme}{pdb_seq_num}{$pri_col}
-            : '' );
+            : ''
+        );
 
 #print $fh lc($pdbid)."$chain\t",lc($pdbid),"\t$chain\t$seq_num\t",lc($aa_codes{$seq_res}),"\t",lc($aa_codes{$atom_res}),"\t$res_id\n";
         $ret .=
@@ -474,10 +480,11 @@ sub ligand {
           unless ( $att{chem_comp}{type}{$ligand} ne 'polymer'
             and ( $ligand ne 'HOH:' )
             and $att{chem_comp}{type}{$ligand} !~ /peptide/ );
-        my $synonym =
-          (   $att{chem_comp}{pdbx_synonyms}{$ligand}
+        my $synonym = (
+              $att{chem_comp}{pdbx_synonyms}{$ligand}
             ? $att{chem_comp}{pdbx_synonyms}{$ligand}
-            : '' );
+            : ''
+        );
 
         my $lig = $ligand;
         $lig =~ s/://;

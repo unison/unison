@@ -3,7 +3,7 @@
 
 Unison::blat -- BLAT-related functions for Unison
 
-S<$Id: blat.pm,v 1.3 2005/01/20 01:05:17 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

@@ -3,7 +3,7 @@
 
 Unison -- Unison database API for perl
 
-S<$Id: Unison.pm,v 1.17 2005/06/15 03:49:03 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

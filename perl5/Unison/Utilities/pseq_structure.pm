@@ -3,7 +3,7 @@
 
 Unison::pseq_structure -- sequence-to-structure-related functions for Unison
 
-$ID = q$Id: pseq_structure.pm,v 1.13 2005/12/07 23:21:02 rkh Exp $;
+$ID = q$Id$;
 
 =head1 SYNOPSIS
 

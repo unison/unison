@@ -5,13 +5,13 @@
 #   Name:
 #       GD::Graph::points.pm
 #
-# $Id: points.pm,v 1.13 2003/02/10 22:12:41 mgjv Exp $
+# $Id$
 #
 #==========================================================================
 
 package GD::Graph::points;
 
-($GD::Graph::points::VERSION) = '$Revision: 1.13 $' =~ /\s([\d.]+)/;
+($GD::Graph::points::VERSION) = '$Revision$' =~ /\s([\d.]+)/;
 
 use strict;
 

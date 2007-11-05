@@ -3,7 +3,7 @@
 
 Unison::Utilities::pseq_features --  functions for displaying pseq_features in Unison
 
-S<$Id: pseq_features.pm,v 1.36 2007/05/12 17:43:22 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -214,7 +214,7 @@ sub pseq_features_panel($%) {
         $IdFont,
         $opts{logo_margin},
         $dh - $opts{logo_margin} - $IdFont->height,
-        '$Id: pseq_features.pm,v 1.36 2007/05/12 17:43:22 rkh Exp $',
+        '$Id$',
         $black
     );
     my $ugd = unison_logo();

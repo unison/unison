@@ -13,8 +13,6 @@ use Unison::WWW::Page;
 sub _conn_info_html($);
 
 my $p = new Unison::WWW::Page;
-$p->add_footer_lines(
-    '$Id: about_unison.pl,v 1.17 2006/01/02 05:41:11 rkh Exp $ ');
 
 print $p->render( "About Unison", <<EOHTML, _conn_info_html($p) );
 
