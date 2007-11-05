@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::paprospect -- Unison paprospect table utilities
-S<$Id: paprospect.pm,v 1.10 2005/10/09 09:39:32 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

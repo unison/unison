@@ -3,7 +3,7 @@
 
 Unison::WWW::Config -- Unison web configuration
 
-S<$Id: Config.pm,v 1.1 2005/09/13 17:23:35 rkh Exp $>
+S<$Id$>
 
 =cut
 

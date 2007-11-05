@@ -1,5 +1,4 @@
 #!/usr/bin/env perl
-#$ID = q$Id: emb_pseq_structure.pl,v 1.9 2006/06/26 17:36:37 rkh Exp $:
 #render the Structure page(tab) in Unison
 ###########################################################
 use strict;

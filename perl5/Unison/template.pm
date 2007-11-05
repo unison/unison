@@ -3,7 +3,7 @@
 
 Unison::template -- Unison:: module template
 
-S<$Id: template.pm,v 1.2 2005/01/20 01:05:17 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

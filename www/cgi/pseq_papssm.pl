@@ -14,8 +14,6 @@ use Unison::WWW::Table;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines(
-    '$Id: pseq_papssm.pl,v 1.9 2005/07/18 20:56:24 rkh Exp $ ');
 
 my $sql = 'select M.acc as "model",A.start,A.stop,A.score,A.eval
 		   from papssm A join pmpssm M on A.pmodel_id=M.pmodel_id

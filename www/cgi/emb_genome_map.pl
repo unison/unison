@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
 ## emb_genome_map.pl -- genome features as a Unison embeddable page
-## $Id: emb_genome_map.pl,v 1.3 2006/08/10 16:43:43 mukhyala Exp $
 
 use strict;
 use warnings;

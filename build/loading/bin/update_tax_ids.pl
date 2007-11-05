@@ -51,7 +51,7 @@ select(STDERR);
 $|++;
 select(STDOUT);
 $|++;
-print( STDERR '# $Id: update_tax_ids.pl,v 1.10 2004/12/24 00:09:46 rkh Exp $ ',
+print( STDERR '# $Id$ ',
     "\n" );
 
 GetOptions(

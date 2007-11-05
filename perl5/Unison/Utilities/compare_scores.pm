@@ -1,7 +1,7 @@
 ############################################################
 # compare_scores.pm
 # Methods for Assess TAB, compare scores and compare methods
-# $ID = q$Id: compare_scores.pm,v 1.9 2005/12/07 23:21:02 rkh Exp $;
+# $ID = q$Id$;
 ############################################################
 
 package Unison::Utilities::compare_scores;

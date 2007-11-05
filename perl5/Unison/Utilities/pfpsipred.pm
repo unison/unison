@@ -1,7 +1,7 @@
 ############################################################
 # pfpsipred.pm
 # Methods for accessing pfpsipred data
-# $ID = q$Id: pfpsipred.pm,v 1.1 2005/07/22 22:05:18 mukhyala Exp $
+# $ID = q$Id$
 ############################################################
 
 package Unison::Utilities::pfpsipred;

@@ -1,11 +1,11 @@
-# $Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $
+# $Id$
 # @@banner@@
 
 =head1 NAME
 
 Bio::Align::MSA - multiple sequence alignments
 
-S<$Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -20,7 +20,7 @@ use vars qw($RCSId $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 # Loading preface
 BEGIN {
-    $RCSId = '$Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $ ';
+    $RCSId = '$Id$ ';
     print( '#', __PACKAGE__, ": $RCSId\n" ) if ( defined $ENV{'DEBUG'} );
 }
 
@@ -38,7 +38,7 @@ use Bio::Root::Root;
 
 # Loading preface
 BEGIN {
-    $RCSId = '$Id: MSA.pm,v 1.2 2003/06/25 19:11:50 cavs Exp $ ';
+    $RCSId = '$Id$ ';
     print( '#', __PACKAGE__, ": $RCSId\n" ) if ( defined $ENV{'DEBUG'} );
 }
 

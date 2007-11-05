@@ -3,7 +3,7 @@
 
 Unison::Exceptions -- Unison Exceptions
 
-S<$Id: Exceptions.pm,v 1.9 2005/07/18 02:59:46 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

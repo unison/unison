@@ -3,7 +3,7 @@
 
 Unison::userprefs -- BLAT-related functions for Unison
 
-S<$Id: blat.pm,v 1.2 2004/05/10 19:32:15 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

@@ -2,7 +2,7 @@
 
 Prosite.pm -- Prosite Pattern and Profile Manipulation in Perl
 
-S<$Id: PS.pm,v 0.4 1999/06/06 21:47:21 reece Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

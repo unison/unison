@@ -3,7 +3,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: Page.pm,v 1.90 2007/05/31 16:22:46 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

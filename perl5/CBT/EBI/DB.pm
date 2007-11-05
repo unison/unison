@@ -6,7 +6,7 @@
 
 Prosite::DB -- Prosite DB access
 
-S<$Id: DB.pm,v 0.3 1999/06/06 21:47:01 reece Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

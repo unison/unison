@@ -3,7 +3,7 @@
 
 Unison::Utilities::misc -- general Unison utilities
 
-S<$Id: misc.pm,v 1.6 2006/05/12 03:39:07 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

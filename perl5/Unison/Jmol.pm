@@ -1,5 +1,5 @@
 # utilities for calling jmol functions
-# $Id: Jmol.pm,v 1.15 2007/06/06 05:25:30 rkh Exp $
+# $Id$
 ###########################################################
 
 # FIXME: This module is misplaced. Move it to U::W::Jmol.pm

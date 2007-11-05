@@ -6,7 +6,7 @@
 
 tflush -- hydrostatic flow controller
 
-S<$Id: DB.pm,v 1.1 2003/04/30 21:11:22 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

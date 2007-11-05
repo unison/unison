@@ -1,7 +1,6 @@
 #!/usr/bin/env perl
 #############################################################
 # compare_scores.pl -- compare scoring systems for pmodelsets
-# $ID = q$Id: compare_scores.pl,v 1.12 2005/11/20 23:22:42 rkh Exp $;
 #############################################################
 use strict;
 use warnings;
@@ -19,8 +18,6 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines(
-    '$Id: compare_scores.pl,v 1.12 2005/11/20 23:22:42 rkh Exp $ ');
 
 if ( $u->is_public() ) {
     $p->die( 'Prospect threadings not available.', <<EOT);

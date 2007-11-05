@@ -19,9 +19,6 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-$p->add_footer_lines(
-    '$Id$');
-
 try {
 
     my $js = <<EOJS;
@@ -62,7 +59,6 @@ EOJS
 
     print $p->render(
         "Search by Sequence Features",
-        '$Id$',
         $js,
         '<p>',
         '<div align="left">',

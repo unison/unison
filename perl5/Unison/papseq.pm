@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::papseq -- Unison papseq table utilities
-S<$Id: papseq.pm,v 1.9 2005/01/20 01:05:17 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

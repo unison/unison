@@ -54,7 +54,7 @@ sub RCSVersion {
 
 pm -- a perl package template
 
-S<$Id: pm,v 1.2 2001/06/12 05:38:24 reece Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

@@ -16,8 +16,6 @@ use Unison::SQL;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines(
-    '$Id: pseq_paliases.pl,v 1.20 2006/06/26 18:05:08 rkh Exp $ ');
 
 my $sql = new Unison::SQL;
 $sql->columns(qw(origin alias latin descr))->tables('current_annotations_v')

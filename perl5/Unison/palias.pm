@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::palias -- Unison palias table utilities
-S<$Id: palias.pm,v 1.25 2006/10/09 17:08:56 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

@@ -4,8 +4,6 @@
 # NAME: genome_features.pl
 # PURPOSE: web script to output pseq aligned to a genome
 # USAGE: genome_features.pl?genasm_id=<genasm_id>;[(chr=<chr>;gstart=<gstart>;gstop=<gstop>)||(pseq_id=<pseq_id>)]
-#
-# $Id: genome_features.pl,v 1.15 2005/11/21 05:58:24 rkh Exp $
 #-------------------------------------------------------------------------------
 
 use strict;

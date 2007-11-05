@@ -15,7 +15,6 @@ use Unison::WWW::utilities qw(alias_link pseq_summary_link);
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
-$p->add_footer_lines('$Id: pseq_intx.pl,v 1.7 2006/06/26 18:05:08 rkh Exp $ ');
 
 my $sql =
 qq/select pseq_id_b, sprot_b, best_annotation(pseq_id_b), pmid, interaction_detection_method

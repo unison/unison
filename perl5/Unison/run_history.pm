@@ -3,7 +3,7 @@
 
 Unison::run_history -- API to the Unison run_history table
 
-S<$Id: run_history.pm,v 1.12 2006/06/26 18:05:08 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

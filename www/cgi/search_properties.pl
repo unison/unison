@@ -25,7 +25,6 @@ my $v = $p->Vars();
 if ( not exists $v->{submit} ) {
     print $p->render(
         "Search by Sequence Features",
-        '$Id: search_properties.pl,v 1.20 2006/09/21 16:27:08 mukhyala Exp $',
         spit_form($p)
     );
     exit(0);
@@ -120,7 +119,6 @@ if ( $v->{submit} !~ m/^sql/ ) {
 
 print $p->render(
     "Feature Based Mining Results",
-    '$Id: search_properties.pl,v 1.20 2006/09/21 16:27:08 mukhyala Exp $',
     @results, $p->sql($sql)
 );
 

@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::pset -- Unison pset table utilities
-S<$Id: pseq.pm,v 1.20 2005/05/11 21:53:41 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

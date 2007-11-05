@@ -3,7 +3,7 @@
 
 Unison::WWW::Page -- Unison web page framework
 
-S<$Id: EmbPage.pm,v 1.1 2005/07/29 22:18:39 mukhyala Exp $
+S<$Id$
 
 =head1 SYNOPSIS
 

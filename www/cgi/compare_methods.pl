@@ -1,7 +1,6 @@
 #!/usr/bin/env perl
 #####################################################
 # compare_methods.pl -- compare threading methods
-# $ID = q$Id: compare_methods.pl,v 1.14 2005/12/07 07:27:57 rkh Exp $;
 #####################################################
 use strict;
 use warnings;
@@ -19,8 +18,6 @@ use Unison::Utilities::compare_scores;
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
-$p->add_footer_lines(
-    '$Id: compare_methods.pl,v 1.14 2005/12/07 07:27:57 rkh Exp $ ');
 
 if ( $u->is_public() ) {
     $p->die( 'Prospect threadings not available.', <<EOT);

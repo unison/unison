@@ -3,7 +3,7 @@
 
 Unison::template -- Unison:: module template
 
-S<$Id: init.pm,v 1.1 2005/07/18 20:32:57 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -24,7 +24,7 @@ use strict;
 use warnings;
 
 our $RELEASE = '';
-if (q$HeadURL$ =~ m/tags\/rel_(\S*?)\//) { ($RELEASE = $1) =~ s/-/./g;}
+if (q$HeadURL: https://unison-db.svn.sourceforge.net/svnroot/unison-db/trunk/perl5/Unison/WWW/init.pm $ =~ m/tags\/rel_(\S*?)\//) { ($RELEASE = $1) =~ s/-/./g;}
 
 use Unison::WWW::Config;
 

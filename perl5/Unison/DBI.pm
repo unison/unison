@@ -2,7 +2,7 @@
 =head1 NAME
 
 Unison::DBI -- interface to the Unison database
-S<$Id: DBI.pm,v 1.28 2007/02/10 01:05:29 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

@@ -3,7 +3,7 @@
 
 Unison::intro -- introduction to Unison
 
-S<$Id: template.pm,v 1.1 2004/05/14 20:33:19 rkh Exp $>
+S<$Id$>
 
 =head1 DESCRIPTION
 

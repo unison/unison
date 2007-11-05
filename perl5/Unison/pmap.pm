@@ -3,7 +3,7 @@
 
 Unison::pmap -- PMAP-related functions for Unison
 
-S<$Id: pmap.pm,v 1.1 2005/11/21 19:22:36 mukhyala Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 

@@ -3,7 +3,7 @@
 
 Unison::Unison -- import commonly used Unison modules
 
-S<$Id: common.pm,v 1.5 2006/06/26 18:05:08 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -47,7 +47,7 @@ use strict;
 use warnings;
 
 our $RELEASE = '';
-if (q$HeadURL$ =~ m/tags\/rel_(\S*?)\//) { ($RELEASE = $1) =~ s/-/./g; }
+if (q$HeadURL: https://unison-db.svn.sourceforge.net/svnroot/unison-db/trunk/perl5/Unison/common.pm $ =~ m/tags\/rel_(\S*?)\//) { ($RELEASE = $1) =~ s/-/./g; }
 
 use Unison::DBI;
 use Unison::Exceptions;
