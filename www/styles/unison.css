@@ -39,6 +39,10 @@
 
 
 
+
+
+
+
 /* $Id: unison.css,v 1.39 2006/11/04 03:48:25 rkh Exp $     emacs: -*-c-*-  */
 
 /*
@@ -56,7 +60,7 @@
 
 
 BODY {
- background: #FFFFFF;
+ background: white;
  font-family: sans-serif;
 }
 
@@ -67,7 +71,7 @@ IMG {
 
 /*
 A {
- border: 1px solid #FFFFFF;
+ border: 1px solid white;
 }
 */
 A:hover {
@@ -109,7 +113,7 @@ TABLE.page TD.navbar {
 TABLE.nav {
  border: none;
  color: #004B8C;
- background: #FFFFFF;
+ background: white;
 }
 TABLE.nav TD.unselected {
  background: white;
@@ -192,41 +196,41 @@ TABLE.group {
  margin: 0px;
  padding: 0px;
  border: 0px;
+ border-spacing: 0;
 }
 
 TABLE.group TH.grouptag {
  border: thin solid #004B8C;
- background-color: #004B8C;
+ background: #004B8C;
  width: 20%;
  font-size: largest;
- color: #FFFFFF;
+ color: white;
 }
 
 TABLE.group TD {
- border: thin solid #004B8C;
+ border: medium solid #004B8C;
 }
 
 
 TABLE.summary {
  width: 100%;
  border: none;
- background: #FFFFFF;
+ background: white;
  margin: none;
  border: none;
 }
 TABLE.summary TH {
- background-color: #FFFFFF;
+ background: white;
  border: 0px;
  padding: 0px;
- color: #004B8C;
  text-align: right;
  vertical-align: top;
  white-space: nowrap;
 }
 TABLE.summary TH DIV {
- border: thin solid #004B8C;
- background-color: #004B8C;
- color: #FFFFFF;
+ border: thin solid #913745;
+ background: #913745;
+ color: white;
  white-space: nowrap;
 }
 TABLE.summary TD {
@@ -273,27 +277,29 @@ TABLE.credits TD {
 
 
 TABLE.uwtable {
- background-color: #FFFFFF;
+ background: white;
  margin: 0px;
 }
 TABLE.uwtable TBODY {
- background-color: #FFFFFF;
+ background: white;
  overflow: auto;
 }
 TABLE.uwtable TH {
- border: thin solid #004B8C;
- background-color: #004B8C;
+ border: thin solid #913745;
+ background: #913745;
  color: white;
 }
 TABLE.uwtable TH.highlighted {
- border: thin solid #004B8C;
- background-color: #F5CC06;
+ border: thin solid #913745;
+ background: black;
 }
 TABLE.uwtable TD {
-  background-color: #FFFFFF;
+ border: thin solid #913745;
+ background: white;
 }
 TABLE.uwtable TD.highlighted {
-  background-color: #F5CC06;
+ border: thin solid #913745;
+ background: #F5CC06;
 }
 
 
@@ -306,7 +312,7 @@ TABLE.sw_stack TR {
 }
 TABLE.sw_stack TH {
  background: #004B8C;
- color: #FFFFFF;
+ color: white;
  vertical-align: top;
  padding: 5px;
 }
@@ -323,7 +329,7 @@ SPAN.page_break {
 
 /* 
 TR.tablesep {
-  background-color: orange;
+  background: orange;
 }
 */
 
@@ -401,7 +407,7 @@ div.domTTUnison .contents {
 
 pre.code {
  border: black thin dashed;
- background: #FFFFFF;
+ background: white;
  margin: 20px;
  padding: 5px;
  overflow: auto;
@@ -424,7 +430,7 @@ SPAN.error {
  color: red;
 }
 SPAN.debug {
-  background-color: #FFFFFF;
+  background-color: white;
 }
 div.warning {
  border: red medium solid;
@@ -437,7 +443,7 @@ div.sql {
  padding: 2px;
  margin: 5px;
  color: black;
- background-color: #FFFFFF;
+ background-color: white;
  font-family: monospace;
  font-size: xx-small;
 }

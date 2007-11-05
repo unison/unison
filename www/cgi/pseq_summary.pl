@@ -310,7 +310,7 @@ sub homologs_group ($) {
             '?',
             "Homologous sequences as determined by NCBI's Homologene project"
           ),
-        '<table width="100%">',
+        '<table class="uwtable" width="100%">',
         '<tr><td style="background: #F5CC06"><b>',
         $#$pr + 1,
         ' Paralogs</b> ',
@@ -326,7 +326,7 @@ sub homologs_group ($) {
         '</table>',
 
         '<hr>',
-        '<table width="100%">',
+        '<table class="uwtable" width="100%">',
         '<tr><td style="background: #F5CC06"><b>',
         $#$or + 1,
         ' Orthologs</b> ',

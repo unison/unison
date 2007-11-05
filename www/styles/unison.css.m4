@@ -15,7 +15,7 @@
 
 
 BODY {
- background: U_BACKGROUND;
+ background: U_BG;
  font-family: sans-serif;
 }
 
@@ -26,7 +26,7 @@ IMG {
 
 /*
 A {
- border: 1px solid U_BACKGROUND;
+ border: 1px solid U_BG;
 }
 */
 A:hover {
@@ -68,7 +68,7 @@ TABLE.page TD.navbar {
 TABLE.nav {
  border: none;
  color: U_NAV_FG;
- background: U_BACKGROUND;
+ background: U_BG;
 }
 TABLE.nav TD.unselected {
  background: U_NAV_BG;
@@ -151,41 +151,41 @@ TABLE.group {
  margin: 0px;
  padding: 0px;
  border: 0px;
+ border-spacing: 0;
 }
 
 TABLE.group TH.grouptag {
  border: thin solid U_FRAME;
- background-color: U_FRAME;
+ background: U_FRAME;
  width: 20%;
  font-size: largest;
- color: U_BACKGROUND;
+ color: U_BG;
 }
 
 TABLE.group TD {
- border: thin solid U_FRAME;
+ border: medium solid U_FRAME;
 }
 
 
 TABLE.summary {
  width: 100%;
  border: none;
- background: U_BACKGROUND;
+ background: U_BG;
  margin: none;
  border: none;
 }
 TABLE.summary TH {
- background-color: U_BACKGROUND;
+ background: U_BG;
  border: 0px;
  padding: 0px;
- color: U_NAV_FG;
  text-align: right;
  vertical-align: top;
  white-space: nowrap;
 }
 TABLE.summary TH DIV {
- border: thin solid U_FRAME;
- background-color: U_FRAME;
- color: U_BACKGROUND;
+ border: thin solid U_UWTABLE_FG;
+ background: U_UWTABLE_FG;
+ color: U_UWTABLE_BG;
  white-space: nowrap;
 }
 TABLE.summary TD {
@@ -232,27 +232,29 @@ TABLE.credits TD {
 
 
 TABLE.uwtable {
- background-color: U_TABLE_BG;
+ background: U_TABLE_BG;
  margin: 0px;
 }
 TABLE.uwtable TBODY {
- background-color: U_TABLE_BG;
+ background: U_TABLE_BG;
  overflow: auto;
 }
 TABLE.uwtable TH {
- border: thin solid U_FRAME;
- background-color: U_TABLE_TH_BG;
- color: U_TABLE_TH_FG;
+ border: thin solid U_UWTABLE_FG;
+ background: U_UWTABLE_FG;
+ color: U_UWTABLE_BG;
 }
 TABLE.uwtable TH.highlighted {
- border: thin solid U_FRAME;
- background-color: U_TABLE_HIGHLIGHT_BG;
+ border: thin solid U_UWTABLE_FG;
+ background: U_TABLE_HIGHLIGHT_FG;
 }
 TABLE.uwtable TD {
-  background-color: U_TABLE_BG;
+ border: thin solid U_UWTABLE_FG;
+ background: U_UWTABLE_BG;
 }
 TABLE.uwtable TD.highlighted {
-  background-color: U_TABLE_HIGHLIGHT_BG;
+ border: thin solid U_UWTABLE_FG;
+ background: U_TABLE_HIGHLIGHT_BG;
 }
 
 
@@ -265,7 +267,7 @@ TABLE.sw_stack TR {
 }
 TABLE.sw_stack TH {
  background: U_FRAME;
- color: U_BACKGROUND;
+ color: U_BG;
  vertical-align: top;
  padding: 5px;
 }
@@ -282,7 +284,7 @@ SPAN.page_break {
 
 /* 
 TR.tablesep {
-  background-color: orange;
+  background: orange;
 }
 */
 
