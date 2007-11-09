@@ -51,8 +51,8 @@ die(<<EOT) unless $opts{nowarn};
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 EOT
 
-my $pd_re =
-qr%<tr>\s*\n\s+<td>\d+</td>\s*\n\s+<td>\w</td>\s*\n\s+<td>(\d\.\d+)</td>\s*\n\s+</tr>%;
+my $pd_re
+    = qr%<tr>\s*\n\s+<td>\d+</td>\s*\n\s+<td>\w</td>\s*\n\s+<td>(\d\.\d+)</td>\s*\n\s+</tr>%;
 
 my %form_fields = (
     sequence  => undef,
@@ -74,7 +74,7 @@ my $in = new Bio::SeqIO( -format => 'fasta', -fh => \*STDIN );
 while ( my $bs = $in->next_seq() ) {
     my $id = $bs->display_id();
     my %input = ( %form_fields, sequence => $bs->seq() );
-    $req->content( join( '&', map { "$_=$input{$_}" } keys %form_fields ) );
+    $req->content( join( '&', map {"$_=$input{$_}"} keys %form_fields ) );
     my $res = $ua->request($req);
     if ( $res->is_success ) {
         if ( $res->content =~ m/You have exceeded/ ) {
@@ -83,9 +83,8 @@ while ( my $bs = $in->next_seq() ) {
 
         my (@pd) = $res->content =~ m/$pd_re/g;
         if ( length( $bs->seq() ) != $#pd + 1 ) {
-            die(
-                sprintf(
-"$id: Yikes! sequence length (%d) != number of disorder probs (%d)!\n%s",
+            die(sprintf(
+                    "$id: Yikes! sequence length (%d) != number of disorder probs (%d)!\n%s",
                     length( $bs->seq() ),
                     $#pd + 1
                 )

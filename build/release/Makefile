@@ -56,7 +56,7 @@ csb-pub-push csb-dev-pub-push: %-push:
 # NB: `./' is to prevent rsync from interpreting colons in timestamps
 # run as rkh
 %.d-wepush.log: %.d
-	(time rsync --progress ./$* ./$*.md5 we:tmp/) >$@.tmp 2>&1
+	(time rsync -av --progress ./$< we:tmp/) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
 
 

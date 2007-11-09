@@ -11,29 +11,27 @@ use lib "$FindBin::RealBin/../../perl5";
 
 use Unison;
 
-
-
 my $printmod = 100;
-my $u = new Unison;
-my $sth = $u->prepare('select md5 from pseq where pseq_id=?');
+my $u        = new Unison;
+my $sth      = $u->prepare('select md5 from pseq where pseq_id=?');
 
-my @ids = @ARGV ? map {eval "$_"} @ARGV : map {chomp;$_} <>;
+my @ids = @ARGV ? map { eval "$_" } @ARGV : map { chomp; $_ } <>;
 
-for(my $i=0; $i<=$#ids; $i++) {
-  my $pseq_id = $ids[$i];
+for ( my $i = 0; $i <= $#ids; $i++ ) {
+    my $pseq_id = $ids[$i];
 
-  if ( ($i==$#ids) or (0 == $i % $printmod) ) {
-	printf(STDERR "\r%8d/%8d (%5.1f%%): pseq_id=%10s",
-		   $i+1, $#ids+1, 100*($i+1)/($#ids+1), $pseq_id);
-  }
+    if ( ( $i == $#ids ) or ( 0 == $i % $printmod ) ) {
+        printf( STDERR "\r%8d/%8d (%5.1f%%): pseq_id=%10s",
+            $i + 1, $#ids + 1, 100 * ( $i + 1 ) / ( $#ids + 1 ), $pseq_id );
+    }
 
-  my ($umd5) = $u->selectrow_array($sth,undef,$pseq_id);
-  if (not defined $umd5) {
-	warn("Unison:$pseq_id not found\n");
-	next;
-  }
+    my ($umd5) = $u->selectrow_array( $sth, undef, $pseq_id );
+    if ( not defined $umd5 ) {
+        warn("Unison:$pseq_id not found\n");
+        next;
+    }
 
-  print("$umd5 $pseq_id\n");
+    print("$umd5 $pseq_id\n");
 }
 
-print(STDERR ".. done\n");
+print( STDERR ".. done\n" );

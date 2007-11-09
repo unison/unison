@@ -1274,16 +1274,12 @@ sub _navbar {
       . "    </tr>\n"
       . "    <!-- 'V' graphic -->\n"
       . "    <tr>"
-## options sub menu graphic:
-      #	. ($navi==0      ? '' : sprintf("<td colspan=%d></td>",$navi))
-      #	. '<td align="center"><img src="../av/subnav.gif"></td>'
-      #	. ($navi==$#navs ? '' : sprintf("<td colspan=%d></td>",$#navs-$navi))
       . "</tr>\n" . "  </table>\n";
 
     my @nav = @{ $navs[$navi] };
     shift @nav;    # menu header is first item; subnav items remain
     $rv .=
-"  <table class=\"nav\" style=\"border-top: medium solid;\" width=\"100%\">\n"
+"  <table class=\"subnav\">\n"
       . "    <!-- sub nav -->\n"
       . "    <tr>\n"
       . _make_navrow( $subnavi, @nav )

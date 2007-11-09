@@ -1,7 +1,6 @@
 #!/usr/bin/env perl
 # unison-blast -- blasts sequences from unison
-# $Id: unison-blast,v 1.2 2004/05/20 20:59:42 rkh Exp $
-
+# $Id$
 
 use strict;
 use warnings;
@@ -17,131 +16,131 @@ use lib "$FindBin::RealBin/../../perl5";
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 
-my %opts =
-  (
-   'show-report' => 0,
-   'all-summaries' => 0,
-  );
+my %opts = (
+    'show-report'   => 0,
+    'all-summaries' => 0,
+);
 
-GetOptions(\%opts,
-		   'show-report|r+',
-		   'all-summaries|a+',				# otherwise, only 1 best eval
-		  )
-  || die("$0: you are horribly misguided about my arguments\n");
-
+GetOptions(
+    \%opts,
+    'show-report|r+',
+    'all-summaries|a+',    # otherwise, only 1 best eval
+) || die("$0: you are horribly misguided about my arguments\n");
 
 sub fetch_pseq_id($$);
 sub blast_2_pseq_ids($$$);
 
-
-select(STDERR); $|++;
-select(STDOUT); $|++;
-print(STDERR '# $Id: unison-blast,v 1.2 2004/05/20 20:59:42 rkh Exp $ ', "\n");
-
-
+select(STDERR);
+$|++;
+select(STDOUT);
+$|++;
+print( STDERR '# $Id$ ',
+    "\n" );
 
 # open database connection and setup blast factory
 my $u = new Unison();
-my ($tmpfh,$tmpfn) = tempfile( '/tmp/bl2seq-XXXXX', UNLINK => 1);
-my $blaster = Bio::Tools::Run::StandAloneBlast->new(program => 'blastp',
-													outfile => $tmpfn);
-$blaster->F('F');							# no filtering/masking
+my ( $tmpfh, $tmpfn ) = tempfile( '/tmp/bl2seq-XXXXX', UNLINK => 1 );
+my $blaster = Bio::Tools::Run::StandAloneBlast->new(
+    program => 'blastp',
+    outfile => $tmpfn
+);
+$blaster->F('F');    # no filtering/masking
 
 if (1) {
-  # gap open and extend depend on matrix; the following is a supported combination
-  # that I (Reece) use for more distant homology (or lack thereof).
-  $blaster->M('BLOSUM45');
-  $blaster->G(12);
-  $blaster->E(2);
+
+# gap open and extend depend on matrix; the following is a supported combination
+# that I (Reece) use for more distant homology (or lack thereof).
+    $blaster->M('BLOSUM45');
+    $blaster->G(12);
+    $blaster->E(2);
 }
-
-
 
 # if any args remain, read them as pseq_ids in pairs and align them,
 # then exit
 if (@ARGV) {
-  while( @ARGV > 1 ) {
-	my ($id1,$id2) = (shift,shift);
-	blast_2_pseq_ids($blaster,$id1,$id2);
-  }
-  die("$0: Ignoring remaining unpaired argument @ARGV\n") if @ARGV;
-  exit(0);
+    while ( @ARGV > 1 ) {
+        my ( $id1, $id2 ) = ( shift, shift );
+        blast_2_pseq_ids( $blaster, $id1, $id2 );
+    }
+    die("$0: Ignoring remaining unpaired argument @ARGV\n") if @ARGV;
+    exit(0);
 }
 
-
 # ... otherwise, no pseq_ids were given as args; read from stdin
-while( my $line = <> ) {
-  my ($id1,$id2) = split(' ',$line);
-  blast_2_pseq_ids($blaster,$id1,$id2);
+while ( my $line = <> ) {
+    my ( $id1, $id2 ) = split( ' ', $line );
+    blast_2_pseq_ids( $blaster, $id1, $id2 );
 }
 exit(0);
 
-
-
-
 sub blast_2_pseq_ids($$$) {
-  my ($blaster,$id1,$id2) = @_;
+    my ( $blaster, $id1, $id2 ) = @_;
 
-  my $s1 = fetch_pseq_id($u,$id1);
-  my $s2 = fetch_pseq_id($u,$id2);
+    my $s1 = fetch_pseq_id( $u, $id1 );
+    my $s2 = fetch_pseq_id( $u, $id2 );
 
-  if (not defined $s1) {
-	warn("! couldn't retrieve Unison:$id1; skipping alignment of $id1 and $id2\n");
-	return;
-  }
-  if (not defined $s2) {
-	warn("! couldn't retrieve Unison:$id2; skipping alignment of $id1` and $id2\n");
-	return;
-  }
+    if ( not defined $s1 ) {
+        warn(
+            "! couldn't retrieve Unison:$id1; skipping alignment of $id1 and $id2\n"
+        );
+        return;
+    }
+    if ( not defined $s2 ) {
+        warn(
+            "! couldn't retrieve Unison:$id2; skipping alignment of $id1` and $id2\n"
+        );
+        return;
+    }
 
+    $blaster->bl2seq( $s1, $s2 );
 
-  $blaster->bl2seq($s1,$s2);
+    my $report = Bio::Tools::BPbl2seq->new(
+        -file        => $tmpfn,
+        -report_type => 'blastp'
+    );
+    $report->sbjctName;
+    $report->sbjctLength;
+    while ( my $hsp = $report->next_feature ) {
+        printf(
+            "%8d  %8d  I/+/len=%4d(%3d%%)/%4d(%3d%%)/%4d, S=%4d, E=%6.2g\n",
+            $id1,             $id2,
+            $hsp->match(),    $hsp->match() / $hsp->length() * 100,
+            $hsp->positive(), $hsp->positive() / $hsp->length() * 100,
+            $hsp->length(),   $hsp->score(),
+            $hsp->P()
+        );
+        last unless ( $opts{'all-summaries'} );
+    }
 
-  my $report = Bio::Tools::BPbl2seq->new(-file => $tmpfn,
-										 -report_type => 'blastp' );
-  $report->sbjctName;
-  $report->sbjctLength;
-  while(my $hsp = $report->next_feature) {
-	printf("%8d  %8d  I/+/len=%4d(%3d%%)/%4d(%3d%%)/%4d, S=%4d, E=%6.2g\n",
-		   $id1, $id2,
-		   $hsp->match(), $hsp->match()/$hsp->length()*100,
-		   $hsp->positive(), $hsp->positive()/$hsp->length()*100,
-		   $hsp->length(),
-		   $hsp->score(), $hsp->P() );
-	last unless ($opts{'all-summaries'});
-  }
-
-  if ($opts{'show-report'}) {
-	print("BLAST REPORT FOLLOWS\n");
-	system("cat $tmpfn");
-  }
+    if ( $opts{'show-report'} ) {
+        print("BLAST REPORT FOLLOWS\n");
+        system("cat $tmpfn");
+    }
 }
 
+my %seq_cache;    # {pseq_id} -- Bio::PrimarySeq cache
 
-
-
-my %seq_cache;									# {pseq_id} -- Bio::PrimarySeq cache
 sub fetch_pseq_id($$) {
-  # fetch pseq_id from the database and cache the resulting Bio::PrimarySeq
-  my ($u,$id) = @_;
-  if (not defined $id) {
-	die("fetch_pseq_id called with undef \$id\n");
-  }
-  if (not exists $seq_cache{$id}) {
-	$seq_cache{$id} = undef;
-	my $seq = $u->get_sequence_by_pseq_id( $id );
-	if (defined $seq) {
-	  $seq_cache{$id} = Bio::PrimarySeq->new (
-			-seq => $seq,
-			-id  => "Unison:$id",
-			-desc => $u->best_annotation($id),
-			-alphabet => 'protein' );
-	}
-  }
-  return $seq_cache{$id};
+
+    # fetch pseq_id from the database and cache the resulting Bio::PrimarySeq
+    my ( $u, $id ) = @_;
+    if ( not defined $id ) {
+        die("fetch_pseq_id called with undef \$id\n");
+    }
+    if ( not exists $seq_cache{$id} ) {
+        $seq_cache{$id} = undef;
+        my $seq = $u->get_sequence_by_pseq_id($id);
+        if ( defined $seq ) {
+            $seq_cache{$id} = Bio::PrimarySeq->new(
+                -seq      => $seq,
+                -id       => "Unison:$id",
+                -desc     => $u->best_annotation($id),
+                -alphabet => 'protein'
+            );
+        }
+    }
+    return $seq_cache{$id};
 }
-
-
 
 exit(0);
 

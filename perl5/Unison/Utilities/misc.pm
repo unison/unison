@@ -196,19 +196,27 @@ sub unison_logo () {
 
 =pod
 
-=item B<< elide_sequence( seq, clip, gap ) >>
+=item B<< elide_sequence( seq, clip, gapstr ) >>
 
-returns sequence, perhaps gapped with gap if longer that 2*clip+|gap|.
+Returns sequence, conditionally gapped with gapstr if longer than
+2*clip+|gapstr|.
+
+=item B<< elide_sequence( seq ) >>
+
+Returns elide_sequence( seq, 4, '..' )
 
 =cut
 
-sub elide_sequence ($$$) {
-    my ( $seq, $clip, $gap ) = @_;
-    if ( length($seq) > $clip * 2 + length($gap) ) {
-        $seq = substr( $seq, 0, $clip ) . $gap . substr( $seq, -$clip );
+sub elide_sequence {
+    my ( $seq, $clip, $gapstr ) = @_;
+	$clip = 4 unless defined $clip;
+	$gapstr = '..' unless defined $gapstr;
+    if ( length($seq) > $clip * 2 + length($gapstr) ) {
+        $seq = substr( $seq, 0, $clip ) . $gapstr . substr( $seq, -$clip );
     }
     return $seq;
 }
+
 
 ######################################################################
 

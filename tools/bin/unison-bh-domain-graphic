@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# unison-domain-graphic -- generate images 
+# unison-domain-graphic -- generate images
 
 use strict;
 use warnings;
@@ -16,150 +16,163 @@ use Unison;
 use Unison::SQL;
 use Getopt::Long qw(:config gnu_getopt);
 
-
 sub generate_feature_expr($@);
 
+my %feature_color = (
+    BH1         => 'red',
+    BH1_TP      => 'red',
+    BH1_TP_FN   => 'red',
+    BH2         => 'blue',
+    BH2_TP      => 'blue',
+    BH2_TP_FN   => 'blue',
+    BH3         => 'green',
+    BH3_TP      => 'green',
+    BH3_TP_FN   => 'green',
+    BH4         => 'yellow',
+    BH4_1       => 'yellow',
+    BH4_1_TP    => 'yellow',
+    BH4_1_TP_FN => 'yellow',
+    BH4_2       => 'yellow',
+    BH4_2_TP    => 'yellow',
+    BH4_2_TP_FN => 'yellow',
+    'Bcl-2'     => 'cyan',
+    'Bcl-2_TP'  => 'cyan',
 
-my %feature_color = 
-  (
-   BH1 => 'red',	BH1_TP => 'red',	BH1_TP_FN => 'red',
-   BH2 => 'blue',	BH2_TP => 'blue',	BH2_TP_FN => 'blue',
-   BH3 => 'green',	BH3_TP => 'green',	BH3_TP_FN => 'green',
-   BH4 => 'yellow',
-   BH4_1 => 'yellow',	BH4_1_TP => 'yellow',	BH4_1_TP_FN => 'yellow',
-   BH4_2 => 'yellow',	BH4_2_TP => 'yellow',	BH4_2_TP_FN => 'yellow',
-   'Bcl-2' => 'cyan', 'Bcl-2_TP' => 'cyan',
+    TM => 'black',
+);
 
-   TM => 'black',
-  );
+my %opts = (
+    'feature-types' => [qw(HMM regexp SignalP TMHMM)],
+    'feature-names' => [qw(/^BH[1234])],
 
+    #   'feature-names' => [keys %feature_color],
+    verbose => 0,
+);
 
-my %opts =
-  (
-   'feature-types' => [qw(HMM regexp SignalP TMHMM)],
-   'feature-names' => [qw(/^BH[1234])],
-#   'feature-names' => [keys %feature_color],
-   verbose => 0,
-  );
-
-GetOptions( \%opts,
-			'feature-types|F=s@',
-			'feature-names|N=s@',
-			'verbose|v+',
-		  )
-  || die("$0: usage\n");
-
+GetOptions( \%opts, 'feature-types|F=s@', 'feature-names|N=s@', 'verbose|v+',
+) || die("$0: usage\n");
 
 my $fn = shift;
-(defined $fn)
-  || die("$0: needs filename\n");
-my $in = Bio::AlignIO->new(-file => $fn,
-						   -format => 'fasta');
-my $aln = $in->next_aln();					# assume one alignment
+( defined $fn )
+    || die("$0: needs filename\n");
+my $in = Bio::AlignIO->new(
+    -file   => $fn,
+    -format => 'fasta'
+);
+my $aln = $in->next_aln();    # assume one alignment
 
-print(STDERR "# input: $fn\n");
-print(STDERR '# sequnces: ', $aln->no_sequences, "\n");
-print(STDERR '# length: ', $aln->length, "\n");
-print(STDERR '# residues: ', $aln->no_residues, "\n");
-print(STDERR '# %identity: ', $aln->percentage_identity, "\n");
+print( STDERR "# input: $fn\n" );
+print( STDERR '# sequnces: ',  $aln->no_sequences,        "\n" );
+print( STDERR '# length: ',    $aln->length,              "\n" );
+print( STDERR '# residues: ',  $aln->no_residues,         "\n" );
+print( STDERR '# %identity: ', $aln->percentage_identity, "\n" );
 
+my $u = new Unison( dbname => 'csb-dev' );
+my $sql
+    = 'SELECT *,domain_digest(start,stop,name,score,eval) FROM pahmm_v WHERE pseq_id=? AND eval<1e-1';
 
-my $u = new Unison( dbname=>'csb-dev' );
-my $sql = 'SELECT *,domain_digest(start,stop,name,score,eval) FROM pahmm_v WHERE pseq_id=? AND eval<1e-1'; 
 #if (defined $opts{'feature-types'} and @{$opts{'feature-types'}}) {
 #  $sql .= ' AND ' . generate_feature_expr('feature_type', @{$opts{'feature-types'}});
 #}
-if (defined $opts{'feature-names'} and @{$opts{'feature-names'}}) {
-  $sql .= ' AND ' . generate_feature_expr('name', @{$opts{'feature-names'}});
+if ( defined $opts{'feature-names'} and @{ $opts{'feature-names'} } ) {
+    $sql .= ' AND '
+        . generate_feature_expr( 'name', @{ $opts{'feature-names'} } );
 }
 $sql .= ' ORDER BY start,stop';
 my $feature_sth = $u->prepare($sql);
 
-
-my $panel = Bio::Graphics::Panel->new( -length => $aln->length(),
-									   -width => 1000,
-									   -key_style => 'between',
-									   );
-$panel->add_track
-	(
-	 Bio::SeqFeature::Generic->new( -start => 1,
-									-end => $aln->length(),
-									-display_name => $fn ),
-	 -glyph => 'arrow',
-	 -bump  => 0,
-	 -tick  => 1,
-	);
-
+my $panel = Bio::Graphics::Panel->new(
+    -length    => $aln->length(),
+    -width     => 1000,
+    -key_style => 'between',
+);
+$panel->add_track(
+    Bio::SeqFeature::Generic->new(
+        -start        => 1,
+        -end          => $aln->length(),
+        -display_name => $fn
+    ),
+    -glyph => 'arrow',
+    -bump  => 0,
+    -tick  => 1,
+);
 
 foreach my $bs ( $aln->each_seq() ) {
-  my $dn = $bs->display_id();
-  my $q;
+    my $dn = $bs->display_id();
+    my $q;
 
-  if ($dn =~ m/Unison:(\d+)/) {
-	$q = $1;
-  } else {
-	my $q = $u->get_pseq_id_from_alias($dn);
-	(defined $q) 
-	  || die("$0: couldn't find pseq_id for `$dn'\n");
-  }
+    if ( $dn =~ m/Unison:(\d+)/ ) {
+        $q = $1;
+    }
+    else {
+        my $q = $u->get_pseq_id_from_alias($dn);
+        ( defined $q )
+            || die("$0: couldn't find pseq_id for `$dn'\n");
+    }
 
-  my $seq = $u->get_sequence_by_pseq_id($q);
-  my $ba = $u->best_annotation($q) || 'n/a';
-  printf(STDERR "* $q ($ba); len=%d:\n", length($seq));
+    my $seq = $u->get_sequence_by_pseq_id($q);
+    my $ba = $u->best_annotation($q) || 'n/a';
+    printf( STDERR "* $q ($ba); len=%d:\n", length($seq) );
 
-  $feature_sth->execute($q);
-  my @features = ();
-  my %red_feature;
-  while ( my $row = $feature_sth->fetchrow_hashref() ) {
-	my $cstart = $aln->column_from_residue_number($dn,$row->{start});
-	my $cstop = $aln->column_from_residue_number($dn,$row->{stop});
-	my $f = $row->{name}; $f =~ s/_.+//;
-	next if $red_feature{$f}++;
-	printf(STDERR "  [%3d,%3d] -> [%3d,%3d]: %-12s %-12s  %s\n",
-		   $row->{start}, $row->{stop},
-		   $cstart, $cstop,
-		   'HMM', $row->{name}, $row->{domain_digest}   # $row->{feature_type}
-		  );
-	push(@features,Bio::SeqFeature::Generic->new(
-												 -start => $cstart,
-												 -end => $cstop,
-												 -display_name => $row->{domain_digest},
-												));
-  }
+    $feature_sth->execute($q);
+    my @features = ();
+    my %red_feature;
+    while ( my $row = $feature_sth->fetchrow_hashref() ) {
+        my $cstart = $aln->column_from_residue_number( $dn, $row->{start} );
+        my $cstop  = $aln->column_from_residue_number( $dn, $row->{stop} );
+        my $f      = $row->{name};
+        $f =~ s/_.+//;
+        next if $red_feature{$f}++;
+        printf( STDERR "  [%3d,%3d] -> [%3d,%3d]: %-12s %-12s  %s\n",
+            $row->{start}, $row->{stop},
+            $cstart,       $cstop,
+            'HMM', $row->{name}, $row->{domain_digest}  # $row->{feature_type}
+        );
+        push(
+            @features,
+            Bio::SeqFeature::Generic->new(
+                -start        => $cstart,
+                -end          => $cstop,
+                -display_name => $row->{domain_digest},
+            )
+        );
+    }
 
-  my $seq_track = $panel->add_track
-	(
-	 \@features,
-	 -glyph => 'segments',
-	 -description => 1,
-	 -key => "Unison:$q ($ba)",
-	 -fgcolor => 'black',
-	 # -bump => 0, -label => 0
-	 -bump => 1, -label => 1,
-	 -start => $aln->column_from_residue_number($dn,1),
-	 -end => $aln->column_from_residue_number($dn,$bs->length()),
-	 -bgcolor => sub { my $dn = $_[0]->display_name();
-					   $dn =~ s/\(.*//;
-					   return $feature_color{$dn} || 'white'
-					 },
-	);
+    my $seq_track = $panel->add_track(
+         \@features,
+        -glyph       => 'segments',
+        -description => 1,
+        -key         => "Unison:$q ($ba)",
+        -fgcolor     => 'black',
+
+        # -bump => 0, -label => 0
+        -bump    => 1,
+        -label   => 1,
+        -start   => $aln->column_from_residue_number( $dn, 1 ),
+        -end     => $aln->column_from_residue_number( $dn, $bs->length() ),
+        -bgcolor => sub {
+            my $dn = $_[0]->display_name();
+            $dn =~ s/\(.*//;
+            return $feature_color{$dn} || 'white';
+        },
+    );
 }
 
 print $panel->png();
-
 
 warn($sql);
 
 exit(0);
 
-
 sub generate_feature_expr($@) {
-  my ($col,@criteria) = @_;
-  my @re  = map { my $x; ($x=$_)=~s/^\///; $x } (grep {    m/^\//} @criteria);
-  my @lit =                                     (grep {not m/^\//} @criteria);
-  my @subex;
-  push(@subex, "$col in (" . join(',', map {"'$_'"} @lit) . ')') if @lit;
-  push(@subex, map { "$col ~* '$_'" } @re) if @re;
-  return '(' . join(' OR ',@subex) . ')';
+    my ( $col, @criteria ) = @_;
+    my @re = map { my $x; ( $x = $_ ) =~ s/^\///; $x }
+        ( grep {m/^\//} @criteria );
+    my @lit = ( grep { not m/^\// } @criteria );
+    my @subex;
+    push( @subex, "$col in (" . join( ',', map {"'$_'"} @lit ) . ')' )
+        if @lit;
+    push( @subex, map {"$col ~* '$_'"} @re ) if @re;
+    return '(' . join( ' OR ', @subex ) . ')';
 }
 

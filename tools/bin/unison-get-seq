@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # get-seq -- output selected sequences from Unison in fasta format
-# $Id: unison-get-seq,v 1.29 2006/06/26 18:05:08 rkh Exp $
+# $Id$
 
 =pod
 
@@ -8,7 +8,7 @@
 
 get-seq -- retrieve sequences from Unison
 
-S<$Id: unison-get-seq,v 1.29 2006/06/26 18:05:08 rkh Exp $>
+S<$Id$>
 
 =head1 SYNOPSIS
 
@@ -27,8 +27,6 @@ STDOUT, optionally with aliases or annotations.
 
 =cut
 
-
-
 use warnings;
 use strict;
 
@@ -39,294 +37,341 @@ use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 use Pod::Usage;
 
-
-
 # PROTOTYPES
 sub parse_options();
 sub map_args_to_pseq_ids($@);
 sub process1($);
 sub process_set($$);
 
-
 # We begin...
 my %opts = parse_options();
 
 if ( $opts{version} ) {
-  print(STDERR '$Id: unison-get-seq,v 1.29 2006/06/26 18:05:08 rkh Exp $ ', "\n");
-  exit;
+    print( STDERR '$Id$ ',
+        "\n" );
+    exit;
 }
 
 if ( $opts{help} ) {
-  pod2usage( { -verbose=>2 } )
+    pod2usage( { -verbose => 2 } );
 }
-
 
 # open a connection to Unison
 my $u = new Unison();
-(defined $u)
-  || die( "! couldn't open a connection to unison\n" );
+( defined $u )
+    || die("! couldn't open a connection to unison\n");
 
+if ( $opts{'select-by-pset'} == 2 ) {
 
-if ($opts{'select-by-pset'} == 2) {
-  # undocumented feature: if set to 2, bypass all
-  # kruft below to get a single set by name.
-  # This is a huge speed win.
-  # Only Unison pseq_ids are output.
-  # Use with care.
-  process_set($u, $ARGV[0]);
-  exit(0);
+    # undocumented feature: if set to 2, bypass all
+    # kruft below to get a single set by name.
+    # This is a huge speed win.
+    # Only Unison pseq_ids are output.
+    # Use with care.
+    process_set( $u, $ARGV[0] );
+    exit(0);
 }
 
-if ($opts{'select-all'}) {
-  my ($e) = $u->selectrow_array('select max(pseq_id) from pseq');
-  for (my $q=1; $q<=$e; $q++) {
-	process1($q);
-  }
+if ( $opts{'select-all'} ) {
+    my ($e) = $u->selectrow_array('select max(pseq_id) from pseq');
+    for ( my $q = 1; $q <= $e; $q++ ) {
+        process1($q);
+    }
 }
-
 
 # args from command line or stdin, but not both
-my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
+my (@args) = @ARGV ? @ARGV : map { chomp; $_ } <>;
 @args = map_args_to_pseq_ids( \%opts, @args );
-for(my $i=0; $i<=$#args; $i++) {
-  process1($args[$i]);
-  if ( $opts{verbose} 
-	   and ( ($i == $#args) 
-			 or (0 == ($i+1) % $opts{verbose_frequency}) ) ) {
-	printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
-		   $i+1,$#args+1, ($i+1)/($#args+1)*100, $args[$i]);
-  }
+for ( my $i = 0; $i <= $#args; $i++ ) {
+    process1( $args[$i] );
+    if ($opts{verbose}
+        and (  ( $i == $#args )
+            or ( 0 == ( $i + 1 ) % $opts{verbose_frequency} ) )
+        )
+    {
+        printf( STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
+            $i + 1, $#args + 1, ( $i + 1 ) / ( $#args + 1 ) * 100,
+            $args[$i]
+        );
+    }
 }
-printf(STDERR "\n") if $opts{verbose};
+printf( STDERR "\n" ) if $opts{verbose};
 
 exit(0);
-
-
 
 ############################################################################
 
 sub parse_options() {
-  my %opts = 
-	(
-	 # how to select sequences
-	 'select-all' => 0,
-	 'select-by-alias' => 0,
-	 'select-by-alias-fuzzy' => 0,
-	 'select-by-origin' => 0,
-	 'select-by-pset' => 0,
-	 'select-by-unison-id' => 0,
-	 'iupac20' => 0,						# only IUPAC real AA (no ambiguity)
+    my %opts = (
 
-	 # what to display with sequences
-	 'best-alias' => 0,
-	 'best-annotation' => 0,
-	 'all-aliases' => 0,
-	 'unison-id' => 0,
+        # how to select sequences
+        'select-all'            => 0,
+        'select-by-alias'       => 0,
+        'select-by-alias-fuzzy' => 0,
+        'select-by-origin'      => 0,
+        'select-by-pset'        => 0,
+        'select-by-unison-id'   => 0,
+        'iupac20'               => 0,    # only IUPAC real AA (no ambiguity)
 
-	 # generic options
-	 'verbose' => 0,
-	 'verbose_frequency' => 10000,
-	 'help' => 0,
-	 'version' => 0,
-	);
-  my $optsum;
-  my @opts;
+        # what to display with sequences
+        'best-alias'      => 0,
+        'best-annotation' => 0,
+        'all-aliases'     => 0,
+        'unison-id'       => 0,
 
-  GetOptions( \%opts,
-			  'select-all|all',
-			  'select-by-alias|A+',
-			  'select-by-alias-fuzzy|F+',
-			  'select-by-origin|origin|origin|O+',
-			  'select-by-pset|pset|set|S+',
-			  'select-by-unison-id|unison|U+',
-			  'iupac20+',
+        # generic options
+        'verbose'           => 0,
+        'verbose_frequency' => 10000,
+        'help'              => 0,
+        'version'           => 0,
+    );
+    my $optsum;
+    my @opts;
 
-			  'best-alias|best-oa|b+',
-			  'best-annotation|best-oad|B+',
-			  'all-aliases|a+',
-			  'unison-id|unison_id|u+',
+    GetOptions(
+        \%opts,
+        'select-all|all',
+        'select-by-alias|A+',
+        'select-by-alias-fuzzy|F+',
+        'select-by-origin|origin|origin|O+',
+        'select-by-pset|pset|set|S+',
+        'select-by-unison-id|unison|U+',
+        'iupac20+',
 
-			  'verbose|v+',
-			  'help|?+',
-			  'version|V',
-			)
-	|| die("$0: you got usage issues, homey\n");
+        'best-alias|best-oa|b+',
+        'best-annotation|best-oad|B+',
+        'all-aliases|a+',
+        'unison-id|unison_id|u+',
 
-  @opts = qw(select-all select-by-alias select-by-alias-fuzzy
-			 select-by-pset select-by-origin select-by-unison-id);
-  $optsum = eval join('+', map {$opts{$_}?1:0} @opts);
-  if ($optsum == 0) {
-	$opts{'select-by-unison-id'}++;
-  } elsif ($optsum > 1) {
-	die("$0: may only specify one of {", join(',',@opts), "}.\n");
-  }
+        'verbose|v+',
+        'help|?+',
+        'version|V',
+    ) || die("$0: you got usage issues, homey\n");
 
-  @opts = qw(best-alias best-annotation all-aliases);
-  $optsum = eval join('+', map {$opts{$_}?1:0} @opts);
-  if ($optsum == 0) {
- 	$opts{'unison-id'}++;
-  } elsif ($optsum > 1) {
-	die("$0: may only specify one of {", join(',',@opts), "}.\n");
-  }
+    @opts = qw(select-all select-by-alias select-by-alias-fuzzy
+        select-by-pset select-by-origin select-by-unison-id);
+    $optsum = eval join( '+', map { $opts{$_} ? 1 : 0 } @opts );
+    if ( $optsum == 0 ) {
+        $opts{'select-by-unison-id'}++;
+    }
+    elsif ( $optsum > 1 ) {
+        die( "$0: may only specify one of {", join( ',', @opts ), "}.\n" );
+    }
 
-  return %opts;
+    @opts = qw(best-alias best-annotation all-aliases);
+    $optsum = eval join( '+', map { $opts{$_} ? 1 : 0 } @opts );
+    if ( $optsum == 0 ) {
+        $opts{'unison-id'}++;
+    }
+    elsif ( $optsum > 1 ) {
+        die( "$0: may only specify one of {", join( ',', @opts ), "}.\n" );
+    }
+
+    return %opts;
 }
 
-
-
-
 sub map_args_to_pseq_ids($@) {
-  # args may be origins, origin_ids, set names, pset_ids, aliases, or
-  # unison_ids, or unison_id ranges. 
-  # These all need to be reduced to enumerated unison_ids.  Although this
-  # is terribly inelegant, it's not so bad in practice.
 
-  my $or = shift;
-  my @pseq_ids;
+    # args may be origins, origin_ids, set names, pset_ids, aliases, or
+    # unison_ids, or unison_id ranges.
+    # These all need to be reduced to enumerated unison_ids.  Although this
+    # is terribly inelegant, it's not so bad in practice.
 
-  if ($or->{'select-by-unison-id'}) {
-	# expand ranges like 1..5 to (1,2,3,4,5)
-	# This is in part to sanitize the expressions which will be
-	# eval'd next
-	if (my @bad = grep {not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/} @_) {
-	  die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
-	}
-	@pseq_ids = map { s/-/../; eval "$_" } @_;
-	printf(STDERR "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};
-  }
+    my $or = shift;
+    my @pseq_ids;
 
-  elsif ($or->{'select-by-pset'}) {
-	my $sth_psetid_from_name = $u->prepare('select pset_id(?)');
-	my $sth_name_from_psetid = $u->prepare('select name from pset where pset_id=?');
-	my $sth_pseqid_from_psetid = $u->prepare('select pseq_id from pseqset where pset_id=?');
+    if ( $or->{'select-by-unison-id'} ) {
 
-	foreach my $arg (@_) {
-	  my ($pset_id, $pset_name);
-	  if ($arg =~ m/^\d+$/) {
-		($pset_name) = $u->selectrow_array($sth_name_from_psetid,undef,$arg);
-		if (not defined $pset_name) {
-		  warn("! pset with pset_id=$arg doesn't exist\n");
-		  next;
-		}
-		$pset_id = $arg;
-	  } else {
-		($pset_id) = $u->selectrow_array($sth_psetid_from_name,undef,$arg);
-		if (not defined $pset_id) {
-		  warn("! pset named '$arg' doesn't exist (and $arg doesn't look like a numeric pset id)\n");
-		  next;
-		}
-		$pset_name = $arg;
-	  }
+        # expand ranges like 1..5 to (1,2,3,4,5)
+        # This is in part to sanitize the expressions which will be
+        # eval'd next
+        if ( my @bad = grep { not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/ } @_ ) {
+            die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n"
+            );
+        }
+        @pseq_ids = map { s/-/../; eval "$_" } @_;
+        printf( STDERR "# %d sequences specified by Unison id\n",
+            $#pseq_ids + 1
+        ) if $opts{verbose};
+    }
 
-	  my (@Q) = map {$_->[0]} @{ $u->selectall_arrayref($sth_pseqid_from_psetid,undef,$pset_id) };
-	  if (not @Q) {
-		warn("$0: pset '$pset_name' (pset_id=$pset_id) contains 0 sequences\n")
-	  }
-	  printf(STDERR "# %d sequence ids in set '$pset_name' ($pset_id)\n", $#Q+1) if $opts{verbose};
-	  push(@pseq_ids, @Q);
-	}
-	printf(STDERR "# %d sequences in selected sets\n", $#pseq_ids+1) if $opts{verbose};
-  }
+    elsif ( $or->{'select-by-pset'} ) {
+        my $sth_psetid_from_name = $u->prepare('select pset_id(?)');
+        my $sth_name_from_psetid
+            = $u->prepare('select name from pset where pset_id=?');
+        my $sth_pseqid_from_psetid
+            = $u->prepare('select pseq_id from pseqset where pset_id=?');
 
-  elsif ($or->{'select-by-origin'}) {
-	my $sth_originid_from_origin = $u->prepare('select origin_id from origin where origin=?');
-	my $sth_origin_from_originid = $u->prepare('select origin from origin where origin_id=?');
-	my $sth_pseqid_from_originid = $u->prepare('select pseq_id from palias where origin_id=?');
+        foreach my $arg (@_) {
+            my ( $pset_id, $pset_name );
+            if ( $arg =~ m/^\d+$/ ) {
+                ($pset_name)
+                    = $u->selectrow_array( $sth_name_from_psetid, undef,
+                    $arg );
+                if ( not defined $pset_name ) {
+                    warn("! pset with pset_id=$arg doesn't exist\n");
+                    next;
+                }
+                $pset_id = $arg;
+            }
+            else {
+                ($pset_id)
+                    = $u->selectrow_array( $sth_psetid_from_name, undef,
+                    $arg );
+                if ( not defined $pset_id ) {
+                    warn(
+                        "! pset named '$arg' doesn't exist (and $arg doesn't look like a numeric pset id)\n"
+                    );
+                    next;
+                }
+                $pset_name = $arg;
+            }
 
-	foreach my $arg (@_) {
-	  my ($origin_id, $origin_origin);
-	  if ($arg =~ m/^\d+$/) {
-		($origin_origin) = $u->selectrow_array($sth_origin_from_originid,undef,$arg);
-		if (not defined $origin_origin) {
-		  warn("! origin with origin_id=$arg doesn't exist\n");
-		  next;
-		}
-		$origin_id = $arg;
-	  } else {
-		($origin_id) = $u->selectrow_array($sth_originid_from_origin,undef,$arg);
-		if (not defined $origin_id) {
-		  warn("! origin named '$arg' doesn't exist (and $arg doesn't look like a numeric origin id)\n");
-		  next;
-		}
-		$origin_origin = $arg;
-	  }
+            my (@Q) = map { $_->[0] } @{
+                $u->selectall_arrayref( $sth_pseqid_from_psetid, undef,
+                    $pset_id )
+                };
+            if ( not @Q ) {
+                warn(
+                    "$0: pset '$pset_name' (pset_id=$pset_id) contains 0 sequences\n"
+                );
+            }
+            printf( STDERR
+                    "# %d sequence ids in set '$pset_name' ($pset_id)\n",
+                $#Q + 1
+            ) if $opts{verbose};
+            push( @pseq_ids, @Q );
+        }
+        printf( STDERR "# %d sequences in selected sets\n", $#pseq_ids + 1 )
+            if $opts{verbose};
+    }
 
-	  my (@Q) = map {$_->[0]} @{ $u->selectall_arrayref($sth_pseqid_from_originid,undef,$origin_id) };
-	  if (not @Q) {
-		warn("$0: origin '$origin_origin' (origin_id=$origin_id) contains 0 sequences\n")
-	  }
-	  printf(STDERR "# %d sequence ids in origin '$origin_origin' ($origin_id)\n", $#Q+1) if $opts{verbose};
-	  push(@pseq_ids, @Q);
-	}
-	printf(STDERR "# %d sequences selected by origin\n", $#pseq_ids+1) if $opts{verbose};
-  }
+    elsif ( $or->{'select-by-origin'} ) {
+        my $sth_originid_from_origin
+            = $u->prepare('select origin_id from origin where origin=?');
+        my $sth_origin_from_originid
+            = $u->prepare('select origin from origin where origin_id=?');
+        my $sth_pseqid_from_originid
+            = $u->prepare('select pseq_id from palias where origin_id=?');
 
-  elsif ($or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'}) {
-	foreach my $arg (@_) {
-	  my (@Q) = ( $or->{'select-by-alias'} 
-				  ? $u->get_pseq_id_from_alias_exact( $arg )
-				  : $u->get_pseq_id_from_alias( $arg ) );
-	  if (not @Q) {
-		warn("$0: no sequences found for alias '$arg'\n");
-	  } elsif ($#Q > 0 and $or->{'select-by-alias'}) {
-		# no warning for fuzzy searches
-		# this can only happen for aliases in multiple origins
-		warn("$0: multiple sequences found for alias '$arg'\n");
-	  }
-	  push(@pseq_ids, @Q);
-	}
-	printf(STDERR "# %d sequences selected by alias\n", $#pseq_ids+1) if $opts{verbose};
-  }
+        foreach my $arg (@_) {
+            my ( $origin_id, $origin_origin );
+            if ( $arg =~ m/^\d+$/ ) {
+                ($origin_origin)
+                    = $u->selectrow_array( $sth_origin_from_originid, undef,
+                    $arg );
+                if ( not defined $origin_origin ) {
+                    warn("! origin with origin_id=$arg doesn't exist\n");
+                    next;
+                }
+                $origin_id = $arg;
+            }
+            else {
+                ($origin_id)
+                    = $u->selectrow_array( $sth_originid_from_origin, undef,
+                    $arg );
+                if ( not defined $origin_id ) {
+                    warn(
+                        "! origin named '$arg' doesn't exist (and $arg doesn't look like a numeric origin id)\n"
+                    );
+                    next;
+                }
+                $origin_origin = $arg;
+            }
 
-  return @pseq_ids;
+            my (@Q) = map { $_->[0] } @{
+                $u->selectall_arrayref( $sth_pseqid_from_originid, undef,
+                    $origin_id )
+                };
+            if ( not @Q ) {
+                warn(
+                    "$0: origin '$origin_origin' (origin_id=$origin_id) contains 0 sequences\n"
+                );
+            }
+            printf( STDERR
+                    "# %d sequence ids in origin '$origin_origin' ($origin_id)\n",
+                $#Q + 1
+            ) if $opts{verbose};
+            push( @pseq_ids, @Q );
+        }
+        printf( STDERR "# %d sequences selected by origin\n", $#pseq_ids + 1 )
+            if $opts{verbose};
+    }
+
+    elsif ( $or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'} ) {
+        foreach my $arg (@_) {
+            my (@Q) = (
+                  $or->{'select-by-alias'}
+                ? $u->get_pseq_id_from_alias_exact($arg)
+                : $u->get_pseq_id_from_alias($arg)
+            );
+            if ( not @Q ) {
+                warn("$0: no sequences found for alias '$arg'\n");
+            }
+            elsif ( $#Q > 0 and $or->{'select-by-alias'} ) {
+
+                # no warning for fuzzy searches
+                # this can only happen for aliases in multiple origins
+                warn("$0: multiple sequences found for alias '$arg'\n");
+            }
+            push( @pseq_ids, @Q );
+        }
+        printf( STDERR "# %d sequences selected by alias\n", $#pseq_ids + 1 )
+            if $opts{verbose};
+    }
+
+    return @pseq_ids;
 }
 
 sub process1($) {
-  my $pseq_id = shift;
-  my $seq = $u->get_sequence_by_pseq_id($pseq_id);
-  my @aliases;
+    my $pseq_id = shift;
+    my $seq     = $u->get_sequence_by_pseq_id($pseq_id);
+    my @aliases;
 
-  if (not defined $seq) {
-	warn("! Unison:$pseq_id not found\n");
-	return;
-  }
+    if ( not defined $seq ) {
+        warn("! Unison:$pseq_id not found\n");
+        return;
+    }
 
-  if ($opts{iupac20} and $seq =~ m/[^ACDEFGHIKLMNPQRSTVWY]/) {
-	warn("Unison:$pseq_id: contains non-IUPAC20 amino acids\n") if $opts{verbose};
-	return;
-  }
+    if ( $opts{iupac20} and $seq =~ m/[^ACDEFGHIKLMNPQRSTVWY]/ ) {
+        warn("Unison:$pseq_id: contains non-IUPAC20 amino acids\n")
+            if $opts{verbose};
+        return;
+    }
 
-  if ($opts{'best-annotation'}) {
-	(@aliases) = $u->best_annotation($pseq_id)
-  } elsif ($opts{'best-alias'} == 1) {
-	(@aliases) = $u->best_alias($pseq_id)
-  } elsif ($opts{'best-alias'} > 1 ) {
-	(@aliases) = $u->pseq_get_aliases($pseq_id,10000)
-  } elsif ($opts{'all-aliases'}) {
-	(@aliases) = $u->pseq_get_aliases($pseq_id)
-  }
+    if ( $opts{'best-annotation'} ) {
+        (@aliases) = $u->best_annotation($pseq_id);
+    }
+    elsif ( $opts{'best-alias'} == 1 ) {
+        (@aliases) = $u->best_alias($pseq_id);
+    }
+    elsif ( $opts{'best-alias'} > 1 ) {
+        (@aliases) = $u->pseq_get_aliases( $pseq_id, 10000 );
+    }
+    elsif ( $opts{'all-aliases'} ) {
+        (@aliases) = $u->pseq_get_aliases($pseq_id);
+    }
 
-  if ($opts{'unison-id'} or not @aliases) {
-	unshift( @aliases, "Unison:$pseq_id" );
-  }
+    if ( $opts{'unison-id'} or not @aliases ) {
+        unshift( @aliases, "Unison:$pseq_id" );
+    }
 
-  my $rv = '>' . join(' ',@aliases) . "\n";
-  while( length($seq) )
-	{ $rv .= substr($seq,0,60,'') . "\n"; }
+    my $rv = '>' . join( ' ', @aliases ) . "\n";
+    while ( length($seq) ) { $rv .= substr( $seq, 0, 60, '' ) . "\n"; }
 
-  print $rv;
+    print $rv;
 }
 
-
 sub process_set($$) {
-  my $u = shift;
-  my $set_name = shift;
-  my $rv;
-  my $N = $u->selectrow_array("select count(*) from pseqset where pset_id=pset_id('$set_name')");
-  if ($N==0) {
-	die("no sequences in $set_name\n");
-  }
-  my $sth = $u->prepare(<<EOSQL);
+    my $u        = shift;
+    my $set_name = shift;
+    my $rv;
+    my $N = $u->selectrow_array(
+        "select count(*) from pseqset where pset_id=pset_id('$set_name')");
+    if ( $N == 0 ) {
+        die("no sequences in $set_name\n");
+    }
+    my $sth = $u->prepare(<<EOSQL);
   SELECT Q.pseq_id,Q.seq,BA.origin,BA.alias,BA.descr,BA.gs
     FROM pseq Q
     JOIN pseqset QS on Q.pseq_id=QS.pseq_id
@@ -334,31 +379,33 @@ sub process_set($$) {
    WHERE QS.pset_id=pset_id(?)
 ORDER BY Q.pseq_id
 EOSQL
-  $sth->execute($set_name);
-  my $i = 0;
-  while( my @row = $sth->fetchrow_array() ) {
-	my ($pseq_id,$seq,$origin,$alias,$descr,$gs) = @row;
-	$descr =~ s/\t/ /g;
-	$descr =~ s/\x08//g; 					# yes, it /is/ BS
+    $sth->execute($set_name);
+    my $i = 0;
+    while ( my @row = $sth->fetchrow_array() ) {
+        my ( $pseq_id, $seq, $origin, $alias, $descr, $gs ) = @row;
+        $descr =~ s/\t/ /g;
+        $descr =~ s/\x08//g;    # yes, it /is/ BS
 
-	my @out;
-	push(@out, ">Unison:$pseq_id");
-	push(@out, " $origin:$alias") if defined $origin and defined $alias;
-	push(@out, " $descr") if defined $descr;
-	push(@out, " [$gs]") if defined $gs;
-	push(@out, "\n");
-	while( length($seq) ) {
-	  push(@out, substr($seq,0,60,'') . "\n");
-	}
-	print @out;
+        my @out;
+        push( @out, ">Unison:$pseq_id" );
+        push( @out, " $origin:$alias" ) if defined $origin and defined $alias;
+        push( @out, " $descr" ) if defined $descr;
+        push( @out, " [$gs]" )  if defined $gs;
+        push( @out, "\n" );
+        while ( length($seq) ) {
+            push( @out, substr( $seq, 0, 60, '' ) . "\n" );
+        }
+        print @out;
 
-	$i++;
-	if ( $opts{verbose} 
-		 and ( (0 == $i % $opts{verbose_frequency})
-			   or ($i == $N) ) ) {
-	  printf(STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
-			 $i, $N, $i/$N*100, $pseq_id);
-	}
-  }
-  print(STDERR "\n");
+        $i++;
+        if ($opts{verbose}
+            and (  ( 0 == $i % $opts{verbose_frequency} )
+                or ( $i == $N ) )
+            )
+        {
+            printf( STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
+                $i, $N, $i / $N * 100, $pseq_id );
+        }
+    }
+    print( STDERR "\n" );
 }

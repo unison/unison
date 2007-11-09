@@ -65,12 +65,11 @@ TABLE.page TD.navbar {
 
 
 /* nav and subnav bars */
-TABLE.nav {
- border: none;
+TABLE.nav,TABLE.subnav {
  color: U_NAV_FG;
  background: U_BG;
 }
-TABLE.nav TD.unselected {
+TABLE.nav TD.unselected,TABLE.subnav TD.unselected {
  background: U_NAV_BG;
  border: thin solid U_FRAME;
  color: U_NAV_FG;
@@ -78,8 +77,10 @@ TABLE.nav TD.unselected {
  padding-right: 5px;
  width: 50px;
  white-space: nowrap;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
 }
-TABLE.nav TD.selected {
+TABLE.nav TD.selected,TABLE.subnav TD.selected {
  background: U_NAV_FG;
  border: thin solid U_FRAME;
  color: U_NAV_BG;
@@ -88,74 +89,45 @@ TABLE.nav TD.selected {
  padding-right: 5px;
  white-space: nowrap;
  width: 50px;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
 }
-TABLE.nav TD.unselected:hover {
+TABLE.nav TD.unselected:hover,TABLE.subnav TD.unselected:hover {
  background: U_HOVER_HIGHLIGHT;
  border: U_FRAME thin solid;
  color: U_NAV_FG;
  cursor:pointer;cursor:hand;
 }
-TABLE.nav TD.selected A {
+TABLE.nav TD.selected A,TABLE.subnav TD.selected A {
  color: U_NAV_FG;
  font-weight: bold;
  text-decoration: none;
 }
-TABLE.nav TD.unselected A {
+TABLE.nav TD.unselected A,TABLE.subnav TD.unselected A {
  text-decoration: none;
  color: U_NAV_FG;
 }
-
 
 TABLE.subnav {
- border: U_FRAME medium solid;
- color: U_NAV_FG;
-}
-TABLE.subnav TD.unselected {
- width: 50px;
- border: U_NAV_BG thin solid;
- padding-left: 5px;
- padding-right: 5px;
+ border: medium solid U_FRAME;
  background: U_NAV_BG;
- color: U_NAV_FG;
 }
-TABLE.subnav TD.selected {
- width: 50px;
- border: U_FRAME thin solid;
- padding-left: 5px;
- padding-right: 5px;
- background: U_FRAME;
- font-weight: bold;
- color: U_NAV_FG;
-}
-TABLE.subnav TD.unselected:hover {
- background: U_HOVER_HIGHLIGHT;
- border: U_FRAME thin solid;
- cursor:pointer;cursor:hand;
- color: U_NAV_FG;
-}
-TABLE.subnav TD.selected A {
- color: U_NAV_FG;
- font-weight: bold;
- text-decoration: none;
-}
-TABLE.subnav TD.unselected A {
- color: U_NAV_FG;
- text-decoration: none;
-}
-
 
 
 /* grouped data */
 TABLE.group {
  width: 100%;
- margin: 0px;
- padding: 0px;
- border: 0px;
+ margin: 0;
+  margin-top: 10px;
+ padding: 0;
+ border: 0;
  border-spacing: 0;
 }
 
 TABLE.group TH.grouptag {
  border: thin solid U_FRAME;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
  background: U_FRAME;
  width: 20%;
  font-size: largest;
@@ -164,6 +136,8 @@ TABLE.group TH.grouptag {
 
 TABLE.group TD {
  border: medium solid U_FRAME;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
 }
 
 
@@ -172,6 +146,7 @@ TABLE.summary {
  border: none;
  background: U_BG;
  margin: none;
+  margin-top: 10px;
  border: none;
 }
 TABLE.summary TH {
@@ -200,15 +175,15 @@ table.quicklinks {
   /* border:  U_FRAME thin solid; */
 }
 TD.quicklinks_title {
- background:  U_NAV_BG;
- color: U_NAV_FG;
+ background: U_NAV_FG;
+ color: U_NAV_BG;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
  font-style: italic; 
 }
 TD.quicklinks {
- border:  thin solid U_NAV_BG;
+ border:  thin solid U_NAV_FG;
  color: U_NAV_FG;
  padding-left: 2px;
  padding-right: 2px;
@@ -234,10 +209,12 @@ TABLE.credits TD {
 TABLE.uwtable {
  background: U_TABLE_BG;
  margin: 0px;
+ -moz-border-radius: 0px;
+  border-radius: 0px;
 }
 TABLE.uwtable TBODY {
  background: U_TABLE_BG;
- overflow: auto;
+  /* overflow: auto; */
 }
 TABLE.uwtable TH {
  border: thin solid U_UWTABLE_FG;
@@ -251,10 +228,14 @@ TABLE.uwtable TH.highlighted {
 TABLE.uwtable TD {
  border: thin solid U_UWTABLE_FG;
  background: U_UWTABLE_BG;
+ -moz-border-radius: 0px;
+  border-radius: 0px;
 }
 TABLE.uwtable TD.highlighted {
  border: thin solid U_UWTABLE_FG;
  background: U_TABLE_HIGHLIGHT_BG;
+ -moz-border-radius: 0px;
+  border-radius: 0px;
 }
 
 
@@ -387,13 +368,13 @@ SPAN.error {
 SPAN.debug {
   background-color: U_DEBUG_BG;
 }
-div.warning {
+DIV.warning {
  border: U_ERROR_FG medium solid;
  padding: 2px;
  margin: 5px;
  color: U_ERROR_FG;
 }
-div.sql {
+DIV.sql {
  border: U_SQL_FG thin solid;
  padding: 2px;
  margin: 5px;

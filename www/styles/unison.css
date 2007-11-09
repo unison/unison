@@ -110,12 +110,11 @@ TABLE.page TD.navbar {
 
 
 /* nav and subnav bars */
-TABLE.nav {
- border: none;
+TABLE.nav,TABLE.subnav {
  color: #004B8C;
  background: white;
 }
-TABLE.nav TD.unselected {
+TABLE.nav TD.unselected,TABLE.subnav TD.unselected {
  background: white;
  border: thin solid #004B8C;
  color: #004B8C;
@@ -123,8 +122,10 @@ TABLE.nav TD.unselected {
  padding-right: 5px;
  width: 50px;
  white-space: nowrap;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
 }
-TABLE.nav TD.selected {
+TABLE.nav TD.selected,TABLE.subnav TD.selected {
  background: #004B8C;
  border: thin solid #004B8C;
  color: white;
@@ -133,74 +134,45 @@ TABLE.nav TD.selected {
  padding-right: 5px;
  white-space: nowrap;
  width: 50px;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
 }
-TABLE.nav TD.unselected:hover {
+TABLE.nav TD.unselected:hover,TABLE.subnav TD.unselected:hover {
  background: #F5CC06;
  border: #004B8C thin solid;
  color: #004B8C;
  cursor:pointer;cursor:hand;
 }
-TABLE.nav TD.selected A {
+TABLE.nav TD.selected A,TABLE.subnav TD.selected A {
  color: #004B8C;
  font-weight: bold;
  text-decoration: none;
 }
-TABLE.nav TD.unselected A {
+TABLE.nav TD.unselected A,TABLE.subnav TD.unselected A {
  text-decoration: none;
  color: #004B8C;
 }
-
 
 TABLE.subnav {
- border: #004B8C medium solid;
- color: #004B8C;
-}
-TABLE.subnav TD.unselected {
- width: 50px;
- border: white thin solid;
- padding-left: 5px;
- padding-right: 5px;
+ border: medium solid #004B8C;
  background: white;
- color: #004B8C;
 }
-TABLE.subnav TD.selected {
- width: 50px;
- border: #004B8C thin solid;
- padding-left: 5px;
- padding-right: 5px;
- background: #004B8C;
- font-weight: bold;
- color: #004B8C;
-}
-TABLE.subnav TD.unselected:hover {
- background: #F5CC06;
- border: #004B8C thin solid;
- cursor:pointer;cursor:hand;
- color: #004B8C;
-}
-TABLE.subnav TD.selected A {
- color: #004B8C;
- font-weight: bold;
- text-decoration: none;
-}
-TABLE.subnav TD.unselected A {
- color: #004B8C;
- text-decoration: none;
-}
-
 
 
 /* grouped data */
 TABLE.group {
  width: 100%;
- margin: 0px;
- padding: 0px;
- border: 0px;
+ margin: 0;
+  margin-top: 10px;
+ padding: 0;
+ border: 0;
  border-spacing: 0;
 }
 
 TABLE.group TH.grouptag {
  border: thin solid #004B8C;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
  background: #004B8C;
  width: 20%;
  font-size: largest;
@@ -209,6 +181,8 @@ TABLE.group TH.grouptag {
 
 TABLE.group TD {
  border: medium solid #004B8C;
+ -moz-border-radius: 4px;
+  border-radius: 4px;
 }
 
 
@@ -217,6 +191,7 @@ TABLE.summary {
  border: none;
  background: white;
  margin: none;
+  margin-top: 10px;
  border: none;
 }
 TABLE.summary TH {
@@ -245,15 +220,15 @@ table.quicklinks {
   /* border:  #004B8C thin solid; */
 }
 TD.quicklinks_title {
- background:  white;
- color: #004B8C;
+ background: #004B8C;
+ color: white;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
  font-style: italic; 
 }
 TD.quicklinks {
- border:  thin solid white;
+ border:  thin solid #004B8C;
  color: #004B8C;
  padding-left: 2px;
  padding-right: 2px;
@@ -279,10 +254,12 @@ TABLE.credits TD {
 TABLE.uwtable {
  background: white;
  margin: 0px;
+ -moz-border-radius: 0px;
+  border-radius: 0px;
 }
 TABLE.uwtable TBODY {
  background: white;
- overflow: auto;
+  /* overflow: auto; */
 }
 TABLE.uwtable TH {
  border: thin solid #913745;
@@ -296,10 +273,14 @@ TABLE.uwtable TH.highlighted {
 TABLE.uwtable TD {
  border: thin solid #913745;
  background: white;
+ -moz-border-radius: 0px;
+  border-radius: 0px;
 }
 TABLE.uwtable TD.highlighted {
  border: thin solid #913745;
  background: #F5CC06;
+ -moz-border-radius: 0px;
+  border-radius: 0px;
 }
 
 
@@ -432,18 +413,18 @@ SPAN.error {
 SPAN.debug {
   background-color: white;
 }
-div.warning {
+DIV.warning {
  border: red medium solid;
  padding: 2px;
  margin: 5px;
  color: red;
 }
-div.sql {
+DIV.sql {
  border: black thin solid;
  padding: 2px;
  margin: 5px;
  color: black;
- background-color: white;
+ background-color: #B7D9BB;
  font-family: monospace;
  font-size: xx-small;
 }

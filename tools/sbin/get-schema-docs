@@ -5,7 +5,7 @@
 # PURPOSE: build schema documentation
 # USAGE: get-schema-docs [schema-name]
 #
-# $Id: get-schema-docs,v 1.1 2003/11/26 22:33:50 cavs Exp $
+# $Id$
 #-------------------------------------------------------------------------------
 
 if [ -n "$1" ]; then

@@ -2,35 +2,35 @@
 # log-split -- split multi-month logs into files by month
 # 2007-02-02 Reece Hart <reece@harts.net>
 
-
 use strict;
 use warnings;
 use IO::File;
 
-my %fh;										# file handles, by YYYY-MM
-my $cur_fh;									# last written fh
-
+my %fh;        # file handles, by YYYY-MM
+my $cur_fh;    # last written fh
 
 while ( my $line = <> ) {
-  my ($yyyymm) = $line =~ m/^(\d\d\d\d-\d\d)-\d\d/;
+    my ($yyyymm) = $line =~ m/^(\d\d\d\d-\d\d)-\d\d/;
 
-  if (defined $yyyymm 
-	  and not exists $fh{$yyyymm}) {
-	my $fn = "$yyyymm.log";
-	if (-f "$fn") {
-	  die("$fn: file exists\n");
-	}
-	my $fh = new IO::File;
-	$fh->open(">$fn")
-	  || die("$fn: $!\n");
-	warn("# created new file $fn\n");
-	$fh{$yyyymm} = $fh;
-	$cur_fh = $fh;
-  }
+    if ( defined $yyyymm
+        and not exists $fh{$yyyymm} )
+    {
+        my $fn = "$yyyymm.log";
+        if ( -f "$fn" ) {
+            die("$fn: file exists\n");
+        }
+        my $fh = new IO::File;
+        $fh->open(">$fn")
+            || die("$fn: $!\n");
+        warn("# created new file $fn\n");
+        $fh{$yyyymm} = $fh;
+        $cur_fh = $fh;
+    }
 
-  if (not defined $cur_fh) {
-	die("line $.: line read but no dated log file has been opened yet.\n");
-  }
+    if ( not defined $cur_fh ) {
+        die("line $.: line read but no dated log file has been opened yet.\n"
+        );
+    }
 
-  $cur_fh->print($line);
+    $cur_fh->print($line);
 }

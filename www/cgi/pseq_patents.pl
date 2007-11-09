@@ -5,7 +5,7 @@ use warnings;
 
 use FindBin;
 use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq",
-  "$FindBin::Bin/../../perl5";
+    "$FindBin::Bin/../../perl5";
 
 use Unison::WWW;
 use Unison::WWW::Page;
@@ -25,7 +25,7 @@ EOT
 
 $v->{pct_ident}    = 98 unless exists $v->{pct_ident};
 $v->{pct_coverage} = 98 unless exists $v->{pct_coverage};
-$v->{pseq_id} = $p->_infer_pseq_id();   # internal function called. Shame on me.
+$v->{pseq_id} = $p->_infer_pseq_id(); # internal function called. Shame on me.
 
 print $p->render(
     "Patents 'near' Unison:$v->{pseq_id}",
@@ -98,9 +98,11 @@ ORDER BY pct_coverage desc,pct_ident desc,patent_date,patent_authority,alias
 EOSQL
 
     my $ar = $u->selectall_arrayref($sql);
-    my @f =
-      qw( pseq_id len %IDE %COV alias species date authority description );
-    return ( "<hr>\n",
+    my @f
+        = qw( pseq_id len %IDE %COV alias species date authority description );
+    return (
+        "<hr>\n",
         $p->group( "Patent Results", Unison::WWW::Table::render( \@f, $ar ) ),
-        $p->sql($sql) );
+        $p->sql($sql)
+    );
 }
