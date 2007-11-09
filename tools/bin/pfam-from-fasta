@@ -13,25 +13,21 @@ use lib "$FindBin::RealBin/../../perl5";
 use Unison;
 use Unison::run_history;
 
-
 # Unison stores multiple versions of Pfam results (different Pfam releases,
 # different command line options, etc.). $params must be listed in the
 # unison.params table.
-my $params = 'Pfam_ls 17.0';
+my $params   = 'Pfam_ls 17.0';
 my $eval_max = '1e-5';
-
 
 # connect with defaults. See Unison::DBI. Typically, the connection is made
 # to the csb production host ('csb'), csb production database (also 'csb'),
 # as the calling user id, authenticated by kerberos.
-my $u = new Unison( );
-
+my $u = new Unison();
 
 # get the numeric params_id corresponding to the desired $params
 my $params_id = $u->params_id_by_name($params);
-(defined $params_id)
-  || die("$params: No such parameter set name\n");
-
+( defined $params_id )
+    || die("$params: No such parameter set name\n");
 
 # prepare the Pfam lookup
 my $pfam_sth = $u->prepare(<<EOSQL);
@@ -41,50 +37,57 @@ my $pfam_sth = $u->prepare(<<EOSQL);
 	ORDER BY eval, start
 EOSQL
 
-
-my $Id = '$Id: pfam-from-fasta,v 1.6 2005/12/07 23:21:02 rkh Exp $ ';
-print(STDERR <<EOT);
+my $Id = '$Id$ ';
+print( STDERR <<EOT);
 # $Id
 # params = $params (params_id = $params_id)
 # eval threshold = $eval_max
 EOT
 
-my $in = new Bio::SeqIO( -fh => \*STDIN,
-						 -format => 'fasta' );
+my $in = new Bio::SeqIO(
+    -fh     => \*STDIN,
+    -format => 'fasta'
+);
 my $sno = 0;
 
-while( my $bs = $in->next_seq() ) {
-  $sno++;
-  my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
+while ( my $bs = $in->next_seq() ) {
+    $sno++;
+    my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
 
-  if (not defined $pseq_id) {
-	warn( "! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
-	next;
-  }
+    if ( not defined $pseq_id ) {
+        warn( "! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
+        next;
+    }
 
-  my @results = @{ $u->selectall_arrayref($pfam_sth,undef,
-										  $pseq_id, $params_id, $eval_max) };
+    my @results = @{
+        $u->selectall_arrayref( $pfam_sth, undef, $pseq_id, $params_id,
+            $eval_max )
+        };
 
-  printf("* %s (Unison:%d; %s); %d hmm alignment(s)\n",
-		 $bs->display_id(), $pseq_id, 
-		 $u->best_alias($pseq_id) || '<no alias>', 
-		 $#results+1);
+    printf(
+        "* %s (Unison:%d; %s); %d hmm alignment(s)\n",
+        $bs->display_id(), $pseq_id,
+        $u->best_alias($pseq_id) || '<no alias>',
+        $#results + 1
+    );
 
-  if (not @results) {
-	# !!! no results => either 1) never run or 2) no results given criteria
-	# distinguish these cases by checking the run_history table.
-	my $z = $u->get_run_timestamp($pseq_id,$params_id,undef,undef);
-	if (defined $z) {
-	  print("  run on $z; no hits with E<=$eval_max\n");
-	} else {
-	  print("  not run using parameters '$params'\n");
-	}
-	next;
-  }
+    if ( not @results ) {
 
-  printf("  [%4.4s,%4.4s] %4s %5s  %8s  %-10.10s  %-15.15s  %s\n",
-		 qw(strt stop ends score eval acc name descr));
-  foreach my $a (@results) {
-	printf("  [%4d,%4d] %4s %5d  %8g  %-10.10s  %-15.15s  %s\n", @$a);
-  }
+       # !!! no results => either 1) never run or 2) no results given criteria
+       # distinguish these cases by checking the run_history table.
+        my $z = $u->get_run_timestamp( $pseq_id, $params_id, undef, undef );
+        if ( defined $z ) {
+            print("  run on $z; no hits with E<=$eval_max\n");
+        }
+        else {
+            print("  not run using parameters '$params'\n");
+        }
+        next;
+    }
+
+    printf( "  [%4.4s,%4.4s] %4s %5s  %8s  %-10.10s  %-15.15s  %s\n",
+        qw(strt stop ends score eval acc name descr) );
+    foreach my $a (@results) {
+        printf( "  [%4d,%4d] %4s %5d  %8g  %-10.10s  %-15.15s  %s\n", @$a );
+    }
 }

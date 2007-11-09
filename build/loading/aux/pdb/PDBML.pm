@@ -231,7 +231,7 @@ sub new {
     $self->{twig} = $self->_xml_init();
 
     my $content = ( $fn =~ /\.gz$/ ? `gzip -cdq $fn` : `cat $fn` )
-      || return undef;
+        || return undef;
     $self->{twig}->parse($content);    # build the twig
 
     my $entry_id = $self->{twig}->root->simplify();
@@ -264,33 +264,34 @@ sub summary {
     my $pdbid = uc( $self->{pdbid} );
 
     #summary
-    my $method = $att{exptl}{method}{ $pdbid . ":" } || $self->_check("method");
+    my $method = $att{exptl}{method}{ $pdbid . ":" }
+        || $self->_check("method");
     my $resolution = $att{refine}{ls_d_res_high}{ $pdbid . ":" }
-      || $self->_check("resolution");
+        || $self->_check("resolution");
     my $title = (
           $att{struct}{title}{ $pdbid . ":" }
         ? $att{struct}{title}{ $pdbid . ":" }
         : $att{struct}{pdbx_descriptor}{ $pdbid . ":" }
-      )
-      || $self->_check("title");
+        )
+        || $self->_check("title");
     my $header = $att{struct_keywords}{pdbx_keywords}{ $pdbid . ":" }
-      || $self->_check("header");
+        || $self->_check("header");
 
 # assuming that source is the same for all polymer entities and taking the first
     my $source = $att{entity_src_gen}{pdbx_gene_src_scientific_name}{'1:'}
-      || $self->_check("source");
+        || $self->_check("source");
 
     # sort through all the revisions and take the last
     my @revisions = sort { $a cmp $b } keys %{ $att{database_PDB_rev}{date} };
     my $lastmdate = $att{database_PDB_rev}{date}{ $revisions[$#revisions] }
-      || $self->_check("last modified date");
+        || $self->_check("last modified date");
 
 #print $fh lc($pdbid),"\t$method\t$resolution\t$title\t$header\t",uc($source),"\t$lastmdate\n";
     return
-        lc($pdbid)
-      . "\t$method\t$resolution\t$title\t$header\t"
-      . uc($source)
-      . "\t$lastmdate\n";
+          lc($pdbid)
+        . "\t$method\t$resolution\t$title\t$header\t"
+        . uc($source)
+        . "\t$lastmdate\n";
 }
 
 ######################################################################
@@ -318,35 +319,35 @@ sub chain {
     foreach my $pri_col (
         sort { $order->{$a} <=> $order->{$b} }
         sort keys %{ $att{pdbx_poly_seq_scheme}{pdb_seq_num} }
-      )
+        )
     {
 
-        my ( $asym_id, $entity_id, $seq_res, $seq_num ) =
-          split( /\:/, $pri_col );
+        my ( $asym_id, $entity_id, $seq_res, $seq_num )
+            = split( /\:/, $pri_col );
 
         my $chain = $att{pdbx_poly_seq_scheme}{pdb_strand_id}{$pri_col} || '';
         $self->{chains}{$chain}{count}++;
         $self->{chains}{$chain}{id} = $entity_id
-          if ( !defined( $self->{chains}{$chain}{id} ) );
+            if ( !defined( $self->{chains}{$chain}{id} ) );
         $self->{chains}{$chain}{asym_id} = $asym_id
-          if ( !defined( $self->{chains}{$chain}{asym_id} ) );
+            if ( !defined( $self->{chains}{$chain}{asym_id} ) );
     }
 
     foreach my $pri_col ( sort keys %{ $att{pdbx_entity_name}{name} } ) {
         next unless defined( $att{pdbx_entity_name}{name}{$pri_col} );
         my ( $ent, $name, $name_type ) = split( /\:/, $pri_col );
         $self->{entities}{$ent}{name} = $name
-          if (
+            if (
             $name_type =~ /RCSB_NAME/
             or ( !defined( $self->{entities}{$ent}{name} )
                 && $name_type =~ /NAME/ )
-          );
+            );
     }
     foreach my $ent ( keys %{ $att{entity}{pdbx_description} } ) {
         $self->{entities}{$ent}{descr} = $att{entity}{pdbx_description}{$ent}
-          if ( !defined( $self->{entities}{$ent}{descr} ) );
+            if ( !defined( $self->{entities}{$ent}{descr} ) );
         $self->{entities}{$ent}{ec} = $att{entity}{pdbx_ec}{$ent}
-          if ( !defined( $self->{entities}{$ent}{ec} )
+            if ( !defined( $self->{entities}{$ent}{ec} )
             && $att{entity}{pdbx_ec}{$ent} =~ /\./ );
     }
 
@@ -356,33 +357,35 @@ sub chain {
         my $ent = $self->{chains}{$chain}{id};
 
         my $ec = $self->{entities}{ $ent . ":" }{ec}
-          || $self->_check("Enzyme Classification");
+            || $self->_check("Enzyme Classification");
         $ec =~ s/E\.C\.\s//;
         my $name = (
             defined( $self->{entities}{$ent}{name} )
             ? $self->{entities}{$ent}{name}
             : $self->{entities}{ $ent . ":" }{descr}
-          )
-          || $self->_check("Chain Name");
+            )
+            || $self->_check("Chain Name");
 
 # this is where we change the chainid to blank if pdbx_blank_PDB_chainid_flag is set to Y(true)
-        $chain =
-          ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-              { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y' ? '' : $chain )
-          if (
+        $chain
+            = ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
+                { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y'
+            ? ''
+            : $chain )
+            if (
             defined(
                 $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-                  { $self->{chains}{$chain}{asym_id} . ':' }
+                    { $self->{chains}{$chain}{asym_id} . ':' }
             )
-          );
+            );
 
-        $ret .=
-            lc($pdbid)
-          . "\t$chain\t"
-          . lc($pdbid)
-          . $chain . "\t"
-          . $name . "\t"
-          . $ec . "\n";
+        $ret
+            .= lc($pdbid)
+            . "\t$chain\t"
+            . lc($pdbid)
+            . $chain . "\t"
+            . $name . "\t"
+            . $ec . "\n";
     }
     return $ret;
 }
@@ -412,24 +415,26 @@ sub residue {
     foreach my $pri_col (
         sort { $order->{$a} <=> $order->{$b} }
         sort keys %{ $att{pdbx_poly_seq_scheme}{pdb_seq_num} }
-      )
+        )
     {
 
-        my ( $asym_id, $entity_id, $seq_res, $seq_num ) =
-          split( /\:/, $pri_col );
+        my ( $asym_id, $entity_id, $seq_res, $seq_num )
+            = split( /\:/, $pri_col );
         next unless defined $aa_codes{$seq_res};
         my $chain = $att{pdbx_poly_seq_scheme}{pdb_strand_id}{$pri_col} || '';
 
 # this is where we change the chainid to blank if pdbx_blank_PDB_chainid_flag is set to Y(true)
-        $chain =
-          ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-              { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y' ? '' : $chain )
-          if (
+        $chain
+            = ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
+                { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y'
+            ? ''
+            : $chain )
+            if (
             defined(
                 $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-                  { $self->{chains}{$chain}{asym_id} . ':' }
+                    { $self->{chains}{$chain}{asym_id} . ':' }
             )
-          );
+            );
 
         my $atom_res = (
             defined( $att{pdbx_poly_seq_scheme}{pdb_mon_id}{$pri_col} )
@@ -443,12 +448,12 @@ sub residue {
         );
 
 #print $fh lc($pdbid)."$chain\t",lc($pdbid),"\t$chain\t$seq_num\t",lc($aa_codes{$seq_res}),"\t",lc($aa_codes{$atom_res}),"\t$res_id\n";
-        $ret .=
-            lc($pdbid)
-          . "$chain\t$seq_num\t"
-          . lc( $aa_codes{$seq_res} ) . "\t"
-          . lc( $aa_codes{$atom_res} )
-          . "\t$res_id\n";
+        $ret
+            .= lc($pdbid)
+            . "$chain\t$seq_num\t"
+            . lc( $aa_codes{$seq_res} ) . "\t"
+            . lc( $aa_codes{$atom_res} )
+            . "\t$res_id\n";
     }
     return $ret;
 }
@@ -477,7 +482,7 @@ sub ligand {
     #ligand
     foreach my $ligand ( keys %{ $att{chem_comp}{name} } ) {
         next
-          unless ( $att{chem_comp}{type}{$ligand} ne 'polymer'
+            unless ( $att{chem_comp}{type}{$ligand} ne 'polymer'
             and ( $ligand ne 'HOH:' )
             and $att{chem_comp}{type}{$ligand} !~ /peptide/ );
         my $synonym = (
@@ -491,7 +496,7 @@ sub ligand {
 
 #print $fh lc($pdbid),"\t$lig\t$att{chem_comp}{name}{$ligand}\t$att{chem_comp}{formula}{$ligand}\t$att{chem_comp}{formula_weight}{$ligand}\t$synonym\n";
         $ret .= lc($pdbid)
-          . "\t$lig\t$att{chem_comp}{name}{$ligand}\t$att{chem_comp}{formula}{$ligand}\t$att{chem_comp}{formula_weight}{$ligand}\t$synonym\n";
+            . "\t$lig\t$att{chem_comp}{name}{$ligand}\t$att{chem_comp}{formula}{$ligand}\t$att{chem_comp}{formula_weight}{$ligand}\t$synonym\n";
     }
     return $ret;
 }
@@ -518,13 +523,13 @@ sub _get_data_tag {
         my $dum_ctr = 0;
         foreach my $col ( sort keys %{ $att{$table_name} } ) {
             $att{$table_name}{$col}{$pri_col} = $dum_ctr++
-              if ( !$row->first_child( 'PDBx:' . $col ) );
+                if ( !$row->first_child( 'PDBx:' . $col ) );
             next unless ( $row->first_child( 'PDBx:' . $col ) );
-            $att{$table_name}{$col}{$pri_col} =
-              $row->first_child( 'PDBx:' . $col )->text;
+            $att{$table_name}{$col}{$pri_col}
+                = $row->first_child( 'PDBx:' . $col )->text;
             $order->{$pri_col} = $att_ctr++;
 
-      #print "$table_name\t$col\t$pri_col\t$att{$table_name}{$col}{$pri_col}\n";
+    #print "$table_name\t$col\t$pri_col\t$att{$table_name}{$col}{$pri_col}\n";
         }
     }
 }

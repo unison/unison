@@ -23,8 +23,8 @@
         my $saq = $tables{'unison.pseqalias'}->copy_query();
         $qq  =~ s/\n/ /g;
         $saq =~ s/\n/ /g;
-        return ("SELECT Q.* FROM ($qq) Q \n"
-              . "JOIN (SELECT DISTINCT pseq_id FROM ($saq) X) SACQ ON Q.pseq_id = SACQ.pseq_id"
+        return (  "SELECT Q.* FROM ($qq) Q \n"
+                . "JOIN (SELECT DISTINCT pseq_id FROM ($saq) X) SACQ ON Q.pseq_id = SACQ.pseq_id"
         );
     },
 

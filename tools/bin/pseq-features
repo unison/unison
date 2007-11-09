@@ -11,21 +11,17 @@ use Unison;
 use Unison::features;
 use Getopt::Long qw(:config gnu_getopt);
 
+my %opts = (
+    pseq_id => undef,
+    width   => 750,
+);
+GetOptions( \%opts, 'pseq_id|q=i', 'width|w=i', )
+    || die("$0: usage issues, chief\n");
 
-my %opts = 
-  (
-   pseq_id => undef,
-   width => 750,
-  );
-GetOptions( \%opts,
-			'pseq_id|q=i',
-			'width|w=i',
-		  )
-  || die("$0: usage issues, chief\n");
-
-(defined $opts{pseq_id})
-  || die("$0: Doh! You definitely need to gimme a unison pseq_id (w/--pseq_id)\n");
+( defined $opts{pseq_id} )
+    || die(
+    "$0: Doh! You definitely need to gimme a unison pseq_id (w/--pseq_id)\n");
 
 my $u = new Unison;
-print $u->features_graphic($opts{pseq_id}, $opts{width});
+print $u->features_graphic( $opts{pseq_id}, $opts{width} );
 exit(0);

@@ -1,11 +1,10 @@
 #!/usr/bin/env perl
 # blast2 -- blasts 2 unison pseq_ids
-# $Id: blast2,v 1.8 2004/06/04 00:09:10 rkh Exp $
+# $Id$
 
 # This script is very immature.  Error handling is shoddy, features like
 # user-specifiable substitution matrices are completely absent, and it's
 # been poorly tested.  Have a nice day.
-
 
 use strict;
 use warnings;
@@ -20,63 +19,66 @@ use lib "$FindBin::RealBin/../../perl5";
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 
+select(STDERR);
+$|++;
+select(STDOUT);
+$|++;
 
-select(STDERR); $|++;
-select(STDOUT); $|++;
+my %opts = ( 'show-report' => 0, );
 
-my %opts =
-  (
-   'show-report' => 0,
-  );
+GetOptions( \%opts, 'show-report|r+', )
+    || die("$0: you are horribly misguided about my arguments\n");
 
-GetOptions(\%opts,
-		   'show-report|r+',
-		  )
-  || die("$0: you are horribly misguided about my arguments\n");
+( @ARGV == 2 )
+    || die("I need exactly two args, the Unison pseq_ids of the sequences\n");
 
-(@ARGV == 2)
-  || die("I need exactly two args, the Unison pseq_ids of the sequences\n");
-
-
-my ($id1,$id2) = @ARGV;
-
+my ( $id1, $id2 ) = @ARGV;
 
 # temp output file & cleanup
 my $bo = "/tmp/bl2seq-$$.out";
-sub cleanup () { unlink($bo); };
-$SIG{$_} = sub { cleanup(); exit 1; } for qw(HUP INT QUIT);
+sub cleanup () { unlink($bo); }
+$SIG{$_} = sub { cleanup(); exit 1; }
+    for qw(HUP INT QUIT);
 
+my $u  = new Unison();
+my $s1 = Bio::PrimarySeq->new(
+    -seq      => $u->get_sequence_by_pseq_id($id1),
+    -id       => "Unison:$id1",
+    -desc     => $u->best_annotation($id1),
+    -alphabet => 'protein'
+);
+my $s2 = Bio::PrimarySeq->new(
+    -seq      => $u->get_sequence_by_pseq_id($id2),
+    -id       => "Unison:$id2",
+    -desc     => $u->best_annotation($id2),
+    -alphabet => 'protein'
+);
 
-my $u = new Unison( );
-my $s1 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id1 ),
-								-id  => "Unison:$id1",
-								-desc => $u->best_annotation($id1),
-								-alphabet => 'protein' );
-my $s2 = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $id2 ),
-								-id  => "Unison:$id2",
-								-desc => $u->best_annotation($id2),
-								-alphabet => 'protein' );
+my $factory = Bio::Tools::Run::StandAloneBlast->new(
+    program => 'blastp',
+    outfile => $bo
+);
+$factory->F('F');    # no filtering/masking
+$factory->bl2seq( $s1, $s2 );
 
-my $factory = Bio::Tools::Run::StandAloneBlast->new(program => 'blastp',
-													outfile => $bo);
-$factory->F('F');							# no filtering/masking
-$factory->bl2seq($s1,$s2);
-
-
-my $report = Bio::Tools::BPbl2seq->new(-file => $bo,
-									   -report_type => 'blastp' );
+my $report = Bio::Tools::BPbl2seq->new(
+    -file        => $bo,
+    -report_type => 'blastp'
+);
 $report->sbjctName;
 $report->sbjctLength;
-while(my $hsp = $report->next_feature) {
-  printf("I/+/len=%3d(%3d%%)/%3d(%3d%%)/%3d, S=%3d, E=%6.2g\n",
-		 $hsp->match(), $hsp->percent(),
-		 $hsp->positive(), $hsp->positive()/$hsp->length()*100,
-		 $hsp->length(), $hsp->score(), $hsp->P() );
+while ( my $hsp = $report->next_feature ) {
+    printf(
+        "I/+/len=%3d(%3d%%)/%3d(%3d%%)/%3d, S=%3d, E=%6.2g\n",
+        $hsp->match(), $hsp->percent(), $hsp->positive(),
+        $hsp->positive() / $hsp->length() * 100,
+        $hsp->length(), $hsp->score(), $hsp->P()
+    );
 }
 
-if ($opts{'show-report'}) {
-  print("BLAST REPORT FOLLOWS\n");
-  system("cat $bo");
+if ( $opts{'show-report'} ) {
+    print("BLAST REPORT FOLLOWS\n");
+    system("cat $bo");
 }
 
 cleanup();

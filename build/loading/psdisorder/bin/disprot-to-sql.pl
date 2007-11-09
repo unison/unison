@@ -7,8 +7,7 @@ while ( my $line = <> ) {
     my $uq = shift(@F);
     my ($q) = $uq =~ m/^Unison:(\d+)/;
     if ( not defined $q ) {
-        die(
-"$0: line $.: doesn't look like output from temple-disprot.pl:    $_\n"
+        die("$0: line $.: doesn't look like output from temple-disprot.pl:    $_\n"
         );
     }
 

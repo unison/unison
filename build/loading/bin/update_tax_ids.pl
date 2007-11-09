@@ -87,8 +87,8 @@ print( STDERR '# ',
     join(
         ', ',
         grep { $opts{$_} }
-          qw(drop-paotax
-          create-paotax assign reassign nullify)
+            qw(drop-paotax
+            create-paotax assign reassign nullify)
     ),
     "\n"
 );
@@ -96,14 +96,17 @@ print( STDERR '# ',
 my $u = new Unison( dbname => 'csb-dev' );
 
 if ( defined $opts{origin} ) {
-    $opts{origin_id} = $u->selectrow_array("select origin_id('$opts{origin}')");
+    $opts{origin_id}
+        = $u->selectrow_array("select origin_id('$opts{origin}')");
     print( STDERR "# origin_id('$opts{origin}') = $opts{origin_id}\n" );
 }
 
-if ( not defined $opts{'palias-id-min'} or not defined $opts{'palias-id-max'} )
+if (   not defined $opts{'palias-id-min'}
+    or not defined $opts{'palias-id-max'} )
 {
     my $sql = 'select min(palias_id),max(palias_id) from paliasorigin';
-    $sql .= " WHERE origin_id=$opts{origin_id}" if ( defined $opts{origin_id} );
+    $sql .= " WHERE origin_id=$opts{origin_id}"
+        if ( defined $opts{origin_id} );
     my ( $b, $e ) = $u->selectrow_array($sql);
     $opts{'palias-id-min'} = $b unless defined $opts{'palias-id-min'};
     $opts{'palias-id-max'} = $e unless defined $opts{'palias-id-max'};
@@ -118,7 +121,8 @@ if ( $opts{'create-paotax'} ) {
 
 # set min and max to the empirical min and max from the paotax table
 my $sql = 'select min(palias_id),max(palias_id) from paotax';
-( $opts{'palias-id-min'}, $opts{'palias-id-max'} ) = $u->selectrow_array($sql);
+( $opts{'palias-id-min'}, $opts{'palias-id-max'} )
+    = $u->selectrow_array($sql);
 printf( STDERR "# palias_id range (empirical) = [%d,%d]\n",
     $opts{'palias-id-min'}, $opts{'palias-id-max'} );
 
@@ -157,28 +161,28 @@ sub create_paotax ($) {
     my @cond;
     if ( $opts{assign} ) {
         push( @cond,
-'tax_id IS NULL AND infer_tax_id(O.origin,AO.alias,AO.descr) IS NOT NULL'
+            'tax_id IS NULL AND infer_tax_id(O.origin,AO.alias,AO.descr) IS NOT NULL'
         );
     }
     if ( $opts{nullify} ) {
         push( @cond,
-'tax_id IS NOT NULL AND infer_tax_id(O.origin,AO.alias,AO.descr) IS NULL'
+            'tax_id IS NOT NULL AND infer_tax_id(O.origin,AO.alias,AO.descr) IS NULL'
         );
     }
     if ( $opts{reassign} ) {
         push( @cond, 'tax_id != infer_tax_id(O.origin,AO.alias,AO.descr)' );
     }
-    $sql .= ' AND (' . join( ' OR ', map { "($_)" } @cond ) . ')';
+    $sql .= ' AND (' . join( ' OR ', map {"($_)"} @cond ) . ')';
 
     eval { $u->do('drop table paotax') }
-      || die("couldn't drop paotax table\n");
+        || die("couldn't drop paotax table\n");
     eval {
         $u->do(
             qq/create table paotax (palias_id integer not null,
             tax_id integer, infer_tax_id integer) without oids/
         );
-      }
-      || die("couldn't drop paotax table\n");
+        }
+        || die("couldn't drop paotax table\n");
     my $sth = $u->prepare($sql);
     execute_sth( ( caller(0) )[3], $sth, $opts{'increment'} );
     $u->do('create index paotax_palias_id on paotax(palias_id)');
@@ -234,10 +238,10 @@ sub execute_sth($$$) {
     my ( $fx, $sth, $inc ) = @_;
     my $nr_tot = 0;
     for (
-        my $b = $opts{'palias-id-min'} ;
-        $b <= $opts{'palias-id-max'} ;
+        my $b = $opts{'palias-id-min'};
+        $b <= $opts{'palias-id-max'};
         $b += $inc
-      )
+        )
     {
         my $e = $b + $inc;
         my $nr = $sth->execute( $b, $e );

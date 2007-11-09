@@ -8,9 +8,8 @@
 # eg2$ framework-search <framwork.fa >file.html
 # eg3$ framework-search region1 region2 ... regionN >file.html
 #
-# $Id: framework-search,v 1.9 2006/06/26 18:05:08 rkh Exp $
+# $Id$
 #
-
 
 use strict;
 use warnings;
@@ -21,25 +20,18 @@ use lib "$FindBin::RealBin/../../perl5";
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);
 
+my %opts = (
+    title   => undef,
+    testing => 0
+);
 
-my %opts = 
-  ( 			
-   title => undef,
-   testing => 0
-  );
-
-GetOptions(\%opts,
-		   'title|t=s',
-		   'testing+'
-		  );
-
+GetOptions( \%opts, 'title|t=s', 'testing+' );
 
 # Sequences of all origins will be searched. @origins is the
 # list of origins whose name, description, and last_update will be
 # included in the report.
 my (@origins) = qw(Ensembl/Human GGI GenenGenes Geneseq IPI Incyte Kabat
-				MGC/Human MGC/Mouse PDB Proteome RefSeq Uniprot);
-
+    MGC/Human MGC/Mouse PDB Proteome RefSeq Uniprot);
 
 ## PROTOTYPES
 sub html_header();
@@ -50,61 +42,59 @@ sub origins_table($@);
 sub results_table($@);
 sub fr_re(@);
 
-
-my @fr = ();								# array of framework regions
-
+my @fr = ();    # array of framework regions
 
 # get framework regions from command line if exists, else stdin
 if (@ARGV) {
-  @fr = @ARGV;
-} else {
-  while(my $line = <>) {
-	if ($line =~ m/^[A-Z]/i) {
-	  chomp($line);
-	  push(@fr,$line);
-	}
-  }
+    @fr = @ARGV;
 }
-print(STDERR '# read ', $#fr+1, " framework regions:\n",
-	  map { "#   $_\n" } @fr);
-
+else {
+    while ( my $line = <> ) {
+        if ( $line =~ m/^[A-Z]/i ) {
+            chomp($line);
+            push( @fr, $line );
+        }
+    }
+}
+print( STDERR '# read ',
+    $#fr + 1,
+    " framework regions:\n",
+    map {"#   $_\n"} @fr
+);
 
 my $start_time = time;
-my $u = new Unison();
+my $u          = new Unison();
 
 print html_header();
 print framework_summary(@fr);
 print about_search();
-print origins_table($u,@origins);
-print results_table($u,@fr);
+print origins_table( $u, @origins );
+print results_table( $u, @fr );
 
 my $elapsed_time = time - $start_time;
 
 print html_footer($elapsed_time);
 
-printf(STDERR "# report generated in %d seconds\n",
-	   $elapsed_time);
+printf( STDERR "# report generated in %d seconds\n", $elapsed_time );
 
 exit(0);
-
-
 
 ###########################################################################
 ## INTERNAL FUNCTIONS
 
 sub html_header() {
-  my $title = 'Antibody Framework Search';
-  my $Id = '$Id: framework-search,v 1.9 2006/06/26 18:05:08 rkh Exp $ ';
-  my $date = `date +"%Y-%m-%d %H:%M"`;
+    my $title = 'Antibody Framework Search';
+    my $Id    = '$Id$ ';
+    my $date  = `date +"%Y-%m-%d %H:%M"`;
 
-  my $htmltitle = $title;
-  my $h2subtitle = '';
-  if ($opts{title}) {
-	$htmltitle = "$title: $opts{title}";
-	$h2subtitle = "<h2>$opts{title}</h2>";
-  }
+    my $htmltitle  = $title;
+    my $h2subtitle = '';
+    if ( $opts{title} ) {
+        $htmltitle  = "$title: $opts{title}";
+        $h2subtitle = "<h2>$opts{title}</h2>";
+    }
 
-  my $html = <<EOHTML;
+    my $html = <<EOHTML;
 <html>
 
 <head>
@@ -121,31 +111,29 @@ Version $Id
 
 EOHTML
 
-  return $html;
+    return $html;
 }
 
-
 sub framework_summary(@) {
-  my @fr = @_;
-  my $nfr = $#fr+1;
-  my $li_block = join('',map { "  <li>$_\n" } @fr);
-  my $fr_re = fr_re(@fr);
+    my @fr       = @_;
+    my $nfr      = $#fr + 1;
+    my $li_block = join( '', map {"  <li>$_\n"} @fr );
+    my $fr_re    = fr_re(@fr);
 
-  my $html = <<EOHTML;
+    my $html = <<EOHTML;
 <hr><h2>Framework Regions</h2>
 <ul>
 $li_block
 </ul>
 EOHTML
 
-  #$html .= "<blockquote>(regexp: <code>$fr_re</code>)</blockquote>\n";
+    #$html .= "<blockquote>(regexp: <code>$fr_re</code>)</blockquote>\n";
 
-  return $html;
+    return $html;
 }
 
-
 sub about_search() {
-  return <<EOHTML;
+    return <<EOHTML;
 <h2>About the search</h2>
 
 This report identifies sequences which are matched by a set antibody
@@ -159,22 +147,23 @@ about how the search was performed.
 EOHTML
 }
 
-
 sub origins_table($@) {
-  my $u = shift;
-  my @origins = @_;
-  my $html = '';
-  my $sql = "select origin,url,descr,to_char(last_updated, 'YYYY-MM-DD&nbsp;HH24:MI'::text) as last_updated"
- 	. ' from origin where origin in (' . join(',', map {"'$_'"} @origins) . ') '
-	. ' order by upper(origin)';
-  my $sth = $u->prepare($sql);
+    my $u       = shift;
+    my @origins = @_;
+    my $html    = '';
+    my $sql
+        = "select origin,url,descr,to_char(last_updated, 'YYYY-MM-DD&nbsp;HH24:MI'::text) as last_updated"
+        . ' from origin where origin in ('
+        . join( ',', map {"'$_'"} @origins ) . ') '
+        . ' order by upper(origin)';
+    my $sth = $u->prepare($sql);
 
-  eval { $sth->execute() };
-  if ($@) {
-	die( $u->errstr() );
-  }
+    eval { $sth->execute() };
+    if ($@) {
+        die( $u->errstr() );
+    }
 
-  $html .= <<EOHTML;
+    $html .= <<EOHTML;
 <hr><h2>Database Sources</h2>
 Sequences originating from the following major databases were searched.
 Additional minor databases were searched but are not listed below.
@@ -183,27 +172,31 @@ Additional minor databases were searched but are not listed below.
   <tr><th>origin</th><th>description</th><th>last updated</th></tr>
 EOHTML
 
-  while ( my $data = $sth->fetchrow_hashref() ) {
-	#XXX null or %s origins need trimming
-	$html .= sprintf('<tr><td align="left"><a href="%s">%s</a></td><td align="left">%s</td><td align="center">%s</td></tr>',
-					(map {defined $_ ? $_ : ''} @$data{qw(url origin descr last_updated)})) ."\n" ;
-  }
+    while ( my $data = $sth->fetchrow_hashref() ) {
 
-  $html .= <<EOHTML;
+        #XXX null or %s origins need trimming
+        $html .= sprintf(
+            '<tr><td align="left"><a href="%s">%s</a></td><td align="left">%s</td><td align="center">%s</td></tr>',
+            (   map { defined $_ ? $_ : '' }
+                    @$data{qw(url origin descr last_updated)}
+            )
+        ) . "\n";
+    }
+
+    $html .= <<EOHTML;
 </table>
 EOHTML
 
-  return $html;
+    return $html;
 }
 
-
 sub results_table($@) {
-  my $u = shift;
-  my @fr = @_;
-  my $fr = fr_re(@fr);
-  my $html = '';
+    my $u    = shift;
+    my @fr   = @_;
+    my $fr   = fr_re(@fr);
+    my $html = '';
 
-  my $sql = <<EOSQL;
+    my $sql = <<EOSQL;
 SELECT
   DISTINCT ON (S.pseq_id)
   S.pseq_id,
@@ -222,19 +215,18 @@ WHERE
 ORDER BY
   S.pseq_id, O.ann_pref
 EOSQL
-  
-  if ($opts{testing}) {
-	$sql =~ s/WHERE/WHERE S.pseq_id>=1880200 and S.pseq_id<=1880300 AND /;
-  }
 
-  my $sth = $u->prepare($sql);
-  eval { $sth->execute($fr) };
-  if ($@) {
-	die( $u->errstr() );
-  }
+    if ( $opts{testing} ) {
+        $sql =~ s/WHERE/WHERE S.pseq_id>=1880200 and S.pseq_id<=1880300 AND /;
+    }
 
+    my $sth = $u->prepare($sql);
+    eval { $sth->execute($fr) };
+    if ($@) {
+        die( $u->errstr() );
+    }
 
-  $html .= <<EOHTML;
+    $html .= <<EOHTML;
 <hr><h2>Results</h2>
 
 The following sequences contain the framework regions shown above.
@@ -251,23 +243,28 @@ that sequence from all source databases.
   <tr><th>Unison pseq_id</th><th>best annotation</th></tr>
 EOHTML
 
-  my $pseq_url_fmt = 'http://csb/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
-  while ( my $data = $sth->fetchrow_hashref() ) {
-	#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
-	$html .= sprintf('<tr><td align="right"><a href="'.$pseq_url_fmt.'">%s</a></th><td align="left">%s</th></tr>',
-					@$data{qw(pseq_id pseq_id best_annotation)}) ."\n" ;
-  }
+    my $pseq_url_fmt = 'http://csb/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
+    while ( my $data = $sth->fetchrow_hashref() ) {
 
-  $html .= <<EOHTML;
+#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
+        $html .= sprintf(
+            '<tr><td align="right"><a href="'
+                . $pseq_url_fmt
+                . '">%s</a></th><td align="left">%s</th></tr>',
+            @$data{qw(pseq_id pseq_id best_annotation)}
+        ) . "\n";
+    }
+
+    $html .= <<EOHTML;
 </table>
 EOHTML
 
-  return $html;
+    return $html;
 }
 
 sub html_footer($) {
-  my $Id = '$Id: framework-search,v 1.9 2006/06/26 18:05:08 rkh Exp $ ';
-  return <<EOHTML;
+    my $Id = '$Id$ ';
+    return <<EOHTML;
 <hr>
 Report generated in $_[0] seconds.
 <br>$Id
@@ -276,28 +273,25 @@ Report generated in $_[0] seconds.
 EOHTML
 }
 
-
 sub fr_re(@) {
-  join('.*',@_);
+    join( '.*', @_ );
 }
-
-
 
 #########################################################################
 ### DEAD CODE
 
 sub results_table2($@) {
-  ## BROKEN BROKEN BROKEN
-  ## sequences which don't have geneseqs are omitted with the SQL below
-  ## (test: ^MAE and pseq_id<=100 should give 2 seqs, 1 of which has a pat)
-  ## left joins don't work. I'm confused.
+    ## BROKEN BROKEN BROKEN
+    ## sequences which don't have geneseqs are omitted with the SQL below
+    ## (test: ^MAE and pseq_id<=100 should give 2 seqs, 1 of which has a pat)
+    ## left joins don't work. I'm confused.
 
-  my $u = shift;
-  my @fr = @_;
-  my $fr = fr_re(@fr);
-  my $html = '';
+    my $u    = shift;
+    my @fr   = @_;
+    my $fr   = fr_re(@fr);
+    my $html = '';
 
-  my $sql = <<EOSQL;
+    my $sql = <<EOSQL;
 SELECT
   DISTINCT ON (S.pseq_id)
   S.pseq_id,
@@ -324,16 +318,17 @@ ORDER BY
   S.pseq_id, O.ann_pref, GSAO.palias_id
 EOSQL
 
-  $sql =~ s/\s+/ /gs; $sql =~ s/~ \?/~ '$fr'/; die("$sql\n");
-  
-  my $sth = $u->prepare($sql);
-  eval { $sth->execute($fr) };
-  if ($@) {
-	die( $u->errstr() );
-  }
+    $sql =~ s/\s+/ /gs;
+    $sql =~ s/~ \?/~ '$fr'/;
+    die("$sql\n");
 
+    my $sth = $u->prepare($sql);
+    eval { $sth->execute($fr) };
+    if ($@) {
+        die( $u->errstr() );
+    }
 
-  $html .= <<EOHTML;
+    $html .= <<EOHTML;
 <hr><h2>Results</h2>
 
 The following sequences contain the framework regions shown above.
@@ -350,17 +345,22 @@ that sequence from all source databases.
   <tr><th>Unison pseq_id</th><th width="42%">best annotation</th><th width="42%">patent info (if any; only one listed)</th></tr>
 EOHTML
 
-  my $pseq_url_fmt = 'http://csb/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
-  while ( my $data = $sth->fetchrow_hashref() ) {
-	#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
-	$html .= sprintf('<tr><td align="right"><a href="'.$pseq_url_fmt.'">%s</a></th><td align="left">%s</th></tr>',
-					@$data{qw(pseq_id pseq_id best_annotation patent_annotation)}) ."\n" ;
-  }
+    my $pseq_url_fmt = 'http://csb/csb/unison/bin/pseq_summary.pl?pseq_id=%d';
+    while ( my $data = $sth->fetchrow_hashref() ) {
 
-  $html .= <<EOHTML;
+#XXX Use of uninitialized value in sprintf at ./bin/framework-search line 162, <> line 12.
+        $html .= sprintf(
+            '<tr><td align="right"><a href="'
+                . $pseq_url_fmt
+                . '">%s</a></th><td align="left">%s</th></tr>',
+            @$data{qw(pseq_id pseq_id best_annotation patent_annotation)}
+        ) . "\n";
+    }
+
+    $html .= <<EOHTML;
 </table>
 EOHTML
 
-  return $html;
+    return $html;
 }
 

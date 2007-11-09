@@ -3,149 +3,141 @@
 # usage: clean-backups [dirs...]
 # output: a list of .pgdump.gz and .pgdump.err files to be deleted
 
-
 use strict;
 use warnings;
 use IO::Dir;
 
 sub YxM ($$);
 
-my %files;  								# $files{YYYY-MM}[]
-
+my %files;    # $files{YYYY-MM}[]
 
 my $dump_dat_re = qr/\.pgdump?(?:\.gz)?/;
 my $dump_err_re = qr/\.pgdump(?:-s)?\.err/;
-my $ts_re = '200\d-[01]\d-\d\d-\d\d:\d\d';
-
+my $ts_re       = '200\d-[01]\d-\d\d-\d\d:\d\d';
 
 # collect filenames and bin into YYYY-MM bins
 my %dump_dat = ();
 my %dump_err = ();
-while( my $dir = shift ) {
-  my $d = new IO::Dir $dir;
-  (defined $d)
-	or die("$0: $dir: $!\n");
-  while( my $dirent = $d->read() ) {
-	next if ($dirent eq '.' or $dirent eq '..');
-	my $de_p = "$dir/$dirent";
-	if ($de_p =~ m/$dump_err_re/) {
-	  $dump_err{$de_p}++;
-	} elsif ($de_p =~ m/$dump_dat_re/) {
-	  $dump_dat{$de_p}++;
-	} else {
-	  warn("Ignoring $de_p\n");
-	}
-  }
-  $d->close();
+while ( my $dir = shift ) {
+    my $d = new IO::Dir $dir;
+    ( defined $d )
+        or die("$0: $dir: $!\n");
+    while ( my $dirent = $d->read() ) {
+        next if ( $dirent eq '.' or $dirent eq '..' );
+        my $de_p = "$dir/$dirent";
+        if ( $de_p =~ m/$dump_err_re/ ) {
+            $dump_err{$de_p}++;
+        }
+        elsif ( $de_p =~ m/$dump_dat_re/ ) {
+            $dump_dat{$de_p}++;
+        }
+        else {
+            warn("Ignoring $de_p\n");
+        }
+    }
+    $d->close();
 }
-
 
 # make sure that each dat file has an err file, and that the
 # err file doesn't indicate a dump problem (by size).
-foreach my $fp (keys %dump_dat) {
-  my $root = $fp; $root =~ s/\.gz//;
-  my $efp = "$root.err";
-  if ( not exists $dump_err{$efp} ) {
-	warn("No error file for dump $fp; excluding.\n");
-	delete $dump_dat{$fp};
-	next;
-  }
+foreach my $fp ( keys %dump_dat ) {
+    my $root = $fp;
+    $root =~ s/\.gz//;
+    my $efp = "$root.err";
+    if ( not exists $dump_err{$efp} ) {
+        warn("No error file for dump $fp; excluding.\n");
+        delete $dump_dat{$fp};
+        next;
+    }
 
-  if ( not  ((stat($fp))[2] & oct(200))  ) { # not user writable
-	warn("$fp isn't user writable; assuming this dump should be preserved.\n");
-	delete $dump_dat{$fp};
-	delete $dump_err{$efp};
-	next;
-  }
+    if ( not( ( stat($fp) )[2] & oct(200) ) ) {    # not user writable
+        warn(
+            "$fp isn't user writable; assuming this dump should be preserved.\n"
+        );
+        delete $dump_dat{$fp};
+        delete $dump_err{$efp};
+        next;
+    }
 
+    if ( ( stat($efp) )[7] >= 40 ) {    # time -p output is ~35 bytes
+        warn("Error file $efp is larger than expected; excluding $fp.\n");
+        delete $dump_dat{$fp};
+        delete $dump_err{$efp};
+        next;
+    }
 
-  if ( (stat($efp))[7] >= 40 ) {			# time -p output is ~35 bytes
-	warn("Error file $efp is larger than expected; excluding $fp.\n");
-	delete $dump_dat{$fp};
-	delete $dump_err{$efp};
-	next;
-  }
-
-  delete $dump_err{$efp};
+    delete $dump_err{$efp};
 }
-
 
 # any leftover dump_err entries are error files which don't have a dump
-if (keys %dump_err) {
-  warn(scalar keys %dump_err, " error files don't have dumps:\n");
-  print( STDERR map {$_,"\n"} sort keys %dump_err );
+if ( keys %dump_err ) {
+    warn( scalar keys %dump_err, " error files don't have dumps:\n" );
+    print( STDERR map { $_, "\n" } sort keys %dump_err );
 }
 
-
 # bin dump files by YYYY_MM
-foreach my $fp (keys %dump_dat) {
-  next if $fp =~ m/-s/;						# skip schema-only dumps
-  my ($YYYY_MM) = $fp =~ m%/(200\d-[01]\d)-%;
-  if (not defined $YYYY_MM) {
-	die("couldn't infer YYYYMM from $fp\n");
-  }
-  push( @{ $files{$YYYY_MM} }, $fp );
+foreach my $fp ( keys %dump_dat ) {
+    next if $fp =~ m/-s/;    # skip schema-only dumps
+    my ($YYYY_MM) = $fp =~ m%/(200\d-[01]\d)-%;
+    if ( not defined $YYYY_MM ) {
+        die("couldn't infer YYYYMM from $fp\n");
+    }
+    push( @{ $files{$YYYY_MM} }, $fp );
 }
 undef %dump_dat;
 undef %dump_err;
 
-
 # Reverse-chronologically sort files within each bin
 # Although this is an alphanumeric sort, the syntax of the filenames
 # guarantees that this is chronological.
-foreach my $YYYY_MM (sort keys %files) {
-  @{ $files{$YYYY_MM} } = sort {$b cmp $a} @{ $files{$YYYY_MM} };
+foreach my $YYYY_MM ( sort keys %files ) {
+    @{ $files{$YYYY_MM} } = sort { $b cmp $a } @{ $files{$YYYY_MM} };
 }
-
 
 # Remove dumps from each YYYY_MM bin; these will be preserved.
 # Filenames which remain in the lists are deletion candidates.
 my @now = localtime();
-my $curYxM = YxM($now[5]+1900,$now[4]+1);
-foreach my $YYYY_MM (sort keys %files) {
-  my $N = $#{ $files{$YYYY_MM} } + 1;
-  my ($Y,$M) = $YYYY_MM =~ m/(\d{4})-(\d{2})/;
-  my $YxM = YxM($Y,$M);
-  my $age = $curYxM - $YxM;
-  my $nkeep =
-	    $age >= 4 ? 1						# keep 1/mo if >=6 mos old,
-  	  : $age >= 2 ? 2						# 2/mo if >=3 mos old
-	  : $age >= 1 ? 4						# 4/mo if 1 or 2 mos old
-	  : undef;								# else all
+my $curYxM = YxM( $now[5] + 1900, $now[4] + 1 );
+foreach my $YYYY_MM ( sort keys %files ) {
+    my $N = $#{ $files{$YYYY_MM} } + 1;
+    my ( $Y, $M ) = $YYYY_MM =~ m/(\d{4})-(\d{2})/;
+    my $YxM   = YxM( $Y, $M );
+    my $age   = $curYxM - $YxM;
+    my $nkeep = $age >= 4
+        ? 1    # keep 1/mo if >=6 mos old,
+        : $age >= 2 ? 2         # 2/mo if >=3 mos old
+        : $age >= 1 ? 4         # 4/mo if 1 or 2 mos old
+        :             undef;    # else all
 
-  my @deli = ();							# indices of files to delete
-  if (defined $nkeep and $#{$files{$YYYY_MM}}+1>$nkeep) {
-	my $mod = int($N / $nkeep + 1);
-	@deli  = grep {$_ % $mod} 0..$#{$files{$YYYY_MM}};
-  }
+    my @deli = ();              # indices of files to delete
+    if ( defined $nkeep and $#{ $files{$YYYY_MM} } + 1 > $nkeep ) {
+        my $mod = int( $N / $nkeep + 1 );
+        @deli = grep { $_ % $mod } 0 .. $#{ $files{$YYYY_MM} };
+    }
 
-  my @kept = @{$files{$YYYY_MM}};			# by default, keep all
-  my @del;
-  foreach my $deli (sort {$b<=>$a} @deli) {
-	push(@del, splice(@kept,$deli,1));		# transfer selected to @del
-  }
+    my @kept = @{ $files{$YYYY_MM} };    # by default, keep all
+    my @del;
+    foreach my $deli ( sort { $b <=> $a } @deli ) {
+        push( @del, splice( @kept, $deli, 1 ) );   # transfer selected to @del
+    }
 
-  printf(STDERR "# $YYYY_MM (age=$age): $N orig; want %s; delete %d; kept %d%s\n",
-		 (defined $nkeep ? $nkeep  : 'all'),
-		 $#del+1,
-		 $#kept+1, ( (defined $nkeep and $#kept+1<$nkeep) ? '<' : '=')
-		);
-  #print(STDERR "# kept: @kept\n");
+    printf( STDERR
+            "# $YYYY_MM (age=$age): $N orig; want %s; delete %d; kept %d%s\n",
+        ( defined $nkeep ? $nkeep : 'all' ),
+        $#del + 1, $#kept + 1,
+        ( ( defined $nkeep and $#kept + 1 < $nkeep ) ? '<' : '=' )
+    );
 
-  print map {my $r=$_; $r=~s/\.gz//; "$_ $r.err\n"} @del;
+    #print(STDERR "# kept: @kept\n");
+
+    print map { my $r = $_; $r =~ s/\.gz//; "$_ $r.err\n" } @del;
 }
 
-
 exit(0);
-
-
-
-
-
 
 # convert YYYY-MM to number of months since hypothetical YYYY-MM=0000-00.
 # This is to simplify computing month deltas
 sub YxM ($$) {
-  my $rv = 12*$_[0] + ($_[1]-1);
-  return $rv;
+    my $rv = 12 * $_[0] + ( $_[1] - 1 );
+    return $rv;
 }

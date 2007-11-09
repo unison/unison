@@ -43,13 +43,13 @@ EOT
 
 try {
     print $p->render(
-        "Summary of Unison:$v->{pseq_id}", '<p>',
-        summary_group($p),                 '<p>',
-        sequence_group($p),                '<p>',
-        aliases_group($p),                 '<p>',
-        features_group($p),                '<p>',
+        "Summary of Unison:$v->{pseq_id}",
+        summary_group($p),
+		sequence_group($p),
+        aliases_group($p),
+		features_group($p),
         homologs_group($p),
-    );
+		);
 }
 catch Unison::Exception with {
     $p->die(shift);
@@ -183,7 +183,7 @@ sub sequence_group ($) {
     $p->group(
         sprintf( "Sequence (%d&nbsp;AA)", length($seq) ),
 "<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format",
-        '<br><pre>',
+        '<br><pre style="display: inline;">',
         '&gt;Unison:',
         $v->{pseq_id},
         ' ',

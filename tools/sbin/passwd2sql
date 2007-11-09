@@ -5,66 +5,73 @@ use strict;
 use warnings;
 use Getopt::Long qw(:config gnu_getopt);
 
-
-my %opts =
-  (
-   gids => undef,
-   min_uid => undef,
-   min_default_uid => 1000,
-   min_sysid => 1000,
-  );
+my %opts = (
+    gids            => undef,
+    min_uid         => undef,
+    min_default_uid => 1000,
+    min_sysid       => 1000,
+);
 
 my @omit_logins = qw(Bioinfo gx2000-1 compbio postgres pgsql maint Molbio);
 
-
-my %omit_logins = map {$_=>1} @omit_logins;
+my %omit_logins = map { $_ => 1 } @omit_logins;
 my %wanted_logins;
 my %wanted_gids;
 
-GetOptions(\%opts,
-		   'gids|g=s@',				# string, for comma-sep lists
-		   'min_uid|u=i'
-		  )
-  || die("usage\n");
+GetOptions(
+    \%opts,
+    'gids|g=s@',    # string, for comma-sep lists
+    'min_uid|u=i'
+) || die("usage\n");
 
-if ($opts{gids}) {
-  @{$opts{gids}} = map { split /,/ } @{$opts{gids}};
-  %wanted_gids = map {$_=>1} @{$opts{gids}};
-  $opts{'select-by-gid'} = 1;
+if ( $opts{gids} ) {
+    @{ $opts{gids} } = map { split /,/ } @{ $opts{gids} };
+    %wanted_gids = map { $_ => 1 } @{ $opts{gids} };
+    $opts{'select-by-gid'} = 1;
 }
 
 # remaining args are presumed to be logins
 if (@ARGV) {
-  %wanted_logins = map { $_=>1 } @ARGV;
-  undef @ARGV;
-  $opts{'select-by-login'} = 1;
+    %wanted_logins = map { $_ => 1 } @ARGV;
+    undef @ARGV;
+    $opts{'select-by-login'} = 1;
 }
 
-printf(STDERR "# logins (%d) = %s\n", 
-	   scalar keys %wanted_logins, join(',',keys %wanted_logins)) if $opts{'select-by-login'};
-printf(STDERR "# gids (%d) = %s\n", 
-	   scalar keys %wanted_gids, join(',',keys %wanted_gids)) if $opts{'select-by-gid'};
+printf( STDERR "# logins (%d) = %s\n",
+    scalar keys %wanted_logins,
+    join( ',', keys %wanted_logins )
+) if $opts{'select-by-login'};
+printf( STDERR "# gids (%d) = %s\n",
+    scalar keys %wanted_gids,
+    join( ',', keys %wanted_gids )
+) if $opts{'select-by-gid'};
 
+while (<>) {
+    my @F = split(/:/);
 
-while(<>) {
-  my @F = split(/:/);
+    # absolutely omit certain logins and uid ranges
+    next if ( exists $omit_logins{ $F[0] } );
+    next if ( defined $opts{min_uid} and $F[2] < $opts{min_uid} );
 
-  # absolutely omit certain logins and uid ranges
-  next if (exists $omit_logins{$F[0]});
-  next if (defined $opts{min_uid} and $F[2]<$opts{min_uid});
-
-  if (    ($opts{'select-by-login'} and exists $wanted_logins{$F[0]})
-	   or ($opts{'select-by-gid'} and exists $wanted_gids{$F[3]})
-	   or (not $opts{'select-by-login'} and not $opts{'select-by-gid'} and $F[2]>=$opts{min_default_uid}) ) {
-	printf("create user $F[0] nocreatedb nocreaterole;\n");
-	delete $wanted_logins{$F[0]};
-  }
+    if (   ( $opts{'select-by-login'} and exists $wanted_logins{ $F[0] } )
+        or ( $opts{'select-by-gid'}   and exists $wanted_gids{ $F[3] } )
+        or (    not $opts{'select-by-login'}
+            and not $opts{'select-by-gid'}
+            and $F[2] >= $opts{min_default_uid} )
+        )
+    {
+        printf("create user $F[0] nocreatedb nocreaterole;\n");
+        delete $wanted_logins{ $F[0] };
+    }
 }
-
 
 my @remaining = sort keys %wanted_logins;
 if (@remaining) {
-  die(sprintf("%d login(s) weren't found: {%s}\n",
-			  $#remaining+1, join(',',@remaining)));
+    die(sprintf(
+            "%d login(s) weren't found: {%s}\n",
+            $#remaining + 1,
+            join( ',', @remaining )
+        )
+    );
 }
 exit(0);

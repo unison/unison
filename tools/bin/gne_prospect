@@ -22,7 +22,7 @@ my $usage = <<'EOU';
 #   --3d                 create backbone coordinates of sequences
 #   --pids           :   print percentage identities(col:4) on stdout for each template
 #   --help               this output
-# $Id: gne_prospect,v 1.9 2006/06/26 20:51:23 mukhyala Exp $
+# $Id$
 #------------------------------------------------------------------------------
 
 EOU
@@ -41,110 +41,115 @@ use Getopt::Long qw(:config gnu_getopt);
 use Env qw(@PATH);
 use Error qw(:try);
 
-
 my %opts = (
-	    global        => 1,
-	    global_local  => 0,
-	    psipred       => 0,
-	    psiblast      => 0,
-	    '3d'          => 0,
-	    iter          => 3,
-            eval          => 0.001,
-            cpus          => 2,
-	    tfile         => 0,
-	    scop          => 0,
-	    sort          => 0,
-	    pids          => 0,
-	    save          => 1,
-	    help          => 0,
-	    db            => undef
+    global       => 1,
+    global_local => 0,
+    psipred      => 0,
+    psiblast     => 0,
+    '3d'         => 0,
+    iter         => 3,
+    eval         => 0.001,
+    cpus         => 2,
+    tfile        => 0,
+    scop         => 0,
+    sort         => 0,
+    pids         => 0,
+    save         => 1,
+    help         => 0,
+    db           => undef
 );
-GetOptions( \%opts,
-	    'verbose|v',
-	    'psipred|p',
-	    'psiblast|b',
-	    '3d',
-	    'db|d=s',
-	    'iter|j=i',
-	    'eval|h=f',
-	    'cpus|a=i',
-	    'tfile|t=s',
-	    'scop',
-	    'sort|s=i',
-	    'save|x',
-	    'pids',
-	    'global',
-	    'global_local',
-	    'help' => 0,
-	    'version' => 0
-	  )
-  || die("$0: bad usage:\n$usage\n");
+GetOptions(
+    \%opts,
+    'verbose|v',
+    'psipred|p',
+    'psiblast|b',
+    '3d',
+    'db|d=s',
+    'iter|j=i',
+    'eval|h=f',
+    'cpus|a=i',
+    'tfile|t=s',
+    'scop',
+    'sort|s=i',
+    'save|x',
+    'pids',
+    'global',
+    'global_local',
+    'help'    => 0,
+    'version' => 0
+) || die("$0: bad usage:\n$usage\n");
 
-my $opts=\%opts;
-die("\n$usage\n") if ($opts{help});
+my $opts = \%opts;
+die("\n$usage\n") if ( $opts{help} );
 
 # The root of the BLAST data bank
 my $dbroot = " /gne/research/data/public/blast/aa";
 
-$opts->{db} = 'nr' unless(defined($opts->{db}));
-$ENV{BLASTPGP_DB} = "$dbroot/".$opts->{db} if (not defined $ENV{BLASTPGP_DB});
-$ENV{BLASTPGP_EXE} = '$ENV{RESEARCH_PREFIX}/i686-linux-2.6/bin/blastpgp'  if (not defined $ENV{BLASTPGP_DB});
+$opts->{db} = 'nr' unless ( defined( $opts->{db} ) );
+$ENV{BLASTPGP_DB} = "$dbroot/" . $opts->{db}
+    if ( not defined $ENV{BLASTPGP_DB} );
+$ENV{BLASTPGP_EXE} = '$ENV{RESEARCH_PREFIX}/i686-linux-2.6/bin/blastpgp'
+    if ( not defined $ENV{BLASTPGP_DB} );
 
-
-if (($opts{psiblast} or $opts{psipred})) {
-  unshift(@PATH, '/gne/research/apps/psipred/current/i686-linux-2.6/bin/');
+if ( ( $opts{psiblast} or $opts{psipred} ) ) {
+    unshift( @PATH,
+        '/gne/research/apps/psipred/current/i686-linux-2.6/bin/' );
 }
 
 my $temproot = $ENV{TMPDIR} || '/tmp/';
 
-my $fa_fn = $ARGV[0] || die "need an input sequence as a fasta file, try --help\n";
-
+my $fa_fn = $ARGV[0]
+    || die "need an input sequence as a fasta file, try --help\n";
 
 #-----------------------------------------------------------------------------
 sub main {
 
-  #prepare
-  my $po = parse_options($fa_fn);
-  my $in = Bio::SeqIO->new(-file => $fa_fn , -format => 'fasta');
-  my $seq = $in->next_seq();
-  my $pc = new Bio::Prospect::LocalClient(options => $po,
-					  temproot => $temproot
-					 );
-  #run
-  my @ts = thread($pc,$seq);
-  my $xml_file = $pc->_thread_to_file($seq);
+    #prepare
+    my $po  = parse_options($fa_fn);
+    my $in  = Bio::SeqIO->new( -file => $fa_fn, -format => 'fasta' );
+    my $seq = $in->next_seq();
+    my $pc  = new Bio::Prospect::LocalClient(
+        options  => $po,
+        temproot => $temproot
+    );
 
-  #output
-  sort_output($xml_file) if($opts{sort});
-  save_xml($xml_file) if($opts{save});
-  output(@ts) if($opts{pids});
+    #run
+    my @ts = thread( $pc, $seq );
+    my $xml_file = $pc->_thread_to_file($seq);
+
+    #output
+    sort_output($xml_file) if ( $opts{sort} );
+    save_xml($xml_file)    if ( $opts{save} );
+    output(@ts)            if ( $opts{pids} );
 }
 
 #-----------------------------------------------------------------------------
 sub thread {
 
-  my ($pc,$seq) = @_;
+    my ( $pc, $seq ) = @_;
 
-  my (@summaries);
-  try {
-    print(STDERR "threading...") if($ENV{'DEBUG'});
-    (@summaries) = $pc->thread_summary($seq->seq);
-  } catch Bio::Prospect::RuntimeError with {
-    print(STDERR $_[0]);
-    print STDERR "Skipping this seqeunce ".$seq->id()."\n";
-    return;
-  } catch Bio::Prospect::Exception with {
-    print(STDERR $_[0]);
-    print STDERR "Skipping this sequence ".$seq->id()."\n";
-    return;
-  };
-  return @summaries;
+    my (@summaries);
+    try {
+        print( STDERR "threading..." ) if ( $ENV{'DEBUG'} );
+        (@summaries) = $pc->thread_summary( $seq->seq );
+    }
+    catch Bio::Prospect::RuntimeError with {
+        print( STDERR $_[0] );
+        print STDERR "Skipping this seqeunce " . $seq->id() . "\n";
+        return;
+    }
+    catch Bio::Prospect::Exception with {
+        print( STDERR $_[0] );
+        print STDERR "Skipping this sequence " . $seq->id() . "\n";
+        return;
+    };
+    return @summaries;
 }
 
 #-----------------------------------------------------------------------------
 sub sort_output {
 
-    my $xfn=shift;
+    my $xfn = shift;
     run("sortProspect $xfn -top $opts{sort} > $fa_fn.svm");
     run("sortProspect -r $xfn -top $opts{sort} > $fa_fn.raw");
 }
@@ -152,90 +157,125 @@ sub sort_output {
 #-----------------------------------------------------------------------------
 sub save_xml {
 
-  my $xfn=shift;
-  run("cp $xfn $fa_fn.xml");
+    my $xfn = shift;
+    run("cp $xfn $fa_fn.xml");
 }
 
 #-----------------------------------------------------------------------------
 sub output {
 
-  my (@summaries) = @_;
-  my %uf = (
-   'raw' => 'raw_score',
-   'svm' => 'svm_score',
-#   'zscore' => 'z_score',
-   'mutation' => 'mutation_score',
-   'singleton' => 'singleton_score',
-   'pairwise' => 'pair_score',
-   'ssfit' => 'ssfit_score',
-   'gap' => 'gap_score',
-   'nident' => 'identities',
-   'nalign' => 'align_len',
-   'rgyr' => 'rgyr',
-   'start' => 'qstart',
-   'stop' => 'qend',
-  );
+    my (@summaries) = @_;
+    my %uf = (
+        'raw' => 'raw_score',
+        'svm' => 'svm_score',
 
+        #   'zscore' => 'z_score',
+        'mutation'  => 'mutation_score',
+        'singleton' => 'singleton_score',
+        'pairwise'  => 'pair_score',
+        'ssfit'     => 'ssfit_score',
+        'gap'       => 'gap_score',
+        'nident'    => 'identities',
+        'nalign'    => 'align_len',
+        'rgyr'      => 'rgyr',
+        'start'     => 'qstart',
+        'stop'      => 'qend',
+    );
 
-  for( my $i=0; $i<=$#summaries; $i++) {
-    my $ts = $summaries[$i];
-    printf(STDERR "%8s (%4d/%4d %3d%%)...\n", 
-	   $ts->tname(), ($i+1), ($#summaries+1), ($i+1)/($#summaries+1)*100 ) if($opts->{verbose});
-    my $pid = ((defined $ts->{$uf{nident}}  and defined $ts->{$uf{nalign}}) and ($ts->{$uf{nident}} > 0 and $ts->{$uf{nalign}} > 0) ? (100*$ts->{$uf{nident}}/$ts->{$uf{nalign}}) : -1);
-    printf("%s\t%.2f\t%.2f\t%.2f\n",$ts->tname,$ts->{$uf{raw}},$ts->{$uf{svm}},$pid);
-  }
+    for ( my $i = 0; $i <= $#summaries; $i++ ) {
+        my $ts = $summaries[$i];
+        printf( STDERR "%8s (%4d/%4d %3d%%)...\n",
+            $ts->tname(),
+            ( $i + 1 ),
+            ( $#summaries + 1 ),
+            ( $i + 1 ) / ( $#summaries + 1 ) * 100
+        ) if ( $opts->{verbose} );
+        my $pid
+            = (
+            ( defined $ts->{ $uf{nident} } and defined $ts->{ $uf{nalign} } )
+                and ( $ts->{ $uf{nident} } > 0 and $ts->{ $uf{nalign} } > 0 )
+            ? ( 100 * $ts->{ $uf{nident} } / $ts->{ $uf{nalign} } )
+            : -1 );
+        printf(
+            "%s\t%.2f\t%.2f\t%.2f\n",
+            $ts->tname,
+            $ts->{ $uf{raw} },
+            $ts->{ $uf{svm} }, $pid
+        );
+    }
 }
 
 #------------------------------------------------------------------------
 sub parse_options {
 
-  if($opts->{verbose}) {
-    while( my ($k, $v) = each %$opts ) {
-      print STDERR "$k\t: $v\n";
+    if ( $opts->{verbose} ) {
+        while ( my ( $k, $v ) = each %$opts ) {
+            print STDERR "$k\t: $v\n";
+        }
     }
-  }
 
-  if($opts->{psipred} or $opts->{psiblast}) {
-    $opts->{phd} = ssp_phd($fa_fn);
-    $opts->{freqfile} = read_chk($fa_fn) if($opts->{psiblast});
-  }
+    if ( $opts->{psipred} or $opts->{psiblast} ) {
+        $opts->{phd} = ssp_phd($fa_fn);
+        $opts->{freqfile} = read_chk($fa_fn) if ( $opts->{psiblast} );
+    }
 
-  return new Bio::Prospect::Options
-    (
-     $opts->{global_local} ? (global_local=>1,global=>0)   : (global_local=>0,global=>1),
-     $opts->{'3d'}         ? ('3d'=>1)                     : ('3d'=>0),
-     $opts->{psipred}      ? (phd=>$opts->{phd})           : (),
-     $opts->{psiblast}     ? (freqfile=>$opts->{freqfile}) : (),
-     $opts->{tfile}        ? (templates=>[split(/\n/,`cat $opts->{tfile}`)]) : ($opts->{scop} ? (scop=>1,fssp=>0) : (scop=>0,fssp=>1)),
-     seq=>1
+    return new Bio::Prospect::Options(
+        $opts->{global_local} ? ( global_local => 1, global => 0 )
+        : ( global_local => 0, global => 1 ),
+        $opts->{'3d'} ? ( '3d' => 1 ) : ( '3d' => 0 ),
+        $opts->{psipred}  ? ( phd      => $opts->{phd} )      : (),
+        $opts->{psiblast} ? ( freqfile => $opts->{freqfile} ) : (),
+        $opts->{tfile}
+        ? ( templates => [ split( /\n/, `cat $opts->{tfile}` ) ] )
+        : ( $opts->{scop} ? ( scop => 1, fssp => 0 )
+            : ( scop => 0, fssp => 1 ) ),
+        seq => 1
     );
 }
 
 #-----------------------------------------------------------------------------
 sub ssp_phd {
 
-  my ($fa_fn) = @_;
+    my ($fa_fn) = @_;
 
-  $ENV{'DEUBG'}++;
-  run("runpsipred -j ".$opts->{iter}." -h ".$opts->{eval}." -a ".$opts->{cpus}." -s 1 -hb 1 -sb 1 -d ".$opts->{db}." $fa_fn");
+    $ENV{'DEUBG'}++;
+    run(      "runpsipred -j "
+            . $opts->{iter} . " -h "
+            . $opts->{eval} . " -a "
+            . $opts->{cpus}
+            . " -s 1 -hb 1 -sb 1 -d "
+            . $opts->{db}
+            . " $fa_fn" );
 
-  # parse the results
-  my $psipred_output = `cat $fa_fn.horiz`;
-  my $ss_output = `cat $fa_fn.ss`;
+    # parse the results
+    my $psipred_output = `cat $fa_fn.horiz`;
+    my $ss_output      = `cat $fa_fn.ss`;
 
-  my ($ss_elements,$pred,$conf,$seq) = parse_psipred_results($psipred_output);
-  my ($c_conf,$h_conf,$e_conf) = parse_psipred_ss_results($ss_output);
+    my ( $ss_elements, $pred, $conf, $seq )
+        = parse_psipred_results($psipred_output);
+    my ( $c_conf, $h_conf, $e_conf ) = parse_psipred_ss_results($ss_output);
 
-  if (not (defined $ss_elements) and (defined $pred) and (defined $conf)) {
-    die("looks like psipred failed for $fa_fn\n");
-  }
-  if(length($seq) != length($c_conf) || length($seq) != length($h_conf) || length($seq) != length($e_conf)) {
-    die("seq=>".length($seq)."\t".length($c_conf)."\t".length($h_conf)."\t".length($e_conf)."\t"."unequal lengths in psipred $fa_fn.ss results for $fa_fn\n$c_conf\n$h_conf\n$e_conf");
-  }
+    if (    not( defined $ss_elements )
+        and ( defined $pred )
+        and ( defined $conf ) )
+    {
+        die("looks like psipred failed for $fa_fn\n");
+    }
+    if (   length($seq) != length($c_conf)
+        || length($seq) != length($h_conf)
+        || length($seq) != length($e_conf) )
+    {
+        die(      "seq=>"
+                . length($seq) . "\t"
+                . length($c_conf) . "\t"
+                . length($h_conf) . "\t"
+                . length($e_conf) . "\t"
+                . "unequal lengths in psipred $fa_fn.ss results for $fa_fn\n$c_conf\n$h_conf\n$e_conf"
+        );
+    }
 
-  return print_phd([$seq,$conf,$h_conf,$e_conf,$c_conf]);
+    return print_phd( [ $seq, $conf, $h_conf, $e_conf, $c_conf ] );
 }
-
 
 #-------------------------------------------------------------------------------
 # NAME: parse_psipred_results
@@ -244,100 +284,106 @@ sub ssp_phd {
 #-------------------------------------------------------------------------------
 sub parse_psipred_results {
 
-  my $psipred_output = shift;
+    my $psipred_output = shift;
 
-  #return variables
-  my ($aa,$pred,$conf,$ret);
-  my $i = 0;
+    #return variables
+    my ( $aa, $pred, $conf, $ret );
+    my $i = 0;
 
-  #split psipred output lines
-  my @ss_pred = split(/\n/,$psipred_output);
-  # concat prediction and confidense lines
-  foreach (@ss_pred) {
-    $pred .= (split(/\s+/,$_))[1] if(/^Pred: /);
-    $conf .= (split(/\s+/,$_))[1] if(/^Conf: /);
-    $aa   .= (split(/\s+/,$_))[2] if(/^  AA: /);
-  }
+    #split psipred output lines
+    my @ss_pred = split( /\n/, $psipred_output );
 
-  # {position} => prediction
-  my %ss = map {++$i => $_} (split(//,$pred));
+    # concat prediction and confidense lines
+    foreach (@ss_pred) {
+        $pred .= ( split( /\s+/, $_ ) )[1] if (/^Pred: /);
+        $conf .= ( split( /\s+/, $_ ) )[1] if (/^Conf: /);
+        $aa   .= ( split( /\s+/, $_ ) )[2] if (/^  AA: /);
+    }
 
-  #get all positions where prediction is different from previous pos.
-  my @pos = grep {$ss{$_+1}='' if(!exists($ss{$_+1})); $ss{$_} ne $ss{$_+1}} sort {$a <=> $b} keys %ss;
+    # {position} => prediction
+    my %ss = map { ++$i => $_ } ( split( //, $pred ) );
 
-  foreach $i (0 ..$#pos) {
-    #start of each SSElement = stop of previous SSelement + 1
-    my $start = $pos[$i-1]+1;
-    $start = 1 if($i == 0) ; #start of first sse is always 1
-    push @$ret, [($start,$pos[$i],$ss{$pos[$i]})];
-  }
-  return ($ret,$pred,$conf,$aa);
+    #get all positions where prediction is different from previous pos.
+    my @pos = grep {
+        $ss{ $_ + 1 } = ''
+            if ( !exists( $ss{ $_ + 1 } ) );
+        $ss{$_} ne $ss{ $_ + 1 }
+    } sort { $a <=> $b } keys %ss;
+
+    foreach $i ( 0 .. $#pos ) {
+
+        #start of each SSElement = stop of previous SSelement + 1
+        my $start = $pos[ $i - 1 ] + 1;
+        $start = 1 if ( $i == 0 );    #start of first sse is always 1
+        push @$ret, [ ( $start, $pos[$i], $ss{ $pos[$i] } ) ];
+    }
+    return ( $ret, $pred, $conf, $aa );
 }
 
 #-----------------------------------------------------------------------------
 sub parse_psipred_ss_results {
 
-  my $psipred_output = shift;
+    my $psipred_output = shift;
 
-  #return variables
-  my ($c_conf,$h_conf,$e_conf);
+    #return variables
+    my ( $c_conf, $h_conf, $e_conf );
 
-  #split psipred output lines
-  my @ss_pred = split(/\n/,$psipred_output);
+    #split psipred output lines
+    my @ss_pred = split( /\n/, $psipred_output );
 
-  # concat prediction and confidence lines
-  foreach (@ss_pred) {
-    if($_ =~ /(\d+.\d+)\s+(\d+.\d+)\s+(\d+.\d+)$/) {
-      $c_conf .= scale($1);
-      $h_conf .= scale($2);
-      $e_conf .= scale($3);
+    # concat prediction and confidence lines
+    foreach (@ss_pred) {
+        if ( $_ =~ /(\d+.\d+)\s+(\d+.\d+)\s+(\d+.\d+)$/ ) {
+            $c_conf .= scale($1);
+            $h_conf .= scale($2);
+            $e_conf .= scale($3);
+        }
     }
-  }
-  return($c_conf,$h_conf,$e_conf);
+    return ( $c_conf, $h_conf, $e_conf );
 }
 
 #-----------------------------------------------------------------------------
 sub scale {
     my $number = shift;
-    print STDERR "scale:number not defined\n" if(not defined $number);
-    return int($number*9);
+    print STDERR "scale:number not defined\n" if ( not defined $number );
+    return int( $number * 9 );
 }
 
 #-----------------------------------------------------------------------------
 sub print_phd {
 
-  # get temp phd file for psipred in phd format
-  my ($phd_fh,  $phd_fn)  = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.phd' );
-  my $r = shift;
-  my ($i,$len) = (0,60);
-  while($i < length($r->[0])) {
-    print $phd_fh "AA  |".substr($r->[0],$i,$len),"|\n";
-    print $phd_fh "Rel |".substr($r->[1],$i,$len),"|\n";
-    print $phd_fh "prH-|".substr($r->[2],$i,$len),"\n";
-    print $phd_fh "prE-|".substr($r->[3],$i,$len),"\n";
-    print $phd_fh "prL-|".substr($r->[4],$i,$len),"\n\n";
-    $i += $len;
-  }
-  return $phd_fn;
+    # get temp phd file for psipred in phd format
+    my ( $phd_fh, $phd_fn )
+        = File::Temp::tempfile( UNLINK => 1, SUFFIX => '.phd' );
+    my $r = shift;
+    my ( $i, $len ) = ( 0, 60 );
+    while ( $i < length( $r->[0] ) ) {
+        print $phd_fh "AA  |" . substr( $r->[0], $i, $len ), "|\n";
+        print $phd_fh "Rel |" . substr( $r->[1], $i, $len ), "|\n";
+        print $phd_fh "prH-|" . substr( $r->[2], $i, $len ), "\n";
+        print $phd_fh "prE-|" . substr( $r->[3], $i, $len ), "\n";
+        print $phd_fh "prL-|" . substr( $r->[4], $i, $len ), "\n\n";
+        $i += $len;
+    }
+    return $phd_fn;
 }
 
 #-----------------------------------------------------------------------------
 sub read_chk {
 
-  my $fa_fn=shift;
-  run("read_chk $fa_fn.chk > $fa_fn.freq");
-  return "$fa_fn.freq";
+    my $fa_fn = shift;
+    run("read_chk $fa_fn.chk > $fa_fn.freq");
+    return "$fa_fn.freq";
 }
 
 #-----------------------------------------------------------------------------
 sub run {
-  my $cmd = shift;
-  print STDERR "$cmd\n" if($opts{verbose});
-  system( $cmd );
-  $? && die("FAILED: $cmd: $!\n");
-  print STDERR "Finished.\n" if($opts{verbose});
+    my $cmd = shift;
+    print STDERR "$cmd\n" if ( $opts{verbose} );
+    system($cmd );
+    $? && die("FAILED: $cmd: $!\n");
+    print STDERR "Finished.\n" if ( $opts{verbose} );
 }
-
 
 main();
 

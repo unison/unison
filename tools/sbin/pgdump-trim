@@ -6,26 +6,22 @@ use strict;
 use warnings;
 
 my $pseq_id_max = 10;
-my $pseq_id_col;							# col # (0..) of pseq_id col
+my $pseq_id_col;    # col # (0..) of pseq_id col
 
-while(<>)
-  {
-  if (defined $pseq_id_col)
-	{
-	my @F = split;
-	my $col = $F[$pseq_id_col];
-	next if (defined $col and $col !~ m/\D/ and $col>$pseq_id_max);
-	undef $pseq_id_col if (m/^\\\./);
-	}
-  else
-	{
-	if (m/^copy (?:pseq|pseqprop)\W/i)
-	  { $pseq_id_col=0 }
-	elsif (m/^copy (?:palias|p2thread|pfeature|pfsigcleave|pseqset)\W/i)
-	  { $pseq_id_col=1 }
-	elsif (m/^copy (?:p2template)\W/i)
-	  { $pseq_id_col=3 }
-	}
+while (<>) {
+    if ( defined $pseq_id_col ) {
+        my @F   = split;
+        my $col = $F[$pseq_id_col];
+        next if ( defined $col and $col !~ m/\D/ and $col > $pseq_id_max );
+        undef $pseq_id_col if (m/^\\\./);
+    }
+    else {
+        if (m/^copy (?:pseq|pseqprop)\W/i) { $pseq_id_col = 0 }
+        elsif (m/^copy (?:palias|p2thread|pfeature|pfsigcleave|pseqset)\W/i) {
+            $pseq_id_col = 1;
+        }
+        elsif (m/^copy (?:p2template)\W/i) { $pseq_id_col = 3 }
+    }
 
-  print;
-  }
+    print;
+}

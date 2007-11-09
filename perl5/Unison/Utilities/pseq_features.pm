@@ -129,7 +129,6 @@ sub pseq_features_panel($%) {
     }
 
     if ( defined( $opts{track_length} ) ) {
-
         # This is an opaque conditional which should be rewritten.
         # Kiran's attempting to say that "when track length is set,
         # we're doing the detailed psipred prediction display and
@@ -244,6 +243,7 @@ Add pftmdetect features to a panel and return the number of features added.
 
 sub add_pfseg {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -269,7 +269,9 @@ sub add_pfseg {
                 -start      => $r->[0],
                 -end        => $r->[1],
                 -score      => $r->[2],
-                -attributes => { tooltip => "$r->[0]-$r->[1]; score=$r->[2]" }
+                -attributes => { tooltip => _feature_tooltip(
+									 $seq, $r->[0],
+									 $r->[1], "score=$r->[2]") }
             )
         );
         $nadded++;
@@ -285,11 +287,11 @@ sub add_pfseg {
 #-------------------------------------------------------------------------------
 sub add_pfpsipred {
     my ( $u, $panel, $q, $len, $track_length ) = @_;
+	my $seq = $u->get_seq($q);
     my ($nadded) = (0);
     my ( $sql, $featref );
     my @strands_helices = ();
-    @{ $strands_helices[0] } =
-      ();    #initialize the array that is passed to add track
+    @{ $strands_helices[0] } = ();    #initialize for add track
 
     my $num_tracks = ( $len / $track_length );
     my $href =
@@ -326,9 +328,8 @@ sub add_pfpsipred {
                     -name       => $r->[2],
                     -score      => $score,
                     -attributes => {
-                        tooltip =>
-                          "$r->[2]: $r->[0] - $r->[1], average confidence="
-                          . sprintf( "%.2f", $score ),
+                        tooltip => _feature_tooltip($seq, $r->[0], $r->[1],
+													sprintf( 'average confidence=%.2f', $score )),
                         href => $href
                     }
                 )
@@ -347,9 +348,9 @@ sub add_pfpsipred {
                 -name       => $r->[2],
                 -score      => $score,
                 -attributes => {
-                    tooltip => "$r->[2]: $r->[0] - $r->[1], average confidence="
-                      . sprintf( "%.2f", $score ),
-                    href => $href
+                        tooltip => _feature_tooltip($seq, $r->[0], $r->[1],
+													sprintf( 'average confidence=%.2f', $score )),
+						href => $href
                 }
             )
         );
@@ -414,6 +415,7 @@ sub add_pfsignalp {
         -description => 1,
         -height      => 4,
     );
+	my $seq = $u->get_seq($q);
 
     # add pfsignalpnn feature
     ## REVIEW: 2005-12-06 Reece: pftype join unused
@@ -428,7 +430,7 @@ sub add_pfsignalp {
                 -end        => $r->[1],
                 -name       => sprintf( "NN  (%3.2f)", $r->[3] ),
                 -score      => $r->[3],
-                -attributes => { tooltip => "$r->[0]-$r->[1]" }
+                -attributes => { tooltip => _feature_tooltip( $seq, $r->[0], $r->[1], '"D" score='.$r->[3]) }
             )
         );
         $nadded++;
@@ -447,7 +449,7 @@ sub add_pfsignalp {
                 -end        => $r->[1],
                 -name       => sprintf( "HMM (%3.2f)", $r->[3] ),
                 -score      => $r->[3],
-                -attributes => { tooltip => "$r->[0]-$r->[1]" }
+                -attributes => { tooltip => _feature_tooltip( $seq, $r->[0], $r->[1], "signal peptide probability = $r->[3]") }
             )
         );
         $nadded++;
@@ -468,6 +470,7 @@ Add pftmdetect features to a panel and return the number of features added.
 
 sub add_pftmdetect {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -494,7 +497,7 @@ sub add_pftmdetect {
                 -end        => $r->[1],
                 -name       => $r->[2],
                 -score      => $r->[3],
-                -attributes => { tooltip => "$r->[0]-$r->[1]; p=$r->[3]" }
+                -attributes => { tooltip => _feature_tooltip($seq, $r->[0], $r->[1], "p=$r->[3]") }
             )
         );
         $nadded++;
@@ -515,6 +518,7 @@ Add pftmhmm features to a panel and return the number of features added.
 
 sub add_pftmhmm {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -534,25 +538,19 @@ sub add_pftmhmm {
     my $sql     = "select start,stop,type from pftmhmm where pseq_id=$q";
     my $featref = $u->selectall_arrayref($sql);
     foreach my $r (@$featref) {
-        my $tooltip = sprintf(
-            "%d-%d: %s",
-            $r->[0],
-            $r->[1],
-            (
-                  $r->[2] eq 'o' ? 'extracellular (outside)'
-                : $r->[2] eq 'i' ? 'intracellular (inside)'
-                : $r->[2] eq 'M' ? 'transmembrane outside->inside'
-                : $r->[2] eq 'N' ? 'transmembrane inside->outside'
-                : 'unknown prediction'
-            )
-        );
+        my $type = 
+			  $r->[2] eq 'o' ? 'extracellular (outside)'
+			: $r->[2] eq 'i' ? 'intracellular (inside)'
+			: $r->[2] eq 'M' ? 'transmembrane outside->inside'
+			: $r->[2] eq 'N' ? 'transmembrane inside->outside'
+			: 'unknown prediction';
         $track->add_feature(
             Bio::Graphics::Feature->new(
                 -start      => $r->[0],
                 -end        => $r->[1],
                 -name       => $r->[2],
                 -score      => $r->[3],
-                -attributes => { tooltip => $tooltip }
+                -attributes => { tooltip => _feature_tooltip($seq,$r->[0],$r->[1],$type) }
             )
         );
         $nadded++;
@@ -573,6 +571,7 @@ Add paprospect features to a panel and return the number of features added.
 
 sub add_paprospect {
     my ( $u, $panel, $q, $params_id ) = @_;
+	my $seq = $u->get_seq($q);
     my ( $svm_thr, $topN ) = ( 7, 5 );
     my $nadded = 0;
     my $run_id = $u->preferred_run_id_by_pftype('Prospect');
@@ -641,7 +640,7 @@ EOT
                 -score      => $row->{svm},
                 -name       => $name,
                 -attributes => {
-                    tooltip => $scop,
+                    tooltip => _feature_tooltip($seq,$row->{start}, $row->{stop}, $scop),
                     href    => $scoplink
                 }
             )
@@ -734,6 +733,7 @@ Add pahmm features to a panel and return the number of features added.
 
 sub add_pahmm {
     my ( $u, $panel, $q, $view, $pseq_structure ) = @_;
+	my $seq = $u->get_seq($q);
     my ( $eval_thr, $topN ) = ( 1, 4 );
     my $nadded = 0;
     ## XXX: don't hardwire the following
@@ -784,7 +784,8 @@ EOSQL
                 -score      => $r->[2],
                 -name       => sprintf( "%s; S=%s; E=%s)", @$r[ 5, 2, 3 ] ),
                 -attributes => {
-                    tooltip => sprintf( "%d-%d: %s [%s]", @$r[ 0, 1, 5, 6 ] ),
+                    tooltip => _feature_tooltip($seq, @$r[0,1], 
+												sprintf("%s [%s]", @$r[5,6])),
                     href    => $href
                 },
             )
@@ -807,6 +808,7 @@ Add pappsm features to a panel and return the number of features added.
 
 sub add_papssm {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my ( $eval_thr, $topN ) = ( 5, 4 );
     my $nadded      = 0;
     my $params_id   = $u->preferred_params_id_by_pftype('PSSM');
@@ -855,7 +857,7 @@ EOSQL
                 -score => $r->[3],
                 -name =>
                   sprintf( "%s; S=%s; E=%s)", $r->[2], $r->[3], $r->[4] ),
-                -attributes => { tooltip => "$r->[0]-$r->[1]" }
+                -attributes => { tooltip => _feature_tooltip($seq,$r->[0],$r->[1]) }
             )
         );
         $nadded++;
@@ -876,6 +878,7 @@ Add pfantigenic features to a panel and return the number of features added.
 
 sub add_pfantigenic {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $nadded = 0;
 
     my $r     = $u->preferred_run_id_by_pftype('EMBOSS/antigenic');
@@ -893,19 +896,25 @@ sub add_pfantigenic {
         -description => 1,
         -height      => 4,
     );
-    my $sql =
-"select start,stop,score,subseq from pfantigenic_v where pseq_id=$q order by score limit 20";
+    my $sql = <<EOSQL;
+  SELECT start,stop,score,subseq
+    FROM pfantigenic_v
+   WHERE pseq_id=$q
+ORDER BY score
+   LIMIT 25
+EOSQL
     print( STDERR $sql, ";\n\n" ) if $opts{verbose};
     my $featref = $u->selectall_arrayref($sql);
 
     foreach my $r (@$featref) {
+		my $subseq = elide_sequence( $r->[3] );
         $track->add_feature(
             Bio::Graphics::Feature->new(
                 -start      => $r->[0],
                 -end        => $r->[1],
                 -score      => $r->[2],
-                -name       => $r->[3],
-                -attributes => { tooltip => "$r->[0]-$r->[1]; score=$r->[2]" }
+                -name       => sprintf("%.1f",$r->[2]),
+                -attributes => { tooltip => _feature_tooltip($seq,$r->[0],$r->[1],"score=$r->[2]") }
             )
         );
         $nadded++;
@@ -926,6 +935,7 @@ Add pfpepcoil features to a panel and return the number of features added.
 
 sub add_pfpepcoil {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $nadded = 0;
 
     my $r     = $u->preferred_run_id_by_pftype('EMBOSS/pepcoil');
@@ -954,7 +964,7 @@ EOSQL
     my $featref = $u->selectall_arrayref($sql);
 
     foreach my $r (@$featref) {
-        my $seq = elide_sequence( $r->[4], 7, '...' );
+        my $seq = elide_sequence( $r->[4] );
         $track->add_feature(
             Bio::Graphics::Feature->new(
                 -start      => $r->[0],
@@ -962,8 +972,8 @@ EOSQL
                 -score      => $r->[3],    # prob!
                 -name       => $seq,
                 -attributes => {
-                    tooltip =>
-                      "$r->[0]-$r->[1]; score=$r->[2]; prob=$r->[3]; seq=$seq"
+                    tooltip => _feature_tooltip($seq, @$r[0,1],
+												"score=$r->[2]; prob=$r->[3]")
                 }
             )
         );
@@ -984,6 +994,7 @@ Add pfsigcleave features to a panel and return the number of features added.
 
 sub add_pfsigcleave {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -1007,7 +1018,7 @@ sub add_pfsigcleave {
                 -end        => $r->[1],
                 -score      => $r->[2],
                 -name       => $r->[2],
-                -attributes => { tooltip => "$r->[0]-$r->[1]" }
+                -attributes => { tooltip => _feature_tooltip($seq,$r->[0],$r->[1]) }
             )
         );
         $nadded++;
@@ -1028,6 +1039,7 @@ Add pfbigpi features to a panel and return the number of features added.
 
 sub add_pfbigpi {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -1056,7 +1068,7 @@ sub add_pfbigpi {
                     : $r->[1] == 'D' ? 1
                     : 0
                 ),
-                -name => 'GPI @ ' . $r->[0]
+                -name => 'GPI @ ' . $r->[0],
             )
         );
         $nadded++;
@@ -1077,6 +1089,7 @@ Add pfregexp features to a panel and return the number of features added.
 
 sub add_pfregexp {
     my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_seq($q);
     my $subseq_len = 15;
     my $nadded     = 0;
     my $track      = $panel->add_track(
@@ -1089,7 +1102,7 @@ sub add_pfregexp {
         -height      => 4,
     );
     my $sql = <<EOSQL;
-SELECT start,stop,acc,feature,descr,substr(Q.seq,F.start,F.stop-F.start+1) as subseq,link_url
+SELECT start,stop,acc,feature,descr,link_url
   FROM pseq_features_prosite_v F
   JOIN pseq Q on F.pseq_id=Q.pseq_id
  WHERE F.pseq_id=$q
@@ -1102,12 +1115,10 @@ EOSQL
                 -end        => $r->[1],
                 -name       => $r->[3],
                 -attributes => {
-                    tooltip => sprintf(
-                        "%d-%d (%s)<br>%s; %s; %s",
-                        @{$r}[ 0, 1 ],
-                        elide_sequence( $r->[5], $subseq_len, '...' ),
-                        @{$r}[ 3, 2, 4 ],
-                    ),
+                    tooltip => 
+						_feature_tooltip($seq,@$r[0,1],
+										 sprintf("%s; %s; %s",
+												 @{$r}[ 3, 2, 4 ])),
                     href => $r->[6]
                 },
             )
@@ -1193,8 +1204,11 @@ sub add_pfsnp {
         -height      => 4
     );
 
-    my $sql =
-"select start_pos,original_aa,variant_aa,descr from pseq_sp_var_v where pseq_id=$q";
+    my $sql = <<EOSQL;
+  SELECT start_pos,original_aa,variant_aa,descr
+    FROM pseq_sp_var_v
+   WHERE pseq_id=$q
+EOSQL
 
     print( STDERR $sql, ";\n\n" ) if $opts{verbose};
     my $featref = $u->selectall_arrayref($sql);
@@ -1225,7 +1239,6 @@ sub add_pfsnp {
 }
 
 sub add_pfuser {
-
     my ( $u, $panel, $q, $view, $pseq_structure, $user_feats ) = @_;
 
     my $nadded = 0;
@@ -1361,6 +1374,15 @@ sub avg_confidence {
     $avg = $total / ( ( $end - $start ) + 1 );
     return $avg;
 }
+
+sub _feature_tooltip {
+	my ($seq,$start,$stop,$feature_text) = @_;
+	my $text = sprintf("%d-%d (%s)", $start,$stop, 
+					   elide_sequence( substr( $seq,$start,$stop-$start+1 )));
+	$text .= "<br>$feature_text" if defined $feature_text;
+	return $text;
+}
+
 
 =pod
 

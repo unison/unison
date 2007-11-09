@@ -8,7 +8,6 @@
 # This should refactored to not be unison specific, and instead do
 # something like   'get-seq 1 2 3 | pairwise-sw'
 
-
 use strict;
 use warnings;
 
@@ -20,73 +19,72 @@ use lib "$FindBin::RealBin/../../perl5";
 
 use Unison;
 
-
 sub fetch_sequence($$);
 sub min($$);
 sub max($$);
 
-
-my $z = 0;
+my $z         = 0;
 my $MATRIX_FN = "$ENV{BLASTMAT}/BLOSUM62.bla";
-my $u = new Unison( );
-my $factory = new Bio::Tools::pSW( '-matrix' => $MATRIX_FN,
-								   '-gap' => 12,
-								   '-ext' => 2,
-								 );
-
+my $u         = new Unison();
+my $factory   = new Bio::Tools::pSW(
+    '-matrix' => $MATRIX_FN,
+    '-gap'    => 12,
+    '-ext'    => 2,
+);
 
 my @ids = @ARGV;
-my @bs = map { fetch_sequence($u,$_) } @ids;
+my @bs = map { fetch_sequence( $u, $_ ) } @ids;
 my @aln;
 
+printf(
+    "%2s \ %s | %8s %5s %s\n",
+    '', join( '', map { sprintf( " %3d", $_ + $z ) } 0 .. $#ids ),
+    'Unison', 'len', 'best annotation'
+);
+for ( my $i = 0; $i <= $#ids; $i++ ) {
+    printf( "%2d |", $i + $z );
 
-printf("%2s \ %s | %8s %5s %s\n", 
-	   '', join('',map {sprintf(" %3d",$_+$z)} 0..$#ids),
-	   'Unison', 'len', 'best annotation');
-for(my $i=0; $i<=$#ids; $i++) {
-  printf("%2d |", $i+$z);
+    # 0<=j<i
+    for ( my $j = 0; $j <= $i - 1; $j++ ) {
+        printf( " %3d",
+            $aln[$j][$i]->length()
+                / max( length( $bs[$j]->seq() ), length( $bs[$i]->seq() ) )
+                * 100 );
 
-  # 0<=j<i
-  for(my $j=0; $j<=$i-1; $j++) {
-	printf(" %3d", $aln[$j][$i]->length() / max(length($bs[$j]->seq()), length($bs[$i]->seq())) * 100 );
-	#printf(" %3s", '');
-  }
+        #printf(" %3s", '');
+    }
 
-  # j==i
-  print ("   -");
+    # j==i
+    print("   -");
 
-  # i<j<=$#ids
-  for(my $j=$i+1; $j<=$#ids; $j++) {
-	$aln[$i][$j] = $factory->pairwise_alignment($bs[$i],$bs[$j]);
-	printf(" %3d", $aln[$i][$j]->percentage_identity());
-  }
+    # i<j<=$#ids
+    for ( my $j = $i + 1; $j <= $#ids; $j++ ) {
+        $aln[$i][$j] = $factory->pairwise_alignment( $bs[$i], $bs[$j] );
+        printf( " %3d", $aln[$i][$j]->percentage_identity() );
+    }
 
-  printf( " | %8d %5d %s\n",
-		  $ids[$i], length($bs[$i]->seq()), $bs[$i]->desc());
+    printf( " | %8d %5d %s\n",
+        $ids[$i], length( $bs[$i]->seq() ),
+        $bs[$i]->desc() );
 }
-
-
-
-
 
 exit(0);
 
-
-
 sub fetch_sequence($$) {
-  my ($u,$q) = @_;
-  my $bs = Bio::PrimarySeq->new ( -seq => $u->get_sequence_by_pseq_id( $q ),
-								  -id  => "Unison:$q",
-								  -desc => $u->best_annotation($q),
-								  -alphabet => 'protein' );
-  return $bs;
+    my ( $u, $q ) = @_;
+    my $bs = Bio::PrimarySeq->new(
+        -seq      => $u->get_sequence_by_pseq_id($q),
+        -id       => "Unison:$q",
+        -desc     => $u->best_annotation($q),
+        -alphabet => 'protein'
+    );
+    return $bs;
 }
 
-
 sub min($$) {
-  return ( $_[0] < $_[1] ? $_[0] : $_[1] );
+    return ( $_[0] < $_[1] ? $_[0] : $_[1] );
 }
 
 sub max($$) {
-  return ( $_[0] > $_[1] ? $_[0] : $_[1] );
+    return ( $_[0] > $_[1] ? $_[0] : $_[1] );
 }

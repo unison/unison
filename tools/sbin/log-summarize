@@ -1,26 +1,23 @@
 #!/usr/bin/env perl
 # log-summarize -- summarize postgresql logs by host, user, and database
-# $Id: log-summarize,v 1.7 2005/11/07 23:43:07 rkh Exp $
+# $Id$
 # Reece Hart <reece@harts.net>
-
 
 use strict;
 use warnings;
 use Date::Calc qw(Parse_Date Delta_YMD Delta_Days);
+
 #use Data::Dumper;
 
 sub delta($$);
 sub match_any_re($@);
 
-
-
 # users and hosts to exclude
 my @ex_user = qw(compbio postgres loader unison genengenes wwwrun);
-push(@ex_user, qw(mukhyala rkh));
+push( @ex_user, qw(mukhyala rkh) );
 
-my @ex_host_re = map { qr/$_/ } qw(^localhost$ ^csb ^csb-dev ^td-interceptor ^comp\d);
-
-
+my @ex_host_re
+    = map {qr/$_/} qw(^localhost$ ^csb ^csb-dev ^td-interceptor ^comp\d);
 
 # parsing is done by "connection blocks" stored in a simple structure
 # these cbs are binned by user, host, etc.
@@ -36,130 +33,143 @@ my %cb_latest;
 # number of days between earliest and latest
 my %user_delta;
 
-
 my $date_re = qr/200\d-\d\d-\d\d/;
 my $time_re = qr/\d\d:\d\d:\d\d P[DS]T/;
 
-my %ex_user = map {$_=>1} @ex_user;
+my %ex_user = map { $_ => 1 } @ex_user;
 
 my @pending;
 while (<>) {
-  #2004-07-14 09:00:43 [26233] LOG:  connection received: host=tallac.gene.com port=34485
-  #2004-07-14 09:00:43 [26233] LOG:  connection authorized: user=rkh database=csb-dev
 
-  if (m/^($date_re) \s+ ($time_re) \s+ \[(\d+)\] \s+ [^%]+%\S+ \s+ LOG: \s+ connection \s received: \s+ host=(\S+)/x) {
-	$pending[$3] = { date=>$1, time=>$2, host=>$4 };
-	next;
-  }
+#2004-07-14 09:00:43 [26233] LOG:  connection received: host=tallac.gene.com port=34485
+#2004-07-14 09:00:43 [26233] LOG:  connection authorized: user=rkh database=csb-dev
 
-  if (m/^($date_re) \s+ ($time_re) \s+ \[(\d+)\] \s+ [^%]+%\S+ \s+ LOG: \s+ connection \s authorized: \s+ user=(\S+) \s+ database=(\S+)/x) {
-	if (not defined $pending[$3]) {
-	  die("$.: connection never received!\n  $_");
-	}
+    if (m/^($date_re) \s+ ($time_re) \s+ \[(\d+)\] \s+ [^%]+%\S+ \s+ LOG: \s+ connection \s received: \s+ host=(\S+)/x
+        )
+    {
+        $pending[$3] = { date => $1, time => $2, host => $4 };
+        next;
+    }
 
-	my %conn = (%{$pending[$3]}, user=>$4, database=>$5);
-	undef $pending[$3];
+    if (m/^($date_re) \s+ ($time_re) \s+ \[(\d+)\] \s+ [^%]+%\S+ \s+ LOG: \s+ connection \s authorized: \s+ user=(\S+) \s+ database=(\S+)/x
+        )
+    {
+        if ( not defined $pending[$3] ) {
+            die("$.: connection never received!\n  $_");
+        }
 
-	my ($host,$user,$db,$date) = @conn{qw(host user database date)};
+        my %conn = ( %{ $pending[$3] }, user => $4, database => $5 );
+        undef $pending[$3];
 
-	next if exists $ex_user{$user};
-	next if match_any_re($host,@ex_host_re);
+        my ( $host, $user, $db, $date ) = @conn{qw(host user database date)};
 
-	$host =~ s/\.gene\.com//;				# drop domain name
-	$host =~ s/^comp\d+/comp*/				# group connections into
-	  or $host =~ s/^(vpn-pc)-\d+/$1-*/	    # comp, vpn-pc, or dhcpNN- bins
-	  or $host =~ s/^(dhcp[^-]+)-\d+/$1-*/
-	  or $host =~ s/^(\d+\.\d+\.\d+).+/$1\/24/
-	  or $host =~ s/ala|cys|cytosine|guanine|leu|met|thymine|trp/geneland/;
+        next if exists $ex_user{$user};
+        next if match_any_re( $host, @ex_host_re );
 
-	$date =~ s/-\d\d$//; 					# trim to month
+        $host        =~ s/\.gene\.com//;       # drop domain name
+        $host        =~ s/^comp\d+/comp*/      # group connections into
+            or $host =~ s/^(vpn-pc)-\d+/$1-*/  # comp, vpn-pc, or dhcpNN- bins
+            or $host =~ s/^(dhcp[^-]+)-\d+/$1-*/
+            or $host =~ s/^(\d+\.\d+\.\d+).+/$1\/24/
+            or $host
+            =~ s/ala|cys|cytosine|guanine|leu|met|thymine|trp/geneland/;
 
-	push(@{$cb_user{$user}}, \%conn);
-	push(@{$cb_host{$host}}, \%conn);
-	push(@{$cb_user_host{$user}{$host}},\%conn);
-	push(@{$cb_user_db{$user}{$db}},\%conn);
-	push(@{$cb_date{$date}}, \%conn);
-	push(@{$cb_date_user{$date}{$user}}, \%conn);
+        $date =~ s/-\d\d$//;                   # trim to month
 
-	next;
-  }
+        push( @{ $cb_user{$user} },             \%conn );
+        push( @{ $cb_host{$host} },             \%conn );
+        push( @{ $cb_user_host{$user}{$host} }, \%conn );
+        push( @{ $cb_user_db{$user}{$db} },     \%conn );
+        push( @{ $cb_date{$date} },             \%conn );
+        push( @{ $cb_date_user{$date}{$user} }, \%conn );
 
-  if (m/LOG:\s+connection/) {
-	warn("! $.: missed /connection/:\n  $_");
-  }
+        next;
+    }
+
+    if (m/LOG:\s+connection/) {
+        warn("! $.: missed /connection/:\n  $_");
+    }
 
 }
 
-foreach my $user (keys %cb_user) {
-  my @conn = sort {$a->{date} cmp $b->{date}} @{$cb_user{$user}};
-  $cb_earliest{$user} = $conn[0];
-  $cb_latest{$user} = $conn[$#conn];
-  $user_delta{$user} = delta($cb_earliest{$user}->{date},
-							 $cb_latest{$user}->{date});
+foreach my $user ( keys %cb_user ) {
+    my @conn = sort { $a->{date} cmp $b->{date} } @{ $cb_user{$user} };
+    $cb_earliest{$user} = $conn[0];
+    $cb_latest{$user}   = $conn[$#conn];
+    $user_delta{$user}
+        = delta( $cb_earliest{$user}->{date}, $cb_latest{$user}->{date} );
 }
 
+print( '$Id$ ', "\n\n" );
 
-print('$Id: log-summarize,v 1.7 2005/11/07 23:43:07 rkh Exp $ ', "\n\n");
+printf(
+    "excluding statistics for %d users {%s}\n",
+    $#ex_user + 1,
+    join( ',', sort @ex_user )
+);
+printf(
+    "excluding statistics for %d host regular expressions {%s}\n",
+    $#ex_host_re + 1,
+    join( ',', sort @ex_host_re )
+);
 
-printf("excluding statistics for %d users {%s}\n",
-	   $#ex_user+1, join(',',sort @ex_user));
-printf("excluding statistics for %d host regular expressions {%s}\n",
-	   $#ex_host_re+1, join(',',sort @ex_host_re));
+printf( "\nconnections by %d user(s):\n", scalar keys %cb_user );
+foreach my $user (
+    sort {
+               $user_delta{$b} <=> $user_delta{$a}
+            || $cb_latest{$b}->{date} cmp $cb_latest{$a}->{date}
+            || $a cmp $b
+    } keys %cb_user
+    )
+{
+    my $earliest = my $latest = $cb_earliest{$user}->{date};
+    my $delta =
 
-printf("\nconnections by %d user(s):\n", scalar keys %cb_user);
-foreach my $user (sort {   $user_delta{$b} <=> $user_delta{$a} 
-					    || $cb_latest{$b}->{date} cmp $cb_latest{$a}->{date}
-						|| $a cmp $b 
-					  }  keys %cb_user
-				 ) {
-  my $earliest = 
-  my $latest = $cb_earliest{$user}->{date};
-  my $delta = 
-
-  printf("  %-10s: %5d conn, %2d hosts, %2d dbs; %s..%s (%3dd)\n",
-		 $user,
-		 $#{$cb_user{$user}}+1, 
-		 (scalar keys %{$cb_user_host{$user}}),
-		 (scalar keys %{$cb_user_db{$user}}),
-		 $cb_earliest{$user}->{date},
-		 $cb_latest{$user}->{date},
-		 $user_delta{$user}
-		);
+        printf(
+        "  %-10s: %5d conn, %2d hosts, %2d dbs; %s..%s (%3dd)\n",
+        $user,
+        $#{ $cb_user{$user} } + 1,
+        ( scalar keys %{ $cb_user_host{$user} } ),
+        ( scalar keys %{ $cb_user_db{$user} } ),
+        $cb_earliest{$user}->{date},
+        $cb_latest{$user}->{date},
+        $user_delta{$user}
+        );
 }
 
-
-printf("\nconnections by %d host(s):\n", scalar keys %cb_host);
-foreach my $host (sort {$#{$cb_host{$b}} <=> $#{$cb_host{$a}}} keys %cb_host) {
-  printf("  %-30.30s %4d\n", $host, $#{$cb_host{$host}}+1);
+printf( "\nconnections by %d host(s):\n", scalar keys %cb_host );
+foreach my $host ( sort { $#{ $cb_host{$b} } <=> $#{ $cb_host{$a} } }
+    keys %cb_host )
+{
+    printf( "  %-30.30s %4d\n", $host, $#{ $cb_host{$host} } + 1 );
 }
 
-
-printf("\nconnections by month:\n", scalar keys %cb_date);
-foreach my $date (sort keys %cb_date) {
-  my @users = keys %{$cb_date_user{$date}};
-  printf("  $date %5d total; %5d user; %5d PUBLIC; %4d unique = {%s})\n", 
-		 scalar(                              @{$cb_date{$date}}),
-		 scalar(grep {$_->{user} ne 'PUBLIC'} @{$cb_date{$date}}),
-		 scalar(grep {$_->{user} eq 'PUBLIC'} @{$cb_date{$date}}),
-		 $#users+1,
-		 join(',',sort @users));
+printf( "\nconnections by month:\n", scalar keys %cb_date );
+foreach my $date ( sort keys %cb_date ) {
+    my @users = keys %{ $cb_date_user{$date} };
+    printf(
+        "  $date %5d total; %5d user; %5d PUBLIC; %4d unique = {%s})\n",
+        scalar( @{ $cb_date{$date} } ),
+        scalar( grep { $_->{user} ne 'PUBLIC' } @{ $cb_date{$date} } ),
+        scalar( grep { $_->{user} eq 'PUBLIC' } @{ $cb_date{$date} } ),
+        $#users + 1,
+        join( ',', sort @users )
+    );
 }
 
 exit(0);
 
-
 sub delta($$) {
-  my ($t0,$t1) = @_;
-  my ($y0,$m0,$d0) = split(/-/,$t0);
-  my ($y1,$m1,$d1) = split(/-/,$t1);
-  return Delta_Days($y0,$m0,$d0, $y1,$m1,$d1);
+    my ( $t0, $t1 ) = @_;
+    my ( $y0, $m0, $d0 ) = split( /-/, $t0 );
+    my ( $y1, $m1, $d1 ) = split( /-/, $t1 );
+    return Delta_Days( $y0, $m0, $d0, $y1, $m1, $d1 );
 }
 
-
 sub match_any_re($@) {
-  my ($q,@re) = @_;
-  for(my $i=0; $i<=$#re; $i++) {
-	return $re[$i] if ($q =~ $re[$i]);
-  }
-  return undef;
+    my ( $q, @re ) = @_;
+    for ( my $i = 0; $i <= $#re; $i++ ) {
+        return $re[$i] if ( $q =~ $re[$i] );
+    }
+    return undef;
 }

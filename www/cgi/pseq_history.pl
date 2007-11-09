@@ -32,7 +32,6 @@ my @f = qw(params modelset ran_on);
 print $p->render(
     "Run history for Unison:$v->{pseq_id}",
     $p->best_annotation( $v->{pseq_id} ),
-    '<p>',
     $p->group( "Run History", Unison::WWW::Table::render( \@f, $ar ) ),
     $p->sql($sql)
 );

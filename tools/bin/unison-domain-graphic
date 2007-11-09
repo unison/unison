@@ -100,66 +100,72 @@ my %opts = parse_options();
 my $u = new Unison();
 
 my $outfh;
-open ($outfh, ">$opts{outfile}") if defined ($opts{outfile}) ;
+open( $outfh, ">$opts{outfile}" ) if defined( $opts{outfile} );
 $outfh = \*STDOUT unless defined $opts{outfile};
 binmode $outfh;
 
 # args from command line or stdin, but not both
-my (@args) = @ARGV ? @ARGV : map {chomp; $_} <>;
-my ($pseq_ids,$user_anns) = map_args_to_pseq_ids( \%opts, @args );
+my (@args) = @ARGV ? @ARGV : map { chomp; $_ } <>;
+my ( $pseq_ids, $user_anns ) = map_args_to_pseq_ids( \%opts, @args );
 
 ## fetch sequence features
-my ($si,$feats) = fetch_seq_feats($pseq_ids);
+my ( $si, $feats ) = fetch_seq_feats($pseq_ids);
 
 ## This determines how to align sequences / tracks
-assign_anchor($si,$pseq_ids,$feats);
+assign_anchor( $si, $pseq_ids, $feats );
 
 ## extent is the right most end of all sequences
 ## extent is used for determining the xscale.
 ## xscale is image width over extent
 my $extent = set_extents($pseq_ids);
 
-my ($im_height,$track_hh,$track_height) = get_image_dims($pseq_ids, scalar keys %$feats);
+my ( $im_height, $track_hh, $track_height )
+    = get_image_dims( $pseq_ids, scalar keys %$feats );
 
 ## here's our canvas
-my ($im,$c) = new_gd_canvas($opts{width}+200,$im_height);
+my ( $im, $c ) = new_gd_canvas( $opts{width} + 200, $im_height );
 
 ## here each feature is assigned a color
-my $feature_colors = assign_colors($c,$feats,$pseq_ids);
+my $feature_colors = assign_colors( $c, $feats, $pseq_ids );
 
 ## Now the Art begins, one track/sequence at a time
-for(my $qi=0; $qi < scalar @$pseq_ids; $qi++ ) {
-  my $q = $pseq_ids->[$qi];
-  my $ymidline = 1 + $track_hh + $qi * ($track_height + $opts{track_spacing});
-  my $ba = $u->best_alias($q) || 'n/a';
-  $ba =~ s/^.+://;
-  $ba = "Unison:$q ($ba)";
-  $ba = $user_anns->{$q} if defined $user_anns->{$q} and $opts{user_ann};
-  my $xscale = $opts{width} / $extent;
+for ( my $qi = 0; $qi < scalar @$pseq_ids; $qi++ ) {
+    my $q = $pseq_ids->[$qi];
+    my $ymidline
+        = 1 + $track_hh + $qi * ( $track_height + $opts{track_spacing} );
+    my $ba = $u->best_alias($q) || 'n/a';
+    $ba =~ s/^.+://;
+    $ba = "Unison:$q ($ba)";
+    $ba = $user_anns->{$q} if defined $user_anns->{$q} and $opts{user_ann};
+    my $xscale = $opts{width} / $extent;
 
-  # the sequence ids on RHS
-  $im->string(gdSmallFont,
-			  ($opts{width}-100), $ymidline - gdSmallFont->height/2,
-			  $ba,
-			  $c->{black});
-  draw($im,$c,$xscale,$ymidline,\%{$si->{$q}},$feature_colors,$q);
+    # the sequence ids on RHS
+    $im->string( gdSmallFont,
+        ( $opts{width} - 100 ),
+        $ymidline - gdSmallFont->height / 2,
+        $ba, $c->{black}
+    );
+    draw( $im, $c, $xscale, $ymidline, \%{ $si->{$q} }, $feature_colors, $q );
 }
 
+draw_legend( $feature_colors, $im, $c, $feats, $pseq_ids )
+    if ( $opts{legend} );
+$im->string( gdSmallFont, 0,
+    $im_height - gdSmallFont->height,
+    "Copyright 2007-2008 Genentech, Inc.",
+    $c->{black}
+);
 
-draw_legend($feature_colors,$im,$c,$feats,$pseq_ids) if($opts{legend});
-$im->string(gdSmallFont,
-	    0, $im_height - gdSmallFont->height,
-	    "Copyright 2007-2008 Genentech, Inc.",
-	    $c->{black});
-
-$im = resize($im,$opts{width},$opts{height}) if defined $opts{height};
-
+$im = resize( $im, $opts{width}, $opts{height} ) if defined $opts{height};
 
 ## write ouput
-if($opts{format} eq 'png') {print $outfh $im->png; }
-elsif ($opts{format} eq 'jpeg') {print $outfh $im->jpeg; }
-elsif ($opts{format} eq 'gif')  {print $outfh $im->gif; }
-else {die "unison-domain-graphic : Unexpected output format. possible options are png|gif|jpeg"}
+if    ( $opts{format} eq 'png' )  { print $outfh $im->png; }
+elsif ( $opts{format} eq 'jpeg' ) { print $outfh $im->jpeg; }
+elsif ( $opts{format} eq 'gif' )  { print $outfh $im->gif; }
+else {
+    die
+        "unison-domain-graphic : Unexpected output format. possible options are png|gif|jpeg";
+}
 exit(0);
 
 ## END OF MAIN
@@ -171,10 +177,10 @@ exit(0);
 ## sequence based and features based hashes
 sub fetch_seq_feats {
 
-  my $pseq_ids = shift;
-  my (%si, %feats);
-  my $len_sth = $u->prepare('select len from pseq where pseq_id = ?');
-  my $feature_sth = $u->prepare(<<EOSQL);
+    my $pseq_ids = shift;
+    my ( %si, %feats );
+    my $len_sth     = $u->prepare('select len from pseq where pseq_id = ?');
+    my $feature_sth = $u->prepare(<<EOSQL);
 SELECT * FROM
   (
   SELECT feature_type,feature,start,stop,descr
@@ -184,24 +190,25 @@ SELECT * FROM
 ORDER BY start,stop
 EOSQL
 
-  ## Assign sequence info and build hashes
-  foreach my $q (@$pseq_ids) {
-    $si{$q}{'q'} = $q;
-    ($si{$q}{len}) = $u->selectrow_array($len_sth,undef,$q);
-    #  col[2] is start of the feature
-    my @f = ( sort {$a->[2]<=>$b->[2]}
-	      @{ $u->selectall_arrayref($feature_sth,undef,$q) } );
-    @{$si{$q}{features}} = @f;
-    print(STDERR "* Unison:$q\n", Dumper(\@f)) if $opts{verbose};
-  }
+    ## Assign sequence info and build hashes
+    foreach my $q (@$pseq_ids) {
+        $si{$q}{'q'} = $q;
+        ( $si{$q}{len} ) = $u->selectrow_array( $len_sth, undef, $q );
 
-  map {
+        #  col[2] is start of the feature
+        my @f = ( sort { $a->[2] <=> $b->[2] }
+                @{ $u->selectall_arrayref( $feature_sth, undef, $q ) } );
+        @{ $si{$q}{features} } = @f;
+        print( STDERR "* Unison:$q\n", Dumper( \@f ) ) if $opts{verbose};
+    }
+
     map {
-      $feats{$_->[1]}{descr} = $_->[4];
-      $feats{$_->[1]}{type} = $_->[0]
-    } @{$si{$_}{features}}
-  } @$pseq_ids;
-  return (\%si,\%feats);
+        map {
+            $feats{ $_->[1] }{descr} = $_->[4];
+            $feats{ $_->[1] }{type}  = $_->[0]
+            } @{ $si{$_}{features} }
+    } @$pseq_ids;
+    return ( \%si, \%feats );
 }
 
 ########################################################################################
@@ -209,504 +216,619 @@ EOSQL
 ## if not the center of the sequence is the anchor point
 
 sub assign_anchor {
-  my ($si,$pseq_ids,$feats) = @_;
-  my %other_f;
-  my %seen;
-  foreach my $q (@$pseq_ids) {
-    my $align_dom = (grep {$_->[1] eq $opts{align_feature}} @{$si->{$q}{features}}
-		    )[0];
-    if(defined $align_dom) {
-      $si->{$q}{r0} = 0 - $align_dom->[3];
-    } else {
-      undef %seen;
-      map {$other_f{$_->[1]}++} grep {!$seen{$_}++} @{$si->{$q}{features}};
+    my ( $si, $pseq_ids, $feats ) = @_;
+    my %other_f;
+    my %seen;
+    foreach my $q (@$pseq_ids) {
+        my $align_dom = ( grep { $_->[1] eq $opts{align_feature} }
+                @{ $si->{$q}{features} } )[0];
+        if ( defined $align_dom ) {
+            $si->{$q}{r0} = 0 - $align_dom->[3];
+        }
+        else {
+            undef %seen;
+            map      { $other_f{ $_->[1] }++ }
+                grep { !$seen{$_}++ } @{ $si->{$q}{features} };
+        }
     }
-  }
 
-  foreach my $feat_type ('HMM','regexp','TMHMM','SS') {
+    foreach my $feat_type ( 'HMM', 'regexp', 'TMHMM', 'SS' ) {
 
-    my $align_feat = (
-		      sort {$other_f{$b} <=> $other_f{$a}} grep {$feats->{$_}{type} eq $feat_type} keys %other_f
-		     )[0];
-    next if not defined $align_feat;
-    foreach my $q (grep {not exists $si->{$_}{r0}} @$pseq_ids) {
-      my $align_dom = (grep {$_->[1] eq $align_feat} @{$si->{$q}{features}}
-		      )[0];
-      if(defined $align_dom) {
-	$si->{$q}{r0} = 0 - $align_dom->[3];
-	#print "$q aligning on $align_feat of $feat_type : $feats->{$align_feat}{descr}\n";
-      }
+        my $align_feat = ( sort { $other_f{$b} <=> $other_f{$a} }
+                grep { $feats->{$_}{type} eq $feat_type } keys %other_f )[0];
+        next if not defined $align_feat;
+        foreach my $q ( grep { not exists $si->{$_}{r0} } @$pseq_ids ) {
+            my $align_dom
+                = ( grep { $_->[1] eq $align_feat } @{ $si->{$q}{features} } )
+                [0];
+            if ( defined $align_dom ) {
+                $si->{$q}{r0} = 0 - $align_dom->[3];
+
+#print "$q aligning on $align_feat of $feat_type : $feats->{$align_feat}{descr}\n";
+            }
+        }
     }
-  }
-  foreach my $q (grep {not exists $si->{$_}{r0}} @$pseq_ids) {
-    $si->{$q}{r0} = 0 - ($si->{$q}{len})/2;
-    #print "$q aligning on midpoint\n";
-  }
-  #exit;
+    foreach my $q ( grep { not exists $si->{$_}{r0} } @$pseq_ids ) {
+        $si->{$q}{r0} = 0 - ( $si->{$q}{len} ) / 2;
+
+        #print "$q aligning on midpoint\n";
+    }
+
+    #exit;
 }
 
 ############################################################################
 sub set_extents {
 
-  my $pseq_ids = shift;
-  ## shift all r0 such that the min(r0) := 0
-  my $min_r0 = (sort {$a<=>$b}
-		(map {$si->{$_}{r0}} @$pseq_ids)
-	       )[0];
-  $si->{$_}{r0} -= $min_r0 foreach (@$pseq_ids);
+    my $pseq_ids = shift;
+    ## shift all r0 such that the min(r0) := 0
+    my $min_r0
+        = ( sort { $a <=> $b } ( map { $si->{$_}{r0} } @$pseq_ids ) )[0];
+    $si->{$_}{r0} -= $min_r0 foreach (@$pseq_ids);
 
-  my $extent = (sort {$b<=>$a}
-		(map {$si->{$_}{r0}+$si->{$_}{len}}(@$pseq_ids))
-	       )[0];
-  $extent -= $min_r0;
-  return $extent;
+    my $extent = ( sort { $b <=> $a }
+            ( map { $si->{$_}{r0} + $si->{$_}{len} } (@$pseq_ids) ) )[0];
+    $extent -= $min_r0;
+    return $extent;
 }
 
 ############################################################################
 sub get_image_dims {
 
-  my ($pseq_ids,$num_feats) = @_;
-  ## image dimensions
-  my $track_hh = $opts{track_padding}+$opts{box_height}+$opts{seq_line_width};
-  my $track_height = 1 + 2 * $track_hh;
-  my $im_height = $track_height*(scalar @$pseq_ids) + $opts{track_spacing}*scalar @$pseq_ids ;
-  $im_height += $opts{legend_spacing} * $num_feats if($opts{legend});
-  $im_height += 20; #for copyright statement
-  return ($im_height,$track_hh,$track_height);
+    my ( $pseq_ids, $num_feats ) = @_;
+    ## image dimensions
+    my $track_hh
+        = $opts{track_padding} + $opts{box_height} + $opts{seq_line_width};
+    my $track_height = 1 + 2 * $track_hh;
+    my $im_height = $track_height * ( scalar @$pseq_ids )
+        + $opts{track_spacing} * scalar @$pseq_ids;
+    $im_height += $opts{legend_spacing} * $num_feats if ( $opts{legend} );
+    $im_height += 20;    #for copyright statement
+    return ( $im_height, $track_hh, $track_height );
 }
 
 ######################################################################################
 ## drawing subroutines
 sub new_gd_canvas {
-  my ($w,$h) = @_;
+    my ( $w, $h ) = @_;
 
-  # why both?
-  GD::Image->trueColor(1);
-  my $im = GD::Image->newTrueColor($w,$h);
-  my %c = (
-	   black => $im->colorAllocate(0,0,0),
-	   blue => $im->colorAllocate(0,0,255),
-	   steelblue4 => $im->colorAllocate(54,100,139),
-	   sbrown=> $im->colorAllocate(139,69,19),
-	   lightblue => $im->colorAllocate(135,206,250),
-	   blueviolet => $im->colorAllocate(138,43,226),
-	   purple => $im->colorAllocate(85,26,139),
-	   dseagreen => $im->colorAllocate(193,255,193),
-	   plum => $im->colorAllocate(255,187,255),
-	   slateblue => $im->colorAllocate(132,112,255),
-	   brass => $im->colorAllocate(181,166,66),
-	   navajowhite => $im->colorAllocate(139,121,94),
-	   newtan=> $im->colorAllocate(235,199,158),
-	   tan=> $im->colorAllocate(219,147,112),
-	   cyan => $im->colorAllocate(0,255,255),
-	   green => $im->colorAllocate(0,255,0),
-	   bronze => $im->colorAllocate(166,125,61),
-	   aquamarine => $im->colorAllocate(127,255,212),
-	   grey => $im->colorAllocate(211,211,211),
-	   gold => $im->colorAllocate(205,127,50),
-	   wgrey => $im->colorAllocate(84,84,84),
-	   slategrey => $im->colorAllocate(108,123,139),
-	   fsgrey => $im->colorAllocate(99,86,136),
-	   magenta => $im->colorAllocate(255,0,255),
-	   maroon => $im->colorAllocate(176,48,96),
-	   olivedrab => $im->colorAllocate(107,142,35),
-	   blue_cadet => $im->colorAllocate(95,158,160),
-	   lpink => $im->colorAllocate(255,182,193),
-	   hgreen => $im->colorAllocate(35,142,35),
-	   orange =>  $im->colorAllocate(255,165,0),
-	   turquoise => $im->colorAllocate(0,206,209),
-	   red => $im->colorAllocate(255,0,0),
-	   navublue => $im->colorAllocate(0,0,128),
-	   dgreen => $im->colorAllocate(0,100,0),
-	   tomate => $im->colorAllocate(255,99,71),
-	   indianred => $im->colorAllocate(205,92,92),
-	   seagreen => $im->colorAllocate(143,188,143),
-	   yellow => $im->colorAllocate(255,255,0),
-	   white => $im->colorAllocate(255,255,255)
-	);
-  $im->setAntiAliased($c{orange});
-  $im->fill(0,0,$c{white});
-  return ($im,\%c);
+    # why both?
+    GD::Image->trueColor(1);
+    my $im = GD::Image->newTrueColor( $w, $h );
+    my %c = (
+        black       => $im->colorAllocate( 0,   0,   0 ),
+        blue        => $im->colorAllocate( 0,   0,   255 ),
+        steelblue4  => $im->colorAllocate( 54,  100, 139 ),
+        sbrown      => $im->colorAllocate( 139, 69,  19 ),
+        lightblue   => $im->colorAllocate( 135, 206, 250 ),
+        blueviolet  => $im->colorAllocate( 138, 43,  226 ),
+        purple      => $im->colorAllocate( 85,  26,  139 ),
+        dseagreen   => $im->colorAllocate( 193, 255, 193 ),
+        plum        => $im->colorAllocate( 255, 187, 255 ),
+        slateblue   => $im->colorAllocate( 132, 112, 255 ),
+        brass       => $im->colorAllocate( 181, 166, 66 ),
+        navajowhite => $im->colorAllocate( 139, 121, 94 ),
+        newtan      => $im->colorAllocate( 235, 199, 158 ),
+        tan         => $im->colorAllocate( 219, 147, 112 ),
+        cyan        => $im->colorAllocate( 0,   255, 255 ),
+        green       => $im->colorAllocate( 0,   255, 0 ),
+        bronze      => $im->colorAllocate( 166, 125, 61 ),
+        aquamarine  => $im->colorAllocate( 127, 255, 212 ),
+        grey        => $im->colorAllocate( 211, 211, 211 ),
+        gold        => $im->colorAllocate( 205, 127, 50 ),
+        wgrey       => $im->colorAllocate( 84,  84,  84 ),
+        slategrey   => $im->colorAllocate( 108, 123, 139 ),
+        fsgrey      => $im->colorAllocate( 99,  86,  136 ),
+        magenta     => $im->colorAllocate( 255, 0,   255 ),
+        maroon      => $im->colorAllocate( 176, 48,  96 ),
+        olivedrab   => $im->colorAllocate( 107, 142, 35 ),
+        blue_cadet  => $im->colorAllocate( 95,  158, 160 ),
+        lpink       => $im->colorAllocate( 255, 182, 193 ),
+        hgreen      => $im->colorAllocate( 35,  142, 35 ),
+        orange      => $im->colorAllocate( 255, 165, 0 ),
+        turquoise   => $im->colorAllocate( 0,   206, 209 ),
+        red         => $im->colorAllocate( 255, 0,   0 ),
+        navublue    => $im->colorAllocate( 0,   0,   128 ),
+        dgreen      => $im->colorAllocate( 0,   100, 0 ),
+        tomate      => $im->colorAllocate( 255, 99,  71 ),
+        indianred   => $im->colorAllocate( 205, 92,  92 ),
+        seagreen    => $im->colorAllocate( 143, 188, 143 ),
+        yellow      => $im->colorAllocate( 255, 255, 0 ),
+        white       => $im->colorAllocate( 255, 255, 255 )
+    );
+    $im->setAntiAliased( $c{orange} );
+    $im->fill( 0, 0, $c{white} );
+    return ( $im, \%c );
 }
 
 ############################################################################
 sub assign_colors {
-  my ($c,$feats) = @_;
-  my %feature_color;
-  my %cc = %$c;
-  delete $cc{$_} foreach(qw(black orange red grey white blue dgreen));
-  my @colors=keys %cc;
-  my $cnum = 0;
+    my ( $c, $feats ) = @_;
+    my %feature_color;
+    my %cc = %$c;
+    delete $cc{$_} foreach (qw(black orange red grey white blue dgreen));
+    my @colors = keys %cc;
+    my $cnum   = 0;
 
-    foreach my $f (keys %$feats) {
-      $cnum = 0 if $cnum > $#colors;
-      $feature_color{$f} = $colors[$cnum++] if not defined $feature_color{$f};
-      $feature_color{$f} = 'red' if ($f eq 'TM');
-      $feature_color{$f} = 'blue' if ($f eq 'SS');
-      $feature_color{$f} = 'dgreen' if ($f eq 'BIG-PI');
+    foreach my $f ( keys %$feats ) {
+        $cnum = 0 if $cnum > $#colors;
+        $feature_color{$f} = $colors[ $cnum++ ]
+            if not defined $feature_color{$f};
+        $feature_color{$f} = 'red'    if ( $f eq 'TM' );
+        $feature_color{$f} = 'blue'   if ( $f eq 'SS' );
+        $feature_color{$f} = 'dgreen' if ( $f eq 'BIG-PI' );
     }
 
-  return \%feature_color;
+    return \%feature_color;
 }
 
 ############################################################################
 sub draw {
-  my ($im,$c,$xscale,$ymidline,$si,$fc,$q) = @_;
-  my $x0 = $si->{r0} * $xscale;
-  my $ymid = $ymidline;
+    my ( $im, $c, $xscale, $ymidline, $si, $fc, $q ) = @_;
+    my $x0   = $si->{r0} * $xscale;
+    my $ymid = $ymidline;
 
-  #sequence length
-  $im->string(gdSmallFont,
-			  $x0+$si->{len}*$xscale, $ymidline-$opts{box_height} - gdSmallFont->height/2,
-			  "$si->{len}",
-			  $c->{black});
+    #sequence length
+    $im->string( gdSmallFont,
+        $x0 + $si->{len} * $xscale,
+        $ymidline - $opts{box_height} - gdSmallFont->height / 2,
+        "$si->{len}", $c->{black}
+    );
 
-  # sequence line
-  $im->setThickness($opts{seq_line_width}*2+1);
-  $im->line($x0                     ,$ymidline,
-			$x0+$si->{len}*$xscale,$ymidline,
-			$c->{grey});
+    # sequence line
+    $im->setThickness( $opts{seq_line_width} * 2 + 1 );
+    $im->line( $x0, $ymidline, $x0 + $si->{len} * $xscale,
+        $ymidline, $c->{grey} );
 
-  # domains
-  $im->setThickness($opts{box_line_width});
-  my $prev_stop=0;
-  foreach my $f (@{$si->{features}}) {
-      my $bh = $opts{box_height};
-      my ($type,$name,$start,$stop, $descr) = @$f;
+    # domains
+    $im->setThickness( $opts{box_line_width} );
+    my $prev_stop = 0;
+    foreach my $f ( @{ $si->{features} } ) {
+        my $bh = $opts{box_height};
+        my ( $type, $name, $start, $stop, $descr ) = @$f;
 
-      if($start < $prev_stop) {
-	if($ymid == $ymidline) {
-	  $ymid=$ymidline-$opts{overlap_height};
-	} else {
-	  $ymid=$ymidline+$opts{overlap_height};
-	}
-      } else {
-	$ymid=$ymidline;
-      }
-      my (@coords) = ($x0+$start*$xscale, $ymid-$bh,
-		      $x0+$stop *$xscale, $ymid+$bh);
+        if ( $start < $prev_stop ) {
+            if ( $ymid == $ymidline ) {
+                $ymid = $ymidline - $opts{overlap_height};
+            }
+            else {
+                $ymid = $ymidline + $opts{overlap_height};
+            }
+        }
+        else {
+            $ymid = $ymidline;
+        }
+        my (@coords) = (
+            $x0 + $start * $xscale,
+            $ymid - $bh,
+            $x0 + $stop * $xscale,
+            $ymid + $bh
+        );
 
-      if($type eq 'BIG-PI') {
-	  triangle($im, ($x0+($stop*$xscale)) , $opts{icon_width},  $ymid, $opts{seq_line_width}, $c->{$fc->{$name}}, gdAntiAliased, 0);
+        if ( $type eq 'BIG-PI' ) {
+            triangle(
+                $im, ( $x0 + ( $stop * $xscale ) ),
+                $opts{icon_width},     $ymid,
+                $opts{seq_line_width}, $c->{ $fc->{$name} },
+                gdAntiAliased,         0
+            );
 
-      } elsif($type eq 'HMM') {
-	  rounded_rectangle($im,@coords, $c->{$fc->{$name}},gdAntiAliased,0);
+        }
+        elsif ( $type eq 'HMM' ) {
+            rounded_rectangle( $im, @coords, $c->{ $fc->{$name} },
+                gdAntiAliased, 0 );
 
-      } elsif($type eq 'SignalP') {
-	  if($opts{signal_char}) {
-	      $im->string(gdLargeFont,
-			  $x0+($stop*$xscale), $ymid - gdLargeFont->height/2,
-			  $opts{signal_char},
-			  $c->{$fc->{$name}});
-	  } else {
-	      diamond($im, ($x0+($stop*$xscale)) , $opts{icon_width}, $ymid, $opts{seq_line_width}, $c->{$fc->{$name}}, gdAntiAliased, 0);
-	  }
-      } elsif($type eq 'TMHMM') {
-	if($opts{tm_char}) {
-	  $im->string(gdLargeFont,
-		      $x0+($stop*$xscale), $ymid - gdLargeFont->height/2,
-		      $opts{tm_char},
-		      $c->{$fc->{$name}});
-	} else {
-	  $bh = $opts{seq_line_width};
-	  #my($x1,$y1,$x2,$y2) = ($x0+$start*$xscale, $ymid-$bh,
-	  #		 $x0+$stop *$xscale, $ymid+$bh);
-	  #helix($im,$x1,$y1,$x2,$y2,$c->{$fc->{$name}});
-	  $im->rectangle(@coords, $c->{$fc->{$name}});
-	  }
+        }
+        elsif ( $type eq 'SignalP' ) {
+            if ( $opts{signal_char} ) {
+                $im->string( gdLargeFont,
+                    $x0 + ( $stop * $xscale ),
+                    $ymid - gdLargeFont->height / 2,
+                    $opts{signal_char},
+                    $c->{ $fc->{$name} }
+                );
+            }
+            else {
+                diamond(
+                    $im, ( $x0 + ( $stop * $xscale ) ),
+                    $opts{icon_width},     $ymid,
+                    $opts{seq_line_width}, $c->{ $fc->{$name} },
+                    gdAntiAliased,         0
+                );
+            }
+        }
+        elsif ( $type eq 'TMHMM' ) {
+            if ( $opts{tm_char} ) {
+                $im->string( gdLargeFont,
+                    $x0 + ( $stop * $xscale ),
+                    $ymid - gdLargeFont->height / 2,
+                    $opts{tm_char}, $c->{ $fc->{$name} }
+                );
+            }
+            else {
+                $bh = $opts{seq_line_width};
 
-      } else { # prosite or any other
-	  $bh = $opts{seq_line_width};
-	  @coords = ($x0+$start*$xscale, $ymid-$bh,
-				 $x0+$stop *$xscale, $ymid+$bh);
-	  $im->filledRectangle(@coords, $c->{$fc->{$name}});
-	  $im->rectangle(@coords, gdAntiAliased) if (($stop-$start)*$xscale > 6); #border, default seq_line_width is 1.5
-      }
-      $prev_stop = $stop;
-  }
+                #my($x1,$y1,$x2,$y2) = ($x0+$start*$xscale, $ymid-$bh,
+                #		 $x0+$stop *$xscale, $ymid+$bh);
+                #helix($im,$x1,$y1,$x2,$y2,$c->{$fc->{$name}});
+                $im->rectangle( @coords, $c->{ $fc->{$name} } );
+            }
+
+        }
+        else {    # prosite or any other
+            $bh     = $opts{seq_line_width};
+            @coords = (
+                $x0 + $start * $xscale,
+                $ymid - $bh,
+                $x0 + $stop * $xscale,
+                $ymid + $bh
+            );
+            $im->filledRectangle( @coords, $c->{ $fc->{$name} } );
+            $im->rectangle( @coords, gdAntiAliased )
+                if ( ( $stop - $start ) * $xscale > 6 )
+                ;    #border, default seq_line_width is 1.5
+        }
+        $prev_stop = $stop;
+    }
 }
 
 ############################################################################
 
 sub draw_legend {
-  my ($f,$im,$c,$feats,$pseq_ids) = @_;
-  my $seqs_height = $track_height*(scalar @$pseq_ids) + $opts{track_spacing}* scalar @$pseq_ids;
-  my $xscale = $opts{width} / $extent;
-  my $x0 = 5;
-  my $fnum=0;
-  foreach my $k(sort keys %$f) {
-    my $legend = (defined $feats->{$k}{descr} ? $feats->{$k}{descr}." ($k)" : $k);
-    my $ymidline = $seqs_height + $track_hh + $fnum++ * ($opts{box_height}*2);
+    my ( $f, $im, $c, $feats, $pseq_ids ) = @_;
+    my $seqs_height = $track_height * ( scalar @$pseq_ids )
+        + $opts{track_spacing} * scalar @$pseq_ids;
+    my $xscale = $opts{width} / $extent;
+    my $x0     = 5;
+    my $fnum   = 0;
+    foreach my $k ( sort keys %$f ) {
+        my $legend
+            = (
+            defined $feats->{$k}{descr}
+            ? $feats->{$k}{descr} . " ($k)"
+            : $k );
+        my $ymidline
+            = $seqs_height + $track_hh + $fnum++ * ( $opts{box_height} * 2 );
 
-    if($feats->{$k}{type} eq 'TMHMM') {
+        if ( $feats->{$k}{type} eq 'TMHMM' ) {
 
-      if($opts{tm_char}) {
-	$im->string(gdLargeFont,
-		    $x0+10, $ymidline - gdLargeFont->height/2,
-		    $opts{tm_char},
-		    $c->{$f->{$k}});
-      } else {
-	my $x1 = $x0;
-	my $x2= 30;
-	my $y1 = $ymidline-$opts{box_height}/2;
-	my $y2 = $ymidline+$opts{box_height}/2;
-	#helix($im,$x1,$y1,$x2,$y2,$c->{$f->{$k}});
-	$im->rectangle($x1,$y1,$x2,$y2,$c->{$f->{$k}});
-      }
-    } elsif ($feats->{$k}{type} eq 'BIG-PI') {
-      triangle($im, $x0 + 10, $opts{icon_width}, $ymidline, $opts{seq_line_width}, $c->{$f->{$k}}, gdAntiAliased, 0);
+            if ( $opts{tm_char} ) {
+                $im->string( gdLargeFont, $x0 + 10,
+                    $ymidline - gdLargeFont->height / 2,
+                    $opts{tm_char}, $c->{ $f->{$k} } );
+            }
+            else {
+                my $x1 = $x0;
+                my $x2 = 30;
+                my $y1 = $ymidline - $opts{box_height} / 2;
+                my $y2 = $ymidline + $opts{box_height} / 2;
+
+                #helix($im,$x1,$y1,$x2,$y2,$c->{$f->{$k}});
+                $im->rectangle( $x1, $y1, $x2, $y2, $c->{ $f->{$k} } );
+            }
+        }
+        elsif ( $feats->{$k}{type} eq 'BIG-PI' ) {
+            triangle( $im, $x0 + 10, $opts{icon_width}, $ymidline,
+                $opts{seq_line_width}, $c->{ $f->{$k} },
+                gdAntiAliased, 0 );
+        }
+
+        elsif ( $feats->{$k}{type} eq 'HMM' ) {
+            rounded_rectangle(
+                $im, $x0, $ymidline - $opts{box_height} / 2,
+                30,
+                $ymidline + $opts{box_height} / 2,
+                $c->{ $f->{$k} },
+                gdAntiAliased, 0
+            );
+        }
+
+        elsif ( $feats->{$k}{type} eq 'SignalP' ) {
+            if ( $opts{signal_char} ) {
+                $im->string( gdLargeFont, $x0 + 10,
+                    $ymidline - gdLargeFont->height / 2,
+                    $opts{signal_char}, $c->{ $f->{$k} } );
+            }
+            else {
+                diamond( $im, $x0 + 10, $opts{icon_width}, $ymidline,
+                    $opts{seq_line_width}, $c->{ $f->{$k} },
+                    gdAntiAliased, 0 );
+            }
+        }
+
+        else {
+            $im->filledRectangle(
+                $x0 + 5, $ymidline - $opts{box_height} / 2,
+                20,
+                $ymidline + $opts{box_height} / 2,
+                $c->{ $f->{$k} }
+            );
+            $im->rectangle(
+                $x0 + 5, $ymidline - $opts{box_height} / 2,
+                20, $ymidline + $opts{box_height} / 2,
+                gdAntiAliased
+            );
+        }
+        $im->string( gdSmallFont, $x0 + 30,
+            $ymidline - gdSmallFont->height / 2,
+            $legend, $c->{black} );
     }
-
-    elsif ($feats->{$k}{type} eq 'HMM') {
-      rounded_rectangle($im,$x0,$ymidline-$opts{box_height}/2,30,$ymidline+$opts{box_height}/2,$c->{$f->{$k}},gdAntiAliased,0);
-    }
-
-    elsif ($feats->{$k}{type} eq 'SignalP') {
-      if($opts{signal_char}) {
-	$im->string(gdLargeFont,
-		    $x0+10, $ymidline - gdLargeFont->height/2,
-		    $opts{signal_char},
-		    $c->{$f->{$k}});
-      } else {
-	diamond($im, $x0 + 10, $opts{icon_width}, $ymidline, $opts{seq_line_width}, $c->{$f->{$k}}, gdAntiAliased, 0);
-      }
-    }
-
-    else {
-      $im->filledRectangle($x0+5,$ymidline-$opts{box_height}/2,20,$ymidline+$opts{box_height}/2,$c->{$f->{$k}});
-      $im->rectangle($x0+5,$ymidline-$opts{box_height}/2,20,$ymidline+$opts{box_height}/2, gdAntiAliased);
-    }
-    $im->string(gdSmallFont,
-		$x0 + 30, $ymidline - gdSmallFont->height/2,
-		$legend,
-		$c->{black});
-  }
 }
 
 ############################################################################
 ## primarily for scaling height.
 ## I included width for future use.
 sub resize {
-    my ($im, $width, $height) = @_;
-    unless ( $width && $height ) { die "unison-domain-graphic::resize(): usage error"; }
+    my ( $im, $width, $height ) = @_;
+    unless ( $width && $height ) {
+        die "unison-domain-graphic::resize(): usage error";
+    }
 
     my $k_h = $height / $im_height;
-    my $k_w = $width / ($opts{width}+200);
+    my $k_w = $width / ( $opts{width} + 200 );
 
-    $height = int($im_height * $k_h);
-    $width  = int($opts{width}+200 * $k_w);
+    $height = int( $im_height * $k_h );
+    $width  = int( $opts{width} + 200 * $k_w );
 
-    my $image = GD::Image->newTrueColor($width, $height);
-    $image->copyResampled($im,
-        0, 0,               # (destX, destY)
-        0, 0,               # (srcX,  srxY )
+    my $image = GD::Image->newTrueColor( $width, $height );
+    $image->copyResampled(
+        $im,
+        0, 0,    # (destX, destY)
+        0, 0,    # (srcX,  srxY )
         $width, $height,    # (destX, destY)
-        $opts{width}+200, $im_height
+        $opts{width} + 200, $im_height
     );
     return $image;
 }
 
-
 ############################################################################
 ## argument processing
 sub map_args_to_pseq_ids {
-  my $or = shift;
-  my (@pseq_ids);
-  my %user_anns;
-  my $sno = 0;
-  if ($or->{'select-by-unison-id'}) {
-	# expand ranges like 1..5 to (1,2,3,4,5)
-	# This is in part to sanitize the expressions which will be
-	# eval'd next
-	if (my @bad = grep {not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/} @_) {
-	  die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n");
-	}
-	@pseq_ids = grep {$u->get_sequence_by_pseq_id($_)} map { s/-/../; eval "$_" } @_;
-	if ($#pseq_ids < 0) {
-	  printf(STDERR "0 sequences specified by Unison id\n");
-	  exit(-1);
-	} else {
-	  printf(STDERR "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
-	}
-  } elsif ($or->{'select-by-seq'}) {
+    my $or = shift;
+    my (@pseq_ids);
+    my %user_anns;
+    my $sno = 0;
+    if ( $or->{'select-by-unison-id'} ) {
 
-    my $file= shift;
-    my $in;
-    if ($file =~ /^\>/) {
-      my ($fh, $fn) = tempfile();
-      if (defined $fh) {
-		print $fh join "\n",@args;
-		$fh->close;
-		$in = new Bio::SeqIO( -file => $fn,
-							  -format => 'fasta' );
-      }
-    } else {
-      $in = new Bio::SeqIO( -file => $file,
-							-format => 'fasta' );
+        # expand ranges like 1..5 to (1,2,3,4,5)
+        # This is in part to sanitize the expressions which will be
+        # eval'd next
+        if ( my @bad = grep { not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/ } @_ ) {
+            die("'$bad[0]' doesn't specify a pseq_id or a range of pseq_ids\n"
+            );
+        }
+        @pseq_ids = grep { $u->get_sequence_by_pseq_id($_) }
+            map { s/-/../; eval "$_" } @_;
+        if ( $#pseq_ids < 0 ) {
+            printf( STDERR "0 sequences specified by Unison id\n" );
+            exit(-1);
+        }
+        else {
+            printf( STDERR "# %d sequences specified by Unison id\n",
+                $#pseq_ids + 1
+            ) if $opts{verbose};
+        }
     }
-    while ( my $bs = $in->next_seq() ) {
-      $sno++;
-      my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
-      if (not defined $pseq_id) {
-		warn( "#! Sequence #$sno (", $bs->display_id(), ") not in Unison\n" );
-		next;
-      }
-      printf(STDOUT "#* %s (Unison:%d; %s);\n",
-			 $bs->display_id(), $pseq_id,
-			 $u->best_alias($pseq_id) || '<no alias>') if $opts{verbose};
-      push @pseq_ids, $pseq_id;
-      $user_anns{$pseq_id} = $bs->display_id().":".$bs->desc()  ;
-    }
-  } elsif ($or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'}) {
-	foreach my $arg (@_) {
-	  my (@Q) = ( $or->{'select-by-alias'} 
-				  ? $u->get_pseq_id_from_alias_exact( $arg )
-				  : $u->get_pseq_id_from_alias( $arg ) );
-	  if (not @Q) {
-		warn("#$0: no sequences found for alias '$arg'\n");
-	  } elsif ($#Q > 0) {
-		# no warning for fuzzy searches
-		# this can only happen for aliases in multiple origins
-		warn("#$0: multiple sequences found for alias '$arg'\n") if ($or->{'select-by-alias'});
-	  }
-	  if ($or->{'select-by-alias-fuzzy'} and $or->{'human'}) {
-	    my @ids;
-	    foreach my $q (@Q) {
-	      my ($e) = $u->selectrow_array("select pseq_id from pseqset where pseq_id=$q and pset_id=1");
-	      push @ids,$q if($e);
-	    }
-	    @Q=@ids;
-	  }
-	  $user_anns{$_} = $arg foreach (@Q);
-	  push(@pseq_ids, @Q);
-	}
-	printf(STDOUT "# %d sequences selected by alias\n", $#pseq_ids+1) if $opts{verbose};
-  } elsif ($or->{'select-by-gi'}) {
-	# expand ranges like 1..5 to (1,2,3,4,5)
-	# This is in part to sanitize the expressions which will be
-	# eval'd next
-	if (my @bad = grep {not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/} @_) {
-	  die("'$bad[0]' doesn't specify a gi or a range of gi\n");
-	}
-	my @gis = map { s/-/../; eval "$_" } @_;
+    elsif ( $or->{'select-by-seq'} ) {
 
-	my @ids;
-	foreach my $gi (@gis) {
-	  my @Q = @{$u->selectall_arrayref("select distinct(pseq_id) from pseq_gene_mv where gene_id=$gi")};
-	  push @ids,@Q if($#Q>=0);
-	  if (not @Q) {
-		warn("#$0: no sequences found for gi '$gi'\n");
-	  } elsif ($#Q > 0) {
-		warn("#$0: multiple sequences found for gi '$gi'\n");
-	  }
-	  $user_anns{$_} = $gi foreach (@Q);
-	}	
-	push(@pseq_ids, map {$_->[0]} @ids);
-	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
-  } elsif ($or->{'select-by-probe'}) {
-	my %ids;
-	foreach my $pi (@_) {
-	  my @Q = @{$u->selectall_arrayref("select distinct (r.t_pseq_id) from pmap_locus_representative_mv r join pseq_probe_mv p on r.q_pseq_id=p.pseq_id where probe_id='$pi'")};
-	  map {$ids{$_->[0]}++} @Q if($#Q>=0);
-	  if (not @Q) {
-		warn("#$0: no sequences found for probe_id '$pi'\n");
-	  } elsif ($#Q > 0) {
-		warn("#$0: multiple sequences found for probe_id '$pi'\n");
-	  }
-	  map {$user_anns{$_->[0]} = $pi} @Q;
-	}
-	push(@pseq_ids, keys %ids);
-	printf(STDOUT "# %d sequences specified by Unison id\n", $#pseq_ids+1) if $opts{verbose};	
-  }
-  return (\@pseq_ids,\%user_anns);
+        my $file = shift;
+        my $in;
+        if ( $file =~ /^\>/ ) {
+            my ( $fh, $fn ) = tempfile();
+            if ( defined $fh ) {
+                print $fh join "\n", @args;
+                $fh->close;
+                $in = new Bio::SeqIO(
+                    -file   => $fn,
+                    -format => 'fasta'
+                );
+            }
+        }
+        else {
+            $in = new Bio::SeqIO(
+                -file   => $file,
+                -format => 'fasta'
+            );
+        }
+        while ( my $bs = $in->next_seq() ) {
+            $sno++;
+            my $pseq_id = $u->pseq_id_by_sequence( $bs->seq() );
+            if ( not defined $pseq_id ) {
+                warn(
+                    "#! Sequence #$sno (",
+                    $bs->display_id(),
+                    ") not in Unison\n"
+                );
+                next;
+            }
+            printf( STDOUT "#* %s (Unison:%d; %s);\n",
+                $bs->display_id(), $pseq_id,
+                $u->best_alias($pseq_id) || '<no alias>' )
+                if $opts{verbose};
+            push @pseq_ids, $pseq_id;
+            $user_anns{$pseq_id} = $bs->display_id() . ":" . $bs->desc();
+        }
+    }
+    elsif ( $or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'} ) {
+        foreach my $arg (@_) {
+            my (@Q) = (
+                  $or->{'select-by-alias'}
+                ? $u->get_pseq_id_from_alias_exact($arg)
+                : $u->get_pseq_id_from_alias($arg)
+            );
+            if ( not @Q ) {
+                warn("#$0: no sequences found for alias '$arg'\n");
+            }
+            elsif ( $#Q > 0 ) {
+
+                # no warning for fuzzy searches
+                # this can only happen for aliases in multiple origins
+                warn("#$0: multiple sequences found for alias '$arg'\n")
+                    if ( $or->{'select-by-alias'} );
+            }
+            if ( $or->{'select-by-alias-fuzzy'} and $or->{'human'} ) {
+                my @ids;
+                foreach my $q (@Q) {
+                    my ($e)
+                        = $u->selectrow_array(
+                        "select pseq_id from pseqset where pseq_id=$q and pset_id=1"
+                        );
+                    push @ids, $q if ($e);
+                }
+                @Q = @ids;
+            }
+            $user_anns{$_} = $arg foreach (@Q);
+            push( @pseq_ids, @Q );
+        }
+        printf( STDOUT "# %d sequences selected by alias\n", $#pseq_ids + 1 )
+            if $opts{verbose};
+    }
+    elsif ( $or->{'select-by-gi'} ) {
+
+        # expand ranges like 1..5 to (1,2,3,4,5)
+        # This is in part to sanitize the expressions which will be
+        # eval'd next
+        if ( my @bad = grep { not /^\d+$|^\d+\.\.\d+$|\d+-\d+$/ } @_ ) {
+            die("'$bad[0]' doesn't specify a gi or a range of gi\n");
+        }
+        my @gis = map { s/-/../; eval "$_" } @_;
+
+        my @ids;
+        foreach my $gi (@gis) {
+            my @Q = @{
+                $u->selectall_arrayref(
+                    "select distinct(pseq_id) from pseq_gene_mv where gene_id=$gi"
+                )
+                };
+            push @ids, @Q if ( $#Q >= 0 );
+            if ( not @Q ) {
+                warn("#$0: no sequences found for gi '$gi'\n");
+            }
+            elsif ( $#Q > 0 ) {
+                warn("#$0: multiple sequences found for gi '$gi'\n");
+            }
+            $user_anns{$_} = $gi foreach (@Q);
+        }
+        push( @pseq_ids, map { $_->[0] } @ids );
+        printf( STDOUT "# %d sequences specified by Unison id\n",
+            $#pseq_ids + 1
+        ) if $opts{verbose};
+    }
+    elsif ( $or->{'select-by-probe'} ) {
+        my %ids;
+        foreach my $pi (@_) {
+            my @Q = @{
+                $u->selectall_arrayref(
+                    "select distinct (r.t_pseq_id) from pmap_locus_representative_mv r join pseq_probe_mv p on r.q_pseq_id=p.pseq_id where probe_id='$pi'"
+                )
+                };
+            map { $ids{ $_->[0] }++ } @Q if ( $#Q >= 0 );
+            if ( not @Q ) {
+                warn("#$0: no sequences found for probe_id '$pi'\n");
+            }
+            elsif ( $#Q > 0 ) {
+                warn("#$0: multiple sequences found for probe_id '$pi'\n");
+            }
+            map { $user_anns{ $_->[0] } = $pi } @Q;
+        }
+        push( @pseq_ids, keys %ids );
+        printf( STDOUT "# %d sequences specified by Unison id\n",
+            $#pseq_ids + 1
+        ) if $opts{verbose};
+    }
+    return ( \@pseq_ids, \%user_anns );
 }
 
 ############################################################################
 # please restrict default constants to %opts
 sub parse_options {
-my %opts =
-  (
-   width =>600,
-   height => undef,
+    my %opts = (
+        width  => 600,
+        height => undef,
 
-   track_spacing => 0,
-   track_padding => 0,
+        track_spacing => 0,
+        track_padding => 0,
 
-   seq_line_width => 10,
-   icon_width => 5,
-   overlap_height => 7,
+        seq_line_width => 10,
+        icon_width     => 5,
+        overlap_height => 7,
 
-   box_height => 14,
-   box_line_width => 1.5,
+        box_height     => 14,
+        box_line_width => 1.5,
 
-   text_spacing => 5,
-   legend_spacing => 35,
+        text_spacing   => 5,
+        legend_spacing => 35,
 
-   align_feature=> '',
-   legend => 0,
-   user_ann => 0,
-   outfile=>undef,
-   signal_char => undef,
-   tm_char => undef,
+        align_feature => '',
+        legend        => 0,
+        user_ann      => 0,
+        outfile       => undef,
+        signal_char   => undef,
+        tm_char       => undef,
 
-   # how to select sequences
-   'select-by-seq' => 0,
-   'select-by-alias' => 0,
-   'select-by-alias-fuzzy' => 0,
-   'select-by-unison-id' => 0,
-   'select-by-gi' => 0,
-   'select-by-probe' => 0,
+        # how to select sequences
+        'select-by-seq'         => 0,
+        'select-by-alias'       => 0,
+        'select-by-alias-fuzzy' => 0,
+        'select-by-unison-id'   => 0,
+        'select-by-gi'          => 0,
+        'select-by-probe'       => 0,
 
-   format => 'png',
+        format => 'png',
 
-   help => 0,
-   verbose => 0,
+        help    => 0,
+        verbose => 0,
 
-  );
+    );
 
-GetOptions( \%opts,
-	                  'select-by-seq|S+',
-			  'select-by-alias|A+',
-			  'select-by-alias-fuzzy|F+',
-			  'select-by-unison-id|P+',
-			  'select-by-gi|G+',
-			  'select-by-probe|p+',
+    GetOptions(
+        \%opts,
+        'select-by-seq|S+',
+        'select-by-alias|A+',
+        'select-by-alias-fuzzy|F+',
+        'select-by-unison-id|P+',
+        'select-by-gi|G+',
+        'select-by-probe|p+',
 
-			'width|w=i',
-	                'height|l=i',
-	                'align_feature|a=s',
-	                'legend',
-	                'user_ann',
-	                'outfile|o=s',
-	                'signal_char=s',
-	                'tm_char=s',
+        'width|w=i',
+        'height|l=i',
+        'align_feature|a=s',
+        'legend',
+        'user_ann',
+        'outfile|o=s',
+        'signal_char=s',
+        'tm_char=s',
 
-	                'format|f=s',
+        'format|f=s',
 
-			'verbose|v+',
-			'help|h+',
-			'version|V',
-		  )
-  || die("$0: usage\n");
-my $optot;
-  my @opts;
-  @opts = qw(select-by-seq select-by-alias select-by-alias-fuzzy select-by-probe
-	     select-by-unison-id select-by-gi);
-  $optot = eval join('+', map {$opts{$_}?1:0} @opts);
-  if ($optot == 0) {
-    $opts{'select-by-unison-id'}++;
-  } elsif ($optot > 1) {
-    die("$0: may only specify one of {", join(',',@opts), "}.\n");
-  }
+        'verbose|v+',
+        'help|h+',
+        'version|V',
+    ) || die("$0: usage\n");
+    my $optot;
+    my @opts;
+    @opts
+        = qw(select-by-seq select-by-alias select-by-alias-fuzzy select-by-probe
+        select-by-unison-id select-by-gi);
+    $optot = eval join( '+', map { $opts{$_} ? 1 : 0 } @opts );
+    if ( $optot == 0 ) {
+        $opts{'select-by-unison-id'}++;
+    }
+    elsif ( $optot > 1 ) {
+        die( "$0: may only specify one of {", join( ',', @opts ), "}.\n" );
+    }
 
-  if ( $opts{version} ) {
-    print(STDOUT '$Id$', "\n");
-    exit;
-  }
-  if ( $opts{help} ) {
-    pod2usage( { -verbose=>2 } )
-  }
-  return %opts;
+    if ( $opts{version} ) {
+        print( STDOUT
+                '$Id$',
+            "\n"
+        );
+        exit;
+    }
+    if ( $opts{help} ) {
+        pod2usage( { -verbose => 2 } );
+    }
+    return %opts;
 }
 
 ################################################################################################################
@@ -715,72 +837,75 @@ my $optot;
 
 ############################################################################
 sub rounded_rectangle {
-  my ($im,$x,$y,$cx,$cy,$col,$col2,$border) = @_;
-  my $rad = ($cy-$y)*0.18; # rounded edge radius is 25 % of the height of the rectangle
-# Draw the middle cross shape of the rectangle
-  $im->filledRectangle($x,$y+$rad,$cx,$cy-$rad,$col);
-  $im->filledRectangle($x+$rad,$y,$cx-$rad,$cy,$col);
+    my ( $im, $x, $y, $cx, $cy, $col, $col2, $border ) = @_;
+    my $rad = ( $cy - $y )
+        * 0.18;   # rounded edge radius is 25 % of the height of the rectangle
 
-  if($border) {
-    $im->line($cx,$y+$rad,$cx,$cy-$rad,$col2);
-    $im->line($x+$rad,$y,$cx-$rad,$y,$col2);
-    $im->line($x,$y+$rad,$x,$cy-$rad,$col2);
-    $im->line($x+$rad,$cy,$cx-$rad,$cy,$col2);
-  }
-# Now fill in the rounded corners
-  my $dia = $rad*2;
-  $im->filledEllipse($x+$rad, $y+$rad,  $dia, $dia, $col);
-  $im->filledEllipse($x+$rad, $cy-$rad, $dia, $dia, $col);
-  $im->filledEllipse($cx-$rad, $cy-$rad,$dia, $dia, $col);
-  $im->filledEllipse($cx-$rad, $y+$rad, $dia, $dia, $col);
+    # Draw the middle cross shape of the rectangle
+    $im->filledRectangle( $x, $y + $rad, $cx, $cy - $rad, $col );
+    $im->filledRectangle( $x + $rad, $y, $cx - $rad, $cy, $col );
 
-  if($border) {
-    $im->arc($cx-$rad, $cy-$rad, $rad*2, $dia, 0, 90, $col2);
-    $im->arc($x+$rad, $cy-$rad, $rad*2, $dia,90, 180, $col2);
-    $im->arc($x+$rad, $y+$rad, $rad*2, $dia, 180, 270, $col2);
-    $im->arc($cx-$rad, $y+$rad, $rad*2, $dia, 270, 360, $col2);
-  }
+    if ($border) {
+        $im->line( $cx,       $y + $rad, $cx,        $cy - $rad, $col2 );
+        $im->line( $x + $rad, $y,        $cx - $rad, $y,         $col2 );
+        $im->line( $x,        $y + $rad, $x,         $cy - $rad, $col2 );
+        $im->line( $x + $rad, $cy,       $cx - $rad, $cy,        $col2 );
+    }
+
+    # Now fill in the rounded corners
+    my $dia = $rad * 2;
+    $im->filledEllipse( $x + $rad,  $y + $rad,  $dia, $dia, $col );
+    $im->filledEllipse( $x + $rad,  $cy - $rad, $dia, $dia, $col );
+    $im->filledEllipse( $cx - $rad, $cy - $rad, $dia, $dia, $col );
+    $im->filledEllipse( $cx - $rad, $y + $rad,  $dia, $dia, $col );
+
+    if ($border) {
+        $im->arc( $cx - $rad, $cy - $rad, $rad * 2, $dia, 0,   90,  $col2 );
+        $im->arc( $x + $rad,  $cy - $rad, $rad * 2, $dia, 90,  180, $col2 );
+        $im->arc( $x + $rad,  $y + $rad,  $rad * 2, $dia, 180, 270, $col2 );
+        $im->arc( $cx - $rad, $y + $rad,  $rad * 2, $dia, 270, 360, $col2 );
+    }
 }
 ############################################################################
 sub diamond {
-  my ($im, $x, $w, $y, $h, $col, $col2, $border) = @_;
-  my $dia = new GD::Polygon;
-  $dia->addPt($x-$w,$y);
-  $dia->addPt($x,$y-$h);
-  $dia->addPt($x+$w,$y);
-  $dia->addPt($x,$y+$h);
-  $im->filledPolygon($dia,$col);
-  $im->polygon($dia,$col2) if ($border);
+    my ( $im, $x, $w, $y, $h, $col, $col2, $border ) = @_;
+    my $dia = new GD::Polygon;
+    $dia->addPt( $x - $w, $y );
+    $dia->addPt( $x,      $y - $h );
+    $dia->addPt( $x + $w, $y );
+    $dia->addPt( $x,      $y + $h );
+    $im->filledPolygon( $dia, $col );
+    $im->polygon( $dia, $col2 ) if ($border);
 }
 
 ############################################################################
 sub triangle {
-    my ($im, $x, $w, $y, $h, $col, $col2, $border) = @_;
+    my ( $im, $x, $w, $y, $h, $col, $col2, $border ) = @_;
     my $tri = new GD::Polygon;
-    $tri->addPt($x-$w,$y-$h);
-    $tri->addPt($x,$y+$h);
-    $tri->addPt($x+$w,$y-$h);
-    $im->filledPolygon($tri,$col);
-    $im->polygon($tri,$col2) if ($border);
+    $tri->addPt( $x - $w, $y - $h );
+    $tri->addPt( $x,      $y + $h );
+    $tri->addPt( $x + $w, $y - $h );
+    $im->filledPolygon( $tri, $col );
+    $im->polygon( $tri, $col2 ) if ($border);
 }
 
 ############################################################################
 sub helix {
-  my ($im,$x1,$y1,$x2,$y2,$col) = @_;
-  my $dx = $x2 - $x1;
-  my $dy = $y2 - $y1;
-  my $t = $dx/3;
-  for (my $x=$x1; $x+$t <= $x2; $x += $t ) {
-    my $helix = new GD::Polygon;
-    $helix->addPt($x,$y1);
-    $helix->addPt($x+$t/2,$y1);
-    $helix->addPt($x+$t,$y2);
-    $helix->addPt($x+$t/2,$y2);
-    $im->filledPolygon($helix, $col);
-    $im->setThickness($t/4);
-    $im->line($x+$t,$y1,$x+$t,$y2,$col);
-    $im->setThickness($opts{box_line_width});
-  }
+    my ( $im, $x1, $y1, $x2, $y2, $col ) = @_;
+    my $dx = $x2 - $x1;
+    my $dy = $y2 - $y1;
+    my $t  = $dx / 3;
+    for ( my $x = $x1; $x + $t <= $x2; $x += $t ) {
+        my $helix = new GD::Polygon;
+        $helix->addPt( $x,          $y1 );
+        $helix->addPt( $x + $t / 2, $y1 );
+        $helix->addPt( $x + $t,     $y2 );
+        $helix->addPt( $x + $t / 2, $y2 );
+        $im->filledPolygon( $helix, $col );
+        $im->setThickness( $t / 4 );
+        $im->line( $x + $t, $y1, $x + $t, $y2, $col );
+        $im->setThickness( $opts{box_line_width} );
+    }
 }
 
 ##hurray!
