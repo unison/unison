@@ -59,22 +59,16 @@
  */
 
 
-BODY {
+body {
  background: white;
  font-family: sans-serif;
 }
 
-IMG {
+img {
  border: 0;
 }
 
-
-/*
-A {
- border: 1px solid white;
-}
-*/
-A:hover {
+a:hover {
  background: #F5CC06;
  color: #004B8C;
 }
@@ -82,85 +76,90 @@ A:hover {
 
 
 /* page elements */
-TABLE.page TD.logo {
+table.page td {
+ margin: 0;
+ padding: 2px;
+ vertical-align: middle;
+}
+table.page td.left {
   text-align: center;
-  vertical-align: middle;
+  width: 120px;
   border-right: medium double #004B8C;
-  padding: 0px 5px 0px 0px;
 }
-TABLE.page TD.logo IMG {
- border: 0;
-}
-TABLE.page TD.body {
-  padding-top: 2px;
-  padding-bottom: 10px;
+table.page td.body {
+  padding: 10px 0px 10px 0px;
   border-top: medium double #004B8C;
   border-bottom: medium double #004B8C;
-  vertical-align: top;
+ width: 800px;
 }
-TABLE.page TD.footer {
-  vertical-align: middle;
- padding: 0px 0px 0px 5px;
-}
-TABLE.page TD.navbar {
-  font-size: small;
- padding: 0px 0px 0px 0px;
- margin: 0px;
+table.page td.right {
+  text-align: left;
 }
 
 
-/* nav and subnav bars */
-TABLE.nav,TABLE.subnav {
- color: #004B8C;
- background: white;
+/* navbars */
+div.nav table {
+  border-spacing: 0;
+  margin: 0;
+  width: 100%;
 }
-TABLE.nav TD.unselected,TABLE.subnav TD.unselected {
- background: white;
- border: thin solid #004B8C;
- color: #004B8C;
- padding-left: 5px;
- padding-right: 5px;
- width: 50px;
- white-space: nowrap;
- -moz-border-radius: 4px;
-  border-radius: 4px;
+div.nav table.navp {
 }
-TABLE.nav TD.selected,TABLE.subnav TD.selected {
- background: #004B8C;
- border: thin solid #004B8C;
- color: white;
- font-weight: bold;
- padding-left: 5px;
- padding-right: 5px;
- white-space: nowrap;
- width: 50px;
- -moz-border-radius: 4px;
-  border-radius: 4px;
-}
-TABLE.nav TD.unselected:hover,TABLE.subnav TD.unselected:hover {
- background: #F5CC06;
- border: #004B8C thin solid;
- color: #004B8C;
- cursor:pointer;cursor:hand;
-}
-TABLE.nav TD.selected A,TABLE.subnav TD.selected A {
- color: #004B8C;
- font-weight: bold;
- text-decoration: none;
-}
-TABLE.nav TD.unselected A,TABLE.subnav TD.unselected A {
- text-decoration: none;
- color: #004B8C;
+div.nav table.navc {
+  border: medium solid #004B8C;
+  padding: 1px;
 }
 
-TABLE.subnav {
- border: medium solid #004B8C;
- background: white;
+div.nav ul {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  text-align: left;
 }
+div.nav td.right {
+  text-align: right;
+}
+div.nav table.navp ul {
+  margin-bottom: 1px; /* provides space for border-bottom of li.selected */
+}
+
+div.nav li { 
+  display: inline;
+  backgrond: white;
+  border: thin solid #004B8C;
+  padding: 0;
+  color: #004B8C;
+ -moz-border-radius: 3px;
+  border-radius: 3px;
+}
+div.nav table li.selected { 
+  background: #004B8C;
+  color: white;
+}
+div.nav table.navp li.selected {
+  border-top: thin solid #004B8C;  
+  border-bottom: 2px solid #004B8C;  
+}
+
+div.nav li * {
+  padding: 0px 2px 0px 2px;
+}
+
+div.nav a {
+  text-decoration: none;
+  color: #004B8C;
+}
+
+div.nav a:hover {
+  color: black;
+  background-color: #F5CC06;
+}
+
 
 
 /* grouped data */
-TABLE.group {
+table.group {
  width: 100%;
  margin: 0;
   margin-top: 10px;
@@ -169,7 +168,7 @@ TABLE.group {
  border-spacing: 0;
 }
 
-TABLE.group TH.grouptag {
+table.group th.grouptag {
  border: thin solid #004B8C;
  -moz-border-radius: 4px;
   border-radius: 4px;
@@ -179,22 +178,21 @@ TABLE.group TH.grouptag {
  color: white;
 }
 
-TABLE.group TD {
+table.group td {
  border: medium solid #004B8C;
  -moz-border-radius: 4px;
   border-radius: 4px;
 }
 
 
-TABLE.summary {
+table.summary {
  width: 100%;
  border: none;
  background: white;
  margin: none;
-  margin-top: 10px;
  border: none;
 }
-TABLE.summary TH {
+table.summary th {
  background: white;
  border: 0px;
  padding: 0px;
@@ -202,13 +200,13 @@ TABLE.summary TH {
  vertical-align: top;
  white-space: nowrap;
 }
-TABLE.summary TH DIV {
+table.summary th div {
  border: thin solid #913745;
  background: #913745;
  color: white;
  white-space: nowrap;
 }
-TABLE.summary TD {
+table.summary td {
  vertical-align: top;
  border: none;
  margin: none;
@@ -219,7 +217,7 @@ TABLE.summary TD {
 table.quicklinks {
   /* border:  #004B8C thin solid; */
 }
-TD.quicklinks_title {
+td.quicklinks_title {
  background: #004B8C;
  color: white;
  padding-left: 2px;
@@ -227,7 +225,7 @@ TD.quicklinks_title {
  white-space: nowrap;
  font-style: italic; 
 }
-TD.quicklinks {
+td.quicklinks {
  border:  thin solid #004B8C;
  color: #004B8C;
  padding-left: 2px;
@@ -237,46 +235,46 @@ TD.quicklinks {
 
 
 /* credits */
-TABLE.credits {
+table.credits {
  border: #004B8C thin solid;
 }
-TABLE.credits TH {
+table.credits th {
  border: #004B8C thin solid;
  background: #004B8C;
   /* color: white; */
 }
-TABLE.credits TD {
+table.credits td {
  border: #004B8C thin solid;
 }
 
 
 
-TABLE.uwtable {
+table.uwtable {
  background: white;
  margin: 0px;
  -moz-border-radius: 0px;
   border-radius: 0px;
 }
-TABLE.uwtable TBODY {
+table.uwtable tbody {
  background: white;
   /* overflow: auto; */
 }
-TABLE.uwtable TH {
+table.uwtable th {
  border: thin solid #913745;
  background: #913745;
  color: white;
 }
-TABLE.uwtable TH.highlighted {
+table.uwtable th.highlighted {
  border: thin solid #913745;
  background: black;
 }
-TABLE.uwtable TD {
+table.uwtable td {
  border: thin solid #913745;
  background: white;
  -moz-border-radius: 0px;
   border-radius: 0px;
 }
-TABLE.uwtable TD.highlighted {
+table.uwtable td.highlighted {
  border: thin solid #913745;
  background: #F5CC06;
  -moz-border-radius: 0px;
@@ -285,26 +283,26 @@ TABLE.uwtable TD.highlighted {
 
 
 /* software stack table (in about_unison) */
-TABLE.sw_stack {
+table.sw_stack {
  border: medium #004B8C solid;
 }
-TABLE.sw_stack TR {
+table.sw_stack tr {
  border: thin #004B8C solid;
 }
-TABLE.sw_stack TH {
+table.sw_stack th {
  background: #004B8C;
  color: white;
  vertical-align: top;
  padding: 5px;
 }
-TABLE.sw_stack TD.sw_stack_sep {
+table.sw_stack td.sw_stack_sep {
  border-top: thin solid #004B8C;
  border-bottom: thin solid #004B8C;
 }
 
 
 
-SPAN.page_break {
+span.page_break {
   border-bottom: medium double #004B8C;
 }
 
@@ -314,17 +312,17 @@ TR.tablesep {
 }
 */
 
-SPAN.page_title {
+span.page_title {
   font-weight: bold;
 }
 
 
 /* cheap text buttons */
-SPAN.button {
+span.button {
  background: #004B8C;
  border: black thin solid;
 }
-SPAN.button:hover {
+span.button:hover {
  background: #F5CC06;
 }
 /* SPAN.button A {
@@ -335,7 +333,7 @@ SPAN.button:hover {
 
 
 
-DIV.important {
+div.important {
  border: red medium solid;
  padding: 4px;
  margin: 20px 20px 20px 20px;
@@ -346,7 +344,7 @@ DIV.important {
 
 
 /* tooltip */
-SPAN.tooltip {
+span.tooltip {
  border: none;
  background-color: white;
  color: #496A08;
@@ -356,7 +354,7 @@ SPAN.tooltip {
  margin: none;
 }
 
-SPAN.tooltip:hover {
+span.tooltip:hover {
  cursor:pointer;cursor:help;
 }
 
@@ -407,19 +405,19 @@ dd {
 }
 
 /* miscellany */
-SPAN.error {
+span.error {
  color: red;
 }
-SPAN.debug {
+span.debug {
   background-color: white;
 }
-DIV.warning {
+div.warning {
  border: red medium solid;
  padding: 2px;
  margin: 5px;
  color: red;
 }
-DIV.sql {
+div.sql {
  border: black thin solid;
  padding: 2px;
  margin: 5px;
@@ -428,18 +426,3 @@ DIV.sql {
  font-family: monospace;
  font-size: xx-small;
 }
-
-/*
-  I haven't a clue why I disabled this
-  2007-10-19 Reece Hart <reece@harts.net>
-
-div.tip {
- border: black thin solid;
- padding: 2px;
- margin: 20px;
- background: lightgrey;
-}
-*/
-
-
-

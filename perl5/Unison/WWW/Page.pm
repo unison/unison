@@ -374,18 +374,19 @@ sub render {
     return (
         $self->header(),
 
-        $self->start_html( -title => "Unison: $title" ), "\n\n\n",
+        $self->start_html( -title => "Unison: $title" ),
+
+		"\n",
 
         '<table class="page">', "\n",
-        "\n<!-- ========== begin banner bar ========== -->\n",
         '<tr>', "\n",
-        '  <td class="logo" width="10%">',
-        '<a href="../index.html"><img class="logo" src="../av/unison.gif"></a>',
-        '</td>', "\n",
-        '  <td class="navbar" padding=0>', $self->_navbar(), '</td>', "\n",
-        '</tr>',                           "\n",
-
-        "<!-- ========== end banner bar ========== -->\n",
+        "\n<!-- ========== begin logo ========== -->\n",
+        '  <td class="left"> <a href="../index.html"><img width=100 height=28 src="../av/unison.gif"></a> </td>', "\n",
+        "\n<!-- ========== end logo ========== -->\n",
+        "\n<!-- ========== begin navbar ========== -->\n",
+        '  <td>', $self->_navbar(), '</td>', "\n",
+        "\n<!-- ========== end navbar ========== -->\n",
+        '</tr>', 
 
         "\n<!-- ========== begin body ========== -->\n",
         '<tr><td colspan=2 class="body">', "\n",
@@ -396,7 +397,7 @@ sub render {
 
         "\n<!-- ========== begin footer ========== -->\n",
         '<tr>', "\n",
-'  <td class="logo"><a href="http://www.postgresql.org/"><img class="logo" ',
+		'  <td class="left"><a href="http://www.postgresql.org/"><img class="logo" ',
         ' src="../av/poweredby_postgresql.gif"></a></td>',
         "\n",
         '  <td class="footer">',
@@ -1265,28 +1266,20 @@ sub _navbar {
       __filter_navs( $self->is_prd_instance(), $self->is_public(), @navs );
     my ( $navi, $subnavi ) = $self->_find_nav_ids(@navs);
     $navi = -1 unless defined $navi;
-    my $rv = '';
-    $rv = "\n"
-      . "  <table    class=\"nav\" width=\"100%\">\n"
-      . "    <!-- major nav -->\n"
-      . "    <tr>\n"
-      . _make_navrow( $navi, map { $_->[0] } @navs )
-      . "    </tr>\n"
-      . "    <!-- 'V' graphic -->\n"
-      . "    <tr>"
-      . "</tr>\n" . "  </table>\n";
 
     my @nav = @{ $navs[$navi] };
     shift @nav;    # menu header is first item; subnav items remain
-    $rv .=
-"  <table class=\"subnav\">\n"
-      . "    <!-- sub nav -->\n"
-      . "    <tr>\n"
-      . _make_navrow( $subnavi, @nav )
-      . "    </tr>\n"
-      . "  </table>\n";
 
-    return $rv;
+    return(
+		"<div class=\"nav\">\n"
+      . "  <table class=\"navp\">\n"
+      . _make_navrow( $navi, map { $_->[0] } @navs )
+	  . "  </table>\n"
+	  . "  <table class=\"navc\">\n" 
+	  . _make_navrow( $subnavi, @nav )
+	  . "  </table>\n"
+	  . "</div>\n"
+	)
 }
 
 sub __format_tab_labels(@) {
@@ -1348,7 +1341,6 @@ sub __filter_navs($$@) {
 }
 
 sub _find_nav_ids {
-
     # identify indexes in  major and minor @nav entries for
     # the current page
     my $self   = shift;
@@ -1367,43 +1359,43 @@ sub _find_nav_ids {
 }
 
 sub _make_navrow {
-
-    # makes one row of the navbar as an array of <td>...</td> objects
+    # A navrow is a tr, with 2 tds, each with 1 ul, each of which has >=0
+    # li entities. 
     # $sel is which is selected, and may be undef
     # @tu = array ref of [tab_label,tooltip,url,params]
     my ( $sel, @tu ) = @_;
-    my $spacer = ' ' x 8 . '<td width="%80">&nbsp;</td>' . "\n";
-    my @nav    = ();
+    my $nav = "    <tr>\n      <td><ul>\n";
+	my $close_open = "      </ul></td>\n      <td class=\"right\"><ul>\n";
+
     for ( my $i = 0 ; $i <= $#tu ; $i++ ) {
         my ( $tab_label, $tooltip, $url, $params ) = @{ $tu[$i] };
+		
         if ( $tab_label eq '' ) {
-            push( @nav, $spacer );
-            $spacer = '';
+            $nav .= $close_open;
+			$close_open = '';
             next;
         }
 
         $url .= "?$params" if defined $params;
-        my $cl = 'unselected';
+        my $cl = '';
         if ( defined $sel and $sel == $i ) {
-            $cl  = 'selected';
+            $cl  = ' class="selected"';
             $url = undef;
         }
-        push(
-            @nav,
-            ' ' x 8 
-              . "<td class=\"$cl\">"
-              . tooltip(
-                (
-                    defined $url
-                    ? "<a href=\"$url\">$tab_label</a>"
-                    : $tab_label
-                ),
-                $tooltip, ''
-              )
-              . "</td>\n"
-        );
+
+		$nav .= 
+			"\t<li$cl>"
+			. tooltip(
+			(defined $url ? "<a href=\"$url\">$tab_label</a>" : $tab_label),
+			$tooltip, ''
+			)
+			. "</li>\n"
     }
-    return ( join( '', @nav ) . $spacer );
+
+    $nav .= $close_open;
+    $nav .= "      </ul></td>\n    </tr>\n";
+
+    return $nav;
 }
 
 sub _conn_info_html ($) {

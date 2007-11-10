@@ -14,22 +14,16 @@
  */
 
 
-BODY {
+body {
  background: U_BG;
  font-family: sans-serif;
 }
 
-IMG {
+img {
  border: 0;
 }
 
-
-/*
-A {
- border: 1px solid U_BG;
-}
-*/
-A:hover {
+a:hover {
  background: U_HOVER_HIGHLIGHT_BG;
  color: U_HOVER_HIGHLIGHT_FG;
 }
@@ -37,85 +31,90 @@ A:hover {
 
 
 /* page elements */
-TABLE.page TD.logo {
+table.page td {
+ margin: 0;
+ padding: 2px;
+ vertical-align: middle;
+}
+table.page td.left {
   text-align: center;
-  vertical-align: middle;
+  width: 120px;
   border-right: medium double U_FRAME;
-  padding: 0px 5px 0px 0px;
 }
-TABLE.page TD.logo IMG {
- border: 0;
-}
-TABLE.page TD.body {
-  padding-top: 2px;
-  padding-bottom: 10px;
+table.page td.body {
+  padding: 10px 0px 10px 0px;
   border-top: medium double U_FRAME;
   border-bottom: medium double U_FRAME;
-  vertical-align: top;
+ width: 800px;
 }
-TABLE.page TD.footer {
-  vertical-align: middle;
- padding: 0px 0px 0px 5px;
-}
-TABLE.page TD.navbar {
-  font-size: small;
- padding: 0px 0px 0px 0px;
- margin: 0px;
+table.page td.right {
+  text-align: left;
 }
 
 
-/* nav and subnav bars */
-TABLE.nav,TABLE.subnav {
- color: U_NAV_FG;
- background: U_BG;
+/* navbars */
+div.nav table {
+  border-spacing: 0;
+  margin: 0;
+  width: 100%;
 }
-TABLE.nav TD.unselected,TABLE.subnav TD.unselected {
- background: U_NAV_BG;
- border: thin solid U_FRAME;
- color: U_NAV_FG;
- padding-left: 5px;
- padding-right: 5px;
- width: 50px;
- white-space: nowrap;
- -moz-border-radius: 4px;
-  border-radius: 4px;
+div.nav table.navp {
 }
-TABLE.nav TD.selected,TABLE.subnav TD.selected {
- background: U_NAV_FG;
- border: thin solid U_FRAME;
- color: U_NAV_BG;
- font-weight: bold;
- padding-left: 5px;
- padding-right: 5px;
- white-space: nowrap;
- width: 50px;
- -moz-border-radius: 4px;
-  border-radius: 4px;
-}
-TABLE.nav TD.unselected:hover,TABLE.subnav TD.unselected:hover {
- background: U_HOVER_HIGHLIGHT;
- border: U_FRAME thin solid;
- color: U_NAV_FG;
- cursor:pointer;cursor:hand;
-}
-TABLE.nav TD.selected A,TABLE.subnav TD.selected A {
- color: U_NAV_FG;
- font-weight: bold;
- text-decoration: none;
-}
-TABLE.nav TD.unselected A,TABLE.subnav TD.unselected A {
- text-decoration: none;
- color: U_NAV_FG;
+div.nav table.navc {
+  border: medium solid U_FRAME;
+  padding: 1px;
 }
 
-TABLE.subnav {
- border: medium solid U_FRAME;
- background: U_NAV_BG;
+div.nav ul {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  text-align: left;
 }
+div.nav td.right {
+  text-align: right;
+}
+div.nav table.navp ul {
+  margin-bottom: 1px; /* provides space for border-bottom of li.selected */
+}
+
+div.nav li { 
+  display: inline;
+  backgrond: white;
+  border: thin solid U_FRAME;
+  padding: 0;
+  color: U_FRAME;
+ -moz-border-radius: 3px;
+  border-radius: 3px;
+}
+div.nav table li.selected { 
+  background: U_FRAME;
+  color: white;
+}
+div.nav table.navp li.selected {
+  border-top: thin solid U_FRAME;  
+  border-bottom: 2px solid U_FRAME;  
+}
+
+div.nav li * {
+  padding: 0px 2px 0px 2px;
+}
+
+div.nav a {
+  text-decoration: none;
+  color: U_FRAME;
+}
+
+div.nav a:hover {
+  color: black;
+  background-color: U_HOVER_HIGHLIGHT;
+}
+
 
 
 /* grouped data */
-TABLE.group {
+table.group {
  width: 100%;
  margin: 0;
   margin-top: 10px;
@@ -124,7 +123,7 @@ TABLE.group {
  border-spacing: 0;
 }
 
-TABLE.group TH.grouptag {
+table.group th.grouptag {
  border: thin solid U_FRAME;
  -moz-border-radius: 4px;
   border-radius: 4px;
@@ -134,22 +133,21 @@ TABLE.group TH.grouptag {
  color: U_BG;
 }
 
-TABLE.group TD {
+table.group td {
  border: medium solid U_FRAME;
  -moz-border-radius: 4px;
   border-radius: 4px;
 }
 
 
-TABLE.summary {
+table.summary {
  width: 100%;
  border: none;
  background: U_BG;
  margin: none;
-  margin-top: 10px;
  border: none;
 }
-TABLE.summary TH {
+table.summary th {
  background: U_BG;
  border: 0px;
  padding: 0px;
@@ -157,13 +155,13 @@ TABLE.summary TH {
  vertical-align: top;
  white-space: nowrap;
 }
-TABLE.summary TH DIV {
+table.summary th div {
  border: thin solid U_UWTABLE_FG;
  background: U_UWTABLE_FG;
  color: U_UWTABLE_BG;
  white-space: nowrap;
 }
-TABLE.summary TD {
+table.summary td {
  vertical-align: top;
  border: none;
  margin: none;
@@ -174,7 +172,7 @@ TABLE.summary TD {
 table.quicklinks {
   /* border:  U_FRAME thin solid; */
 }
-TD.quicklinks_title {
+td.quicklinks_title {
  background: U_NAV_FG;
  color: U_NAV_BG;
  padding-left: 2px;
@@ -182,7 +180,7 @@ TD.quicklinks_title {
  white-space: nowrap;
  font-style: italic; 
 }
-TD.quicklinks {
+td.quicklinks {
  border:  thin solid U_NAV_FG;
  color: U_NAV_FG;
  padding-left: 2px;
@@ -192,46 +190,46 @@ TD.quicklinks {
 
 
 /* credits */
-TABLE.credits {
+table.credits {
  border: U_FRAME thin solid;
 }
-TABLE.credits TH {
+table.credits th {
  border: U_FRAME thin solid;
  background: U_FRAME;
   /* color: white; */
 }
-TABLE.credits TD {
+table.credits td {
  border: U_FRAME thin solid;
 }
 
 
 
-TABLE.uwtable {
+table.uwtable {
  background: U_TABLE_BG;
  margin: 0px;
  -moz-border-radius: 0px;
   border-radius: 0px;
 }
-TABLE.uwtable TBODY {
+table.uwtable tbody {
  background: U_TABLE_BG;
   /* overflow: auto; */
 }
-TABLE.uwtable TH {
+table.uwtable th {
  border: thin solid U_UWTABLE_FG;
  background: U_UWTABLE_FG;
  color: U_UWTABLE_BG;
 }
-TABLE.uwtable TH.highlighted {
+table.uwtable th.highlighted {
  border: thin solid U_UWTABLE_FG;
  background: U_TABLE_HIGHLIGHT_FG;
 }
-TABLE.uwtable TD {
+table.uwtable td {
  border: thin solid U_UWTABLE_FG;
  background: U_UWTABLE_BG;
  -moz-border-radius: 0px;
   border-radius: 0px;
 }
-TABLE.uwtable TD.highlighted {
+table.uwtable td.highlighted {
  border: thin solid U_UWTABLE_FG;
  background: U_TABLE_HIGHLIGHT_BG;
  -moz-border-radius: 0px;
@@ -240,26 +238,26 @@ TABLE.uwtable TD.highlighted {
 
 
 /* software stack table (in about_unison) */
-TABLE.sw_stack {
+table.sw_stack {
  border: medium U_FRAME solid;
 }
-TABLE.sw_stack TR {
+table.sw_stack tr {
  border: thin U_FRAME solid;
 }
-TABLE.sw_stack TH {
+table.sw_stack th {
  background: U_FRAME;
  color: U_BG;
  vertical-align: top;
  padding: 5px;
 }
-TABLE.sw_stack TD.sw_stack_sep {
+table.sw_stack td.sw_stack_sep {
  border-top: thin solid U_FRAME;
  border-bottom: thin solid U_FRAME;
 }
 
 
 
-SPAN.page_break {
+span.page_break {
   border-bottom: medium double U_FRAME;
 }
 
@@ -269,17 +267,17 @@ TR.tablesep {
 }
 */
 
-SPAN.page_title {
+span.page_title {
   font-weight: bold;
 }
 
 
 /* cheap text buttons */
-SPAN.button {
+span.button {
  background: U_UNHIGHLIGHTED;
  border: black thin solid;
 }
-SPAN.button:hover {
+span.button:hover {
  background: U_HOVER_HIGHLIGHT;
 }
 /* SPAN.button A {
@@ -290,7 +288,7 @@ SPAN.button:hover {
 
 
 
-DIV.important {
+div.important {
  border: red medium solid;
  padding: 4px;
  margin: 20px 20px 20px 20px;
@@ -301,7 +299,7 @@ DIV.important {
 
 
 /* tooltip */
-SPAN.tooltip {
+span.tooltip {
  border: none;
  background-color: U_TOOLTIP_BG;
  color: U_TOOLTIP_FG;
@@ -311,7 +309,7 @@ SPAN.tooltip {
  margin: none;
 }
 
-SPAN.tooltip:hover {
+span.tooltip:hover {
  cursor:pointer;cursor:help;
 }
 
@@ -362,19 +360,19 @@ dd {
 }
 
 /* miscellany */
-SPAN.error {
+span.error {
  color: U_ERROR_FG;
 }
-SPAN.debug {
+span.debug {
   background-color: U_DEBUG_BG;
 }
-DIV.warning {
+div.warning {
  border: U_ERROR_FG medium solid;
  padding: 2px;
  margin: 5px;
  color: U_ERROR_FG;
 }
-DIV.sql {
+div.sql {
  border: U_SQL_FG thin solid;
  padding: 2px;
  margin: 5px;
@@ -383,18 +381,3 @@ DIV.sql {
  font-family: monospace;
  font-size: xx-small;
 }
-
-/*
-  I haven't a clue why I disabled this
-  2007-10-19 Reece Hart <reece@harts.net>
-
-div.tip {
- border: black thin solid;
- padding: 2px;
- margin: 20px;
- background: lightgrey;
-}
-*/
-
-
-
