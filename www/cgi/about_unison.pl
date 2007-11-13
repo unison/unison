@@ -22,9 +22,11 @@ informative queries regarding protein families, structure, and function.
 
 <p>The Unison schema, precomputed data, API, and web interface are
 released to the public under the <a target="_blank"
-href="http://opensource.org/licenses/afl-2.1.php">Academic Free
-License</a>.  The Unison web site and PostgreSQL database backend
-available to all users.
+href="../license.html">Academic Free
+License</a>.
+
+<p>The Unison web site and PostgreSQL database backend available to all
+users.
 
 <p>Please see the <a href="../index.html">Unison Home Page</a> for more
 information about the Unison project, <a
@@ -33,6 +35,7 @@ documentation, direct database connection instructions, a guided tour, and
 download sites.
 
 EOHTML
+
 
 sub _conn_info_html ($) {
     my $p    = shift;
@@ -69,7 +72,6 @@ sub _conn_info_html ($) {
 <tr><td colspan=3 class="sw_stack_sep"></td></tr>
 
 <tr><th rowspan=2>API</th>		<td><b>release:</b></td>	<td>$api_rel</td></tr>
-<tr>							<td><b>path:</b></td>		<td>$INC{'Unison.pm'}</td></tr>
 
 <tr><td colspan=3 class="sw_stack_sep"></td></tr>
 
