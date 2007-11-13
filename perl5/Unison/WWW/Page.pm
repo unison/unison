@@ -1383,12 +1383,14 @@ sub _make_navrow {
             $url = undef;
         }
 
+		my $tt = ( (defined $tooltip and $tooltip =~ m/\w/)
+				   ? sprintf('tooltip="%s"',CGI::escapeHTML($tooltip))
+				   : '' );
 		$nav .= 
 			"\t<li$cl>"
-			. tooltip(
-			(defined $url ? "<a href=\"$url\">$tab_label</a>" : $tab_label),
-			$tooltip, ''
-			)
+			. (defined $url 
+			   ? "<a $tt href=\"$url\">$tab_label</a>" 
+			   : "<span $tt>$tab_label</span>")
 			. "</li>\n"
     }
 

@@ -31,6 +31,9 @@ a:hover {
 
 
 /* page elements */
+table.page {
+ width: 100%;
+}
 table.page td {
  margin: 0;
  padding: 2px;
@@ -45,20 +48,21 @@ table.page td.body {
   padding: 10px 0px 10px 0px;
   border-top: medium double U_FRAME;
   border-bottom: medium double U_FRAME;
- width: 800px;
 }
 table.page td.right {
   text-align: left;
 }
 
 
-/* navbars */
+/* navbar */
 div.nav table {
   border-spacing: 0;
   margin: 0;
   width: 100%;
 }
 div.nav table.navp {
+ border: none;
+  border-bottom: 2px solid U_BG;
 }
 div.nav table.navc {
   border: medium solid U_FRAME;
@@ -76,29 +80,28 @@ div.nav td.right {
   text-align: right;
 }
 div.nav table.navp ul {
-  margin-bottom: 1px; /* provides space for border-bottom of li.selected */
 }
 
 div.nav li { 
   display: inline;
   backgrond: white;
   border: thin solid U_FRAME;
-  padding: 0;
   color: U_FRAME;
  -moz-border-radius: 3px;
   border-radius: 3px;
 }
-div.nav table li.selected { 
+div.nav li.selected { 
   background: U_FRAME;
   color: white;
+  font-weight: bold;
 }
 div.nav table.navp li.selected {
   border-top: thin solid U_FRAME;  
-  border-bottom: 2px solid U_FRAME;  
+  border-bottom: 5px solid U_FRAME;  
 }
 
-div.nav li * {
-  padding: 0px 2px 0px 2px;
+div.nav li a, div.nav li span {
+  padding: 0px 4px 0px 4px;
 }
 
 div.nav a {
@@ -205,35 +208,27 @@ table.credits td {
 
 
 table.uwtable {
- background: U_TABLE_BG;
+ background: U_UWTABLE_BG;
+ border: none;
  margin: 0px;
  -moz-border-radius: 0px;
   border-radius: 0px;
+  white-space: wrap;
 }
-table.uwtable tbody {
- background: U_TABLE_BG;
-  /* overflow: auto; */
+table.uwtable th, table.uwtable td {
+ border: thin solid U_UWTABLE_FG;
+ -moz-border-radius: 0px;
+  border-radius: 0px;
 }
 table.uwtable th {
- border: thin solid U_UWTABLE_FG;
  background: U_UWTABLE_FG;
  color: U_UWTABLE_BG;
 }
 table.uwtable th.highlighted {
- border: thin solid U_UWTABLE_FG;
  background: U_TABLE_HIGHLIGHT_FG;
 }
-table.uwtable td {
- border: thin solid U_UWTABLE_FG;
- background: U_UWTABLE_BG;
- -moz-border-radius: 0px;
-  border-radius: 0px;
-}
 table.uwtable td.highlighted {
- border: thin solid U_UWTABLE_FG;
  background: U_TABLE_HIGHLIGHT_BG;
- -moz-border-radius: 0px;
-  border-radius: 0px;
 }
 
 
@@ -317,24 +312,21 @@ span.tooltip:hover {
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
  border: 2px solid U_POPUP_FRAME;
- background-color: U_POPUP_BG;
+ background: U_POPUP_BG;
 }
 div.domTTUnison .caption {
   font-family: serif;
-  font-size: 13px;
-  /* _font-size: 12px; */
+  font-size: 12px;
   font-weight: bold;
   font-style: italic;
  padding: 1px 2px;
  background: U_POPUP_BG;
 }
 div.domTTUnison .contents {
- color: black;
- font-size: 13px;
-  /* font-size: 12px; */
+ color: U_POPUP_FG;
+ font-size: 12px;
  font-family: Arial, sans-serif;
  padding: 1px 2px;
-  /* padding-bottom: 0; */
 }
 
 
