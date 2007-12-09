@@ -159,14 +159,6 @@ $(addsuffix _mv.log,${MVDV}): %_mv.log:
 
 
 
-# a silly rule to push .cvsignore patterns into the subdirectories
-.PHONY: push-cvsignore
-push-cvsignore:
-	find . -name .cvsignore \
-	| sort \
-	| while read f; do (set -x; sort -u -o "$$f" .cvsignore "$$f"); done
-
-
 clean cleaner cleanest::
 	for dir in ${CLEANUP_DIRS}; do make -C $$dir $@; done
 clean::

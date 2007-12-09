@@ -7,21 +7,18 @@ default:
 	@echo "user perl libraries (esp. Unison, Unison::WWW, and Prospect2)"
 	@echo "Use `make clean' to revert to using the system default perl5 libs"
 
-# eventually:
-# perl5-prereq target
-# packaging targets (akin to md5, pgp signing, etc for unison)
-
+#renav -- update the navigation banner in the web pages
 renav: FORCE
 	./bin/insert-quicklink-menu.pl credits.html index.html license.html moreinfo.html topnav.html
 
-
-push-offline: FORCE
-	rsync -e 'ssh -lreece' -Rav offline.html styles/unison.css av harts.net:harts.net/unison/
-
+#www-prep -- prepare a web directory for use
+#This is only needed when unison/www is the document root.
+#If not, then Unison will expect to have a tmp dir elsewhere
 www-prep:
-	mkdir -p tmp; chmod 777 tmp
-	mkdir -p ../log; chmod 777 ../log
+	mkdir -p tmp ../log; chmod 777 tmp ../log
 
-clean:
-	/bin/rm perl5/Unison perl5/Prospect2
-	rmdir perl5
+#push-offline -- push the offline page to my Reece's personal website
+#That page is used only when unison is down for some reason.
+push-offline: FORCE
+	rsync -Rav offline.html styles/unison.css av hn:www/unison/
+
