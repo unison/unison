@@ -41,32 +41,30 @@ our %opts = (
     # use PGHOST if it's not '', otherwise set based on whether we're
     # on csb (local), comp* (cvs), else exo-cluster (csb)
     # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
-    host => ( ( exists $ENV{PGHOST} ) and ( $ENV{PGHOST} =~ m/\w/ ) )
-    ? $ENV{PGHOST}
-    : 'csb',
-    dbname => $ENV{PGDATABASE}
-        || 'csb',
-    username => $ENV{PGUSER}
-        || eval {
-        my $tmp = `/usr/bin/id -un`;
-        chomp $tmp;
-        $tmp;
-        },
-    password => $ENV{PGPASSWORD},
-    attr     => {
 
-        # we should migrate to AutoCommit => 0, but this requires
-        # coordination with loading clients
-        AutoCommit => 1,
+    host 		=> ( ( ( exists $ENV{PGHOST} )
+					   and ( $ENV{PGHOST} =~ m/\w/ ) )
+					 ? $ENV{PGHOST}
+					 : 'csb' ),
+    dbname 		=> $ENV{PGDATABASE} || 'csb',
+    username 	=> $ENV{PGUSER}   || eval {my $tmp = `/usr/bin/id -un`;
+										   chomp $tmp;
+										   $tmp;
+										 },
+    password 	=> $ENV{PGPASSWORD},
+    attr     	=> {
+					# we should migrate to AutoCommit => 0, but this requires
+					# coordination with loading clients
+					AutoCommit => 1,
+					PrintError => 0,
+					RaiseError => 0,
 
-        PrintError => 0,
-        RaiseError => 0,
-
-   # Does the following work as an alternative to
-   # setting HandleError explicitly below?
-   # HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
-    },
+					# Does the following work as an alternative to
+					# setting HandleError explicitly below?
+					# HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
+				   },
 );
+
 
 # Really, this should probably all be moved to an import subroutine (or a
 # separate Unison::Options module?) which does this optionally.  By doing
@@ -152,7 +150,7 @@ sub connect {
     if (    defined $self->{username}
         and $self->{username} eq 'PUBLIC'
         and defined $self->{host}
-        and $self->{host} =~ m/^csb/ )		# csb = Genentech host
+        and $self->{host} =~ m/^(?:csb|resdev|research)/ )
     {
         warn(<<EOT);
 ! You are using the PUBLIC login to Unison. This is -- and has

@@ -252,13 +252,35 @@ sub pseq_id_by_sequence {
     return ( $self->{'dbh'}->selectrow_array( $sth, undef, $seq ) );
 }
 
+
+######################################################################
+## representative_pseq_id
+
+=pod
+
+=item B<< $u->representative_pseq_id( C<pseq_Id> ) >>
+
+return the "best" human representative pseq_id for a given sequence
+
+=cut
+
+sub representative_pseq_id {
+  my ($self,$pseq_id) = @_;
+  my ($rep_q) = $self->selectrow_array('select representative_pseq_id(?)',
+										 undef,
+										 $pseq_id);
+  return $rep_q;
+}
+
+
+
+
 ### DEPRECATED FUNCTIONS
 
 sub get_seq {
     warn_deprecated();
-	goto get_sequence_by_pseq_id;
-#    my $self = shift;
-#    return $self->get_sequence_by_pseq_id(@_);
+    my $self = shift;
+    return $self->get_sequence_by_pseq_id(@_);
 }
 
 =pod
