@@ -71,7 +71,8 @@ EOJS
             -name    => 'params_id',
             -values  => [ map { $_->[0] } @ps ],
             -labels  => \%ps,
-            -default => "$v->{params_id}"
+            -default => "$v->{params_id}",
+			-onChange => 'this.form.submit()'
         ),
         '&nbsp;',
         'modelsets: ',
@@ -79,7 +80,8 @@ EOJS
             -name    => 'pmodelset_id',
             -values  => [ map { $_->[0] } @ms ],
             -labels  => \%ms,
-            -default => "$v->{pmodelset_id}"
+            -default => "$v->{pmodelset_id}",
+			-onChange => 'this.form.submit()'
         ),
         '&nbsp;',
         $p->submit( -value => 'redisplay' ),

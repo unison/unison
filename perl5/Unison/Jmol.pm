@@ -74,25 +74,44 @@ sub initialize {
 
 sub initialize_inline {
     my ( $self, $coord, $script, $pseq_structure ) = @_;
+
     my $c      = "\"\"";
-    my $retval = '';
-    $retval .= $pseq_structure->set_js_vars(0) if ( defined($pseq_structure) );
-    $retval .=
-        '<center><table width='
-      . $self->{'width'}
-      . ' border="1"><tr><td align="center"><script>jmolInitialize("../js/jmol/");';
     foreach my $line ( split( /\n/, $coord ) ) {
         if ( $line =~ /^ATOM/ ) {
             $c .= "+\"$line\\n\"\n" if ( $line =~ /CA/ );
         }
     }
-    $retval .= "var myPdb = $c;";
-    $retval .=
-"jmolAppletInline([$self->{'width'}, $self->{'height'}],myPdb,\"$script\");";
-    $retval .= '</script></td></tr>';
-    $retval .=
-'<tr><td align="center" style="background: black; color: white">Legend: Identities, <font color=blue><b>blue</b></font>; similarities <font color=cyan><b>cyan</b></font>; mismatches <font color=red><b>red</b></font>.<br>All Cysteines are colored <font color=yellow><b>yellow</b></font>; conserved cysteines are spacefilled.<br>Deletions are colored <font color=grey><b>grey</b></font>; insertions are shown as <font color=green><b>&gt;number of insertions&lt;</b></font>.</td></tr>';
-    $retval .= '</table></center>';
+
+    my $retval = '';
+    $retval .= $pseq_structure->set_js_vars(0) if ( defined($pseq_structure) );
+
+    $retval .= <<EOF;
+<center>
+  <table width=$self->{'width'} border="1">
+    <tr>
+	  <td align="center">
+		<script>
+		  jmolInitialize("../js/jmol/");
+		  var myPdb = $c;
+		  jmolAppletInline([$self->{'width'}, $self->{'height'}],myPdb,"$script");
+		</script>
+	  </td>
+	</tr>
+    <tr>
+	  <td align="center" style="background: black; color: white">
+	    Legend: Identities, <font color=blue><b>blue</b></font>;
+	    similarities <font color=cyan><b>cyan</b></font>; mismatches <font
+	    color=red><b>red</b></font>.<br>All Cysteines are colored <font
+	    color=yellow><b>yellow</b></font>; conserved cysteines are
+	    spacefilled.<br>Deletions are colored <font
+	    color=grey><b>grey</b></font>; insertions are shown as <font
+	    color=green><b>&gt;number of insertions&lt;</b></font>.
+	  </td>
+	</tr>
+  </table>
+</center>
+EOF
+
     return $retval;
 }
 

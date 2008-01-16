@@ -8,6 +8,7 @@ use lib "$FindBin::Bin/../../perl5", "$FindBin::Bin/../../perl5-prereq";
 
 use Unison;
 use Unison::Exceptions;
+use Unison::pseq;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
 use Unison::WWW::utilities qw(alias_link pseq_summary_link);
@@ -19,6 +20,7 @@ sub sequence_group ($);
 sub aliases_group ($);
 sub features_group ($);
 sub homologs_group ($);
+sub rep_redirect ($);
 
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
@@ -44,6 +46,7 @@ EOT
 try {
     print $p->render(
         "Summary of Unison:$v->{pseq_id}",
+		rep_redirect($p),
         summary_group($p),
 		sequence_group($p),
         aliases_group($p),
@@ -59,6 +62,26 @@ exit(0);
 
 ############################################################################
 
+sub rep_redirect ($) {
+  my $p = shift;
+  my $u = $p->{unison};
+  my $v = $p->Vars();
+
+  my $rep_q = $u->representative_pseq_id($v->{pseq_id});
+
+  return '' if (not defined $rep_q or $rep_q == $v->{pseq_id});
+
+  return sprintf(<<EOF, $u->best_annotation($rep_q));
+<div bgcolor="yellow"><font size="-1">
+NOTE: This sequence overlaps with <a tooltip="%s"
+href="pseq_summary.pl?pseq_id=$rep_q"> Unison:$rep_q</a>, which is likely
+to be a more reliable sequence and have more complete precomputed results.
+</div>
+EOF
+}
+
+
+
 sub summary_group ($) {
     my $p = shift;
     my $u = $p->{unison};
@@ -70,7 +93,7 @@ sub summary_group ($) {
         undef, $v->{pseq_id}
     );
 
-# try best human annotation first, otherwise get best annotation for any species
+	# try best human annotation first, otherwise get best annotation for any species
     my $ba = $u->best_annotation( $v->{pseq_id}, 'HUMAN' )
       || $u->best_annotation( $v->{pseq_id} );
 
@@ -79,9 +102,9 @@ sub summary_group ($) {
 
         '<table class="summary">',
 
-        '<tr><th><div>Best Annotation</div></th> <td>', $ba, '</td></tr>',
+        '<tr><th><div>Best Annotation</div></th> <td>', $ba, '</td></tr>', "\n",
 
-        '<tr><th><div>Entrez Annotations</div></th> <td>',
+        '<tr><th><div>Entrez Annotations</div></th> <td>', "\n",
         join(
             '<br>',
             (
@@ -91,21 +114,21 @@ sub summary_group ($) {
                   } $u->entrez_annotations( $v->{pseq_id} )
             )
         ),
-        '</td></tr>',
+        '</td></tr>', "\n",
 
         (
             $p->{unison}->is_public()
             ? ''
             : '<tr><th><div>Protcomp Localization</div></th> <td>',
             protcomp_info($p),
-            '</td></tr>'
+            '</td></tr>', "\n",
         ),
 
         '<tr><th><div>Human Locus</div></th> <td>',
         $locus || 'N/A',
-        '</td></tr>',
+        '</td></tr>', "\n",
 
-        '</table>'
+        '</table>', "\n\n",
     );
 }
 
@@ -175,23 +198,20 @@ sub sequence_group ($) {
 
     my $seq         = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
     my $wrapped_seq = $seq;
-    $wrapped_seq =~ s/.{60}/$&\n/g;
+    $wrapped_seq =~ s/.{10}/$& /g;
+    $wrapped_seq =~ s/.{66}/$&\n/g;
 
     my $ba = $u->best_alias( $v->{pseq_id}, 'HUMAN' )
       || $u->best_alias( $v->{pseq_id} );
 
     $p->group(
-        sprintf( "Sequence (%d&nbsp;AA)", length($seq) ),
-"<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format",
-        '<br><pre style="display: inline;">',
-        '&gt;Unison:',
-        $v->{pseq_id},
-        ' ',
-        $ba,
-        '<br>',
-        $wrapped_seq,
-        '</pre>',
-    );
+			  sprintf( "Sequence (%d&nbsp;AA)", length($seq) ),
+			  '<pre style="display: inline;">',
+			  $wrapped_seq,
+			  '</pre>',
+			  '<br>',
+			  "<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download this sequence</a> in FASTA format"
+			 );
 }
 
 sub aliases_group ($) {
@@ -204,10 +224,10 @@ sub aliases_group ($) {
     do { $_->[1] = alias_link( $_->[1], $_->[0] ) }
       for @$ar;
     my @f       = qw( origin alias description );
-    my $tooltip = <<EOT;
-Unison stores sequences non-redundantly from many sources.  Aliases are
-all of the known names for this exact sequence.
-EOT
+    my $tooltip = 'Accessions and descriptions for this exact sequence
+    from reliable sources. Click the aliases tab to see all aliases from
+    all sources.';
+
     $p->group(
         'Aliases (' . ( $#$ar + 1 ) . ')&nbsp;' . $p->tooltip( '?', $tooltip ),
         Unison::WWW::Table::render( \@f, $ar ),
@@ -360,7 +380,8 @@ sub features_group ($) {
     $p->group(
         'Features&nbsp;'
           . $p->tooltip(
-            '?', 'a selection of precomputed results for this sequence.'
+            '?', 'A selection of precomputed features for this
+            sequence. Click the Features tab to view all features.'
           ),
         sprintf(
             <<EOT, $png_urn, $panel->imagemap_body(), $v->{pseq_id}, $v->{pseq_id} ) );

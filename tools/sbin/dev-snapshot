@@ -9,13 +9,10 @@ MAX_SNAPS=2
 SRC_DATNAME=csb-dev
 
 
-source /gne/common/etc/profile
-source /gne/research/env/prd/etc/profile
-
-
-snap_pfx='csb-dev-snapshot'
 ts=`/bin/date +%Y%m%d-%H%M%S`
-snap_name="$snap_pfx-$ts"
+snap_prefix="${SRC_DATNAME}-snapshot"
+snap_name="$snap_prefix-$ts"
+
 
 /bin/date +'%F %T: started'
 
@@ -31,6 +28,19 @@ if [ -n "$SNAPSHOT_DEBUG" ]; then
 fi
 
 
+echo
+echo ============================================================
+echo "* selected environment:"
+echo PATH=${PATH}
+for exe in createdb psql pg_dump; do
+	type -p $exe
+	$exe --version
+done
+
+
+echo
+echo ============================================================
+echo "* create/dump/restore:"
 (
 set -ex
 createdb -O unison -E UTF-8 "tmp_${snap_name}"
@@ -53,22 +63,24 @@ EOF
 	psql -d template1 -c "alter database \"tmp_$snap_name\" rename to \"$snap_name\""
 	
 	# keep only the most recent MAX_SNAPS snapshots
-	psql -Atc "select datname from pg_database where datname~'^$snap_pfx-' order by datname desc offset $MAX_SNAPS" \
+	psql -Atc "select datname from pg_database where datname~'^$snap_prefix-' order by datname desc offset $MAX_SNAPS" \
 	| while read datname; do
 		(set -x; $ECHO dropdb "$datname")
 	done
 fi
 
 
+echo
 echo ============================================================
 echo "* database sizes:"
 psql -X <<EOF
 SELECT datname AS "database",pg_size_pretty(pg_database_size(oid)) AS "size"
   FROM pg_database
- WHERE datname~'^csb'
+ WHERE datname~'^csb|^tmp'
  ORDER by datname
 EOF
 
+echo
 echo ============================================================
 echo "* /srv space:"
 df -h /srv

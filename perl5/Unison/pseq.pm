@@ -256,8 +256,9 @@ sub pseq_id_by_sequence {
 
 sub get_seq {
     warn_deprecated();
-    my $self = shift;
-    return $self->get_sequence_by_pseq_id(@_);
+	goto get_sequence_by_pseq_id;
+#    my $self = shift;
+#    return $self->get_sequence_by_pseq_id(@_);
 }
 
 =pod
