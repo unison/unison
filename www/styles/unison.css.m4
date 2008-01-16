@@ -145,29 +145,32 @@ table.group td {
 
 table.summary {
  width: 100%;
- border: none;
  background: U_BG;
- margin: none;
  border: none;
+ margin: 0px;
+ padding: 0px;
 }
 table.summary th {
- background: U_BG;
- border: 0px;
+ border: none;
+ margin: 0px;
  padding: 0px;
  text-align: right;
  vertical-align: top;
  white-space: nowrap;
 }
 table.summary th div {
- border: thin solid U_UWTABLE_FG;
  background: U_UWTABLE_FG;
  color: U_UWTABLE_BG;
  white-space: nowrap;
+ border: thin solid U_UWTABLE_FG;
+ padding: 0px;
+ margin: 0px;
 }
 table.summary td {
  vertical-align: top;
  border: none;
- margin: none;
+ margin: 0px;
+ padding: 0px;
 }
 
 
@@ -211,18 +214,22 @@ table.uwtable {
  background: U_UWTABLE_BG;
  border: none;
  margin: 0px;
+  border-collapse: collapse;
  -moz-border-radius: 0px;
   border-radius: 0px;
   white-space: wrap;
 }
 table.uwtable th, table.uwtable td {
- border: thin solid U_UWTABLE_FG;
  -moz-border-radius: 0px;
   border-radius: 0px;
 }
 table.uwtable th {
+ border: thin solid U_UWTABLE_BG;
  background: U_UWTABLE_FG;
  color: U_UWTABLE_BG;
+}
+table.uwtable td {
+ border: thin solid U_UWTABLE_FG;
 }
 table.uwtable th.highlighted {
  background: U_TABLE_HIGHLIGHT_FG;

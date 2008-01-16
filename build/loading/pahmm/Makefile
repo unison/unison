@@ -6,7 +6,7 @@ include ../params.mk
 
 N:=10
 QNAME:=${SUBDIR}-r${PAHMM_RUN_ID}
-QPPN:=2
+QPPN:=8
 RUNSET=runC
 NPER:=500
 

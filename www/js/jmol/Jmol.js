@@ -330,7 +330,11 @@ function jmolSelectRegion(posone, postwo, labe, colour, targetSuffix) {
   }
   
   var label_pos = start + parseInt((end-start)/2);
+  /*
+  It's not clear why Kiran recolors the whole structure. This steps on other coloring, including any manual user coloring.
   var script = "select all; label off; colour cartoon yellow; select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label white";
+  */
+  var script = "select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label white";
   jmolScript(script);
 }
 

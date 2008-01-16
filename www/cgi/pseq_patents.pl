@@ -37,20 +37,21 @@ print $p->render(
 
     "show patents within ",
     $p->popup_menu(
-        -name    => 'pct_ident',
-        -values  => [qw(100 99 98 97 96 95 90)],
-        -default => $v->{pct_ident}
+				   -name    => 'pct_ident',
+				   -values  => [qw(100 99 98 97 96 95 90)],
+				   -default => $v->{pct_ident},
+				   -onChange => 'this.form.submit()'
     ),
     " % identity and ",
     $p->popup_menu(
         -name    => 'pct_coverage',
         -values  => [qw(100 99 98 97 96 95 90)],
-        -default => $v->{pct_coverage}
+        -default => $v->{pct_coverage},
+				   -onChange => 'this.form.submit()'
     ),
-    " % coverage of Unison:",
-    $p->textfield(
+    " % coverage of Unison:$v->{pseq_id}",
+    $p->hidden(
         -name  => 'pseq_id',
-        -size  => 8,
         -value => $v->{pseq_id}
     ),
 

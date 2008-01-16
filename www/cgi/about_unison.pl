@@ -71,7 +71,7 @@ sub _conn_info_html ($) {
 
 <tr><td colspan=3 class="sw_stack_sep"></td></tr>
 
-<tr><th rowspan=2>API</th>		<td><b>release:</b></td>	<td>$api_rel</td></tr>
+<tr><th rowspan=1>API</th>		<td><b>release:</b></td>	<td>$api_rel</td></tr>
 
 <tr><td colspan=3 class="sw_stack_sep"></td></tr>
 

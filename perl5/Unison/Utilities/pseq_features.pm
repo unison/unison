@@ -243,7 +243,7 @@ Add pftmdetect features to a panel and return the number of features added.
 
 sub add_pfseg {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -287,7 +287,7 @@ sub add_pfseg {
 #-------------------------------------------------------------------------------
 sub add_pfpsipred {
     my ( $u, $panel, $q, $len, $track_length ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my ($nadded) = (0);
     my ( $sql, $featref );
     my @strands_helices = ();
@@ -415,7 +415,7 @@ sub add_pfsignalp {
         -description => 1,
         -height      => 4,
     );
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
 
     # add pfsignalpnn feature
     ## REVIEW: 2005-12-06 Reece: pftype join unused
@@ -470,7 +470,7 @@ Add pftmdetect features to a panel and return the number of features added.
 
 sub add_pftmdetect {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -518,7 +518,7 @@ Add pftmhmm features to a panel and return the number of features added.
 
 sub add_pftmhmm {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -571,7 +571,7 @@ Add paprospect features to a panel and return the number of features added.
 
 sub add_paprospect {
     my ( $u, $panel, $q, $params_id ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my ( $svm_thr, $topN ) = ( 7, 5 );
     my $nadded = 0;
     my $run_id = $u->preferred_run_id_by_pftype('Prospect');
@@ -733,7 +733,7 @@ Add pahmm features to a panel and return the number of features added.
 
 sub add_pahmm {
     my ( $u, $panel, $q, $view, $pseq_structure ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my ( $eval_thr, $topN ) = ( 1, 4 );
     my $nadded = 0;
     ## XXX: don't hardwire the following
@@ -808,7 +808,7 @@ Add pappsm features to a panel and return the number of features added.
 
 sub add_papssm {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my ( $eval_thr, $topN ) = ( 5, 4 );
     my $nadded      = 0;
     my $params_id   = $u->preferred_params_id_by_pftype('PSSM');
@@ -878,7 +878,7 @@ Add pfantigenic features to a panel and return the number of features added.
 
 sub add_pfantigenic {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $nadded = 0;
 
     my $r     = $u->preferred_run_id_by_pftype('EMBOSS/antigenic');
@@ -935,7 +935,7 @@ Add pfpepcoil features to a panel and return the number of features added.
 
 sub add_pfpepcoil {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $nadded = 0;
 
     my $r     = $u->preferred_run_id_by_pftype('EMBOSS/pepcoil');
@@ -994,7 +994,7 @@ Add pfsigcleave features to a panel and return the number of features added.
 
 sub add_pfsigcleave {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -1039,7 +1039,7 @@ Add pfbigpi features to a panel and return the number of features added.
 
 sub add_pfbigpi {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $nadded = 0;
     my $track  = $panel->add_track(
         -glyph       => 'graded_segments',
@@ -1089,7 +1089,7 @@ Add pfregexp features to a panel and return the number of features added.
 
 sub add_pfregexp {
     my ( $u, $panel, $q ) = @_;
-	my $seq = $u->get_seq($q);
+	my $seq = $u->get_sequence_by_pseq_id($q);
     my $subseq_len = 15;
     my $nadded     = 0;
     my $track      = $panel->add_track(

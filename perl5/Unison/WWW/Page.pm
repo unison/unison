@@ -722,7 +722,7 @@ EOT
 
     return (
         '<table class="summary">', '<tr>',
-        '<th><div>best annotation ', $self->tooltip( '?', $tooltip ),
+        '<th><div>Best Annotation ', $self->tooltip( '?', $tooltip ),
         '</div></th>',              '<td>',
         $ba,                        '</td>',
         '</tr>',                    '</table>'
@@ -969,6 +969,8 @@ sub _genentech_connection_params ($) {
     elsif ( $ENV{SERVER_PORT} == 8000 ) { $v->{dbname} = 'csb-pub' }
     elsif ( $ENV{SERVER_PORT} == 8040 ) { $v->{dbname} = 'csb-stage' }
     elsif ( $ENV{SERVER_PORT} == 8080 ) { $v->{dbname} = 'csb-dev' }
+
+	if    ( $ENV{REQUEST_URI} =~ /~/ )   { $v->{dbname} = 'csb-dev' };
 
     return;
 }
@@ -1225,7 +1227,9 @@ sub _navbar {
 
         [    # About menu
             [
-                1, 1, 'About', 'more information about Unison',
+                1, 1, 'About', ('Click for more information about Unison.'
+								. sprintf("<br>host=%s; db=%s; user=%s",
+										  $v->{host}, $v->{dbname}, $v->{username})),
                 'about_unison.pl'
             ],
             [ 1, 1, 'About Unison', 'Unison overview', 'about_unison.pl' ],

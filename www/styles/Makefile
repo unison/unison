@@ -33,3 +33,4 @@ clean:
 cleaner: clean
 	/bin/rm -f *.bak
 cleanest: cleaner
+	/bin/rm -f *.css

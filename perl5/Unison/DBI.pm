@@ -34,6 +34,8 @@ use DBI;
 use Unison::Exceptions;
 use Getopt::Long;
 
+#use lib '/gne/research/apps/bioperl/prd/lib/perl5';
+
 our %opts = (
 
     # use PGHOST if it's not '', otherwise set based on whether we're
@@ -43,13 +45,13 @@ our %opts = (
     ? $ENV{PGHOST}
     : 'csb',
     dbname => $ENV{PGDATABASE}
-      || 'csb',
+        || 'csb',
     username => $ENV{PGUSER}
-      || eval {
+        || eval {
         my $tmp = `/usr/bin/id -un`;
         chomp $tmp;
         $tmp;
-      },
+        },
     password => $ENV{PGPASSWORD},
     attr     => {
 
@@ -60,9 +62,9 @@ our %opts = (
         PrintError => 0,
         RaiseError => 0,
 
-     # Does the following work as an alternative to
-     # setting HandleError explicitly below?
-     # HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
+   # Does the following work as an alternative to
+   # setting HandleError explicitly below?
+   # HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
     },
 );
 
@@ -99,8 +101,8 @@ $parser->getoptions(@options);
 
 Creates a new instance of Unison::DBI.  A connection is attempted
 immediately and an exception thrown if unsuccessful. See
-B<Unison::connect()>. DBI options may be passed in the form of a hash, as
-in:
+B<Unison::connect()>. DBI options may be passed in the form of
+a hash, as in:
 
   my $u = new Unison( username=>'rkh', dbname=>'csb-dev' );
 
@@ -132,11 +134,13 @@ Genentech environment are used.
 sub connect {
     my $self = shift;
     if ( not defined $self->{dbname} ) {
-        throw Unison::Exception::ConnectionFailed( "couldn't connect to Unison",
+        throw Unison::Exception::ConnectionFailed(
+            "couldn't connect to Unison",
             'dbname undefined' );
     }
     if ( not defined $self->{username} ) {
-        throw Unison::Exception::ConnectionFailed( "couldn't connect to Unison",
+        throw Unison::Exception::ConnectionFailed(
+            "couldn't connect to Unison",
             'username undefined' );
     }
 
@@ -148,7 +152,7 @@ sub connect {
     if (    defined $self->{username}
         and $self->{username} eq 'PUBLIC'
         and defined $self->{host}
-        and $self->{host} =~ m/^csb/ )
+        and $self->{host} =~ m/^csb/ )		# csb = Genentech host
     {
         warn(<<EOT);
 ! You are using the PUBLIC login to Unison. This is -- and has
@@ -158,20 +162,24 @@ sub connect {
 EOT
     }
 
-    my $dbh =
-      DBI->connect( $dsn, $self->{username}, $self->{password}, $self->{attr} );
+    my $dbh = DBI->connect( $dsn, $self->{username}, $self->{password},
+        $self->{attr} );
     if ( not defined $dbh ) {
         throw Unison::Exception::ConnectionFailed(
             "couldn't connect to Unison: ",
-            join( "\n",
+            join(
+                "\n",
                 'DBI ERROR: ' . DBI->errstr(),
                 "dsn=$dsn",
-                'host=' . ( defined $self->{host} ? $self->{host} : '<undef>' ),
+                'host='
+                    . ( defined $self->{host} ? $self->{host} : '<undef>' ),
                 'username='
-                  . (
-                    defined $self->{username} ? $self->{username} : '<undef>' ),
+                    . (
+                    defined $self->{username} ? $self->{username} : '<undef>'
+                    ),
                 'password='
-                  . ( defined $self->{password} ? '<hidden>' : '<undef>' ) ),
+                    . ( defined $self->{password} ? '<hidden>' : '<undef>' )
+            ),
             <<EOT);
 Please ensure that you have a valid Kerberos ticket, or check
 your settings of PGHOST (-h), PGUSER (-U), and PGDATABASE
@@ -181,8 +189,8 @@ EOT
     }
 
     # ALL DBI errors should be handled by Unison::Exception::DBIError
-    $dbh->{HandleError} =
-      sub { throw Unison::Exception::DBIError( $dbh->errstr() ) };
+    $dbh->{HandleError}
+        = sub { throw Unison::Exception::DBIError( $dbh->errstr() ) };
 
     $self->{dbh} = $dbh;
 
@@ -256,7 +264,7 @@ sub AUTOLOAD {
     return if $method eq 'DESTROY';
 
     confess("AUTOLOAD called on undefined object!\n\t")
-      if ( not defined $self );
+        if ( not defined $self );
 
     # define all DBI methods on the fly as though they were
     # Unison:: methods
@@ -265,8 +273,7 @@ sub AUTOLOAD {
     {
         warn("AUTOLOAD $AUTOLOAD ($self)\n") if $ENV{DEBUG};
         my $tracer = '';
-
-#$tracer = 'print($method,"\n");' if ($method =~ m/^(?:begin_work|commit|end|rollback)$/);
+		#$tracer = 'print($method,"\n");' if ($method =~ m/^(?:begin_work|commit|end|rollback)$/);
         ## REMINDER: errors are caught by the HandleError setting above
         my $sub = <<EOF;
     sub $AUTOLOAD {
@@ -299,10 +306,13 @@ returns 1 if this is a public database, per meta table
 sub is_public_instance ($) {
     my $self = shift;
     if ( not defined $self->{is_public_instance} ) {
-        $self->{is_public_instance} =
-          $self->selectrow_array(
-"select case when exists (select * from meta where key='publicized by') then 1 else 0 end;"
-          );
+	  $self->{is_public_instance}
+		= $self->selectrow_array( <<EOSQL );
+SELECT CASE 
+  WHEN EXISTS (SELECT * FROM meta WHERE key='publicized by') THEN 1
+  ELSE 0
+END;
+EOSQL
     }
     return $self->{is_public_instance};
 }
@@ -321,10 +331,13 @@ returns 1 if this is a production database, per meta table
 sub is_prd_instance ($) {
     my $self = shift;
     if ( not defined $self->{is_prd_instance} ) {
-        $self->{is_prd_instance} =
-          $self->selectrow_array(
-"select case when exists (select * from meta where key='released on') then 1 else 0 end;"
-          );
+        $self->{is_prd_instance}
+            = $self->selectrow_array( <<EOSQL );
+SELECT CASE
+  WHEN EXISTS (SELECT * FROM meta WHERE key='released on') THEN 1
+  ELSE 0
+END;
+EOSQL
     }
     return $self->{is_prd_instance};
 }

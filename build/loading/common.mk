@@ -104,7 +104,7 @@ ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids run
 
 # -V is necessary since we'll pass passwords in the env.
 # eg$ make PBSARCH=xeon
-QPPN:=2
+QPPN:=8
 QNODES:=nodes=1:ppn=${QPPN}
 ifdef Q
 QUEUE=-q${Q}
