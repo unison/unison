@@ -134,8 +134,9 @@ foreach my $pseq_id (@pseq_ids ) {
   if (not (defined $ss_elements) and (defined $pred) and (defined $conf)) {
     die("looks like psipred failed for $pseq_id\n");
   }
-  if(length($seq) != length($c_conf) || length($seq) != length($h_conf) || length($seq) != length($e_conf)) {
-    die("seq=>".length($seq)."\t".length($c_conf)."\t".length($h_conf)."\t".length($e_conf)."\t"."unequal lengths in psipred $fa_fn.ss results for $pseq_id\n$c_conf\n$h_conf\n$e_conf");
+  my $clean_len = length($seq) - scalar (grep {/\*/} split(//,$seq));
+  if($clean_len != length($c_conf) || $clean_len != length($h_conf) || $clean_len != length($e_conf)) {
+    die("seq=>".$clean_len."\t".length($c_conf)."\t".length($h_conf)."\t".length($e_conf)."\t"."unequal lengths in psipred $fa_fn.ss results for $pseq_id\n$c_conf\n$h_conf\n$e_conf");
   }
 
   # remaining keys are those with no psipred results; see below
