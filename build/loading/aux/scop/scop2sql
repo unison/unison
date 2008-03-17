@@ -45,6 +45,7 @@ if ($opts{create}) {
   print while (<DATA>);
 } else {
   print <<EOSQL;
+TRUNCATE dom;
 TRUNCATE cla;
 TRUNCATE des;
 TRUNCATE hie;
@@ -58,6 +59,7 @@ hie2sql($opts{hie});
 print <<EOSQL;
 COMMIT;
 ANALYZE cla;
+ANALYZE dom;
 ANALYZE des;
 ANALYZE hie;
 EOSQL
@@ -69,6 +71,7 @@ exit(0);
 sub cla2sql {
   my $fn = shift;
   my $fh = new IO::File;
+  my %doms;
   my @cols = qw(sid pdb def sccs sunid cl cf sf fa dm sp);
   my $dest = sprintf("cla (%s)",
 					 join(',',map {"\"$_\""} @cols));
@@ -78,16 +81,36 @@ sub cla2sql {
   while (my $l = <$fh>) {
 	next if $l =~ m/^\#/;
 	my ($sid,$pdb,$def,$sccs,$px,$H) = split(' ',$l);
+	my @domains = split(/\,/,$def);
 	my ($cl) = $H=~m/cl=(\d+)/;
 	my ($cf) = $H=~m/cf=(\d+)/;
 	my ($sf) = $H=~m/sf=(\d+)/;
 	my ($fa) = $H=~m/fa=(\d+)/;
 	my ($dm) = $H=~m/dm=(\d+)/;
 	my ($sp) = $H=~m/sp=(\d+)/;
+	foreach my $d(@domains) {
+	  my ($chain) = $d =~ m/(\w):.*/;
+	  my ($start,$stop) = $d =~ m/\:(\d+)-(\d+)/;
+	  my @sids = ($sid,$pdb,$chain);
+	  push @sids, defined $_ ? $_ : '' foreach ($start,$stop);
+	  push @{$doms{$sid}}, [@sids] if defined $chain;
+	}
 	print( join("\t", $sid, $pdb, $def, $sccs, $px,$cl,$cf,$sf,$fa,$dm,$sp),
-		   "\n" );
+	       "\n" );
   }
   $fh->close();
+  print("\\.\n");
+
+  my @dom_cols = qw(sid pdb chain start stop);
+  my $dom_dest = sprintf("dom (%s)",
+					 join(',',map {"\"$_\""} @dom_cols));
+  printf( "copy $dom_dest from stdin with NULL AS '';\n" );
+  foreach my $sid(sort keys %doms) {
+    foreach my $d(@{$doms{$sid}}) {
+      print( join ("\t", @{$d}),
+	"\n" );
+    }
+  }
   print("\\.\n");
   return 1;
 }
@@ -172,6 +195,8 @@ CREATE TABLE cla (
     sp integer NOT NULL
 ) WITHOUT OIDS;
 
+ALTER TABLE scop.cla ADD CONSTRAINT scop_cla_sid_unique UNIQUE(sid);
+
 CREATE INDEX cla_pdb ON cla USING btree (pdb);
 CREATE INDEX cla_sid ON cla USING btree (sid);
 CREATE INDEX cla_sccs ON cla USING btree (sccs);
@@ -182,7 +207,20 @@ GRANT INSERT,UPDATE ON TABLE cla TO loader;
 
 COMMENT ON TABLE cla IS 'SCOP domain classification (http://scop.berkeley.edu/)';
 
+CREATE TABLE dom (
+  sid text NOT NULL, 
+  pdb character(4) NOT NULL, 
+  chain character(1) NOT NULL, 
+  start integer,
+  stop integer
+) WITHOUT OIDS;
 
+CREATE INDEX dom_pdb ON dom USING btree (pdb);
+CREATE INDEX dom_sid ON dom USING btree (sid);
+
+REVOKE ALL ON TABLE dom FROM PUBLIC;
+GRANT SELECT ON TABLE dom TO PUBLIC;
+GRANT INSERT,UPDATE ON TABLE dom TO loader;
 
 CREATE TABLE hie (
     sunid integer NOT NULL PRIMARY KEY,
