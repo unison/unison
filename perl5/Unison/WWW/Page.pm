@@ -1174,6 +1174,10 @@ sub _navbar {
                 'pseq_paliases.pl', $pseq_id
             ],
             [
+                1, 1, 'GeneRif', 'NCBI Functions and References ',
+                'pseq_generif.pl', $pseq_id
+            ],
+            [
                 1, 0, 'Patents', 'patents on this sequence',
                 'pseq_patents.pl', $pseq_id
             ],

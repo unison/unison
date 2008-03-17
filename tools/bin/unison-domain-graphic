@@ -76,6 +76,10 @@ B<unison-domain-graphic> generates image of sequence features from Unison
 
 =cut
 
+# TODO:
+# - Move drawing routines to module so that it can be used easily in other contexts
+# - create imagemaps so that we can popup mouseover info
+
 use strict;
 use warnings;
 
@@ -148,13 +152,14 @@ for ( my $qi = 0; $qi < scalar @$pseq_ids; $qi++ ) {
     draw( $im, $c, $xscale, $ymidline, \%{ $si->{$q} }, $feature_colors, $q );
 }
 
-draw_legend( $feature_colors, $im, $c, $feats, $pseq_ids )
-    if ( $opts{legend} );
-$im->string( gdSmallFont, 0,
-    $im_height - gdSmallFont->height,
-    "Copyright 2007-2008 Genentech, Inc.",
-    $c->{black}
-);
+if ( $opts{legend} ) {
+  draw_legend( $feature_colors, $im, $c, $feats, $pseq_ids );
+  $im->string( gdSmallFont, 0,
+			   $im_height - gdSmallFont->height,
+			   "Copyright 2007-2008 Genentech, Inc.",
+			   $c->{black}
+			 );
+}
 
 $im = resize( $im, $opts{width}, $opts{height} ) if defined $opts{height};
 

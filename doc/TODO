@@ -16,7 +16,17 @@ rename Analysis to Protein?
 - top level entry point
 
 * popups and redisplay
-consider automatic submit for redisplay when user selects from popup
+- consider automatic submit for redisplay when user selects from popup
+
+* sequence selection
+- several command line tools reimplement ways to select sequences by 1)
+  pseq_id, 2) fasta input, 3) gi annotation, 4) alias, etc.  This
+  functionality should be consolidated, including standardizing any
+  command line options.
+
+* overhaul view structure
+- need better mat view scheme (contrib package?)
+- modularize and simplify
 
 * assume limited search path
 - e.g., ( unison ), definitely not user
@@ -56,3 +66,5 @@ FROM
 	[ORDER BY] locus_rep
 	) Y
 ORDER BY cvorder
+
+

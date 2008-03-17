@@ -1,0 +1,25 @@
+#!/bin/sh
+# unison-test-via-relay -- ssh to remote machine and test unison
+#
+# This requires that the caller's .ssh/config contain a host alias for
+# unison-relay{,-wget,-psql} and that the remote machine have wget, ssh
+# client, and psql installed.
+
+
+PS4='===========================================================
++'
+
+#set -e
+set -x
+
+host unison-db.org
+
+ssh unison-relay-wget hostname
+ssh unison-relay-wget host unison-db.org
+ssh unison-relay-wget "wget -t3 --timeout=4 -q -O- http://unison-db.org/ | grep '<title>'"
+ssh unison-relay-wget "wget -t3 --timeout=4 -q -O- http://unison-db.org/cgi/pseq_summary.pl?pseq_id=76 | grep 'Unison:76'"
+
+ssh unison-relay-psql hostname
+ssh unison-relay-psql host unison-db.org
+ssh unison-relay-psql  "opt/alpha-osf1-5.1/bin/psql -UPUBLIC -hunison-db.org -dunison -c 'select version()'"
+

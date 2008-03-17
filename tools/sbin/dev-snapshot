@@ -38,6 +38,8 @@ for exe in createdb psql pg_dump; do
 done
 
 
+# This code uses pg_dump rather than createdb -T because the latter
+# requires exclusive access to the database.
 echo
 echo ============================================================
 echo "* create/dump/restore:"
