@@ -1,0 +1,14 @@
+#!/bin/sh
+# unison-status -- check status of unison
+#
+# This script defines what it means for unison to be
+# up.  Currently, it merely fetches a page that requires a
+# db connection and checks that content is okay.
+#
+
+PATH=/usr/sbin:/usr/bin:/bin
+
+wget -q -O- 'http://unison-db.org/cgi/pseq_summary.pl?pseq_id=76' \
+| grep -lq 'Unison:76'
+
+exit $?

@@ -1,0 +1,20 @@
+#!/bin/sh
+# unison-ping -- check status of "top" unison web page
+# $Id$
+#
+# Fetches a unison page and sends email if broken
+#
+
+MAILTO=reece@harts.net
+
+if ! unison-status; then
+		(echo "To: $MAILTO"; echo "Subject: Unison is down") | sendmail "$MAILTO"
+		[ -t 1 ] && echo Unison is down
+else
+		if [ -n "$FORCE_MAIL" ]; then
+				(echo "To: $MAILTO"; echo "Subject: Unison is up") | sendmail "$MAILTO"
+		fi
+		[ -t 1 ] && echo Unison is up
+fi
+
+exit 0

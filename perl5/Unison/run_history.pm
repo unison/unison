@@ -46,8 +46,8 @@ sub upd_run_history(@) {
     my $u = shift;
     my ( $q, $r, $f ) = @_;
     $f ||= 'FALSE';
-    return $u->selectrow_array( "select upd_run_history(?,?,?)", undef, $q, $r,
-        $f );
+    return $u->selectrow_array( "select upd_run_history(?,?,?)",
+        undef, $q, $r, $f );
 }
 
 ######################################################################
@@ -63,7 +63,6 @@ sub already_ran ($$$$$) {
     my ( $u, $pseq_id, $run_id ) = @_;
 
     if ( defined( my $z = $u->get_run_timestamp( $pseq_id, $run_id ) ) ) {
-
         # arbitrarily return this timestamp (others might have matched)
         return $z;
     }
@@ -81,7 +80,8 @@ sub already_ran ($$$$$) {
 
 sub get_run_timestamp(@) {
     my $u = shift;
-    return $u->selectrow_array( "select get_run_timestamp(?,?)", undef, @_ );
+    return $u->selectrow_array( "select get_run_timestamp(?,?)",
+								undef, @_ );
 }
 
 sub get_run_timestamp_ymd(@) {
