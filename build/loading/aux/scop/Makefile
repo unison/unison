@@ -8,7 +8,7 @@ update: scop.load
 
 
 SCOP_DIR:=${RESEARCH_PREFIX}/data/public/scop/parse
-SCOP_VERSION:=1.71
+SCOP_VERSION:=1.73
 CLA:=${SCOP_DIR}/dir.cla.scop.txt_${SCOP_VERSION}
 #COM:=${SCOP_DIR}/dir.com.scop.txt_${SCOP_VERSION}
 DES:=${SCOP_DIR}/dir.des.scop.txt_${SCOP_VERSION}
