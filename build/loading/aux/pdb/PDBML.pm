@@ -240,7 +240,10 @@ sub new {
         next;
     }
     $self->{pdbid} = $entry_id->{datablockName};
-    return ($self) if ( defined( $self->{pdbid} ) );
+    $self->{md5} = (split(/\s+/,`md5sum $fn`))[0];
+    my @f = (localtime ((stat($fn))[9]))[3..5,2,1,0];
+    $self->{mtime} = sprintf "%d-%d-%d %d:%d:%d", $f[1] +1, $f[0], $f[2] + 1900,@f[3..5];
+    return ($self) if ( defined( $self->{pdbid} ) and defined( $self->{md5}  ) );
     return undef;
 }
 
@@ -262,12 +265,16 @@ sub summary {
     my $self  = shift;
     my $fh    = shift || \*STDOUT;
     my $pdbid = uc( $self->{pdbid} );
+    my $md5 = $self->{md5};
+    my $lastmdate = $self->{mtime};
 
     #summary
     my $method = $att{exptl}{method}{ $pdbid . ":" }
         || $self->_check("method");
-    my $resolution = $att{refine}{ls_d_res_high}{ $pdbid . ":" }
-        || $self->_check("resolution");
+
+    my $resolution = $att{refine}{ls_d_res_high}{ $pdbid . ":" } || '';
+    my $r_factor = $att{refine}{ls_R_factor_R_work}{ $pdbid . ":" } || '';
+    my $r_free = $att{refine}{ls_R_factor_R_free}{ $pdbid . ":" } || '';
     my $title = (
           $att{struct}{title}{ $pdbid . ":" }
         ? $att{struct}{title}{ $pdbid . ":" }
@@ -278,20 +285,18 @@ sub summary {
         || $self->_check("header");
 
 # assuming that source is the same for all polymer entities and taking the first
-    my $source = $att{entity_src_gen}{pdbx_gene_src_scientific_name}{'1:'}
-        || $self->_check("source");
-
-    # sort through all the revisions and take the last
-    my @revisions = sort { $a cmp $b } keys %{ $att{database_PDB_rev}{date} };
-    my $lastmdate = $att{database_PDB_rev}{date}{ $revisions[$#revisions] }
-        || $self->_check("last modified date");
+    my $source = $att{entity_src_gen}{pdbx_gene_src_scientific_name}{'1:'} || '';
 
 #print $fh lc($pdbid),"\t$method\t$resolution\t$title\t$header\t",uc($source),"\t$lastmdate\n";
     return
-          lc($pdbid)
-        . "\t$method\t$resolution\t$title\t$header\t"
-        . uc($source)
-        . "\t$lastmdate\n";
+
+        lc($pdbid)
+      . "\t$method\t$resolution\t$title\t$header\t"
+      . uc($source)
+      . "\t$lastmdate"
+      . "\t$md5"
+      . "\t$r_factor"
+      . "\t$r_free\n";
 }
 
 ######################################################################
@@ -356,8 +361,8 @@ sub chain {
 
         my $ent = $self->{chains}{$chain}{id};
 
-        my $ec = $self->{entities}{ $ent . ":" }{ec}
-            || $self->_check("Enzyme Classification");
+
+        my $ec = $self->{entities}{ $ent . ":" }{ec} || '';
         $ec =~ s/E\.C\.\s//;
         my $name = (
             defined( $self->{entities}{$ent}{name} )
@@ -367,17 +372,15 @@ sub chain {
             || $self->_check("Chain Name");
 
 # this is where we change the chainid to blank if pdbx_blank_PDB_chainid_flag is set to Y(true)
-        $chain
-            = ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-                { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y'
-            ? ''
-            : $chain )
-            if (
-            defined(
-                $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-                    { $self->{chains}{$chain}{asym_id} . ':' }
-            )
-            );
+        #$chain =
+        #  ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
+        #      { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y' ? '' : $chain )
+        #  if (
+        #    defined(
+        #        $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
+        #          { $self->{chains}{$chain}{asym_id} . ':' }
+        #    )
+        #  );
 
         $ret
             .= lc($pdbid)
@@ -424,17 +427,15 @@ sub residue {
         my $chain = $att{pdbx_poly_seq_scheme}{pdb_strand_id}{$pri_col} || '';
 
 # this is where we change the chainid to blank if pdbx_blank_PDB_chainid_flag is set to Y(true)
-        $chain
-            = ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-                { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y'
-            ? ''
-            : $chain )
-            if (
-            defined(
-                $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
-                    { $self->{chains}{$chain}{asym_id} . ':' }
-            )
-            );
+#        $chain =
+#          ( $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
+#              { $self->{chains}{$chain}{asym_id} . ':' } eq 'Y' ? '' : $chain )
+#          if (
+#            defined(
+#                $att{struct_asym}{pdbx_blank_PDB_chainid_flag}
+#                  { $self->{chains}{$chain}{asym_id} . ':' }
+#            )
+#          );
 
         my $atom_res = (
             defined( $att{pdbx_poly_seq_scheme}{pdb_mon_id}{$pri_col} )
@@ -459,44 +460,38 @@ sub residue {
 }
 
 ######################################################################
-## ligand()
+## pdb_ligand()
 
 =pod
 
-=item ligand()
+=item pdb_ligand()
 
- Name:      ligand()
+ Name:      pdb_ligand()
  Purpose:   get data for the pdbligand table
  Arguments: optional file handle
- Returns:   tab delimited ligand data
+ Returns:   tab delimited pdb_ligand data
 
 =cut
 
-sub ligand {
+sub pdb_ligand {
 
     my $self  = shift;
     my $fh    = shift || \*STDOUT;
     my $pdbid = uc( $self->{pdbid} );
     my $ret   = '';
 
-    #ligand
+    #pdb_ligand
     foreach my $ligand ( keys %{ $att{chem_comp}{name} } ) {
         next
             unless ( $att{chem_comp}{type}{$ligand} ne 'polymer'
             and ( $ligand ne 'HOH:' )
             and $att{chem_comp}{type}{$ligand} !~ /peptide/ );
-        my $synonym = (
-              $att{chem_comp}{pdbx_synonyms}{$ligand}
-            ? $att{chem_comp}{pdbx_synonyms}{$ligand}
-            : ''
-        );
-
         my $lig = $ligand;
         $lig =~ s/://;
 
-#print $fh lc($pdbid),"\t$lig\t$att{chem_comp}{name}{$ligand}\t$att{chem_comp}{formula}{$ligand}\t$att{chem_comp}{formula_weight}{$ligand}\t$synonym\n";
+	#print $fh lc($pdbid),"\t$lig\n";
         $ret .= lc($pdbid)
-            . "\t$lig\t$att{chem_comp}{name}{$ligand}\t$att{chem_comp}{formula}{$ligand}\t$att{chem_comp}{formula_weight}{$ligand}\t$synonym\n";
+          . "\t$lig\n";
     }
     return $ret;
 }
@@ -520,13 +515,16 @@ sub _get_data_tag {
             my $simplified = $row->simplify(%options)->{$pcol};
             $pri_col .= $simplified . ":" if $simplified;
         }
-        my $dum_ctr = 0;
         foreach my $col ( sort keys %{ $att{$table_name} } ) {
-            $att{$table_name}{$col}{$pri_col} = $dum_ctr++
+
+            $att{$table_name}{$col}{$pri_col} = ''
                 if ( !$row->first_child( 'PDBx:' . $col ) );
+
             next unless ( $row->first_child( 'PDBx:' . $col ) );
-            $att{$table_name}{$col}{$pri_col}
-                = $row->first_child( 'PDBx:' . $col )->text;
+
+            $att{$table_name}{$col}{$pri_col} =
+              $row->first_child( 'PDBx:' . $col )->text;
+
             $order->{$pri_col} = $att_ctr++;
 
     #print "$table_name\t$col\t$pri_col\t$att{$table_name}{$col}{$pri_col}\n";
@@ -581,18 +579,16 @@ sub _xml_init {
         'struct_asym' => { 'pdbx_blank_PDB_chainid_flag' => undef },
         'chem_comp'   => {
             'type'          => undef,
-            'name'          => undef,
-            'pdbx_synonyms' => undef,
-
-            #  			   'mon_nstd_flag' =>undef,
-            'formula'        => undef,
-            'formula_weight' => undef
+            'name'          => undef
         },
         'entity' => {
             'pdbx_description' => undef,
             'pdbx_ec'          => undef
         },
-        'refine'          => { 'ls_d_res_high' => undef },
+        'refine'          => { 'ls_d_res_high' => undef,
+			       'ls_R_factor_R_work' => undef,
+			       'ls_R_factor_R_free' => undef
+			     },
         'struct_keywords' => { 'pdbx_keywords' => undef },
         'struct'          => {
             'title'           => undef,
