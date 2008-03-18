@@ -121,6 +121,25 @@ CREATE OR REPLACE VIEW pseq_features_tmhmm_v AS
 GRANT SELECT ON pseq_features_tmhmm_v TO public;
 COMMENT ON VIEW pseq_features_tmhmm_v IS 'current TMHMM features';
 
+CREATE OR REPLACE VIEW pseq_features_scop_v as 
+	SELECT  'SCOP' AS feature_type, 
+		NULL::integer as params_id, 
+		NULL:;text as params_name,
+		a.q_pseq_id as pseq_id,
+		(select CASE WHEN b.start is not null THEN a.q_start+int4larger(0,(pdb_seq_pos(a.pdbc,b.start)-a.t_start)) ELSE q_start END as "case") as start,
+		select CASE WHEN b.stop is not null THEN a.q_start+((int4smaller(a.t_stop,pdb_seq_pos(a.pdbc,b\.stop)))-a.t_start) ELSE q_stop END as "case") as stop,
+		a.score,
+		a.eval,
+		NULL::integer as pmodel_id,
+		b.scop_id as acc,
+		b.family as feature,
+		'Classification='||b.class||', '||b.fold||', '||b.superfamily as descr,
+		b.sid||', '||b.domain||', '||b.species as "details",
+		NULL::text as link_url
+		FROM papseq_pdbcs_mv a JOIN scop_v b ON a.pdbc=b.pdb||b.chain 
+		WHERE (b.start is not null 
+			AND pdb_seq_pos(a.pdbc,b.stop) >= a.t_start and pdb_seq_pos(a.pdbc,b.start) <= a.t_stop) 
+			OR b.start is null;
 
 
 
