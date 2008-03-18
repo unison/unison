@@ -92,7 +92,7 @@ $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
 ######################################################################
 # 4. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
 PHASE4_FX:=update_psets_extrinsic
-PHASE4_MVV:=pmap_unambiguous pmap_unambiguous_overlaps pmap_locus_representative pseq_probe papseq_pdbcs
+PHASE4_MVV:=pmap_unambiguous pmap_unambiguous_overlaps pmap_locus_representative pmap_gg_representative pseq_probe papseq_pdbcs
 PHASE4_MVDV:=
 PHASE4_MV:= ${PHASE4_MVDV} ${PHASE4_MVV}
 
