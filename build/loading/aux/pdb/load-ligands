@@ -1,0 +1,234 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use Switch;
+
+use lib '/gne/research/apps/perl/5.8.8/x86_64-linux-2.6-sles10/lib/site_perl/5.8.8';
+
+require XML::Simple;
+
+use Getopt::Long qw(:config gnu_getopt);
+
+my %opts = (
+	    namespace => 'pdb',
+		   );
+GetOptions( \%opts,
+	    'namespace|schema|n=s',
+		  )
+  || die("usage\n");
+
+my $fn = $ARGV[0] || '-';
+my $wrap= 'ligands';
+my $cmd = ($fn =~ /\.gz$/ ? "gzip -cdq $fn | sed 1d" : "sed 1d $fn");
+
+# the pipe at the end of the command means that its is a
+# shell command, that will be executed then piped to the filehandle
+open( IN, qq{echo '<$wrap>'; $cmd; echo '</$wrap>' |})
+    or die "error opening $fn: $!";
+
+my $xs = XML::Simple->new();
+my $ref = $xs->XMLin(\*IN);
+close(IN);
+
+print <<EOSQL;
+SET search_path = $opts{namespace};
+BEGIN;
+truncate table ligand cascade;
+truncate table descriptor_origin cascade;
+SELECT setval('descriptor_origin_descriptor_origin_id_seq', 0);
+EOSQL
+
+my $data;
+
+foreach my $l (@{$ref->{'PDBx:datablock'}}) { # ligands are array of datablocks
+
+  my $chem_comp = $l->{'PDBx:chem_compCategory'}{'PDBx:chem_comp'};
+  my $atoms = $l->{'PDBx:chem_comp_atomCategory'}->{'PDBx:chem_comp_atom'};
+  my $bonds = $l->{'PDBx:chem_comp_bondCategory'}->{'PDBx:chem_comp_bond'};
+  my $descriptors = $l->{'PDBx:pdbx_chem_comp_descriptorCategory'}->{'PDBx:pdbx_chem_comp_descriptor'};
+  my $identifiers = $l->{'PDBx:pdbx_chem_comp_identifierCategory'}->{'PDBx:pdbx_chem_comp_identifier'};
+
+
+  my $primary_name;
+  $primary_name->{'comp_id'} = $chem_comp->{id};
+  $primary_name->{'PDBx:descriptor'} = $chem_comp->{'PDBx:name'};
+  $primary_name->{'type'} = 'name';
+  $primary_name->{'program'} = 'PDB';
+  $primary_name->{'program_version'} = 'NULL';  
+  push @$descriptors, $primary_name;
+
+  if(defined $chem_comp->{'PDBx:pdbx_synonyms'}) {
+      foreach (split(/,\s/,$chem_comp->{'PDBx:pdbx_synonyms'})) {
+	  my $synonym;
+	  $synonym->{'comp_id'} = $chem_comp->{id};
+	  $synonym->{'PDBx:descriptor'} = $_;
+	  $synonym->{'type'} = 'synonym';
+	  $synonym->{'program'} = 'PDB';
+	  $synonym->{'program_version'} = 'NULL';
+	  push @$descriptors, $synonym;
+      }
+  }
+
+  $data->{ligand} .= table_dump($chem_comp,[qw(
+					       id
+					     PDBx:formula
+					     PDBx:formula_weight
+					     PDBx:pdbx_modified_date
+					     PDBx:pdbx_formal_charge
+					     PDBx:type
+					)
+				     ]);
+
+  $data->{ligand_atoms} .= table_dump($atoms,[qw(
+						 atom_id
+						 comp_id
+					       PDBx:type_symbol
+					       PDBx:alt_atom_id
+					       PDBx:charge
+					       PDBx:pdbx_aromatic_flag
+					       PDBx:pdbx_leaving_atom_flag
+					       PDBx:pdbx_ordinal
+					       PDBx:pdbx_stereo_config
+						)
+				       ]);
+
+  $data->{ligand_bonds} .= table_dump($bonds,[qw(
+						 atom_id_1
+						 atom_id_2
+						 comp_id
+					       PDBx:value_order
+					       PDBx:pdbx_ordinal
+					       PDBx:pdbx_aromatic_flag
+					       PDBx:pdbx_stereo_config
+						)
+					     ]);
+
+  $data->{ligand_descriptors} .= table_inserts($descriptors,[qw(
+								comp_id
+								program_version
+								type
+								program
+							      PDBx:descriptor
+							       )
+							    ]);
+  
+  $data->{ligand_identifiers} .= table_inserts($identifiers,[qw(
+								comp_id
+								program_version
+								type
+								program
+							      PDBx:identifier
+							       )
+							    ]);
+}
+_insert_data();
+print <<EOSQL;
+COMMIT;
+ANALYZE ligand;
+ANALYZE ligand_atoms;
+ANALYZE ligand_bonds;
+ANALYZE ligand_descriptors;
+EOSQL
+
+exit(0);
+
+#####################################################################################################
+sub _insert_data {
+  foreach my $table ('ligand','ligand_atoms','ligand_bonds') {
+    print "copy $table from stdin;\n";
+    print $data->{$table};
+    print("\\.\n");
+  }
+  foreach my $table ('ligand_descriptors', 'ligand_identifiers') {
+    print $data->{$table};
+  }
+}
+
+sub table_dump {
+  my ($dat, $atts) = @_;
+  my $rows = '';
+  foreach my $i (ref($dat) eq "HASH" ? $dat : @$dat) {
+    my @cols;
+    foreach my $att (@$atts) {
+      push @cols, defined $i->{$att} ? $i->{$att} : '';
+    }
+    $rows .= join "\t", @cols;
+    $rows .= "\n";
+  }
+  return $rows;
+}
+
+sub table_inserts {
+  my ($dat, $atts) = @_;
+  my $ret = '';
+  foreach my $i (ref($dat) eq "HASH" ? $dat : @$dat) {
+      my $desc = defined $i->{'PDBx:descriptor'} ? $i->{'PDBx:descriptor'} : $i->{'PDBx:identifier'} ;
+      next if not defined $desc;
+      $desc =~ s/'/''/g;
+      $i->{program_version} = $i->{program_version} eq 'NULL' ? $i->{program_version} : "'$i->{program_version}'";
+      $ret .= "insert into ligand_descriptors values ('$i->{comp_id}',descriptor_origin_si_descriptor_origin_id('".lc($i->{type})."','$i->{program}',$i->{program_version}),E'$desc');\n";
+  }
+  return $ret;
+}
+
+__END__
+
+
+datablock
+  datablockName xsi:schemaLocation xmlns:xsi xmlns:PDBx
+======================================================
+PDBx:chem_compCategory 
+ keys id
+ PDBx:three_letter_code
+ PDBx:pdbx_type
+ PDBx:pdbx_initial_date
+ PDBx:pdbx_ambiguous_flag
+ PDBx:formula
+ PDBx:name
+ PDBx:pdbx_ideal_coordinates_missing_flag
+ PDBx:pdbx_processing_site
+ PDBx:formula_weight
+ PDBx:pdbx_modified_date
+ PDBx:pdbx_model_coordinates_db_code
+ PDBx:pdbx_release_status
+ PDBx:pdbx_formal_charge
+ PDBx:pdbx_model_coordinates_missing_flag
+ PDBx:type
+ PDBx:pdbx_synonyms
+
+======================================================
+PDBx:chem_comp_atomCategory
+ keys  atom_id  comp_id
+ PDBx:pdbx_model_Cartn_z_ideal
+ PDBx:pdbx_aromatic_flag
+ PDBx:pdbx_model_Cartn_y_ideal
+ PDBx:type_symbol
+ PDBx:model_Cartn_x
+ PDBx:pdbx_model_Cartn_x_ideal
+ PDBx:alt_atom_id
+ PDBx:pdbx_leaving_atom_flag
+ PDBx:charge
+ PDBx:pdbx_ordinal
+ PDBx:pdbx_align
+ PDBx:pdbx_stereo_config
+ PDBx:model_Cartn_z
+ PDBx:model_Cartn_y
+
+======================================================
+PDBx:chem_comp_bondCategory
+ keys comp_id  atom_id_1 atom_id_2
+ PDBx:pdbx_stereo_config
+ PDBx:pdbx_aromatic_flag
+ PDBx:value_order
+ PDBx:pdbx_ordinal
+
+======================================================
+PDBx:pdbx_chem_comp_descriptorCategory
+  keys program_version type comp_id program
+ PDBx:descriptor
+
+
+======================================================
+PDBx:pdbx_chem_comp_identifierCategory
+ keys program_version type comp_id program
+ PDBx:identifier

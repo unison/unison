@@ -4,12 +4,20 @@ include ../../params.mk
 
 
 
-PDB_ROOT:=${RESEARCH_PREFIX}/data/public/pdb
+PDB_ROOT:=/gne/research/data/public/pdb
 export PDB_XML_PATH:=${PDB_ROOT}/all.xml.gz
 
+LIGAND_DATA:=${PDB_ROOT}/Components-rel-alt.xml.gz
 
-update default all: allxml-todo.load
+update default all: ligands.load allxml-todo.load
 
+ligands.load: ligands.sql
+	(time -p ${PSQL} -qf $<) >$@.err 2>&1
+	/bin/mv -f $@.err $@
+
+ligands.sql: ${LIGAND_DATA}
+	./load-ligands $< > $@.err 2>&1
+	/bin/mv -f $@.err $@
 
 %.load: %.ids
 	(time -p ./load-pdblite < $<) >$@.err 2>&1;
@@ -24,7 +32,6 @@ allxml.ids: exclude.list FORCE
 	@wc -l $@
 
 done.ids:
-	psql -Atc 'select pdbid from pdb.summary' >$@.tmp
-	sort -u -o $@.tmp $@.tmp
+	find ${PDB_XML_PATH} -type f -name "*.xml.gz" -printf '%f\t%TD %TT\n' | ${PSQL} -Aqtf done.sql >$@.tmp
 	/bin/mv -f $@.tmp $@
 	@wc -l $@
