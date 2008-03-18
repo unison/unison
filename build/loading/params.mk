@@ -15,8 +15,9 @@ GO_DIR:=${RESEARCH_PREFIX}/data/public/go
 #### PSEQ
 ENSEMBL_DIR:=${RESEARCH_PREFIX}/data/public/ensembl
 PDB_DIR=${RESEARCH_PREFIX}/data/public/pdb/divided.pdb
+GNE_PDB_DIR=${RESEARCH_PREFIX}/data/structures/final
 REFSEQ_DIR:=${RESEARCH_PREFIX}/data/public/refseq
-GENESEQ_DIR:=${RESEARCH_PREFIX}/data/public/geneseq
+GENESEQ_DIR:=${RESEARCH_PREFIX}/data/licensed/geneseq
 KAZUSA_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.kazusa.or.jp/pub
 HUGE_DIR:=${KAZUSA_DIR}/huge
 ROUGE_DIR:=${KAZUSA_DIR}/rouge
