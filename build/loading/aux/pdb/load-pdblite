@@ -83,7 +83,7 @@ foreach my $pdb (@pdbids ) {
 
   $data->{summary} = $p->summary();
   $data->{chain}   = $p->chain();
-  $data->{ligand}  = $p->ligand();
+  $data->{pdb_ligand}  = $p->pdb_ligand();
   $data->{residue} = $p->residue();
 
   if($opts{update}) {
@@ -117,7 +117,7 @@ sub insert_data {
   my $data = shift;
 
   #$db->{AutoCommit}=0;
-  foreach my $table('summary','chain','residue','ligand')  {
+  foreach my $table('summary','chain','residue','pdb_ligand')  {
 
     if($opts{sql}) {
       print $data->{$table},"\n";
