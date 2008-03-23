@@ -1115,157 +1115,176 @@ sub _navbar {
       ## prd = production? 1=yes, 0=no (i.e., show ONLY in production)
       ## pub = public? 1=yes, 0=no (i.e., show ONLY in public version)
       (
-        [    # Search menu
-            [
-                1, 1, 'Search', 'Text- and Feature-based mining',
-                'search_alias.pl'
-            ],
-            [
-                1, 1, 'By Alias',
-                'search for sequences by alias/name/accession',
-                'search_alias.pl'
-            ],
-            [
-                1, 1,
-                'By Properties',
-                'mine for sequences based on properties',
-                'search_properties.pl'
-            ],
-            [
-                1, 0, 'Compare Sets',
-                'compare a set of sequences to a set of models ',
-                'search_sets.pl'
-            ],
-            [
-                1, 0, 'Framework',
-                'search for sequences matching a set of sequence regions',
-                'search_framework.pl'
-            ],
-        ],
+	   ## Search menu
+	   [
+		[
+		 1, 1, 'Search', 'Text- and Feature-based mining',
+		 'search_alias.pl'
+		],
+		[
+		 1, 1, 'By Alias',
+		 'search for sequences by alias/name/accession',
+		 'search_alias.pl'
+		],
+		[
+		 1, 1,
+		 'By Properties',
+		 'mine for sequences based on properties',
+		 'search_properties.pl'
+		],
+		[
+		 1, 0, 'Compare Sets',
+		 'compare a set of sequences to a set of models ',
+		 'search_sets.pl'
+		],
+		[
+		 1, 0, 'Framework',
+		 'search for sequences matching a set of sequence regions',
+		 'search_framework.pl'
+		],
+	   ],
 
-        [    # Browse menu
-            [
-                1, 1, 'Browse',
-                'browse curated queries and precomputed sequences sets',
-                'browse_views.pl'
-            ],
-            [
-                1, 1, 'Views', 'browse dynamic queries of protein sequences',
-                'browse_views.pl'
-            ],
-            [
-                1, 1, 'Sets', 'browse precomputed sets of proteins',
-                'browse_sets.pl'
-            ],
-        ],
 
-        [    # Analyze menu
-            [
-                1, 1, 'Analyze',
-                'display precomputed analyses for a single sequence',
-                'pseq_summary.pl'
-            ],
-            [
-                1, 1, 'Summary', 'summary of sequence information',
-                'pseq_summary.pl', $pseq_id
-            ],
-            [
-                1, 1, 'Aliases', 'all aliases of this sequence',
-                'pseq_paliases.pl', $pseq_id
-            ],
-            [
-                1, 1, 'GeneRif', 'NCBI Functions and References ',
-                'pseq_generif.pl', $pseq_id
-            ],
-            [
-                1, 0, 'Patents', 'patents on this sequence',
-                'pseq_patents.pl', $pseq_id
-            ],
-            [
-                1, 1, 'Features', 'sequences features',
-                'pseq_features.pl', $pseq_id
-            ],
-            [
-                1, 1, 'Structure', 'structural features',
-                'pseq_structure.pl', $pseq_id
-            ],
-            [
-                0, 1, 'BLAST', 'BLAST-related sequences',
-                'pseq_blast.pl', $pseq_id
-            ],
-            [
-                1, 0, 'Prospect', 'Prospect threadings',
-                'pseq_paprospect.pl', $pseq_id
-            ],
-            [
-                1, 1, 'HMM', 'Hidden Markov Model alignments',
-                'pseq_pahmm.pl', $pseq_id
-            ],
-            [ 0, 1, 'PSSM', 'PSSM alignments', 'pseq_papssm.pl', $pseq_id ],
-            [
-                0, 1, 'Interactions', 'Protein-Protein Interactions',
-                'pseq_intx.pl', $pseq_id
-            ],
-            [ 1, 1, 'Loci', 'genomic localization', 'pseq_loci.pl', $pseq_id ],
-            [
-                0, 0, 'Notes', 'user notes on this sequence',
-                'pseq_notes.pl', $pseq_id
-            ],
-            [ 1, 1, 'History', 'run history', 'pseq_history.pl', $pseq_id ],
-        ],
+	   ## Browse menu
+	   [
+		[
+		 1, 1, 'Browse',
+		 'browse curated queries and precomputed sequences sets',
+		 'browse_views.pl'
+		],
+		[
+		 1, 1, 'Views', 'browse dynamic queries of protein sequences',
+		 'browse_views.pl'
+		],
+		[
+		 1, 1, 'Sets', 'browse precomputed sets of proteins',
+		 'browse_sets.pl'
+		],
+	   ],
 
-        [    # Assess menu
-            [
-                0, 0, 'Assess', 'compare sequence sets and analysis methods',
-                'compare_scores.pl'
-            ],
-            [ 0, 0, 'Scores', 'compare scoring systems', 'compare_scores.pl' ],
-            [
-                0, 0, 'Methods', 'compare threading methods',
-                'compare_methods.pl'
-            ],
-        ],
 
-        # empty list forces right-justification of subsequent menus
-        [ [''] ],
+	   ## Analyze menu
+	   [
+		[
+		 1, 1, 'Analyze',
+		 'display precomputed analyses for a single sequence',
+		 'pseq_summary.pl'
+		],
+		[
+		 1, 1, 'Summary', 'summary of sequence information',
+		 'pseq_summary.pl', $pseq_id
+		],
+		[
+		 1, 1, 'Aliases', 'all aliases of this sequence',
+		 'pseq_paliases.pl', $pseq_id
+		],
+		[
+		 1, 1, 'GeneRif', 'NCBI Functions and References ',
+		 'pseq_generif.pl', $pseq_id
+		],
+		[
+		 1, 0, 'Patents', 'patents on this sequence',
+		 'pseq_patents.pl', $pseq_id
+		],
+		[
+		 1, 1, 'Features', 'sequences features',
+		 'pseq_features.pl', $pseq_id
+		],
+		[
+		 1, 1, 'Structure', 'structural features',
+		 'pseq_structure.pl', $pseq_id
+		],
+		[
+		 0, 1, 'BLAST', 'BLAST-related sequences',
+		 'pseq_blast.pl', $pseq_id
+		],
+		[
+		 1, 0, 'Prospect', 'Prospect threadings',
+		 'pseq_paprospect.pl', $pseq_id
+		],
+		[
+		 1, 1, 'HMM', 'Hidden Markov Model alignments',
+		 'pseq_pahmm.pl', $pseq_id
+		],
+		[ 0, 1, 'PSSM', 'PSSM alignments', 'pseq_papssm.pl', $pseq_id ],
+		[
+		 0, 1, 'Interactions', 'Protein-Protein Interactions',
+		 'pseq_intx.pl', $pseq_id
+		],
+		[ 1, 1, 'Loci', 'genomic localization', 'pseq_loci.pl', $pseq_id ],
+		[
+		 0, 0, 'Notes', 'user notes on this sequence',
+		 'pseq_notes.pl', $pseq_id
+		],
+		[ 1, 1, 'History', 'run history', 'pseq_history.pl', $pseq_id ],
+	   ],
 
-        [    # About menu
-            [
-                1, 1, 'About', ('Click for more information about Unison.'
-								. sprintf("<br>host=%s; db=%s; user=%s",
-										  $v->{host}, $v->{dbname}, $v->{username})),
-                'about_unison.pl'
-            ],
-            [ 1, 1, 'About Unison', 'Unison overview', 'about_unison.pl' ],
-            [
-                1, 1, 'Statistics', 'Unison summary statistics',
-                'about_statistics.pl'
-            ],
-            [ 1, 1, 'Origins', 'Unison data sources', 'about_origins.pl' ],
-            [
-                1, 1, 'Params', 'Unison precomputed data types',
-                'about_params.pl'
-            ],
-            [ 0, 1, 'Env',   'environment info', 'about_env.pl' ],
-            [ 0, 1, 'Prefs', 'user prefs',       'about_prefs.pl' ],
-        ],
 
-#[ # run menu
-# [1,1,'Run', 'run analyses on sequences for which precomputed results aren\'t available'],
-# [1,1,'BLAST', undef, 'run_blast.pl'],
-# [1,1,'Pfam', undef, 'run_pfam.pl']
-#],
+	   ## Sets menu
+	   [									#
+		[
+		 1, 1, 'Sets', 'Analyze sets of proteins', 'pseqset_annotations.pl'
+		],
+		[
+		 1, 1, 'Browse', 'browse precomputed sets of proteins',
+		 'pseqset_annotations.pl'
+		],
+	   ],
 
-        #[ # special menu
-        # [1,1,'Special', 'special projects'],
-        # [1,1,'Preferences', 'user preferences']
-        # [1,1,'UNQ', 'UNQ browsing']
-        #],
 
-        #[ # admin menu
-        # [1,1,'Admin', 'Unison administration'],
-        # [1,1,'Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
-        #],
+	   ## Assess menu
+	   [			
+		[
+		 0, 0, 'Assess', 'compare sequence sets and analysis methods',
+		 'compare_scores.pl'
+		],
+		[ 0, 0, 'Scores', 'compare scoring systems', 'compare_scores.pl' ],
+		[
+		 0, 0, 'Methods', 'compare threading methods',
+		 'compare_methods.pl'
+		],
+	   ],
+
+	   # empty list forces right-justification of subsequent menus
+	   [ [''] ],
+
+	   [									# About menu
+		[
+		 1, 1, 'About', ('Click for more information about Unison.'
+						 . sprintf("<br>host=%s; db=%s; user=%s",
+								   $v->{host}, $v->{dbname}, $v->{username})),
+		 'about_unison.pl'
+		],
+		[ 1, 1, 'About Unison', 'Unison overview', 'about_unison.pl' ],
+		[
+		 1, 1, 'Statistics', 'Unison summary statistics',
+		 'about_statistics.pl'
+		],
+		[ 1, 1, 'Origins', 'Unison data sources', 'about_origins.pl' ],
+		[
+		 1, 1, 'Params', 'Unison precomputed data types',
+		 'about_params.pl'
+		],
+		[ 0, 1, 'Env',   'environment info', 'about_env.pl' ],
+		[ 0, 1, 'Prefs', 'user prefs',       'about_prefs.pl' ],
+	   ],
+
+	   #[ # run menu
+	   # [1,1,'Run', 'run analyses on sequences for which precomputed results aren\'t available'],
+	   # [1,1,'BLAST', undef, 'run_blast.pl'],
+	   # [1,1,'Pfam', undef, 'run_pfam.pl']
+	   #],
+
+	   #[ # special menu
+	   # [1,1,'Special', 'special projects'],
+	   # [1,1,'Preferences', 'user preferences']
+	   # [1,1,'UNQ', 'UNQ browsing']
+	   #],
+
+	   #[ # admin menu
+	   # [1,1,'Admin', 'Unison administration'],
+	   # [1,1,'Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
+	   #],
 
       );
 

@@ -1,9 +1,16 @@
 # -*-outline-*-
 
+* standardize function names
+We have a lot of useful functions, but they're hard to find. We should
+think (again) about standardization. Example: we have both pseq_locus_rep
+and representative_pseq_id that do essentially the same thing. I (Reece)
+haven't a clue why I made both, but I suspect forgetfulness.
+
 * Genome tab
 rename Analysis to Protein?
 
 * integrate help, etc.
+- get web table col descriptions from database col comments
 
 * Unison perl5 embedded in directory hierarchy? where?
 + makes web tree immune to Unison:: module changes outside of tree
@@ -14,6 +21,7 @@ rename Analysis to Protein?
 - pseq_ pages always have pseq_id entry field?
 - what should pseq_summary do if pseq_id is missing?
 - top level entry point
+- ideally, we should move to a framework like Catalyst with mochikit
 
 * popups and redisplay
 - consider automatic submit for redisplay when user selects from popup
@@ -26,7 +34,12 @@ rename Analysis to Protein?
 
 * overhaul view structure
 - need better mat view scheme (contrib package?)
-- modularize and simplify
+- modularize and simplify -- we have too many views
+- When a _mv exists, we should probably build it from a _dv (rename the
+  existing _v to _dv) and use _v as a shallow wrapper for the _mv. That
+  way, existing tools that use _dv will get the _mv instead of the slower
+  dynamic view.
+
 
 * assume limited search path
 - e.g., ( unison ), definitely not user

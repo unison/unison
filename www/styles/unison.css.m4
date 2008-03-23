@@ -69,6 +69,11 @@ div.nav table.navc {
   padding: 1px;
 }
 
+span.note {
+  font-size: 0.8em;
+  font-style: italic;
+}
+
 div.nav ul {
   display: inline;
   padding: 0;
