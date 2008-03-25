@@ -249,11 +249,11 @@ if ( $N - 1 - $v->{offset} > 0 ) {
     );
 }
 
-#my $ctl = join(' | ',@ctl)
-my $ctl =
-    '<table border=0><tr>'
-  . join( '', map { "<td>$_</td>" } @ctl )
-  . '</tr></table>';
+my $ctl = join(' ',@ctl);
+#my $ctl =
+#    '<table border=0><tr>'
+#  . join( '', map { "<td>$_</td>" } @ctl )
+#  . '</tr></table>';
 
 my @ms = @{
     $u->selectall_arrayref(
@@ -307,15 +307,15 @@ print $p->render(
     $p->start_form( -action => 'p2alignment.pl' ),
     $p->hidden( 'pseq_id',   $v->{pseq_id} ),
     $p->hidden( 'params_id', $v->{params_id} ),
+    $p->submit( -value => 'align checked' ),
+    $p->end_form(),
+
     $p->group(
         [ 'Prospect Threadings', $ctl ],
         Unison::WWW::Table::render(
             \@htmlcols, \@ar, { highlight_column => $hc }
         )
     ),
-    $p->submit( -value => 'align checked' ),
-    $p->end_form(),
-    "\n",
 
     $p->sql($sql),
 );

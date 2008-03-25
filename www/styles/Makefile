@@ -7,11 +7,13 @@
 .PHONY: FORCE
 .DELETE_ON_ERROR:
 
+CS:=light-pastel
 
-CS:=$(wildcard *.cs)
-CSS:=$(foreach C,$(subst .cs,,${CS}),unison-$C.css)
 
-default: ${CSS}
+default: unison.css
+
+all: $(foreach C,$(subst .cs,,$(wildcard *.cs)),unison-$C.css)
+
 
 %.cs: unison.css.m4
 	./rewrite-cs <$@ >.$@
@@ -23,8 +25,10 @@ unison.css.m4:;
 	perl -laF= -ne 'print("define(\`$$F[0]\047,\`$$F[1]\047)")' <$< >$@
 
 unison-%.css: %.m4 unison.css.m4
-	m4 $^ >$@
-	cp -b $@ unison.css
+	m4 -DPALETTE=$* $^ >$@
+
+unison.css: unison-${CS}.css
+	cp -b $< $@
 
 
 .PHONY: clean cleaner cleanest

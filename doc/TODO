@@ -6,14 +6,10 @@ think (again) about standardization. Example: we have both pseq_locus_rep
 and representative_pseq_id that do essentially the same thing. I (Reece)
 haven't a clue why I made both, but I suspect forgetfulness.
 
-* Genome tab
-rename Analysis to Protein?
-
+* genome tab
+rename Analysis to Protein to make way for non-protein analyses?
 * integrate help, etc.
 - get web table col descriptions from database col comments
-
-* Unison perl5 embedded in directory hierarchy? where?
-+ makes web tree immune to Unison:: module changes outside of tree
 
 * HTML Table  and SQL Table modules, w/ col sorting, etc.
 
@@ -81,3 +77,15 @@ FROM
 ORDER BY cvorder
 
 
+* db restore script
+- helper script to set search path, analyze, etc
+
+* web deploy script
+mkdir -p /local/usr-local/opt/unison/current/www/tmp
+chmod 777
+
+* loci show extremely slow
+
+* need better way to test
+
+* jmol 11 support

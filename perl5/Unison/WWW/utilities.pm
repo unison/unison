@@ -5,8 +5,14 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 use base 'Exporter';
-our @EXPORT_OK = qw
-  (pseq_summary_link alias_link alias_gglink alias_splink alias_reflink text_wrap coalesce );
+our @EXPORT_OK = qw(
+					 alias_link alias_proteome_link alias_gglink
+					 alias_ghlink alias_splink alias_uniprot_link
+					 alias_reflink alias_enslink alias_mint_link
+					 alias_pubmed_link pseq_summary_link text_wrap
+					 coalesce
+				  );
+
 our @EXPORT = ();
 
 use Text::Wrap;
@@ -53,7 +59,7 @@ sub alias_link {
 
 sub alias_proteome_link {
     my $alias = shift;
-"<a tooltip=\"link to Proteome for $alias\" href=\"http://research/products/proteome/cgi-bin/SearchSync.cgi?Mode=name&submit=Name/ID&current=human&pattern=$alias\">$alias</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to Proteome for $alias\" href=\"http://research/products/proteome/cgi-bin/SearchSync.cgi?Mode=name&submit=Name/ID&current=human&pattern=$alias\">$alias</a>";
 
     #view-source:http://research/products/proteome/HumanPD/TNF.html
     #<form action="/products/proteome/cgi-bin/SearchSync.cgi" method="POST">
@@ -67,36 +73,36 @@ sub alias_proteome_link {
 
 sub alias_gglink {
     $_[0] =~
-s%^(UNQ|PRO|DNA)(\d+)$%<a tooltip=\"link to GenenGenes:$_[0]\" href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;
+s%^(UNQ|PRO|DNA)(\d+)$%<a class=\"extlink\" target=\"_blank\" tooltip=\"link to GenenGenes:$_[0]\" href="http://research/projects/gg/jsp/$1.jsp?$1ID=$2">$&</a>%;
     $_[0];
 }
 
 sub alias_ghlink {
-"<a tooltip=\"link to GeneHub:$_[0]\" href=\"http://research/genehub/jsp/SearchAction.jsp?searchVal0=$_[0]\">$_[0]</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to GeneHub:$_[0]\" href=\"http://research/genehub/jsp/SearchAction.jsp?searchVal0=$_[0]\">$_[0]</a>";
 }
 
 sub alias_splink {
-"<a tooltip=\"link to SwissProt:$_[0]\" href=\"http://us.expasy.org/cgi-bin/niceprot.pl?$_[0]\">$_[0]</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to SwissProt:$_[0]\" href=\"http://us.expasy.org/cgi-bin/niceprot.pl?$_[0]\">$_[0]</a>";
 }
 
 sub alias_uniprot_link {
-"<a tooltip=\"link to Uniprot:$_[0]\" href=\"http://www.uniprot.org/entry/$_[0]\">$_[0]</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to Uniprot:$_[0]\" href=\"http://www.uniprot.org/entry/$_[0]\">$_[0]</a>";
 }
 
 sub alias_reflink {
-"<a tooltip=\"link to RefSeq:$_[0]\" href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Protein&term=$_[0]\">$_[0]</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to RefSeq:$_[0]\" href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Protein&term=$_[0]\">$_[0]</a>";
 }
 
 sub alias_enslink {
-"<a tooltip=\"link to Ensembl:$_[0]\" href=\"http://www.ensembl.org/Homo_sapiens/textview?species=All&idx=Protein&q=$_[0]\">$_[0]</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to Ensembl:$_[0]\" href=\"http://www.ensembl.org/Homo_sapiens/textview?species=All&idx=Protein&q=$_[0]\">$_[0]</a>";
 }
 
 sub alias_mint_link {
-"<a tooltip=\"link to Mint:$_[0]\" href=\"http://mint.bio.uniroma2.it/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to Mint:$_[0]\" href=\"http://mint.bio.uniroma2.it/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
 }
 
 sub alias_pubmed_link {
-"<a tooltip=\"link to PubMed:$_[0]\" href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=$_[0]\">$_[0]</a>";
+"<a class=\"extlink\" target=\"_blank\" tooltip=\"link to PubMed:$_[0]\" href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=$_[0]\">$_[0]</a>";
 }
 
 sub pseq_summary_link {
