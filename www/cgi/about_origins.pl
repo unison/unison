@@ -12,15 +12,14 @@ use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::SQL;
 
+my $star = '<span style="color: red;">*</span>';
+
 sub origin_group($);
 
 my $p = new Unison::WWW::Page;
 
-# FIXME: make * red, as in about_params
-
 print $p->render(
     "Data Sources (Origins)",
-    '* indicates proprietary data',
     origin_group($p),
 );
 
@@ -42,9 +41,11 @@ sub origin_group($) {
     my $ar   = $u->selectall_arrayref($sth);
     my @cols = @{ $sth->{NAME} };
     for ( my $i = 0 ; $i <= $#$ar ; $i++ ) {
-        $ar->[$i][3] = "<a href=\"$ar->[$i][3]\">$ar->[$i][3]</a>"
+        $ar->[$i][0] =~ s/\*/$star/;
+        $ar->[$i][3] = "<a target=\"_blank\" class=\"extlink\" href=\"$ar->[$i][3]\">$ar->[$i][3]</a>"
           if defined $ar->[$i][3];
     }
     return $p->group( "Data Sources",
-        Unison::WWW::Table::render( \@cols, $ar ) );
+					  "$star indicates proprietary data",
+					  Unison::WWW::Table::render( \@cols, $ar ) );
 }
