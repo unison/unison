@@ -381,7 +381,7 @@ sub render {
 		  '<table class="page">', "\n",
 		  '<tr>', "\n",
 		  "\n<!-- ========== begin logo ========== -->\n",
-		  '  <td class="left"> <a href="../index.html"><img width=100 height=28 src="../av/unison.gif"></a> </td>', "\n",
+		  '  <td class="left"> <a class="nofeedback" href="../index.html"><img width=120 height=34 src="../av/unison.png"></a> </td>', "\n",
 		  "\n<!-- ========== end logo ========== -->\n",
 		  "\n<!-- ========== begin navbar ========== -->\n",
 		  '  <td>', $self->_navbar(), '</td>', "\n",

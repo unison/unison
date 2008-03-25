@@ -20,7 +20,6 @@ my $p = new Unison::WWW::Page;
 
 print $p->render(
     "Available parameters",
-    "$star indicates proprietary methods",
     params_group($p)
 );
 
@@ -41,15 +40,17 @@ sub params_group($) {
 
             # rewrite urls to pubmed
             $ar->[$i][2] =~
-              s%(http://.+db=pubmed\S+uids=\d+)%<a href="$1">[PubMed]</a>%g;
+              s%(http://.+db=pubmed\S+uids=\d+)%[<a target="_blank" class="extlink" href="$1">PubMed</a>]%g;
             $ar->[$i][2] =~
-              s%(?<!href=")(http://[\w/\.]+)%<a href="$1">$1</a>%g;
+              s%(?<!href=")(http://[\w/\.~]+)%<a target="_blank" class="extlink" href="$1">$1</a>%g;
         }
 
         $ar->[$i][3] = "<code>$ar->[$i][3]</code>";
     }
     my @cols = @{ $sth->{NAME} };
     return $p->group( "Execution Parameters",
-        Unison::WWW::Table::render( \@cols, $ar ) );
+					  "$star indicates proprietary methods",
+					  Unison::WWW::Table::render( \@cols, $ar )
+					);
 }
 

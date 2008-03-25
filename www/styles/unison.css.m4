@@ -25,14 +25,20 @@ img {
  border: none;
 }
 
-a.extlink {
- background: url(../av/extlink.gif) right center no-repeat;
-  padding-right: 14px;
-}
 
 a:hover {
  background: U_HOVER_HIGHLIGHT_BG;
  color: U_HOVER_HIGHLIGHT_FG;
+}
+a.extlink {
+  /* consider css2 :after pseudo-element instead */
+ background: url(../av/extlink.gif) right center no-repeat;
+ padding-right: 14px;
+  target: new-window;
+}
+
+a.nofeedback:hover {
+ background: U_BG;
 }
 
 
