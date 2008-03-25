@@ -86,7 +86,7 @@ sub render_compat {
           if ( $opts->{scroll} );
         $rv .= "\n<thead>\n  <tr>\n"
           . join( '',
-            map { '    <th align="center">' . $_ . '</th>' . "\n" } @$fr )
+            map { '    <th>' . $_ . '</th>' . "\n" } @$fr )
           . "  </tr>\n</thead>\n";
         $rv .= '<tbody>' . "\n";
         $rv .= "  <tr>\n" . join(

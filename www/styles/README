@@ -1,0 +1,24 @@
+This directory contains the Unison style sheet and severl color schemes.
+
+Unison web pages refer to unison.css.  That is the ultimate "target" that
+we need to build.
+
+The style sheet template is in unison.css.m4. It contains m4 macros that
+are named for the color *function*, e.g., U_BACKGROUND, U_TOOLTIP_BG, etc.
+
+The color definitions are in .cs files. Those are turned into m4 macros by
+./rewrite-cs, which also verifies that there are no undefined colors.
+
+m4 is used to conver unison.css.m4 and the color macros into a css. The
+resulting filename incorporates the color scheme name, such as
+unison-genentech.css.
+
+
+
+Some to try:
+http://wellstyled.com/tools/colorscheme2/index-en.html?tetrad;100;0;75;-1;-1;1;-0.7;0.25;1;0.5;1;-1;-1;1;-0.7;0.25;1;0.5;1;-1;-1;1;-0.7;0.25;1;0.5;1;-1;-1;1;-0.7;0.25;1;0.5;1;1
+http://wellstyled.com/tools/colorscheme2/index-en.html?tetrad;100;0;120;-1;-1;1;-0.7;0.25;1;0.5;1;-1;-1;1;-0.7;0.25;1;0.5;1;-1;-1;1;-0.7;0.25;1;0.5;1;-1;-1;1;-0.7;0.25;1;0.5;1;1
+
+crayola:
+#FFFF30 #FB8D2D #F62A37 #F1279F #D225EB #6523E5 #2246DF #24A4D5 #28C9A0
+#2CBE4B #000000

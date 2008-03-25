@@ -364,67 +364,70 @@ page-specific content provided by an array of C<body elems>.
 =cut
 
 sub render {
-    my $self  = shift;
-    my $title = shift;
+  my $self  = shift;
+  my $title = shift;
 
-    my $elapsed     = time - $self->{starttime};
-    my $elapsed_msg = sprintf( 'page generated in %s second%s',
-        $elapsed, $elapsed == 1 ? '' : 's' );
+  my $elapsed     = time - $self->{starttime};
+  my $elapsed_msg = sprintf( 'page generated in %s second%s',
+							 $elapsed, $elapsed == 1 ? '' : 's' );
 
-    return (
-        $self->header(),
+  return (
+		  $self->header(),
 
-        $self->start_html( -title => "Unison: $title" ),
+		  $self->start_html( -title => "Unison: $title" ),
 
-		"\n",
+		  "\n",
 
-        '<table class="page">', "\n",
-        '<tr>', "\n",
-        "\n<!-- ========== begin logo ========== -->\n",
-        '  <td class="left"> <a href="../index.html"><img width=100 height=28 src="../av/unison.gif"></a> </td>', "\n",
-        "\n<!-- ========== end logo ========== -->\n",
-        "\n<!-- ========== begin navbar ========== -->\n",
-        '  <td>', $self->_navbar(), '</td>', "\n",
-        "\n<!-- ========== end navbar ========== -->\n",
-        '</tr>', 
+		  '<table class="page">', "\n",
+		  '<tr>', "\n",
+		  "\n<!-- ========== begin logo ========== -->\n",
+		  '  <td class="left"> <a href="../index.html"><img width=100 height=28 src="../av/unison.gif"></a> </td>', "\n",
+		  "\n<!-- ========== end logo ========== -->\n",
+		  "\n<!-- ========== begin navbar ========== -->\n",
+		  '  <td>', $self->_navbar(), '</td>', "\n",
+		  "\n<!-- ========== end navbar ========== -->\n",
+		  '</tr>', 
 
-        "\n<!-- ========== begin body ========== -->\n",
-        '<tr><td colspan=2 class="body">', "\n",
-        '<span class="page_title">', $title, '</span>', "\n",
-        '<br>',                      @_,     "\n",
-        '</td></tr>',                "\n",
-        "\n<!-- ========== end body ========== -->\n",
+		  "\n<!-- ========== begin body ========== -->\n",
+		  '<tr><td colspan=2 class="body">', "\n",
+		  # no longer show page title
+		  # '<span class="page_title">', $title, '</span>', "\n",
+		  #'<br>',
+		  @_,
+		  "\n",
+		  '</td></tr>',                "\n",
+		  "\n<!-- ========== end body ========== -->\n",
 
-        "\n<!-- ========== begin footer ========== -->\n",
-        '<tr>', "\n",
-		'  <td class="left"><a href="http://www.postgresql.org/"><img class="logo" ',
-        ' src="../av/poweredby_postgresql.gif"></a></td>',
-        "\n",
-        '  <td class="footer">',
-'  Questions?  Email <a href="mailto:unison@unison-db.org?subject=Unison Question&body=Regarding ',
-        $self->url(),
-        ' : ',
-        '">unison@unison-db.org</a>.',
-        '  &nbsp; &nbsp; ',
-'  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
-        '     <br>',
-        $elapsed_msg,
-        "\n",
-        (
-            defined $self->{footer}
-            ? ( map { "<br>$_" } @{ $self->{footer} } )
-            : ''
-        ),
-        "  </td>\n",
-        "</tr>\n",
-        "\n<!-- ========== end footer ========== -->\n",
+		  "\n<!-- ========== begin footer ========== -->\n",
+		  '<tr>', "\n",
+		  '  <td class="left"><a href="http://www.postgresql.org/"><img class="logo" ',
+		  ' src="../av/poweredby_postgresql.gif"></a></td>',
+		  "\n",
+		  '  <td class="footer">',
+		  '  Questions?  Email <a href="mailto:unison@unison-db.org?subject=Unison Question&body=Regarding ',
+		  $self->url(),
+		  ' : ',
+		  '">unison@unison-db.org</a>.',
+		  '  &nbsp; &nbsp; ',
+		  '  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
+		  '     <br>',
+		  $elapsed_msg,
+		  "\n",
+		  (
+		   defined $self->{footer}
+		   ? ( map { "<br>$_" } @{ $self->{footer} } )
+		   : ''
+		  ),
+		  "  </td>\n",
+		  "</tr>\n",
+		  "\n<!-- ========== end footer ========== -->\n",
 
-        "</table>\n",
+		  "</table>\n",
 
-        "\n",
-        $self->end_html(),
-        "\n"
-    );
+		  "\n",
+		  $self->end_html(),
+		  "\n"
+		 );
 }
 
 ######################################################################
@@ -437,6 +440,35 @@ sub render {
 =cut
 
 sub group {
+    my $self = shift;
+    my ($spec) = shift;
+	my ($name,$ctl);
+
+	if (ref $spec eq 'ARRAY') {
+	  ($name,$ctl) = @$spec;
+	} else {
+	  $name = $spec;
+	}
+
+    $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;
+
+	my $tag = $name;
+
+	if (defined $ctl) {
+	  $tag .= sprintf(' <span class="group_ctl">%s</span>',$ctl);
+	}
+
+    return <<EOF;
+<form class="group">
+<fieldset>
+<legend>$tag</legend>
+@_
+</fieldset>
+</form>
+EOF
+}
+
+sub group2 {
     my $self = shift;
     my $name = shift;
     my $ctl  = '';
@@ -594,7 +626,7 @@ C<text>.
 =cut
 
 sub tooltip {
-    shift if ref $_[0];    # method or fx
+    shift if ref $_[0];    # can be called as method or fx
     my ( $text, $tooltip, $class ) = @_;
     return $text unless defined $tooltip;
     local $Text::Wrap::columns = 80;
@@ -603,9 +635,9 @@ sub tooltip {
     # NOTE: wrap() doesn't work correctly on HTML (e.g., embedded <br> tags)
     $tooltip = Text::Wrap::wrap( '', '', $tooltip );
     $tooltip =~ s/\n+/<br>/g;
-    $class = 'tooltip' unless defined $class;
-    my $cltag = $class eq '' ? '' : "class=\"$class\"";
-    return ("<span $cltag tooltip=\"$tooltip\">$text</span>");
+    $class = 'has_tooltip' unless defined $class;
+    return sprintf('<span class="%s" tooltip="%s">%s</span>',
+				   $class,$tooltip,$text);
 }
 
 ######################################################################
@@ -1179,12 +1211,16 @@ sub _navbar {
 		 'pseq_paliases.pl', $pseq_id
 		],
 		[
-		 1, 1, 'GeneRif', 'NCBI Functions and References ',
-		 'pseq_generif.pl', $pseq_id
-		],
-		[
 		 1, 0, 'Patents', 'patents on this sequence',
 		 'pseq_patents.pl', $pseq_id
+		],
+		[
+		 1, 1, 'Homologs', 'orthologs and paralogs of this sequence',
+		 'pseq_homologs.pl', $pseq_id
+		],
+		[
+		 1, 1, 'Functions', 'Protein Functions and References ',
+		 'pseq_functions.pl', $pseq_id
 		],
 		[
 		 1, 1, 'Features', 'sequences features',

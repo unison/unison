@@ -157,7 +157,7 @@ sub entrez_annotations {
       || croak("Unison connection not established");
     my $sth = $self->prepare_cached(<<EOSQL);
     SELECT distinct T.common,E.symbol,E.map_loc,E.descr
-      FROM pseq_gene_v PG
+      FROM pseq_gene_mv PG
       JOIN ncbi.gene_info E on PG.gene_id=E.gene_id
  LEFT JOIN tax.spspec T on E.tax_id=T.tax_id
      WHERE PG.pseq_id=?
@@ -175,6 +175,37 @@ EOSQL
               || ( $a->{symbol} cmp $b->{symbol} )
           } @annos
     );
+}
+
+######################################################################
+## entrez_annotations
+
+=pod
+
+=item B<< $u->entrez_go_annotations( C<pseq_id> ) >>
+
+Return the Entrez GO annotations.
+
+=cut
+
+sub entrez_go_annotations {
+    my $self    = shift;
+    my $pseq_id = shift;
+    $self->is_open()
+      || croak("Unison connection not established");
+    my $sth = $self->prepare_cached(<<EOSQL);
+SELECT *
+  FROM pseq_gene_mv PG
+  JOIN ncbi.gene2go GG on PG.gene_id=GG.gene_id
+ WHERE PG.pseq_id=?
+EOSQL
+    $sth->execute($pseq_id);
+    my @annos;
+    while ( my $h = $sth->fetchrow_hashref() ) {
+        push( @annos, $h );
+    }
+    $sth->finish();
+    return @annos;
 }
 
 ######################################################################

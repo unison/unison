@@ -59,61 +59,58 @@ if (emb_elem) {
 EOJS
 
     print $p->render(
-        "HMM alignments for Unison:$v->{pseq_id}",
-        $p->best_annotation( $v->{pseq_id} ),
+					 "HMM alignments for Unison:$v->{pseq_id}",
+					 $p->best_annotation( $v->{pseq_id} ),
 
-        '<!-- parameters -->',
-        $p->start_form( -method => 'GET' ),
-        $js,
-        $p->hidden( 'pseq_id', $v->{pseq_id} ),
-        '<br>parameters: ',
-        $p->popup_menu(
-            -name    => 'params_id',
-            -values  => [ map { $_->[0] } @ps ],
-            -labels  => \%ps,
-            -default => "$v->{params_id}",
-			-onChange => 'this.form.submit()'
-        ),
-        '&nbsp;',
-        'modelsets: ',
-        $p->popup_menu(
-            -name    => 'pmodelset_id',
-            -values  => [ map { $_->[0] } @ms ],
-            -labels  => \%ms,
-            -default => "$v->{pmodelset_id}",
-			-onChange => 'this.form.submit()'
-        ),
-        '&nbsp;',
-        $p->submit( -value => 'redisplay' ),
-        $p->end_form(),
-        "\n",
+					 '<!-- parameters -->',
+					 $p->start_form( -method => 'GET' ),
+					 $js,
+					 $p->hidden( 'pseq_id', $v->{pseq_id} ),
+					 '<br>parameters: ',
+					 $p->popup_menu(
+									-name    => 'params_id',
+									-values  => [ map { $_->[0] } @ps ],
+									-labels  => \%ps,
+									-default => "$v->{params_id}",
+									-onChange => 'this.form.submit()'
+								   ),
+					 '&nbsp;',
+					 'modelsets: ',
+					 $p->popup_menu(
+									-name    => 'pmodelset_id',
+									-values  => [ map { $_->[0] } @ms ],
+									-labels  => \%ms,
+									-default => "$v->{pmodelset_id}",
+									-onChange => 'this.form.submit()'
+								   ),
+					 '&nbsp;',
+					 $p->submit( -value => 'redisplay' ),
+					 $p->end_form(),
+					 "\n",
 
-        '<!-- HMM profile alignment -->',
-        $p->start_form( -action => 'hmm_alignment.pl', -method => "GET" ),
-        $p->hidden( 'pseq_id',      $v->{pseq_id} ),
-        $p->hidden( 'params_id',    $v->{params_id} ),
-        $p->hidden( 'pmodelset_id', $v->{pmodelset_id} ),
+					 $p->group(
+							   'HMM alignments',
+							   Unison::WWW::Table::render( $cref, $rref ),
 
-        $p->group(
-            "HMM alignments",
-            Unison::WWW::Table::render( $cref, $rref )
-        ),
+# Akk! group creates a form. Nested forms are not allowed. The checkboxes
+# are trapped inside the group's form, inaccessible to a form outside of it.
+# Solution: group needs to be reworked to not create a form, perhaps optionally
+# Until then, dynamic HMM alignments are disabled.
+#							   ( not $p->is_public() ? '' :
+#								 '<!-- HMM profile alignment -->',
+#								 $p->start_form( -action => 'hmm_alignment.pl', -method => "GET" ),
+#								 $p->hidden( 'pseq_id',      $v->{pseq_id} ),
+#								 $p->hidden( 'params_id',    $v->{params_id} ),
+#								 $p->hidden( 'pmodelset_id', $v->{pmodelset_id} ),
+#								 $p->submit( -value => 'align checked' ),
+#								 '<p><iframe style="display: none" id="emb_hmm_alignment" width="100%" height="300px" scrolling="yes">',
+#								 'Sorry. I cannot display alignments because your browser does not support iframes.','</iframe>'
+#							   )
+							  ),
 
-        (
-            $p->is_public()
-            ? ''
-            : (
-                '<p>',
-                $p->submit( -value => 'align checked' ),
-'<p><iframe style="display: none" id="emb_hmm_alignment" width="100%" height="300px" scrolling="yes">',
-'Sorry. I cannot display alignments because your browser does not support iframes.',
-                '</iframe>'
-            )
-        ),
-
-        '<!-- sql -->',
-        $p->sql($sql)
-    );
+					 '<!-- sql -->',
+					 $p->sql($sql)
+					);
 }
 catch Unison::Exception with {
     $p->die(shift);
@@ -136,28 +133,30 @@ EOSQL
 
     my @cols =
       ( 'name', 'start-stop', 'mstart-mstop', 'ends', 'score', 'eval' );
-    if ( not $p->is_public_instance() ) {
-        unshift( @cols, 'align' );
-    }
+# See forms discussion above
+#    if ( not $p->is_public_instance() ) {
+#        unshift( @cols, 'align' );
+#    }
     my @rows;
 
     while ( my $r = $sth->fetchrow_hashref() ) {
         my $name =
           sprintf(
-'<a tooltip="%s" href="http://pfam.janelia.org/family?id=%s">%s (%s)</a>',
+'<a class="extlink" tooltip="%s" href="http://pfam.janelia.org/family?id=%s">%s (%s)</a>',
             $r->{descr}, $r->{name}, $r->{name}, $r->{acc} );
         my @row;
 
-        if ( not $p->is_public_instance() ) {
-            my $ckbox =
-"<input type=\"checkbox\" name=\"profiles\" value=\"$r->{name}\">";
-            my $aln = sprintf(
-'<a href="javascript:update_emb_hmm_alignment(%d,%d,%d,\'%s\')">show</a>',
-                $v->{pseq_id},      $v->{params_id},
-                $v->{pmodelset_id}, $r->{name}
-            );
-            push( @row, "$ckbox &nbsp; &nbsp; $aln" );
-        }
+# See forms discussion above
+#        if ( not $p->is_public_instance() ) {
+#		  my $ckbox =
+#			"<input type=\"checkbox\" name=\"profiles\" value=\"$r->{name}\">";
+#		  my $aln = sprintf(
+#							'<a href="javascript:update_emb_hmm_alignment(%d,%d,%d,\'%s\')">show</a>',
+#							$v->{pseq_id},      $v->{params_id},
+#							$v->{pmodelset_id}, $r->{name}
+#						   );
+#		  push( @row, "$ckbox &nbsp; &nbsp; $aln" );
+#        }
 
         push( @row,
             $name,

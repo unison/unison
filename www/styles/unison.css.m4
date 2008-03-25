@@ -1,5 +1,7 @@
 /* $Id: unison.css,v 1.39 2006/11/04 03:48:25 rkh Exp $     emacs: -*-c-*-  */
 
+/* PALETTE */
+
 /*
   The color palette should be decomposed into the simplest set of colors,
   such as:
@@ -11,7 +13,7 @@
   HUE{1,2,3,4}{A,B,C,D}_{FG,BG} where HUE1 is a color group, A-D are
   specifc colors, and FG,BG provide contrast for highlighting
 
- */
+*/
 
 
 body {
@@ -20,14 +22,18 @@ body {
 }
 
 img {
- border: 0;
+ border: none;
+}
+
+a.extlink {
+ background: url(../av/extlink.gif) right center no-repeat;
+  padding-right: 14px;
 }
 
 a:hover {
  background: U_HOVER_HIGHLIGHT_BG;
  color: U_HOVER_HIGHLIGHT_FG;
 }
-
 
 
 /* page elements */
@@ -56,72 +62,90 @@ table.page td.right {
 
 /* navbar */
 div.nav table {
-  border-spacing: 0;
-  margin: 0;
-  width: 100%;
+ border-spacing: 0px;
+ border: none;
+ margin: 0px;
+ padding: 0px;
+ width: 100%;
 }
 div.nav table.navp {
  border: none;
-  border-bottom: 2px solid U_BG;
+ border-bottom: 2px solid U_NAV_BG;
 }
 div.nav table.navc {
-  border: medium solid U_FRAME;
-  padding: 1px;
+ border: medium solid U_NAV_FRAME;
+ padding: 1px;
 }
-
-span.note {
-  font-size: 0.8em;
-  font-style: italic;
-}
-
 div.nav ul {
-  display: inline;
-  padding: 0;
-  margin: 0;
-  list-style-type: none;
-  text-align: left;
+ display: inline;
+ padding: 0px;
+ margin: 0px;
+ list-style-type: none;
+ text-align: left;
 }
 div.nav td.right {
-  text-align: right;
+ text-align: right;
 }
 div.nav table.navp ul {
 }
-
 div.nav li { 
-  display: inline;
-  backgrond: white;
-  border: thin solid U_FRAME;
-  color: U_FRAME;
+ display: inline;
+ background: U_NAV_BG;
+ border: thin solid U_NAV_FRAME;
  -moz-border-radius: 3px;
-  border-radius: 3px;
+ border-radius: 3px;
+ color: U_NAV_FG;
 }
 div.nav li.selected { 
-  background: U_FRAME;
-  color: white;
-  font-weight: bold;
+ background: U_NAV_SELECTED_BG;
+ border-color: U_NAV_SELECTED_FRAME;
+ color: U_NAV_SELECTED_FG;
+ font-weight: bold;
 }
 div.nav table.navp li.selected {
-  border-top: thin solid U_FRAME;  
-  border-bottom: 5px solid U_FRAME;  
+ border-top: thin solid U_NAV_FRAME;  
+ border-bottom: 5px solid U_NAV_FRAME;  
 }
-
 div.nav li a, div.nav li span {
-  padding: 0px 4px 0px 4px;
+ padding: 0px 4px 0px 4px;
 }
-
 div.nav a {
-  text-decoration: none;
-  color: U_FRAME;
+ text-decoration: none;
+ color: U_NAV_FG;
+}
+div.nav a:hover {
+ color: U_NAV_HOVER_FG;
+ background-color: U_NAV_HOVER_BG;
+ border-color: U_NAV_HOVER_FRAME;
 }
 
-div.nav a:hover {
-  color: black;
-  background-color: U_HOVER_HIGHLIGHT;
-}
+
+
+
 
 
 
 /* grouped data */
+form.group fieldset {
+ border: medium solid U_FRAME;
+ margin: 5px 0px 15px 0px;
+ padding: 3px;
+}
+
+form.group legend {
+ border: thin solid U_LEGEND_FRAME;
+ background: U_LEGEND_BG;
+ color: U_LEGEND_FG;
+ font-weight: bold;
+ padding: 2px 5px 2px 5px;
+}
+
+span.group_ctl {
+ background: U_BG;
+ color: U_FRAME;
+
+}
+
 table.group {
  width: 100%;
  margin: 0;
@@ -157,6 +181,7 @@ table.summary {
 }
 table.summary th {
  border: none;
+ border-right: medium solid U_UWTABLE_TH_FRAME;
  margin: 0px;
  padding: 0px;
  text-align: right;
@@ -164,11 +189,14 @@ table.summary th {
  white-space: nowrap;
 }
 table.summary th div {
- background: U_UWTABLE_FG;
- color: U_UWTABLE_BG;
+ border: none;
+ border-left: thin solid U_UWTABLE_TH_FRAME;
+ border-top: thin solid U_UWTABLE_TH_FRAME;
+ border-bottom: thin solid U_UWTABLE_TH_FRAME;
+ color: U_UWTABLE_TH_FG;
+ background: U_UWTABLE_TH_BG;
  white-space: nowrap;
- border: thin solid U_UWTABLE_FG;
- padding: 0px;
+ padding: 1px 4px 1px 4px;
  margin: 0px;
 }
 table.summary td {
@@ -214,33 +242,52 @@ table.credits td {
 }
 
 
+table.go {
+  border-collapse: collapse;
+}
+tr.go_function, tr.go_process, tr.go_component {
+  /*
+	border: 1px black dashed;
+	background: #eee;
+  */
+ padding: 1px;
+}
+table.go th {
+ padding: 1px 4px 1px 1px;
+ font-weight: bold;
+  font-style: italic;
+ text-align: left;
+  vertical-align: top;
+}
+table.go td {
+ padding: 1px;
+}
 
 table.uwtable {
  background: U_UWTABLE_BG;
  border: none;
- margin: 0px;
   border-collapse: collapse;
- -moz-border-radius: 0px;
-  border-radius: 0px;
-  white-space: wrap;
 }
 table.uwtable th, table.uwtable td {
- -moz-border-radius: 0px;
-  border-radius: 0px;
+  border: thin solid;
 }
 table.uwtable th {
- border: thin solid U_UWTABLE_BG;
- background: U_UWTABLE_FG;
- color: U_UWTABLE_BG;
+  border-color: U_UWTABLE_TH_FRAME;
+  color:  U_UWTABLE_TH_FG;
+  background: U_UWTABLE_TH_BG;
+ text-align: center;
+ font-weight: bold;
 }
 table.uwtable td {
- border: thin solid U_UWTABLE_FG;
+  border-color: U_UWTABLE_TD_FRAME;
+  color:  U_UWTABLE_TD_FG;
+  background: U_UWTABLE_TD_BG;
+  white-space: wrap;
 }
-table.uwtable th.highlighted {
- background: U_TABLE_HIGHLIGHT_FG;
-}
-table.uwtable td.highlighted {
- background: U_TABLE_HIGHLIGHT_BG;
+table.uwtable .highlighted, table.uwtable .highlighted td {
+ border-color: U_UWTABLE_HIGHLIGHT_FRAME;
+ background: U_UWTABLE_HIGHLIGHT_BG;
+ color: U_UWTABLE_HIGHLIGHT_FG;
 }
 
 
@@ -282,10 +329,11 @@ span.page_title {
 /* cheap text buttons */
 span.button {
  background: U_UNHIGHLIGHTED;
- border: black thin solid;
+ color: U_FRAME;
+ margin: 0px 2px 0px 2px;
 }
 span.button:hover {
- background: U_HOVER_HIGHLIGHT;
+ background: U_HOVER_HIGHLIGHT_BG;
 }
 /* SPAN.button A {
    color: white;
@@ -306,6 +354,12 @@ div.important {
 
 
 /* tooltip */
+span.has_tooltip {
+ color: U_TOOLTIP_FG;
+ background: U_TOOLTIP_BG;
+ cursor:help;
+}
+
 span.tooltip {
  border: none;
  background-color: U_TOOLTIP_BG;
@@ -323,7 +377,7 @@ span.tooltip:hover {
 
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
- border: 2px solid U_POPUP_FRAME;
+ border: medium double U_POPUP_FRAME;
  background: U_POPUP_BG;
 }
 div.domTTUnison .caption {
@@ -331,14 +385,14 @@ div.domTTUnison .caption {
   font-size: 12px;
   font-weight: bold;
   font-style: italic;
- padding: 1px 2px;
+ padding: 2px 2px;
  background: U_POPUP_BG;
 }
 div.domTTUnison .contents {
  color: U_POPUP_FG;
  font-size: 12px;
  font-family: Arial, sans-serif;
- padding: 1px 2px;
+ padding: 2px 2px;
 }
 
 
@@ -384,4 +438,8 @@ div.sql {
  background-color: U_SQL_BG;
  font-family: monospace;
  font-size: xx-small;
+}
+span.note {
+  font-size: 0.8em;
+  font-style: italic;
 }
