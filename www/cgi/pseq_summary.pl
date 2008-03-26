@@ -19,9 +19,9 @@ use Unison::Utilities::misc qw(elide_sequence);
 sub protcomp_info ($);
 sub summary_group ($);
 sub sequence_group ($);
-sub aliases_group ($);
 sub features_group ($);
 sub rep_redirect ($);
+# TODO: HUGO name
 
 my $p = new Unison::WWW::Page();
 my $u = $p->{unison};
@@ -49,8 +49,6 @@ try {
         "Unison:$v->{pseq_id} Summary",
 		rep_redirect($p),
         summary_group($p),
-        aliases_group($p),
-		features_group($p),
 		);
 }
 catch Unison::Exception with {
@@ -71,7 +69,7 @@ sub rep_redirect ($) {
   return '' if (not defined $rep_q or $rep_q == $v->{pseq_id});
 
   return sprintf(<<EOF, $u->best_annotation($rep_q));
-<div bgcolor="yellow"><font size="-1">
+<div class="notice">
 NOTE: This sequence overlaps with <a tooltip="%s"
 href="pseq_summary.pl?pseq_id=$rep_q"> Unison:$rep_q</a>, which is likely
 to be a more reliable sequence and have more complete precomputed results.
@@ -87,6 +85,8 @@ sub summary_group ($) {
 
     my $seq         = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 
+	my ($domain_digest) = $u->selectrow_array('select * from domain_digests(?)',
+											  undef,$v->{pseq_id});
 
     # locus will only work for human sequences
     my $locus = $u->selectrow_array(
@@ -104,59 +104,84 @@ sub summary_group ($) {
 	my $go_text = '<i>no Go data</i>';
 	if (@GOs) {
 	  $go_text = join('<br>',
-					  # link to functions:
-					  sprintf('see <a href="pseq_functions.pl?pseq_id=%d">Functions</a> for evidence, PubMed references, and NCBI %ss',
-						 $v->{pseq_id}, $p->tooltip('GeneRIF',"NCBI's Gene References Into Function")),
 					  # go terms
-					  map {sprintf("%s: %s",$_->{category},$_->{term})}
-					  (sort { $a->{category} cmp $b->{category} } @GOs)
+					  (map {sprintf("%s: %s",$_->{category},$_->{term})}
+					  (sort { $a->{category} cmp $b->{category} } @GOs)),
+
+					  # link to functions tab
+					  '<span class="note">'
+					  . sprintf('see <a href="pseq_functions.pl?pseq_id=%d">Functions</a> for evidence, PubMed references, and NCBI %ss.',
+								$v->{pseq_id}, $p->tooltip('GeneRIF',"NCBI's Gene References Into Function"))
+					  .'</span>'
 					 );
 	}
 
     return $p->group(
-        'Summary',
+					 'Summary',
 
-        '<table class="summary">',
+					 '<table class="summary">',
 
-        '<tr><th><div>Best Annotation</div></th> <td>', $ba, '</td></tr>', "\n",
+					 '<tr><th><div>Best Annotation</div></th> <td>',
+					 $ba,
+					 '</td></tr>',
+					 "\n",
 
-        '<tr><th><div>Entrez Annotations</div></th> <td>', "\n",
-        join(
-            '<br>',
-            (
-                map {
-                    sprintf( "%s %s; %s", @{%$_}{qw(common symbol descr)} )
-                      . ( defined $_->{map_loc} ? " ($_->{map_loc})" : '' )
-                  } $u->entrez_annotations( $v->{pseq_id} )
-            )
-        ),
-        '</td></tr>', "\n",
+					 '<tr><th><div>Entrez Annotations</div></th> <td>',
+					 join(
+						  '<br>',
+						  (
+						   map {
+							 sprintf( "%s %s; %s", @{%$_}{qw(common symbol descr)} )
+							   . ( defined $_->{map_loc} ? " ($_->{map_loc})" : '' )
+							 } $u->entrez_annotations( $v->{pseq_id} )
+						  )
+						 ),
+					 '</td></tr>',
+					 "\n",
 
-        '<tr><th><div>Go Annotations</div></th> <td>', "\n",
+					 '<tr><th><div>Other Annotations</div></th> <td>',
+					 join(', ', aliases($p)),
+					 '<br><span class="note">'
+					 . sprintf('see <a href="pseq_paliases.pl?pseq_id=%d">Aliases</a> for additional sequence aliases.',
+							   $v->{pseq_id})
+					 .'</span>',
+					 '</td></tr>',
+					 "\n",
+
+					 '<tr><th><div>Go Annotations</div></th> <td>',
 					 $go_text,
-        '</td></tr>', "\n",
+					 '</td></tr>',
+					 "\n",
 
-        (
-            $p->{unison}->is_public()
-            ? ''
-            : '<tr><th><div>Protcomp Localization</div></th> <td>',
-            protcomp_info($p),
-            '</td></tr>', "\n",
-        ),
+					 '<tr><th><div>Protcomp Localization</div></th> <td>',
+					 protcomp_info($p),
+					 '</td></tr>',
+					  "\n",
 
-        '<tr><th><div>Human Locus</div></th> <td>',
-        $locus || 'N/A',
-        '</td></tr>', "\n",
+					 '<tr><th><div>Human Locus</div></th> <td>',
+					 $locus || 'N/A',
+					 '</td></tr>',
+					 "\n",
 
-        '<tr><th><div>Sequence</div></th> <td>',
-        length($seq), 'AA (', elide_sequence($seq,5), ')',
-		"<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download FASTA</a>",
+					 '<tr><th><div>Sequence</div></th> <td>',
+					 length($seq), 'AA (', elide_sequence($seq,5), ')',
+					 "<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download FASTA</a>",
+					 "\n",
 
-        '</td></tr>', "\n",
+					 '<tr><th><div>Domain Structure</div></th> <td>',
+					 'Digest: ', $domain_digest,
+					 '<br>',
+					 features_graphic($p),
+					  '<span class="note">'
+					  . sprintf('see <a href="pseq_features.pl?pseq_id=%d">Features</a> for additional sequence features.',
+								$v->{pseq_id})
+					  .'</span>',
+					 '</td></tr>', 
+					 "\n",
 
-
-        '</table>', "\n\n",
-    );
+					 '</table>',
+					 "\n\n",
+					);
 }
 
 
@@ -172,58 +197,38 @@ qq/select loc,method from psprotcomp_reliable_v where pseq_id=$v->{pseq_id}/;
     return "$hr->{loc} by $hr->{method}";
 }
 
-sub aliases_group ($) {
+sub aliases ($) {
     my $p   = shift;
+	my ($pref_min,$pref_max) = @_;
     my $u   = $p->{unison};
     my $v   = $p->Vars();
-    my $sql = qq/select origin,alias,descr from current_annotations_v
-			 where pseq_id=$v->{pseq_id} AND ann_pref<=10000/;
-    my $ar = $u->selectall_arrayref($sql);
-    do { $_->[1] = alias_link( $_->[1], $_->[0] ) }
-      for @$ar;
-    my @f       = qw( origin alias description );
-    my $tooltip = 'Accessions and descriptions for this exact sequence
-    from reliable sources. Click the aliases tab to see all aliases from
-    all sources.';
 
-    $p->group(
-        'Aliases (' . ( $#$ar + 1 ) . ')&nbsp;' . $p->tooltip( '?', $tooltip ),
-        Unison::WWW::Table::render( \@f, $ar ),
-        'These are the aliases from the most reliable sources only; see also ',
-        '<a href="pseq_paliases.pl?pseq_id=',
-        $v->{pseq_id},
-        '">other aliases</a>'
-    );
+    my $sql = qq/select origin,alias,descr from current_annotations_v
+			 where pseq_id=$v->{pseq_id} AND ann_pref<=15000/;
+    my $ar = $u->selectall_arrayref($sql);
+
+	return map { $_->[0].':'.$p->tooltip( alias_link($_->[1], $_->[0]), $_->[2]) } @$ar;
 }
 
-sub features_group ($) {
-    my $p        = shift;
-    my $u        = $p->{unison};
-    my $v        = $p->Vars();
-    my $imagemap = '';
-    my ( $png_fh, $png_fn, $png_urn ) = $p->tempfile( SUFFIX => '.png' );
-    my %opts = ( %Unison::Utilities::pseq_features::opts, %$v );
-    $opts{features}{$_}++ foreach qw(psipred tmdetect tmhmm signalp hmm );
+sub features_graphic ($) {
+  my $p        = shift;
+  my $u        = $p->{unison};
+  my $v        = $p->Vars();
+  my $imagemap = '';
+  my ( $png_fh, $png_fn, $png_urn ) = $p->tempfile( SUFFIX => '.png' );
+  my %opts = ( %Unison::Utilities::pseq_features::opts, %$v, width => 600 );
+  $opts{features}{$_}++ foreach qw(psipred tmhmm signalp hmm );
 
-    my $panel = new Unison::Utilities::pseq_features( $u, %opts );
+  my $panel = new Unison::Utilities::pseq_features( $u, %opts );
 
-    # write the png to the temp file
-    $png_fh->print( $panel->as_png() );
-    $png_fh->close();
+  # write the png to the temp file
+  $png_fh->print( $panel->as_png() );
+  $png_fh->close();
 
-    $p->group(
-        'Features&nbsp;'
-          . $p->tooltip(
-            '?', 'A selection of precomputed features for this
-            sequence. Click the Features tab to view all features.'
-          ),
-        sprintf(
-            <<EOT, $png_urn, $panel->imagemap_body(), $v->{pseq_id}, $v->{pseq_id} ) );
-<center><img src="%s" usemap="#FEATURE_MAP"></center>
+  sprintf(<<EOT, $png_urn, $panel->imagemap_body(), $v->{pseq_id}, $v->{pseq_id} );
+<img src="%s" usemap="#FEATURE_MAP">
 <MAP NAME="FEATURE_MAP">
 %s
 </MAP>
-See also: <a href="pseq_features.pl?pseq_id=%d">a summary of all features</a>
-and <a href="pseq_history.pl?pseq_id=%d">run history</a>.
 EOT
 }

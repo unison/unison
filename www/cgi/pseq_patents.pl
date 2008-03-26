@@ -76,8 +76,8 @@ SELECT
 	X1.*,
 	origin_alias_fmt(O.origin,AO.alias),
 	T.latin as species,
-	substring(AO.descr,'\\\\[DT: (\\\\S+)')::date as patent_date,
-	substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([\\\\w\\\\d\\\\s\\\\.]+)') as patent_authority,
+	substring(AO.descr,E'\\\\[DT: (\\\\S+)')::date as patent_date,
+	substring(AO.descr,E'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([\\\\w\\\\d\\\\s\\\\.]+)') as patent_authority,
 	AO.descr
 FROM (SELECT t_pseq_id AS pseq_id,len,pct_ident::smallint,pct_coverage::smallint
 	  FROM papseq_v

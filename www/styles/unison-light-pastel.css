@@ -339,6 +339,7 @@ table.uwtable th, table.uwtable td {
 }
 table.uwtable th {
   border-color: #73BF60;
+  border-bottom-width: medium;
   color:  black;
   background: #CCFFBF;
  text-align: center;
@@ -490,6 +491,18 @@ span.error {
 span.debug {
   background-color: #FF80B8;
 }
+span.note {
+  font-size: 0.8em;
+  font-style: italic;
+}
+div.notice {
+ border: thin solid #BF608A;
+ padding: 2px;
+ margin: 5px;
+ color: #BF608A;
+ font-size: 0.8em;
+ font-style: italic;
+}
 div.warning {
  border: #BF608A medium solid;
  padding: 2px;
@@ -504,8 +517,4 @@ div.sql {
  background-color: white;
  font-family: monospace;
  font-size: xx-small;
-}
-span.note {
-  font-size: 0.8em;
-  font-style: italic;
 }
