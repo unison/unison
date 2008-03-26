@@ -42,6 +42,11 @@ sub go_group {
   my $u = $p->{unison};
   my $v = $p->Vars();
   my $go_table = '<i>no data</i>';
+  my %cat_name = (
+				  Function => 'Molecular Function',
+				  Process => 'Biological Process',
+				  Component => 'Cellular Component'
+				 );
   my %go_evidence_explanations = (
 								  IDA => 'Inferred from Direct Assay',
 								  IPI => 'Inferred from Physical Interaction',
@@ -65,7 +70,7 @@ sub go_group {
 
   if (@GOs) {
 	$go_table = '<table class="summary">';
-	foreach my $cat (qw(Function Process Component)) {
+	foreach my $cat (sort {$a cmp $b} keys %cat_name) {
 	  my @go_trs;
 	  foreach my $e (grep { $_->{category} eq $cat } @GOs) {
 		my $pm_links = join(',', 
@@ -83,7 +88,7 @@ sub go_group {
 	  }
 	  if (@go_trs) {
 		$go_table .= sprintf('<tr> <th><div>%s</div></th> <td>%s</td> </tr>',
-							 $cat,
+							 $cat_name{$cat},
 							 join('<br>',@go_trs)
 							);
 	  }

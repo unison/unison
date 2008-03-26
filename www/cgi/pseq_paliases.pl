@@ -27,8 +27,13 @@ if ( not $p->is_public() ) {
 my $ar = $u->selectall_arrayref("$sql");
 my @f  = qw( origin alias latin description );
 
-do { $_->[1] = alias_link( $_->[1], $_->[0] ) }
-  for @$ar;
+foreach my $row (@$ar) {
+  $row->[1] = alias_link( $row->[1], $row->[0] );
+
+  if ($row->[0] eq 'IPI') { #length($row->[3]) > 30) {
+	$row->[3] =~ s/([;|])/$1 /g;
+  }
+}
 
 # break really log "words" into fragments
 do { $_->[2] = text_wrap( $_->[2] ) }
