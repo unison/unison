@@ -1,0 +1,38 @@
+#!/bin/sh
+
+if [ -z "$YES_I_KNOW" ]; then
+   echo "set YES_I_KNOW to acknowledge that this script will eat your lunch" 1>&2
+   exit 1;
+fi
+
+V=8.3
+R=$V.1
+
+PATH=/gne/research/apps/postgresql/$R/x86_64-linux-2.6/bin:$PATH
+
+echo $PATH
+
+if ! psql --version | fgrep -sq $V; then
+	echo "not version $V?" 1>&2
+	exit 2
+fi
+
+set -x
+
+pg_ctl -D /srv/postgresql/postgresql-$V -l $HOME/logs/csb-postgresql-$V/pg_ctl.log  stop
+
+rm -fr /srv/postgresql/postgresql-$V $HOME/logs/csb-postgresql-$V
+
+initdb -E UTF8 -D /srv/postgresql/postgresql-$V
+
+mkdir -p /gne/home/postgres/logs/csb-postgresql-$V
+
+ln -bv  /srv/postgresql/pg_hba.conf /srv/postgresql/postgresql.conf /srv/postgresql/postgresql-$V/
+
+pg_ctl -D /srv/postgresql/postgresql-$V -l $HOME/logs/csb-postgresql-$V/pg_ctl.log  start
+
+sleep 2
+
+tail $HOME/logs/csb-postgresql-$V/pg_ctl.log
+
+(time -p pg_dumpall -p5432 -d $d | psql -p9876 -qaf-) >migrate-pg_dumpaall.log 2>&1
