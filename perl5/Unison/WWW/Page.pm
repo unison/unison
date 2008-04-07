@@ -459,12 +459,10 @@ sub group {
 	}
 
     return <<EOF;
-<form class="group">
 <fieldset>
 <legend>$tag</legend>
 @_
 </fieldset>
-</form>
 EOF
 }
 
@@ -639,6 +637,26 @@ sub tooltip {
     return sprintf('<span class="%s" tooltip="%s">%s</span>',
 				   $class,$tooltip,$text);
 }
+
+
+######################################################################
+## note()
+
+=pod
+
+=item B<< $p->note( C<@text> ) >>
+
+=item B<< tooltip( C<@text> ) >> (without object reference)
+
+Format C<text> as an inline "note".
+
+=cut
+
+sub note {
+  shift if ref $_[0];    # can be called as method or fx
+  return ('<span class="note">', @_, '</span>');
+}
+
 
 ######################################################################
 ## warn()
@@ -1256,14 +1274,14 @@ sub _navbar {
 	   ],
 
 
-	   ## Sets menu
+	   ## Hacks menu
 	   [									#
 		[
-		 1, 1, 'Sets', 'Analyze sets of proteins', 'pseqset_annotations.pl'
+		 0, 0, 'Hacks', 'Hacks-in-Progress', 'hack_set_annotation.pl'
 		],
 		[
-		 1, 1, 'Browse', 'browse precomputed sets of proteins',
-		 'pseqset_annotations.pl'
+		 0, 0, 'Set Annotation', 'Get tabulated summaries for a protein set',
+		 'hack_set_annotation.pl'
 		],
 	   ],
 
@@ -1409,13 +1427,15 @@ sub _find_nav_ids {
     my $self   = shift;
     my @navs   = @_;
     my $script = $self->url( -relative => 1 );
+	return unless defined $script;			# e.g., when command line debugging
     $script =~ s/\?$//;
     for ( my $i = 0 ; $i <= $#navs ; $i++ ) {
         my @snavs = @{ $navs[$i] };
         shift @snavs;    # menu title
         for ( my $j = 0 ; $j <= $#snavs ; $j++ ) {
-            return ( $i, $j )
-              if ( defined $snavs[$j]->[2] and $snavs[$j]->[2] eq $script );
+		  if ( defined $snavs[$j]->[2] and $snavs[$j]->[2] eq $script ) {
+			return ( $i, $j )
+		  }
         }
     }
     return;

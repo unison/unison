@@ -128,15 +128,19 @@ sub get_pseq_id_from_alias {
                       # alias lookup below
     }
 
-    if ( not $alias =~ m%^[~/^]% ) {
 
+	# FIXME: Some reasonable aliases may be ambiguous (refer to >1
+	# sequence).  For example, 'MCL1' is a Cosmic identifier, but a person
+	# who searchs for that probably wants MCL1_HUMAN. They're the same
+	# gene but have different pseq_ids.
+
+    if ( not $alias =~ m%^[~/^]% ) {
         # doesn't smell like a regexp
         (@ids) = $u->get_pseq_id_from_alias_casefolded( $alias, $ori );
         return (@ids) if @ids;
     }
 
     if ( $alias =~ /^[~^]/ ) {
-
         # looks like a regexp OR exact match above failed
         (@ids) = $u->get_pseq_id_from_alias_regexp( $alias, $ori );
         return (@ids);
