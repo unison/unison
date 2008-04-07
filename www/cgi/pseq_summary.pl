@@ -11,15 +11,13 @@ use Unison::Exceptions;
 use Unison::pseq;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
-use Unison::WWW::utilities qw(alias_link pseq_summary_link);
+use Unison::WWW::utilities qw(alias_link pseq_summary_link pdbc_rcsb_link);
 use Unison::Utilities::pseq_features;
 use Unison::Utilities::misc qw(elide_sequence);
 
 
 sub protcomp_info ($);
 sub summary_group ($);
-sub sequence_group ($);
-sub features_group ($);
 sub rep_redirect ($);
 # TODO: HUGO name
 
@@ -86,14 +84,34 @@ sub summary_group ($) {
     my $seq         = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 
 	my ($domain_digest) = $u->selectrow_array('select * from domain_digests(?)',
-											  undef,$v->{pseq_id});
+											undef,$v->{pseq_id});
+	if (defined $domain_digest) {
+	  $domain_digest =~ s/\),/$& /g;
+	} else {
+	  $domain_digest = '<i>no data</i>'
+	}
+
+	my ($netphos_digest) = $u->selectrow_array('select digest from pseq_features_netphos_v where pseq_id=?',
+											 undef,$v->{pseq_id});
+	if (defined $netphos_digest) {
+	  $netphos_digest =~ s/\),/$& /g;
+	} else {
+	  $netphos_digest = '<i>no data</i>'
+	}
 
     # locus will only work for human sequences
     my $locus = $u->selectrow_array(
 									# FIXME: HARDCODED PARAMS
 									'select chr||band from pseq_cytoband_v where pseq_id=? and params_id=48',
-        undef, $v->{pseq_id}
-    );
+									undef, $v->{pseq_id}
+								   );
+
+	my $strx = join(', ',
+					map { $p->tooltip(pdbc_rcsb_link($_->[0]),
+									  sprintf("%s: %s (I:%d%%,C:%d%%)", @$_)) }
+					@{$u->selectall_arrayref('select distinct substr(pdbc,1,4),descr,pct_ident,pct_coverage from papseq_pdbcs_mv where q_pseq_id=?',
+										   undef, $v->{pseq_id})}
+				   );
 
 	# try best human annotation first, otherwise get best annotation for any species
     my $ba = $u->best_annotation( $v->{pseq_id}, 'HUMAN' )
@@ -110,8 +128,8 @@ sub summary_group ($) {
 
 					  # link to functions tab
 					  '<span class="note">'
-					  . sprintf('see <a href="pseq_functions.pl?pseq_id=%d">Functions</a> for evidence, PubMed references, and NCBI %ss.',
-								$v->{pseq_id}, $p->tooltip('GeneRIF',"NCBI's Gene References Into Function"))
+					  . sprintf('See the <a href="pseq_functions.pl?pseq_id=%d">Functions</a> tab for evidence, PubMed references, and NCBI %s.',
+								$v->{pseq_id}, $p->tooltip('GeneRIFs',"NCBI's Gene References Into Function"))
 					  .'</span>'
 					 );
 	}
@@ -139,10 +157,10 @@ sub summary_group ($) {
 					 '</td></tr>',
 					 "\n",
 
-					 '<tr><th><div>Other Annotations</div></th> <td>',
+					 '<tr><th><div>Common Annotations</div></th> <td>',
 					 join(', ', aliases($p)),
 					 '<br><span class="note">'
-					 . sprintf('see <a href="pseq_paliases.pl?pseq_id=%d">Aliases</a> for additional sequence aliases.',
+					 . sprintf('See the <a href="pseq_paliases.pl?pseq_id=%d">Aliases</a> tab for all aliases of this sequence.',
 							   $v->{pseq_id})
 					 .'</span>',
 					 '</td></tr>',
@@ -164,16 +182,25 @@ sub summary_group ($) {
 					 "\n",
 
 					 '<tr><th><div>Sequence</div></th> <td>',
-					 length($seq), 'AA (', elide_sequence($seq,5), ')',
+					 length($seq), 'AA (<code>'.elide_sequence($seq,15).'</code>)',
 					 "<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download FASTA</a>",
 					 "\n",
 
+					 '<tr><th><div>Predicted Domains</div></th> <td>',
+					 'Domain Digest: ', $domain_digest,
+					 '<br>','Phosphorylation sites (pos;probability): ', $netphos_digest,
+					 '</td></tr>', 
+					 "\n",
+
+					 '<tr><th><div>Structures</div></th> <td>',
+					 $strx,
+					 '</td></tr>', 
+					 "\n",
+
 					 '<tr><th><div>Domain Structure</div></th> <td>',
-					 'Digest: ', $domain_digest,
-					 '<br>',
 					 features_graphic($p),
 					  '<span class="note">'
-					  . sprintf('see <a href="pseq_features.pl?pseq_id=%d">Features</a> for additional sequence features.',
+					  . sprintf('See the <a href="pseq_features.pl?pseq_id=%d">Features</a> tab for additional sequence features.',
 								$v->{pseq_id})
 					  .'</span>',
 					 '</td></tr>', 

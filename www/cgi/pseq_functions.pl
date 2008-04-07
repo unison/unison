@@ -120,8 +120,7 @@ sub generif_group {
   my @f  = qw(last_update generif pubmed_ids);
 
   for (@$ar) {
-	$_->[2] = sprintf('<a href="http://www.ncbi.nlm.nih.gov/pubmed/%s">%s</a>',
-					  $_->[2],$_->[2]);
+	$_->[2] = alias_pubmed_link($_->[2]);
   }
 
   $p->group(

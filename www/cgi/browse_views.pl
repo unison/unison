@@ -130,15 +130,7 @@ sub do_search {
             elsif ( $cols[$i] =~ /^probes/ ) {
                 foreach my $row (@$ar) {
                     next unless defined $row->[$i];
-                    my @elems = split( /,/, $row->[$i] );
-                    my @links;
-                    for ( my $elems_i = 0 ; $elems_i <= $#elems ; $elems_i++ ) {
-                        my ( $chip, $probe ) =
-                          $elems[$elems_i] =~ m/(\w+):(\w+)/;
-                        push( @links,
-"<a target=\"_blank\" href=\"http://research/projects/maprofile/bin/secure/maprofile.cgi?probeid=$probe\">$elems[$elems_i]</a>"
-                        );
-                    }
+                    my @links = map { maprofile_link($_) } split( /,/, $row->[$i] );
                     $row->[$i] = join( '<br>', sort @links );
                 }
             }
