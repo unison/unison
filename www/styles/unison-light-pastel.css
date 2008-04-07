@@ -58,6 +58,14 @@
 
 
 
+
+
+
+
+
+
+
+
 /* $Id: unison.css,v 1.39 2006/11/04 03:48:25 rkh Exp $     emacs: -*-c-*-  */
 
 /* light-pastel */
@@ -87,7 +95,7 @@ img {
 
 
 a:hover {
- background: #FFECBF;
+ background: #FFD980;
  color: black;
 }
 a.extlink {
@@ -181,7 +189,7 @@ div.nav a {
 }
 div.nav a:hover {
  color: black;
- background-color: #FFECBF;
+ background-color: #FFD980;
  border-color: #6D6DBF;
 }
 
@@ -192,13 +200,13 @@ div.nav a:hover {
 
 
 /* grouped data */
-form.group fieldset {
+fieldset {
  border: medium solid #6D6DBF;
  margin: 5px 0px 15px 0px;
  padding: 3px;
 }
 
-form.group legend {
+legend {
  border: thin solid #6D6DBF;
  background: #C8C8FF;
  color: black;
@@ -212,30 +220,6 @@ span.group_ctl {
 
 }
 
-table.group {
- width: 100%;
- margin: 0;
-  margin-top: 10px;
- padding: 0;
- border: 0;
- border-spacing: 0;
-}
-
-table.group th.grouptag {
- border: thin solid #6D6DBF;
- -moz-border-radius: 4px;
-  border-radius: 4px;
- background: #6D6DBF;
- width: 20%;
- font-size: largest;
- color: white;
-}
-
-table.group td {
- border: medium solid #6D6DBF;
- -moz-border-radius: 4px;
-  border-radius: 4px;
-}
 
 
 table.summary {
@@ -253,6 +237,7 @@ table.summary th {
  text-align: right;
  vertical-align: top;
  white-space: nowrap;
+ width: 10%;					/* to prevent short BA's from causing odd splits */
 }
 table.summary th div {
  border: none;
@@ -271,6 +256,8 @@ table.summary td {
  margin: 0px;
  padding: 0px;
 }
+
+
 
 
 /* Quick Links */
@@ -335,6 +322,7 @@ table.uwtable {
   border-collapse: collapse;
 }
 table.uwtable th, table.uwtable td {
+  vertical-align: top;
   border: thin solid;
 }
 table.uwtable th {
@@ -347,7 +335,7 @@ table.uwtable th {
 }
 table.uwtable td {
   border-color: #73BF60;
-  color:  black;;
+  color:  black;
   background: white;
   white-space: wrap;
 }
@@ -395,27 +383,12 @@ span.page_title {
 
 /* cheap text buttons */
 span.button {
- background: #FFFFFF;
+ background: white;
  color: #6D6DBF;
  margin: 0px 2px 0px 2px;
 }
 span.button:hover {
- background: #FFECBF;
-}
-/* SPAN.button A {
-   color: white;
-   font-weight: bold;
-   text-decoration: none;
-   } */
-
-
-
-div.important {
- border: red medium solid;
- padding: 4px;
- margin: 20px 20px 20px 20px;
- color: #BF608A;
- background-color: #FFFFFF;
+ background: #FFD980;
 }
 
 
@@ -423,13 +396,13 @@ div.important {
 /* tooltip */
 span.has_tooltip {
  color: black;
- background: #FFBFDC;
+ background: #FFE6F1;
  cursor:help;
 }
 
 span.tooltip {
  border: none;
- background-color: #FFBFDC;
+ background-color: #FFE6F1;
  color: black;
  font-weight: bold;
  font-size: smaller;
@@ -445,7 +418,7 @@ span.tooltip:hover {
 /* domTT Classic Style, from domTT examples.css */
 div.domTTUnison {
  border: medium double black;
- background: #FFBFDC;
+ background: #FFE6F1;
 }
 div.domTTUnison .caption {
   font-family: serif;
@@ -453,7 +426,7 @@ div.domTTUnison .caption {
   font-weight: bold;
   font-style: italic;
  padding: 2px 2px;
- background: #FFBFDC;
+ background: #FFE6F1;
 }
 div.domTTUnison .contents {
  color: black;
@@ -466,7 +439,7 @@ div.domTTUnison .contents {
 
 pre.code {
  border: black thin dashed;
- background: #99FF80;
+ background: white;
  margin: 20px;
  padding: 5px;
  overflow: auto;
@@ -485,15 +458,27 @@ dd {
 }
 
 /* miscellany */
-span.error {
- color: #BF608A;
-}
 span.debug {
   background-color: #FF80B8;
 }
+div.sql {
+ border: #73BF60 thin solid;
+ padding: 2px;
+ margin: 5px;
+ color: #73BF60;
+ background-color: white;
+ font-family: monospace;
+ font-size: xx-small;
+}
+
+
 span.note {
-  font-size: 0.8em;
   font-style: italic;
+  color: #BF608A;
+}
+span.error {
+ color: black;
+ background: #FFE6F1;
 }
 div.notice {
  border: thin solid #BF608A;
@@ -509,12 +494,10 @@ div.warning {
  margin: 5px;
  color: #BF608A;
 }
-div.sql {
- border: #73BF60 thin solid;
- padding: 2px;
- margin: 5px;
- color: #73BF60;
+div.important {
+ border: red medium solid;
+ padding: 4px;
+ margin: 20px 20px 20px 20px;
+ color: #BF608A;
  background-color: white;
- font-family: monospace;
- font-size: xx-small;
 }

@@ -27,8 +27,8 @@ img {
 
 
 a:hover {
- background: U_HOVER_HIGHLIGHT_BG;
- color: U_HOVER_HIGHLIGHT_FG;
+ background: U_HIGHLIGHT_BG;
+ color: U_HIGHLIGHT_FG;
 }
 a.extlink {
   /* consider css2 :after pseudo-element instead */
@@ -132,13 +132,13 @@ div.nav a:hover {
 
 
 /* grouped data */
-form.group fieldset {
+fieldset {
  border: medium solid U_FRAME;
  margin: 5px 0px 15px 0px;
  padding: 3px;
 }
 
-form.group legend {
+legend {
  border: thin solid U_LEGEND_FRAME;
  background: U_LEGEND_BG;
  color: U_LEGEND_FG;
@@ -152,30 +152,6 @@ span.group_ctl {
 
 }
 
-table.group {
- width: 100%;
- margin: 0;
-  margin-top: 10px;
- padding: 0;
- border: 0;
- border-spacing: 0;
-}
-
-table.group th.grouptag {
- border: thin solid U_FRAME;
- -moz-border-radius: 4px;
-  border-radius: 4px;
- background: U_FRAME;
- width: 20%;
- font-size: largest;
- color: U_BG;
-}
-
-table.group td {
- border: medium solid U_FRAME;
- -moz-border-radius: 4px;
-  border-radius: 4px;
-}
 
 
 table.summary {
@@ -193,6 +169,7 @@ table.summary th {
  text-align: right;
  vertical-align: top;
  white-space: nowrap;
+ width: 10%;					/* to prevent short BA's from causing odd splits */
 }
 table.summary th div {
  border: none;
@@ -211,6 +188,8 @@ table.summary td {
  margin: 0px;
  padding: 0px;
 }
+
+
 
 
 /* Quick Links */
@@ -275,6 +254,7 @@ table.uwtable {
   border-collapse: collapse;
 }
 table.uwtable th, table.uwtable td {
+  vertical-align: top;
   border: thin solid;
 }
 table.uwtable th {
@@ -335,27 +315,12 @@ span.page_title {
 
 /* cheap text buttons */
 span.button {
- background: U_UNHIGHLIGHTED;
+ background: U_BG;
  color: U_FRAME;
  margin: 0px 2px 0px 2px;
 }
 span.button:hover {
- background: U_HOVER_HIGHLIGHT_BG;
-}
-/* SPAN.button A {
-   color: white;
-   font-weight: bold;
-   text-decoration: none;
-   } */
-
-
-
-div.important {
- border: red medium solid;
- padding: 4px;
- margin: 20px 20px 20px 20px;
- color: U_IMPORTANT_FG;
- background-color: U_IMPORTANT_BG;
+ background: U_HIGHLIGHT_BG;
 }
 
 
@@ -425,15 +390,27 @@ dd {
 }
 
 /* miscellany */
-span.error {
- color: U_ERROR_FG;
-}
 span.debug {
   background-color: U_DEBUG_BG;
 }
+div.sql {
+ border: U_CODE_FRAME thin solid;
+ padding: 2px;
+ margin: 5px;
+ color: U_CODE_FG;
+ background-color: U_CODE_BG;
+ font-family: monospace;
+ font-size: xx-small;
+}
+
+
 span.note {
-  font-size: 0.8em;
   font-style: italic;
+  color: U_ERROR_FG;
+}
+span.error {
+ color: U_NOTICE_FG;
+ background: U_NOTICE_BG;
 }
 div.notice {
  border: thin solid U_ERROR_FG;
@@ -449,12 +426,10 @@ div.warning {
  margin: 5px;
  color: U_ERROR_FG;
 }
-div.sql {
- border: U_SQL_FG thin solid;
- padding: 2px;
- margin: 5px;
- color: U_SQL_FG;
- background-color: U_SQL_BG;
- font-family: monospace;
- font-size: xx-small;
+div.important {
+ border: red medium solid;
+ padding: 4px;
+ margin: 20px 20px 20px 20px;
+ color: U_ERROR_FG;
+ background-color: U_ERROR_BG;
 }
