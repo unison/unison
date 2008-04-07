@@ -50,10 +50,9 @@ sub run_commandline_by_params_id($$) {
     my ( $self, $params_id ) = @_;
     $self->is_open()
       || croak("Unison connection not established");
-    my $cl =
-      $self->selectrow_array(
-        'select commandline from params where params_id=?',
-        undef, $params_id );
+    my $cl = $self->selectrow_array(
+									'select commandline from params where params_id=?',
+									undef, $params_id );
     return $cl;
 }
 
