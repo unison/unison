@@ -1,98 +1,90 @@
-#include <postgres.h>
-#include <fmgr.h>
+/*
+  unison.c -- postgresql server side functions for unison
+  Reece Hart <reece@harts.net>
+*/
+
+#include "postgres.h"
+
 #include <ctype.h>
 #include <string.h>
 
-#ifdef PG_MODULE_MAGIC
+#include "fmgr.h"
+#include "utils/builtins.h"
+
+
 PG_MODULE_MAGIC;
-#endif
+
+#define GET_TEXT(cstrp) DatumGetTextP(DirectFunctionCall1(textin, CStringGetDatum(cstrp)))
+#define GET_STR(textp) DatumGetCString(DirectFunctionCall1(textout, PointerGetDatum(textp)))
 
 
-#ifdef DEBUG
-static char* begin_end_hex(char* buf, char* seq, int len);
-#endif
+static char* clean_sequence(const char* in);
 
-static char* clean_sequence(const char* in, int32 n);
 
 PG_FUNCTION_INFO_V1(pg_clean_sequence);
-Datum pg_clean_sequence(PG_FUNCTION_ARGS)
-  {
-  text* t0;                                 /* in */
-  text* t1;                                 /* out */
-  char* tmp;
-  int32 tmpl;
-#ifdef DEBUG
-  char buf[50];
-#endif
-
-  if ( PG_ARGISNULL(0) )
-    { PG_RETURN_NULL(); }
-
-  t0 = PG_GETARG_TEXT_P(0);
-
-#ifdef DEBUG
-  elog( NOTICE, "clean_sequence: in=%s", begin_end_hex(buf,
-													   VARDATA(t0),
-													   VARSIZE(t0)-VARHDRSZ ));
-#endif
-
-  /* strip the sequence */
-  tmp = clean_sequence( VARDATA(t0), VARSIZE(t0)-VARHDRSZ );
-  tmpl = (int32) strlen(tmp);
-
-  /* copy temp sequence into new pg variable */
-  t1 = (text*) palloc( tmpl + VARHDRSZ );
-  if (!t1)
-    { elog( ERROR, "couldn't palloc (%d bytes)", tmpl+VARHDRSZ ); }
-  memcpy(VARDATA(t1),tmp,tmpl);
-  VARATT_SIZEP(t1) = tmpl + VARHDRSZ;
-
-  pfree(tmp);
-
-#ifdef DEBUG
-  elog( NOTICE, "clean_sequence: out=%s", begin_end_hex(buf,
-														VARDATA(t1),
-														VARSIZE(t1)-VARHDRSZ ));
-#endif
-
-  PG_RETURN_TEXT_P(t1);
+Datum
+pg_clean_sequence(PG_FUNCTION_ARGS) {
+  /* should be declared strict, but just in case... */
+  if ( PG_ARGISNULL(0) ) {
+    PG_RETURN_NULL(); 
   }
+
+  PG_RETURN_TEXT_P( GET_TEXT( clean_sequence( GET_STR( PG_GETARG_TEXT_P(0) ) ) ) );
+}
+
 
 
 /* clean_sequence -- strip non-IUPAC symbols
-   The intent is to strip whitespace and numbers which might result from
-   copy-pasting a fasta file, or some such.
+   in: char*, NULL-TERMINATED
+   out: char*, NULL-TERMINATED
+   out is palloc'd memory; will be free'd when context is destroyed
 
-   in: char*, length
-   out: char*, |out|<=length, NULL-TERMINATED
-   out is palloc'd memory; caller must free
+   This function strips non-sequence characters from the input sequence.
+   Sequence characters are IUPAC std 20, selenocysteine (U), ambiguity
+   (BZX), gap (-), and internal stop codons (*). 
 
-   allow chars from IUPAC std 20
-   + selenocysteine (U) + ambiguity (BZX) + gap (-) + stop (*)
+   NOTE: By convention of nearly all sequence databases, stop codons are
+   implied at the C terminus.  Therefore, C-terminal stops ('*') are
+   removed even though internal stops are preserved.
 */
 
 #define isseq(c) ( ((c)>='A' && (c)<='Z' && (c)!='J' && (c)!='O') \
 				   || ((c)=='-') \
 				   || ((c)=='*') )
 
-char* clean_sequence(const char* in, int32 n) {
+static char*
+clean_sequence(const char* in) {
+  const char* ii;
   char* out;
   char* oi;
-  int32 i;
+  size_t len = strlen(in);
 
-  out = palloc( n + 1 );		/* w/null */
-  if (!out)
-    { elog( ERROR, "couldn't palloc (%d bytes)", n+1 ); }
-  
-  for( i=0, oi=out; i<=n-1; i++ ) {
-    char c = toupper(in[i]);
+  out = palloc( len + 1 );		/* w/null */
+  if (!out) {
+    elog( ERROR, "couldn't palloc (%ld bytes)", len+1 ); 
+  }
+
+  for( ii = in, oi = out; *ii != '\0'; ii++ ) {
+    char c = toupper(*ii);
     if ( isseq(c) ) {
 	  *oi++ = c; 
 	}
   }
+
   *oi = '\0';
+
+  /* chew back terminal stops */
+  if (oi > out && *(oi-1) == '*') {
+	oi--;
+	for( ; *oi == '*' && oi >= out; oi--) {
+	  *oi = '\0';
+	}
+  }
+
   return(out);
 }
+
+
 
 
 /* 
