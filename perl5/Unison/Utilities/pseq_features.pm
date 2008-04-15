@@ -46,7 +46,7 @@ use Unison::Utilities::misc qw( warn_deprecated unison_logo elide_sequence );
 use Unison::Utilities::pseq_structure;
 
 my @default_panel_features = qw ( antigenic bigpi disprot hmm psipred
-  pepcoil prospect regexp signalp tmdetect tmhmm );
+  netphos pepcoil prospect regexp signalp tmdetect tmhmm );
 
 # pssm sigcleave
 
@@ -179,6 +179,8 @@ sub pseq_features_panel($%) {
     add_pfpepcoil( $u, $panel, $opts{pseq_id} ) if ( $opts{features}{pepcoil} );
     add_pfantigenic( $u, $panel, $opts{pseq_id} )
       if ( $opts{features}{antigenic} );
+    add_pfnetphos( $u, $panel, $opts{pseq_id} )
+      if ( $opts{features}{netphos} );
 
     # sequence signals
     add_pfsigcleave( $u, $panel, $opts{pseq_id} )
@@ -907,7 +909,6 @@ EOSQL
     my $featref = $u->selectall_arrayref($sql);
 
     foreach my $r (@$featref) {
-		my $subseq = elide_sequence( $r->[3] );
         $track->add_feature(
             Bio::Graphics::Feature->new(
                 -start      => $r->[0],
@@ -918,6 +919,82 @@ EOSQL
             )
         );
         $nadded++;
+    }
+    return $nadded;
+}
+
+######################################################################
+## add_pfnetphos
+
+=pod
+
+=item B<< add_pfnetphos( C<Bio::Graphics::Panel>, C<pseq_id> ) >>
+
+Add pfnetphos features to a panel and return the number of features added.
+
+=cut
+
+sub add_pfnetphos {
+    my ( $u, $panel, $q ) = @_;
+	my $seq = $u->get_sequence_by_pseq_id($q);
+    my $nadded = 0;
+
+    my $r     = $u->preferred_run_id_by_pftype('netphos');
+    my $p     = $u->get_run_params_id($r);
+    my $z     = $u->get_run_timestamp_ymd( $q, $r ) || 'NOT RUN';
+    my $track = $panel->add_track(
+        -glyph       => 'graded_segments',
+        -min_score   => 0.5,
+        -max_score   => 1,
+        -sort_order  => 'high_score',
+        -bgcolor     => 'green',
+        -key         => "netphos (ran on $z)",
+        -bump        => +1,
+        -label       => 1,
+        -description => 1,
+        -height      => 4,
+    );
+    my $sql = <<EOSQL;
+  SELECT start,score,feature,descr
+    FROM pseq_features_netphos_v
+   WHERE pseq_id=$q
+ORDER BY start
+EOSQL
+    print( STDERR $sql, ";\n\n" ) if $opts{verbose};
+    my $featref = $u->selectall_arrayref($sql);
+
+    foreach my $r (@$featref) {
+	  my $half_width = 5;
+	  my ($il,$hl) = ($r->[0] <= $half_width) ? (1,$r->[0]) : ($r->[0]-$half_width,$half_width);
+	  my $ir = $il + $half_width*2;
+	  $ir = length($seq)-1 if $ir >= length($seq);
+	  my $subseq = substr($seq,$il-1,$ir-$il+1);
+	  substr($subseq,$hl+1,0) = '</b>-';
+	  substr($subseq,$hl,0) = '-<b>';
+	  my $desc = $r->[3];
+	  $desc =~ s/^predicted phospho-\w\w\w; //;
+	  $track->add_feature(
+						  Bio::Graphics::Feature->new(
+													  -start      => $r->[0],
+													  -end        => $r->[0],
+													  -score      => $r->[1],
+													  -name       => ($r->[2] eq 'pSer'
+																	  ? 'pS'
+																	  : $r->[2] eq 'pThr'
+																	  ? 'pT' 
+																	  : $r->[2] eq 'pTyr'
+																	  ? 'pY'
+																	  : '?'
+																	 ),
+													  -attributes => { tooltip => 
+																	   sprintf("%d (<code>%s</code>)<br>max score=%s<br>kinases: %s",
+																			   $r->[0],$subseq,
+																			   $r->[1],
+																			   $desc)
+																	 }
+													 )
+						 );
+	  $nadded++;
     }
     return $nadded;
 }
@@ -1157,7 +1234,7 @@ EOSQL
 
     my $r = $u->preferred_run_id_by_pftype('disorder');
     $p = $u->get_run_params_id($r);
-    $z = $u->get_run_timestamp_ymd( $q, $r ) || 'NEVER RUN';
+    $z = $u->get_run_timestamp_ymd( $q, $r );
     my ( $pname, $pdesc ) =
       $u->selectrow_array( 'select name,descr from params where params_id=?',
         undef, $p );
@@ -1377,8 +1454,8 @@ sub avg_confidence {
 
 sub _feature_tooltip {
 	my ($seq,$start,$stop,$feature_text) = @_;
-	my $text = sprintf("%d-%d (%s)", $start,$stop, 
-					   elide_sequence( substr( $seq,$start,$stop-$start+1 )));
+	my $text = sprintf("%d-%d (%s)", $start,$stop,
+					   elide_sequence( substr( $seq,$start-1,$stop-$start+1 )));
 	$text .= "<br>$feature_text" if defined $feature_text;
 	return $text;
 }
