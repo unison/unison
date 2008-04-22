@@ -57,6 +57,7 @@ des2sql($opts{des});
 hie2sql($opts{hie});
 
 print <<EOSQL;
+UPDATE unison.origin SET last_updated=now() WHERE origin='unison aux:scop';
 COMMIT;
 ANALYZE cla;
 ANALYZE dom;
