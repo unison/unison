@@ -9,7 +9,7 @@ my $id;
 my %recs;									# $recs{tax_id}{<key>}
 
 print(STDOUT "BEGIN;\n");
-print(STDOUT "DELETE FROM spspec;\n");
+print(STDOUT "TRUNCATE spspec;\n");
 print(STDOUT "\\copy spspec FROM STDIN\n");
 while( my $line = <> ) {
   if (!$go) {
@@ -70,5 +70,9 @@ for(my $i=0; $i<=$#cur_ids; $i++) {
   foreach (@pargs) {print STDOUT "\t$_";}
   print(STDOUT "\n");
 }
-print(STDOUT "\\.\n");
-print(STDOUT "COMMIT;\n");
+
+print(<<EOF);
+\\.
+UPDATE origin SET last_updated=now() WHERE origin='unison aux:tax spspec';
+COMMIT;
+EOF

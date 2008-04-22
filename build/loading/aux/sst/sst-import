@@ -32,7 +32,11 @@ my $dbh = DBI->connect($dsn) #, 'rkh', $ENV{SSTPASS})
   || die("connect($dsn) failed: ", $DBI::errstr, "\n");
 
 print(STDERR "# connected to $dsn\n");
-print("-- $0 ($dsn)\n");
+
+print(<<EOF);
+-- $0 ($dsn)
+BEGIN;
+EOF
 
 for(my $ti=0; $ti<=$#table_defs; $ti++) {
   my ($table,$cr,$d) = @{$table_defs[$ti]};
@@ -44,8 +48,11 @@ for(my $ti=0; $ti<=$#table_defs; $ti++) {
 
   print(STDERR "# $table: $sql\n");
 
-  print("TRUNCATE sst.$table;\n");
-  print("COPY sst.$table ($cols) FROM stdin with null as E\'\\\\N\';\n");
+  print(<<EOF);
+-- sst.$table
+TRUNCATE sst.$table;
+COPY sst.$table ($cols) FROM stdin with null as E\'\\\\N\';
+EOF
 
   $sth = $dbh->prepare($sql);
   $sth->execute()
@@ -58,6 +65,11 @@ for(my $ti=0; $ti<=$#table_defs; $ti++) {
   print("\\.\n");
   print(STDERR "\r$msg: $n rows\n") if $opts{verbose};
 }
+
+print(<<EOF);
+UPDATE origin SET last_updated=now() WHERE origin='unison aux:sst';
+COMMIT;
+EOF
 
 
 
