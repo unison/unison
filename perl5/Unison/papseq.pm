@@ -92,9 +92,9 @@ insert 1 Bio::Tools::BPlite::HSP
 =cut
 
 sub insert_hsp {
-    my ( $u, $pseq_id, $pmodel_id, $hsp ) = @_;
+    my ( $u, $pseq_id, $pmodel_id, $hsp, $params_id ) = @_;
 
-    $u->insert_hsp_swap( $pseq_id, $pmodel_id, $hsp, 0 );
+    $u->insert_hsp_swap( $pseq_id, $pmodel_id, $hsp, 0, $params_id );
 
     return;
 }
@@ -112,7 +112,7 @@ information.
 =cut
 
 sub insert_hsp_swap {
-    my ( $u, $pseq_id, $pmodel_id, $hsp, $swap ) = @_;
+    my ( $u, $pseq_id, $pmodel_id, $hsp, $swap, $params_id ) = @_;
 
     # check parameters!
     if ( !defined $u or ( ref $u ne 'Unison' ) ) {
@@ -130,6 +130,9 @@ sub insert_hsp_swap {
         throw Unison::BadUsage(
             'Unison::insert_hsp() requires Bio::Search::HSP::GenericHSP object'
         );
+    }elsif ( !defined $params_id ) {
+        throw Unison::BadUsage(
+            'Unison::insert_hsp() requires params_id as a parameter');
     }
     throw Unison::RuntimeError('Unison connection is not open')
       if !$u->is_open();
@@ -139,15 +142,15 @@ sub insert_hsp_swap {
         $sql_start =
             "insert into papseq "
           . "(pseq_id, mstart, mstop, pmodel_id, start, stop, len, ident, sim, "
-          . "gaps,score,eval,pct_ident)";
+          . "gaps,score,eval,pct_ident, params_id)";
     }
     else {
         $sql_start =
             "insert into papseq "
           . "(pseq_id, start, stop, pmodel_id, mstart, mstop, len, ident, sim, "
-          . "gaps,score,eval,pct_ident)";
+          . "gaps,score,eval,pct_ident,params_id)";
     }
-    my $sql    = $sql_start . "values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    my $sql    = $sql_start . "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     my $sth    = $u->prepare_cached($sql);
     my @values = (
         $pseq_id,            $hsp->query->start,
@@ -156,7 +159,7 @@ sub insert_hsp_swap {
         $hsp->hsp_length,    $hsp->num_identical,
         $hsp->num_conserved, $hsp->gaps,
         $hsp->score,         $hsp->evalue,
-        sprintf( "%.1f", $hsp->percent_identity )
+        sprintf( "%.1f", $hsp->percent_identity ), $params_id
     );
     print "sql: $sql_start values (" . join( ',', @values ) . ")\n"
       if $ENV{'DEBUG'};
