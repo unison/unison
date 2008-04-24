@@ -46,6 +46,12 @@ try {
         '">run history</a> for ',
         'a list of analyses run on this sequence.',
 
+		$p->warn('These features are from computational predictions, not
+		experimental data.  Although we filter features based on score or
+		probability to improve specificity, the accuracy of these
+		predictions is largely unknown and varies by method and
+		sequence.'),
+
         $p->group(
             "Unison:$v->{pseq_id} $title",
             "<center><img src=\"$png_urn\" usemap=\"#FEATURE_MAP\"></center>",

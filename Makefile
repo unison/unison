@@ -5,6 +5,10 @@
 default:
 	@echo "There ain't no stinkin' default target" 1>&2; exit 1
 
+.PHONY: ignore-reset
+ignore-reset:
+	svn propset -R svn:ignore -F .svnignore  .
+
 
 ## The following are bad hacks and should be replaced.
 # consider writing: 1) a script to identify perl files (executable or not,

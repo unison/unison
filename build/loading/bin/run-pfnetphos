@@ -1,0 +1,129 @@
+#!/usr/bin/env perl
+
+#-------------------------------------------------------------------------------
+# NAME run-pfnetphos
+# PURPOSE: run netphos and load results into unison
+# USAGE: run-pfnetphos [pseq_ids]
+#
+# $Id: run-pfsignalp,v 1.10 2005/11/24 22:09:58 rkh Exp $
+#-------------------------------------------------------------------------------
+
+use strict;
+use warnings;
+use Unison;
+use Unison::Exceptions;
+use Unison::run;
+
+use File::Temp qw(tempfile);
+use Getopt::Long qw(:config gnu_getopt);
+use IO::File;
+use IO::Pipe;
+
+
+my %opts =
+  (
+   debug => 0,
+   run_id => undef,
+   params_id => undef,
+   verbose => 0,
+  );
+
+GetOptions( \%opts,
+			'debug|d+',
+			'run_id|r=i',
+			'force|f+',
+			'verbose|v+',
+		  )
+  || die("$0: usage\n");
+
+my $u = new Unison();
+
+(defined $opts{run_id})
+  || die("$0: run not defined (-r)\n");
+
+$opts{params_id} = $u->get_run_params_id($opts{run_id});
+(defined $opts{params_id})
+  || die("$0: params for run_id=$opts{run_id} do not exist\n");
+
+my $cl = $u->run_commandline_by_params_id( $opts{params_id} );
+
+my @cols = qw(pseq_id params_id start stop prob kinase);
+my $ins_sth = $u->prepare( sprintf('insert into pfnetphos (%s) values (%s)',
+								   join(',',@cols), 
+								   join(',',map {'?'} @cols)
+								  )
+						 );
+
+my (@pseq_ids) = @ARGV ? map {eval "$_"} @ARGV : map { chomp;$_ } <>;
+
+foreach my $pseq_id ( @pseq_ids ) {
+  my $ran_on = $u->get_run_timestamp($pseq_id,$opts{run_id});
+  if (defined $ran_on) {
+    print(STDERR "Unison:$pseq_id: run with these options on $ran_on; skipping\n");
+    next;
+  }
+
+  my $seq = $u->get_sequence_by_pseq_id( $pseq_id );
+  if (not defined $seq) {
+    warn("$0: Unison:$pseq_id doesn't exist\n");
+    next;
+  }
+
+  my @results = get_netphos_results($seq,$cl);
+
+  try {
+	$u->begin_work();
+	for(my $i=0; $i<=$#results; $i++) {
+	  $ins_sth->execute( $pseq_id, $opts{params_id}, @{$results[$i]}[0,0,3,4] );
+	}
+	my $ts = $u->upd_run_history($pseq_id,$opts{run_id},undef);
+	$u->commit();
+	if ($opts{verbose}) {
+	  printf(STDERR "# Unison:%d completed at %s\n", $pseq_id, $ts);
+	}
+  } catch Unison::Exception with {
+	die($_);
+  };
+}
+
+exit(0);
+
+
+
+
+############################################################################
+
+
+## eg$ unison-get-seq 1 | netphos
+## >Unison_1	141 amino acids
+## #
+## # netphos-3.1b prediction results
+## #
+## # Sequence		   # x   Context     Score   Kinase    Answer
+## # -------------------------------------------------------------------
+## # Unison_1                14 S   LLLLSMGGA   0.597   cdc2       YES
+## # Unison_1                14 S   LLLLSMGGA   0.514   CKI        YES
+## # Unison_1                14 S   LLLLSMGGA   0.468   GSK3        . 
+## # Unison_1                14 S   LLLLSMGGA   0.445   CaM-II      . 
+## # Unison_1                14 S   LLLLSMGGA   0.363   DNAPK       . 
+sub get_netphos_results {
+  my ($seq,$cl) = @_;
+  my $seqtag = 'Q_seq';
+  my @results;
+
+  my ($fh,$fn) = tempfile(UNLINK => 1);
+  $fh->print(">$seqtag\n",$seq);
+  $fh->close();
+
+  my $in = new IO::Pipe;
+  $in->reader($cl,$fn);
+  while(my $line = <$in>) {
+	if ($line =~ s/^# $seqtag//) {
+	  my @F = split(' ',$line);
+	  push(@results, \@F);
+	}
+  }
+
+  return @results;
+}
+

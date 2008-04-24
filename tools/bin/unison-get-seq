@@ -86,7 +86,7 @@ for ( my $i = 0; $i <= $#args; $i++ ) {
     process1( $args[$i] );
     if ($opts{verbose}
         and (  ( $i == $#args )
-            or ( 0 == ( $i + 1 ) % $opts{verbose_frequency} ) )
+            or ( 0 == ( $i + 1 ) % $opts{'verbose-frequency'} ) )
         )
     {
         printf( STDERR "\r# %8d/%8d (%5.1f%%): Unison:%d",
@@ -121,7 +121,7 @@ sub parse_options() {
 
         # generic options
         'verbose'           => 0,
-        'verbose_frequency' => 10000,
+        'verbose-frequency' => 10000,
         'help'              => 0,
         'version'           => 0,
     );
@@ -399,7 +399,7 @@ EOSQL
 
         $i++;
         if ($opts{verbose}
-            and (  ( 0 == $i % $opts{verbose_frequency} )
+            and (  ( 0 == $i % $opts{'verbose-frequency'} )
                 or ( $i == $N ) )
             )
         {

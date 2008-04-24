@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
         "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
 <head>
-<title>Unison Protein Database</title>
+<title>Unison: Unison in Depth</title>
 <link rel="shortcut icon" href="av/favicon.png">
 <link rel="stylesheet" type="text/css" href="styles/unison.css">
 </head>
@@ -67,34 +67,70 @@
 
 <hr>
 
-<h1>Unison Beyond the One-Liner</h1>
+
+<h2>Unison In a Nutshell</h2>
+
+<div style="text-align: center;"><img width="80%" src="av/concept-graphic.jpg" alt="[Concept]"></div>
 
 
-<h2>Contents</h2>
+<h2>Unison Goals</h2>
+
+Unison's primary goal is to decrease the challenges associated with asking
+both simple and complex questions about protein function and structure.
+Unison was designed with three key functional goals in mind:
 
 <ul>
+  <li><b>Feature-based mining</b> Given a set of protein characteristics, identify
+	matching proteins.
 
-<li>&gt;6M <i>non-redundant</i> (exact identity) sequences of varying
-qualities from more than sources and thousands of species
+	<br>Example: <i>Identify Human proteins containing an immunoglobulin
+	(ig) domain, a transmembrane (TM) domain, and an intracellular
+	immunotyrosine inhibitory motif (ITIM), and whose mouse ortholog has
+	similar feature composition.</i>
 
-<li>more than 6 CPU-years' worth of precomputed results for HMM alignments
-(primarily Pfam), Prospect threading alignments<span style="color: red;">*</span>, TMHMM 2.0c transmembrane
-detection, SignalP 3.0 signal prediction, cellular localization
-(protcomp), genomic localization, regular expression motifs, and
-others
+  <li><b>Synthetic biology and hypothesis generation</b> Analyze the function of
+	a set of proteins in terms of their constituent features.
+	<br>Example: <i>Do ITIMs occur in the context of other extracellular
+	  domains in a set of putative immune signaling proteins?</i>
 
-<li>integrated patent info<span style="color: red;">*</span>
+  <li><b>Sequence analysis</b>Provide a reliable, up-to-date source of
+	features for the analysis of single sequences.
 
-<li>indexes designed for rapid feature-based mining and hypothesis testing
+</ul>
 
-<li>auxiliary data from SCOP, GO, HomoloGene, MINT, PDB to enable
-richer interpretation of results and more expressive queries
 
-<li>bookkeeping (run histories) and automated load/update procedures
+<h2>Unique Features of Unison</h2>
 
-<li>web front-end to facilitate sequence analysis and <i>limited</i>
-feature-based mining
+A few of Unison's distinguishing features are:
 
+<ul>
+  <li><b>Unison is comprehensive.</b>
+	<br>Unison contains a superset of all database sources from all
+	species. This is required to be confident in the completeness of
+	queries. Sequences are stored non-redundantly so that you'll never hit
+	the same exact sequence twice.
+
+  <li><b>Unison integrates diverse protein characteristics.</b>
+	<br> Sequence properties, functional regions, homology, structure
+	prediction, and many other predictions are available.  Furthermore,
+	Unison allows multiple predictions of the same type with different
+	runtime parameters. Because Unison stores digests of the prediction
+	results, querying is much more sophisticated and accurate that keyword
+	searching.
+
+  <li><b>Unison is easy to maintain and update.</b>
+	<br>Unison's release "flow" is nearly fully automated and updates are
+	incremental -- only new sequences and new features are computed.
+
+  <li><b>Unison incorporates auxiliary data to enable expressive queries
+	and rich interpretation of results.</b>
+	<br>These data include Gene Ontology, Structural Classification of
+	Proteins, NCBI HomoloGene, NCBI GeneRIF, the Protein Data Bank (PDB),
+	and others.
+
+  <li><b>Unison is completely free.</b> The database schema, tools, web pages,
+	and non-proprietary data are available for local installation. In
+	addition, the database and web interface are available for public access.
 </ul>
 
 <div style="padding: 5px; margin-left: 20px; margin-right: 20px; border: thin solid
@@ -102,86 +138,6 @@ red;"><span style="color: red;">*</span> The public version of Unison
 contains only public sequences and results of non-proprietary methods.
 The entire schema and loading tools are included with the public release;
 institutions may load these proprietary data if they wish.</div>
-
-
-<h2>Unison Goals</h2>
-
-Unison was designed with these goals:
-
-<ul>
-
-<li>enable rapid, incremental updating of sequence analysis results
-
-<li>use the sequence analysis for feature-based mining and to facilitate
-hypothesis generation
-
-<li>provide a free, multi-purpose platform for study of protein families
-and phenomena and for the development of tools (e.g., our SNP-on-structure
-viewer)
-
-</ul>
-
-
-
-<h2>The Build Process</h2>
-
-<p>Sequences in Unison are culled from numerous sources and include both
-well-annotated sequences (<i>e.g.,</i> from UniProt, Derwent Geneseq) and
-speculative sequences (<i>e.g.,</i> from Ensembl, gene transcript
-predictions, raw 6-frame translations).  The intent is to provide a
-superset of all available sequences. Sequences are stored
-<i>non-redundandtly</i> and are given a permanent identifier, a
-<code>pseq_id</code>.  Sequences are never deleted or modified, and the
-corresponding <code>pseq_id</code> is never changed. [<a
-href="cgi/pseq_summary.pl?pseq_id=76">example</a>]
-
-<p>Although sequences in Unison are stored non-redundantly, they came from
-many highly redundant databases. Each of those databases typically
-provides an accession number, a name, and a description for the sequence.
-Unison stores this annotation with each sequence and the date that the
-sequence was loaded from each source database and this provides a record
-of when a sequence was loaded. Furthermore, each origin is ranked for its
-reliability and informative content, and this is used to provide a
-heuristic "best annotation" for each sequence as seen in the example.  [<a
-href="cgi/pseq_paliases.pl?pseq_id=76">example</a>]
-
-<p>After sequences are loaded, a set of reliable sequences is built based
-on origin, species, and other properties.  These sequences are subjected
-to an array of algorithms whose results are stored.  The predictions
-currently include signal sequence, transmembrane prediction, GPI
-anchoring, antigenicity, and alignments from BLAST, HMM (Pfam) alignments,
-and threading, and many others.  Unison's bookkeeping about which
-algorithms have been run (and how) provides a powerful mechanism for
-keeping Unison sequences and results up to date [<a
-href="cgi/pseq_history.pl?pseq_id=76">example</a>].
-
-<p>All precomputed results are linked directly to the <code>pseq_id</code> [<a
-href="cgi/pseq_features.pl?pseq_id=76">example</a>].  And because precomputed
-results are linked to immutable sequences, there's no issue about results
-being "stale" with respsect to a changed sequence.  Unison also
-distinguishes results by algorighm parameters, and this permits users to
-compare several sets of analyses.
-
-<p>Unison integrates many other data sources which are useful in
-querying. For example, NCBI's Homologene enables queries to require that a
-human putative target also has a homolog in mouse or rat with similar
-protein features.  The Structural Classification of Proteins (SCOP),
-Patents, Gene Ontology, NCBI taxonomy, and genomic localization and
-clustering are also available in Unison.
-
-
-
-
-
-Unison contains 1) a comprehensive, non-redundent superset of protein
-sequences from many sources, 2) numerous types of precomputed predictions
-on those sequences, 3) auxiliary data that enables rich interpetations of
-prediction results.
-
-<p>The integration of these data enables mining of sequences based on
-holistic protein feature criteria, synthesis of these predictions for the
-analysis of individual sequences, and refinement of hypotheses regarding
-the composition of protein families.
 
 
 <p><b>Contact</b>

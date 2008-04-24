@@ -73,6 +73,8 @@ div.nav table {
  margin: 0px;
  padding: 0px;
  width: 100%;
+  font-size: 0.8em;
+  font-variant: small-caps;
 }
 div.nav table.navp {
  border: none;
@@ -253,6 +255,12 @@ table.uwtable {
  border: none;
   border-collapse: collapse;
 }
+table.uwtable tr {
+  background: U_UWTABLE_TD_BG;
+}
+table.uwtable tr:hover {
+ background: U_HOVER_BG;
+}
 table.uwtable th, table.uwtable td {
   vertical-align: top;
   border: thin solid;
@@ -268,7 +276,6 @@ table.uwtable th {
 table.uwtable td {
   border-color: U_UWTABLE_TD_FRAME;
   color:  U_UWTABLE_TD_FG;
-  background: U_UWTABLE_TD_BG;
   white-space: wrap;
 }
 table.uwtable .highlighted, table.uwtable .highlighted td {

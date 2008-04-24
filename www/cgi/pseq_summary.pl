@@ -186,18 +186,14 @@ sub summary_group ($) {
 					 "<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download FASTA</a>",
 					 "\n",
 
-					 '<tr><th><div>Predicted Domains</div></th> <td>',
-					 'Domain Digest: ', $domain_digest,
-					 '<br>','Phosphorylation sites (pos;probability): ', $netphos_digest,
-					 '</td></tr>', 
-					 "\n",
-
 					 '<tr><th><div>Structures</div></th> <td>',
 					 $strx,
 					 '</td></tr>', 
 					 "\n",
 
-					 '<tr><th><div>Domain Structure</div></th> <td>',
+					 '<tr><th><div>Predicted Domains</div></th> <td>',
+					 'Domain Digest: ', $domain_digest,
+					 '<br>','Phosphorylation sites (pos;probability): ', $netphos_digest,
 					 features_graphic($p),
 					  '<span class="note">'
 					  . sprintf('See the <a href="pseq_features.pl?pseq_id=%d">Features</a> tab for additional sequence features.',
