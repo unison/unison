@@ -1,9 +1,13 @@
+default: update
+
 include ../common.mk
 include ../local.mk
 include ../params.mk
 
+RUN_ID:=`${PSQL_DCMD} "select preferred_run_id_by_pftype('disorder')"`
+
 N:=5
-QNAME=${SUBDIR}p${DISPROT_PARAMS_ID}
+QNAME=${SUBDIR}p${RUN_ID}
 RUNSET=runB-human
 NPER:=250
 
@@ -26,7 +30,11 @@ update:
 	/bin/mv -f $@.tmp $@
 
 .done.ids:
-	${PSQL_DCMD} 'select pseq_id from run_history where params_id=${DISPROT_PARAMS_ID}' >$@
+	${PSQL_DCMD} "select pseq_id from run_history where run_id=${RUN_ID}" >$@
+
+
+
+
 
 .helicase.ids:
 	${PSQL_DCMD} 'select pseq_id from rkh.helicase_to_run' >$@

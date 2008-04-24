@@ -24,15 +24,12 @@ pg_ctl -D /srv/postgresql/postgresql-$V -l $HOME/logs/csb-postgresql-$V/pg_ctl.l
 rm -fr /srv/postgresql/postgresql-$V $HOME/logs/csb-postgresql-$V
 
 initdb -E UTF8 -D /srv/postgresql/postgresql-$V
-
 mkdir -p /gne/home/postgres/logs/csb-postgresql-$V
-
 ln -bv  /srv/postgresql/pg_hba.conf /srv/postgresql/postgresql.conf /srv/postgresql/postgresql-$V/
-
 pg_ctl -D /srv/postgresql/postgresql-$V -l $HOME/logs/csb-postgresql-$V/pg_ctl.log  start
 
 sleep 2
 
 tail $HOME/logs/csb-postgresql-$V/pg_ctl.log
 
-(time -p pg_dumpall -p5432 -d $d | psql -p9876 -qaf-) >migrate-pg_dumpaall.log 2>&1
+pg_dumpall -p5432 $d | psql -X -p9876 -qaf-

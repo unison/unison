@@ -1,0 +1,17 @@
+*.dat
+*.err
+*.gz
+*.hmmb
+*.ids
+*.load
+*.log
+*.pgdfc
+*.so
+*.ssi
+*.gz
+*#[0-9]
+*-todo-N[0-9][0-9]
+[a-z][a-z].[eo][0-9][0-9][0-9][0-9]*
+logs
+qsub
+run[ABC]-*

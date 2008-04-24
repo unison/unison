@@ -1,0 +1,54 @@
+#!/bin/sh
+
+
+if [ -z "$MEA_CULPA" ]; then
+	echo "This is a dangerous script. You must set MEA_CULPA=1 before running." 1>&2
+	exit 1
+fi
+
+
+
+V=8.3
+R=$V.1
+
+PATH=/gne/research/apps/postgresql/$R/x86_64-linux-2.6/bin:$PATH
+
+if ! psql --version | fgrep -sq $V; then
+	echo "not version $V?" 1>&2
+	exit 2
+fi
+
+set -x
+
+pg_ctl -D /srv/postgresql/postgresql-$V -l $HOME/logs/csb-postgresql-$V/pg_ctl.log  stop
+
+rm -fr /srv/postgresql/postgresql-$V $HOME/logs/csb-postgresql-$V
+
+initdb -E UTF8 -D /srv/postgresql/postgresql-$V
+
+mkdir -p /gne/home/postgres/logs/csb-postgresql-$V
+
+ln -bv  /srv/postgresql/pg_hba.conf /srv/postgresql/postgresql.conf /srv/postgresql/postgresql-$V/
+
+pg_ctl -D /srv/postgresql/postgresql-$V -l $HOME/logs/csb-postgresql-$V/pg_ctl.log  start
+
+sleep 1
+
+createuser -l -SDRI PUBLIC
+createuser -l -SDRI unison
+createuser -l -SDRI loader
+createuser -l -SDRI rkh
+createuser -l -SDRI mukhyala
+createuser -l -SDRI cavs
+createuser -l -SDRI sulin
+createuser -l -SDRI matthejb
+createuser -l -SDRI twu
+createuser -l -SDRI genengenes
+
+# as Reece, build 
+# make -C ~rkh/unison/build/server-side-fx/
+
+# as postgres:
+make -C ~rkh/unison/build/server-side-fx/ install
+
+#(set -x; createdb csb-dev; time -p pg_dump -p5432 csb-dev | psql -d csb-dev -p9876 -qaf-) >csb-dev-migrate.log 2>&1 &

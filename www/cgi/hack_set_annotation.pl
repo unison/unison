@@ -109,7 +109,7 @@ SELECT DISTINCT
     (SELECT as_set(DISTINCT 'UNQ'||unqid) FROM pseq_sst_v SST WHERE SST.pseq_id=A.pseq_id) AS unqs,
     (SELECT as_set(DISTINCT 'PRO'||proid) FROM pseq_sst_v SST WHERE SST.pseq_id=A.pseq_id) AS pros,
 
-    (SELECT chr||band
+    (SELECT as_set(distinct chr||band)
  	   FROM pseq_cytoband_v C
 	  WHERE C.pseq_id=A.pseq_id AND C.params_id=48
 	) as cytoband,
@@ -177,7 +177,7 @@ EOSQL
 						),
 					$r->{cytoband} || 'N/A',
 					($r->{probes}
-					 ? join(', ', map {maprofile_link($_)} split(/,/,$r->{probes}))
+					 ? join('<br>', map {maprofile_link($_)} split(/,/,$r->{probes}))
 					 : ''
 					),
 					'NO DATA YET',

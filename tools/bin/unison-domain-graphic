@@ -23,7 +23,7 @@ S<$Id$>
 =head1 OPTIONS
 
 
-unison-domain-graphic [-o image.ext -S|-A|-F|-P|-G|-p -f png|jpeg|gif -v|-h|-V --legend --signal_char '*' --tm_char '~' --user_ann]
+unison-domain-graphic [-o image.ext -S|-A|-F|-P|-G|-p -f png|jpeg|gif -v|-h|-V --legend --signal-char '*' --tm-char '~' --user-ann]
 
                input choices
                -------------
@@ -59,11 +59,11 @@ unison-domain-graphic [-o image.ext -S|-A|-F|-P|-G|-p -f png|jpeg|gif -v|-h|-V -
  #2 legend
  unison-domain-graphic --legend -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
  #3 user defined symbol for signal sequence
- unison-domain-graphic --legend --signal_char '*' -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
+ unison-domain-graphic --legend --signal-char '*' -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
  #4 user defined symbol for trans membrane domain
- unison-domain-graphic --legend --tm_char '<>' -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
+ unison-domain-graphic --legend --tm-char '<>' -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
  #6 input sequence ids instead of Unison's choice
- unison-domain-graphic --legend --user_ann  -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
+ unison-domain-graphic --legend --user-ann  -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
  #7 verbose
  unison-domain-graphic -v [-S|-A|-F|-P|-G|-p] <input>
  #8 help and Version
@@ -127,7 +127,7 @@ my ( $im_height, $track_hh, $track_height )
     = get_image_dims( $pseq_ids, scalar keys %$feats );
 
 ## here's our canvas
-my ( $im, $c ) = new_gd_canvas( $opts{width} + 200, $im_height );
+my ( $im, $c ) = new_gd_canvas( $opts{width}, $im_height );
 
 ## here each feature is assigned a color
 my $feature_colors = assign_colors( $c, $feats, $pseq_ids );
@@ -137,31 +137,46 @@ for ( my $qi = 0; $qi < scalar @$pseq_ids; $qi++ ) {
     my $q = $pseq_ids->[$qi];
     my $ymidline
         = 1 + $track_hh + $qi * ( $track_height + $opts{track_spacing} );
-    my $ba = $u->best_alias($q) || 'n/a';
-    $ba =~ s/^.+://;
-    $ba = "Unison:$q ($ba)";
-    $ba = $user_anns->{$q} if defined $user_anns->{$q} and $opts{user_ann};
-    my $xscale = $opts{width} / $extent;
 
-    # the sequence ids on RHS
-    $im->string( gdSmallFont,
-        ( $opts{width} - 100 ),
-        $ymidline - gdSmallFont->height / 2,
-        $ba, $c->{black}
-    );
+	my @ids;
+	if ($opts{'unison-id'}) {
+	  push(@ids,"Unison:$q");
+	}
+	if ($opts{'best-alias'}) {
+	  push(@ids, $u->best_alias($q) || 'n/a');
+	}
+	if ($opts{'user-ann'} and defined $user_anns->{$q}) {
+	  push(@ids, $user_anns->{$q});
+	}
+
+	if (@ids) {
+	  my $ids = shift(@ids);
+	  if (@ids) {
+		$ids .= sprintf(' (%s)', join(',',@ids));
+	  }
+
+	  # the sequence ids on RHS
+	  $im->string( gdSmallFont,
+				   ( $opts{width} - 100 ),
+				   $ymidline - gdSmallFont->height / 2,
+				   $ids, $c->{black}
+				 );
+	}
+
+    my $xscale = $opts{width} / $extent;
     draw( $im, $c, $xscale, $ymidline, \%{ $si->{$q} }, $feature_colors, $q );
 }
 
 if ( $opts{legend} ) {
   draw_legend( $feature_colors, $im, $c, $feats, $pseq_ids );
-  $im->string( gdSmallFont, 0,
-			   $im_height - gdSmallFont->height,
-			   "Copyright 2007-2008 Genentech, Inc.",
-			   $c->{black}
-			 );
+#  $im->string( gdSmallFont, 0,
+#			   $im_height - gdSmallFont->height,
+#			   "Copyright 2007-2008 Genentech, Inc.",
+#			   $c->{black}
+#			 );
 }
 
-$im = resize( $im, $opts{width}, $opts{height} ) if defined $opts{height};
+#$im = resize( $im, $opts{width}, $opts{height} ) if defined $opts{height};
 
 ## write ouput
 if    ( $opts{format} eq 'png' )  { print $outfh $im->png; }
@@ -279,7 +294,6 @@ sub set_extents {
 
 ############################################################################
 sub get_image_dims {
-
     my ( $pseq_ids, $num_feats ) = @_;
     ## image dimensions
     my $track_hh
@@ -288,7 +302,7 @@ sub get_image_dims {
     my $im_height = $track_height * ( scalar @$pseq_ids )
         + $opts{track_spacing} * scalar @$pseq_ids;
     $im_height += $opts{legend_spacing} * $num_feats if ( $opts{legend} );
-    $im_height += 20;    #for copyright statement
+    #$im_height += 20;    #for copyright statement
     return ( $im_height, $track_hh, $track_height );
 }
 
@@ -425,11 +439,11 @@ sub draw {
 
         }
         elsif ( $type eq 'SignalP' ) {
-            if ( $opts{signal_char} ) {
+            if ( $opts{'signal-char'} ) {
                 $im->string( gdLargeFont,
                     $x0 + ( $stop * $xscale ),
                     $ymid - gdLargeFont->height / 2,
-                    $opts{signal_char},
+                    $opts{'signal-char'},
                     $c->{ $fc->{$name} }
                 );
             }
@@ -443,11 +457,11 @@ sub draw {
             }
         }
         elsif ( $type eq 'TMHMM' ) {
-            if ( $opts{tm_char} ) {
+            if ( $opts{'tm-char'} ) {
                 $im->string( gdLargeFont,
                     $x0 + ( $stop * $xscale ),
                     $ymid - gdLargeFont->height / 2,
-                    $opts{tm_char}, $c->{ $fc->{$name} }
+                    $opts{'tm-char'}, $c->{ $fc->{$name} }
                 );
             }
             else {
@@ -497,10 +511,10 @@ sub draw_legend {
 
         if ( $feats->{$k}{type} eq 'TMHMM' ) {
 
-            if ( $opts{tm_char} ) {
+            if ( $opts{'tm-char'} ) {
                 $im->string( gdLargeFont, $x0 + 10,
                     $ymidline - gdLargeFont->height / 2,
-                    $opts{tm_char}, $c->{ $f->{$k} } );
+                    $opts{'tm-char'}, $c->{ $f->{$k} } );
             }
             else {
                 my $x1 = $x0;
@@ -529,10 +543,10 @@ sub draw_legend {
         }
 
         elsif ( $feats->{$k}{type} eq 'SignalP' ) {
-            if ( $opts{signal_char} ) {
+            if ( $opts{'signal-char'} ) {
                 $im->string( gdLargeFont, $x0 + 10,
                     $ymidline - gdLargeFont->height / 2,
-                    $opts{signal_char}, $c->{ $f->{$k} } );
+                    $opts{'signal-char'}, $c->{ $f->{$k} } );
             }
             else {
                 diamond( $im, $x0 + 10, $opts{icon_width}, $ymidline,
@@ -766,10 +780,13 @@ sub parse_options {
 
         align_feature => '',
         legend        => 0,
-        user_ann      => 0,
+        'user-ann'    => 0,
         outfile       => undef,
-        signal_char   => undef,
-        tm_char       => undef,
+        'signal-char' => undef,
+        'tm-char'     => undef,
+
+        'best-alias'      => 0,
+        'unison-id'       => 0,
 
         # how to select sequences
         'select-by-seq'         => 0,
@@ -795,14 +812,17 @@ sub parse_options {
         'select-by-gi|G+',
         'select-by-probe|p+',
 
+		'best-alias|b+',
+        'unison-id|unison_id|u+',
+
         'width|w=i',
         'height|l=i',
-        'align_feature|a=s',
+        'align-feature|align_feature|a=s',
         'legend',
-        'user_ann',
+        'user-ann|user_ann',
         'outfile|o=s',
-        'signal_char=s',
-        'tm_char=s',
+        'signal-char|signal_char=s',
+        'tm-char|tm_char=s',
 
         'format|f=s',
 

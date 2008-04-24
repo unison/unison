@@ -71,10 +71,13 @@ pseq_gene_mv.log: aux.log
 # dependencies elsewhere.
 
 COMPUTE_DIRS:=
+COMPUTE_DIRS+=pfantigenic pfbigpi pfnetphos pfpepcoil pfpsipred pfregexp \
+	pfseg pfsignalp pftmhmm
+# TODO: pfsigcleave?
 COMPUTE_DIRS+=pahmm papseq #paprospect
-COMPUTE_DIRS+=pfbigpi pfpsipred pfsignalp pftmhmm pfseg pfpepcoil pfregexp 
-COMPUTE_DIRS+=pmap
 COMPUTE_DIRS+=psprotcomp
+# TODO: psdisorder
+COMPUTE_DIRS+=pmap
 CLEANUP_DIRS+=${COMPUTE_DIRS}
 .PHONY: phase3
 phase3: $(addsuffix .log,${COMPUTE_DIRS})

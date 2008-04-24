@@ -25,7 +25,7 @@ CCDS_HUMAN_PATH:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.ncbi.nlm.nih.gov/pub
 UNIPROT_DIR:=${RESEARCH_PREFIX}/data/public/uniprot
 PATAA_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/pataa.fa
 NR_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/nr.fa
-COSMIC_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
+COSMIC_DIR:=${RESEARCH_PREFIX}/data/mirrors/ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
 
 
 ############################################################################

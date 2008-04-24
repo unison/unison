@@ -1,5 +1,40 @@
 # -*-outline-*-
 
+* standardize calling conventions
+use hashes/hash references for everything
+
+* show sql
+use collapsable frames for sql
+
+* collapsable fieldsets for groups
+Collapse fieldsets to save space
+NOTE: These don't have to be fieldsets. Ideally, the same scripting would
+work for various element types. It seems best to use obvious element
+pairs, eg. dt+dd (show/hide the dd), fieldset legend+body (show/hide the body).
+UPDATE: see Ubuntu's launchpad. They do exactly this. See
+https://bugs.launchpad.net/ubuntu/+source/gnome-terminal/+bug/189656
+and click 'Add a comment/attachment' at the bottom
+Also see http://template-toolkit.org/about.html .
+
+* disprot
+Refactor disprot loading to be more like other loading.
+Problem: how to handle daily limit
+
+* pseq_functions.pl
+In pseq_generif_v, we use blast_v to get generifs of similar sequences. We
+don't do the same for go. This leads to the odd result that pseq_features
+will show generifs but not go annotations for non-entrez genes.  Example:
+http://csb/~rkh/unison/cgi/pseq_functions.pl?pseq_id=1775768, Solution:
+pseq_generif_v is too tricky -- don't use blast there, but perhaps create
+pseq_blast_generif_v (or whatever). 
+
+* sequence similarity views should be the reflexive
+blast_v and friends should have rows for implied self-self
+alignments. Without this, joins don't produce reasonable results. For
+example, if we use a pseq_id that corresponds to an entrez gene as a query
+sequence to blast_v, it won't return itself, and therefore a join to
+pseq_gene_mv won't get a gene_id. In short, it fails the most trivial case.
+
 * standardize function names
 We have a lot of useful functions, but they're hard to find. We should
 think (again) about standardization. Example: we have both pseq_locus_rep
@@ -89,3 +124,20 @@ chmod 777
 * need better way to test
 
 * jmol 11 support
+
+
+
+
+
+############################################################################
+############################################################################
+## DONE
+############################################################################
+############################################################################
+
+* asterisks should be removed from incoming sequences
+We used to remove them. Then Genengenes came along with stars, which are a
+non-IUPAC extension to indicate termination. Then I discovered that some
+sequences differ /only/ by the terminal *, which means that they're
+trivally different from other sequences (e.g., Cosmic's MCL1 v. MCL1_HUMAN).
+
