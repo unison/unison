@@ -116,7 +116,7 @@ PDB.load:
 ## loaded in single invocation of load-pseq
 REFSEQ_RELEASE:=$(patsubst RefSeq-release%.txt,%,$(notdir $(shell /bin/ls -t ${REFSEQ_DIR}/../release-notes/*.txt | head -1)))
 refseq.load: $(wildcard ${REFSEQ_DIR}/complete[0-9]*gpff.gz)
-	time -p load-pseq --deprecate -vv -fgenbank -oRefSeq --infer-tax-id -V"${REFSEQ_RELEASE}" $^ >$@.err 2>&1
+	PERL5LIB=../../../perl5:$$PERL5LIB time -p load-pseq --deprecate -vv -fgenbank -oRefSeq --infer-tax-id -V"${REFSEQ_RELEASE}" $^ >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
@@ -125,10 +125,10 @@ SPROT_VERSION := `grep Swiss  ${UNIPROT_DIR}/reldate.txt |cut -d' ' -f3`
 TrEMBL_VERSION:= `grep TrEMBL ${UNIPROT_DIR}/reldate.txt |cut -d' ' -f3`
 uniprot: uniprot_sprot.load uniprot_trembl.load 
 uniprot_sprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
-	gzip -cdq $< | PERL5LIB=/gne/home/mukhyala/opt/lib/perl:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/Swiss-Prot -fswiss -V${SPROT_VERSION} - >$@.err 2>&1
+	gzip -cdq $< | PERL5LIB=../../../perl5:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/Swiss-Prot -fswiss -V${SPROT_VERSION} - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
-	gzip -cdq $< |  PERL5LIB=/gne/home/mukhyala/opt/lib/perl:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/TrEMBL -fswiss -V${TrEMBL_VERSION} - >$@.err 2>&1 
+	gzip -cdq $< |  PERL5LIB=../../../perl5:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/TrEMBL -fswiss -V${TrEMBL_VERSION} - >$@.err 2>&1 
 	/bin/mv -f $@.err $@
 
 
