@@ -1,0 +1,214 @@
+#!/usr/bin/env perl
+#$Id$
+
+use warnings;
+use strict;
+
+use Unison;
+use Unison::run;
+use Unison::Exceptions;
+use Unison::papseq;
+
+use IO::Pipe;
+use Bio::SearchIO;
+use Error qw(:try);
+use Getopt::Long qw(:config gnu_getopt);
+
+
+my %opts =
+  (
+   run_id    => undef,
+   params_id => undef,
+   pct_id_cutoff => undef,
+   hsp_len_cutoff => undef,
+   expect => undef,
+   filter => 'F',
+   dblength => undef,
+   program => 'blastp',
+   query => undef,
+   database => undef,
+   cpus => 2,
+   verbose => 0
+  );
+GetOptions(\%opts,
+	   'run_id|r=i',
+	   'pct_id_cutoff|pi=i',
+	   'hsp_len_cutoff|hl=i',
+	   'expect|e=f',
+	   'filter|F=s',
+	   'dblength|z=i',
+	   'query|i=s',
+	   'database=s',
+	   'cpus|a=i',
+	   'verbose|v+',
+	  ) || die("$0: you got usage issues, short stack\n");
+
+my $remainder_cutoff = 1;
+my $swap_upper_triangle=1;
+my $accept_overlap_seqs=1;
+
+my $u = new Unison();
+
+die("$0: use run_id (-r),  may not specify params_id\n")
+    if (defined $opts{params_id});
+
+$opts{params_id} = (defined $opts{run_id} ? $u->get_run_params_id($opts{run_id}) :  die("$0: run not defined (-r)\n"));
+
+(defined $opts{params_id})
+    || die("$0: could not fetch parameters from run_id $opts{run_id}\n");
+
+(defined $opts{dblength})
+    || die ("$0: did not specify database length\n");
+
+(defined $opts{expect})
+    || die ("$0: e-value cut off not specified\n");
+
+(defined $opts{hsp_len_cutoff})
+    || die ("$0: hsp length cutoff not specified\n");
+
+(defined $opts{pct_id_cutoff})
+    || die ("$0: percentage identity cutoff not specified\n");
+
+my $blast_command = "blastall".
+  " -i ".$opts{query}.
+  " -d ".$opts{database}.
+  " -p ".$opts{program}.
+  " -F ".$opts{filter}.
+  " -z ".$opts{dblength}.
+  " -e ".$opts{expect}.
+  " -a ".$opts{cpus};
+
+print "Running $blast_command\n" if $ENV{DEBUG};
+
+my $blastpipe = new IO::Pipe;
+$blastpipe->reader( $blast_command )
+    || die("couldn't do $blast_command\n");
+
+my $cnt=0;
+print "start: ",scalar(localtime),"\n";
+my $in = new Bio::SearchIO(-format => 'blast',-fh => $blastpipe);
+if (not defined $in) {
+  warn("$in: $!\n");
+  return;
+}
+while ( my $report = $in->next_result ) {
+
+  print '-'x80,"\n" if $ENV{DEBUG};
+  print "qname: " . $report->query_name() . "\n" if $opts{verbose};
+  my $q_pseq_id = $u->get_pseq_id_from_FASTA_name($report->query_name());
+  if ( !defined $q_pseq_id ) {
+    throw Unison::RuntimeError("No pseq_id defined for this query sequence: " .
+			       $report->query() );
+  }
+  while (my $sbjct = $report->next_hit()) {
+    my $swapme = 0;
+    print "\t",'-'x80,"\n" if $ENV{DEBUG};
+    my $t_pseq_id = $u->get_pseq_id_from_FASTA_name($sbjct->name());
+    print "\tqname: " . $report->query_name() . "\n" if $ENV{DEBUG};
+    print "\ttname: " . $sbjct->name() . "\n" if $ENV{DEBUG};
+    throw Unison::RuntimeError( "No pseq_id defined for this target sequence: " 
+				. $sbjct->name() ) if ( !defined $t_pseq_id );
+    if ( $q_pseq_id == $t_pseq_id ) {
+      print "Skipping this target ($t_pseq_id) because it is a self hit\n" if $ENV{DEBUG};
+      next;
+    } elsif ( $t_pseq_id > $q_pseq_id  ) {
+      if ( $swap_upper_triangle ) {
+	$swapme = 1;
+	print "Swap t_pseq_id ($t_pseq_id) and q_pseq_id ($q_pseq_id) because q_pseq_id < t_pseq_id\n" if $ENV{'DEBUG'};
+      } else {
+	print "Skipping this target ($t_pseq_id) because its id greater than self ($q_pseq_id)\n" if $ENV{'DEBUG'};
+	next;
+      }
+    }
+    while (my $hsp = $sbjct->next_hsp) {
+      # criteria for accepting HSP:
+      #  - over 98% identity AND
+      #  - hsp len > 50 AND
+      #  - query is a subsequence of target or vice versa OR
+      #  - query c-terminus overlaps with target n-terminus  OR
+      #  - target c-terminus overlaps with query n-terminus
+      if ( $hsp->percent_identity() < $opts{pct_id_cutoff} ) {
+	print "Skipping this target ($t_pseq_id) because its percent identity (" .
+	  $hsp->percent_identity() . ") < $opts{pct_id_cutoff}\n" if $ENV{DEBUG};
+	next;
+      } elsif ( $hsp->hsp_length() < $opts{hsp_len_cutoff} ) {
+	print "Skipping this target ($t_pseq_id) because the hsp length (" .
+	  $hsp->hsp_length() . ") < $opts{hsp_len_cutoff} \n" if $ENV{DEBUG};
+	next;
+      }
+
+      my ($q_start,$q_end,$q_len);
+      my ($t_start,$t_end,$t_len);
+
+      # if we need to swap the query/target orientation b/c the
+      # q_pseq_id < t_pseq_id and $swap_upper_triangle is true.
+      if ( $swapme ) {
+	$q_start = $hsp->start('hit');
+	$q_end = $hsp->end('hit');
+	$q_len = $sbjct->length;
+	$t_start = $hsp->start('query');
+	$t_end = $hsp->end('query');
+	$t_len = $report->query_length();
+      } else {
+	$q_start = $hsp->start('query');
+	$q_end = $hsp->end('query');
+	$q_len = $report->query_length();
+	$t_start = $hsp->start('hit');
+	$t_end = $hsp->end('hit');
+	$t_len = $sbjct->length;
+      }
+
+      # if the accept_overlap_seqs flag is true, then also insert
+      # HSPs with mid sequence overlaps.
+      if ( $accept_overlap_seqs ) {
+	&_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
+	next;
+      }
+
+      my $q_start_remainder =  $q_start - 1;
+      my $q_end_remainder = $q_len - $q_end;
+      my $t_start_remainder =  $t_start - 1;
+      my $t_end_remainder = $t_len - $t_end;
+
+      print "\tq_start_remainder: $q_start_remainder \n" if $ENV{DEBUG};
+      print "\tq_end_remainder: $q_end_remainder \n" if $ENV{DEBUG};
+      print "\tt_start_remainder: $t_start_remainder \n" if $ENV{DEBUG};
+      print "\tt_end_remainder: $t_end_remainder \n" if $ENV{DEBUG};
+
+      if ( $q_end_remainder <= $remainder_cutoff && $t_start_remainder < $remainder_cutoff ) {
+	&_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
+      } elsif ( $t_end_remainder <= $remainder_cutoff && $q_start_remainder < $remainder_cutoff ) {
+	&_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
+      } elsif ( $q_start_remainder < $remainder_cutoff && $q_end_remainder <= $remainder_cutoff ) {
+	&_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
+      } elsif ( $t_start_remainder < $remainder_cutoff && $t_end_remainder <= $remainder_cutoff ) {
+	&_insert_hsp( $q_pseq_id, $t_pseq_id, $hsp, $swapme );
+      }
+    }
+  }
+  my $z = $u->upd_run_history($q_pseq_id,$opts{run_id});
+}
+print "stop: ",scalar(localtime),"\n";
+
+sub _insert_hsp {
+  my ($q_pseq_id, $t_pseq_id, $hsp, $swap ) = @_;
+
+  if ( $swap ) {
+    my $holder = $t_pseq_id;
+    $t_pseq_id = $q_pseq_id;
+    $q_pseq_id = $holder;
+  }
+  print "insert this hsp ( q_pseq_id: $q_pseq_id, t_pseq_id: $t_pseq_id, params_id=$opts{params_id} )\n" if $ENV{DEBUG};
+
+  # get the pmodel_id for this sequence
+  my $pmodel_id = $u->_get_pmodel_id_from_pseq_id($t_pseq_id);
+  if ( ! defined $pmodel_id ) {
+    throw Unison::Exception::RuntimeError( "Can't find pmodel_id for pseq_id=$t_pseq_id" );
+  }
+
+  try {
+    $u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap, $opts{params_id} );
+  } catch Unison::Exception with {
+    die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
+  };
+}
