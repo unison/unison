@@ -1,6 +1,7 @@
 create table pfnetphos (
 	   prob float NOT NULL,
-	   kinase text NOT NULL,
+	   kinase_id integer not null
+   			 references pfnetphos_kinase on delete cascade on update cascade,
 
 	   CONSTRAINT one_residue
 	      CHECK (start=stop),

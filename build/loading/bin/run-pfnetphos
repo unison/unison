@@ -74,7 +74,8 @@ foreach my $pseq_id ( @pseq_ids ) {
   try {
 	$u->begin_work();
 	for(my $i=0; $i<=$#results; $i++) {
-	  $ins_sth->execute( $pseq_id, $opts{params_id}, @{$results[$i]}[0,0,3,4] );
+		next if ( $results[$i][3]<0.5 );
+		$ins_sth->execute( $pseq_id, $opts{params_id}, @{$results[$i]}[0,0,3,4] );
 	}
 	my $ts = $u->upd_run_history($pseq_id,$opts{run_id},undef);
 	$u->commit();

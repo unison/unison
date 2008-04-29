@@ -13,7 +13,6 @@
 .SUFFIXES:
 .DELETE_ON_ERROR:
 
-export CVSROOT=/srv/cvs
 export GZIP:=
 DATE:=$(shell date +%Y%m%d)
 
@@ -22,7 +21,7 @@ export PGUSER:=postgres
 unexport PGDATABASE
 
 STAGE_DATABASE=csb-stage
-PG_SUDO:=sudo -u postgres env PERL5LIB=$PERL5LIB PATH=$PATH
+PG_SUDO:=sudo -u postgres env PERL5LIB=${PERL5LIB} PATH=${PATH}
 
 
 default all:
@@ -36,12 +35,13 @@ csb-pub-push csb-dev-pub-push: %-push:
 
 .PRECIOUS: %-pub.log
 %-pub.log: 
-	-dropdb $*-pub
-	createdb -EUTF8 -Ounison $*-pub
-	(time ${PG_SUDO} ../../tools/sbin/publicize $* | psql -d $*-pub -qa -f -) >$@.tmp 2>&1
+	( -dropdb $*-pub; \
+	createdb -EUTF8 -Ounison $*-pub; \
+	time ${PG_SUDO} ../../tools/sbin/publicize $* | psql -d $*-pub -qa -f -; \
+	psql -d '$*-pub' -c 'alter database "$*-pub" set search_path = "$$user",unison,pdb,gong,scop,tax,public'; \
+	psql -d '$*-pub' -c 'analyze verbose'; \
+	) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
-	psql -d '$*-pub' -c 'alter database "$*-pub" set search_path = "$$user",unison,pdb,gong,scop,tax,public'
-	psql -d '$*-pub' -c 'analyze verbose'
 
 # run as postgres
 .PRECIOUS: %.pgdfc
@@ -60,28 +60,28 @@ csb-pub-push csb-dev-pub-push: %-push:
 	/bin/mv -f "$@.tmp" "$@"
 
 
-
-# build a tarball of the web pages
-# NOTE: this rule must be before unison-%.tgz
-# should use 'cvs export'
-.PHONY: unison-web-%.tgz
-unison-web-%.tgz:
-	@RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
-	mkdir /tmp/release-$$$$; cd /tmp/release-$$$$; set -x; \
-	cvs co -r"$$RTAG" -d unison-web-$* unison-web \
-		&& tar --exclude CVS -czf ${PWD}/$@ unison-web-$*; \
-	rm -fr /tmp/release-$$$$
-
-
-# build a tarball of a specific release
-# should use 'cvs export'
-.PHONY: unison-%.tgz
-unison-%.tgz:
-	@RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
-	mkdir /tmp/release-$$$$; cd /tmp/release-$$$$; set -x; \
-	cvs co -r"$$RTAG" -d unison-$* unison \
-		&& tar --exclude CVS -czf ${PWD}/$@ unison-$*; \
-	rm -fr /tmp/release-$$$$
+### CVS INOP -- moved to svn
+### # build a tarball of the web pages
+### # NOTE: this rule must be before unison-%.tgz
+### # should use 'cvs export'
+### .PHONY: unison-web-%.tgz
+### unison-web-%.tgz:
+### 	@RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
+### 	mkdir /tmp/release-$$$$; cd /tmp/release-$$$$; set -x; \
+### 	cvs co -r"$$RTAG" -d unison-web-$* unison-web \
+### 		&& tar --exclude CVS -czf ${PWD}/$@ unison-web-$*; \
+### 	rm -fr /tmp/release-$$$$
+### 
+### 
+### # build a tarball of a specific release
+### # should use 'cvs export'
+### .PHONY: unison-%.tgz
+### unison-%.tgz:
+### 	@RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
+### 	mkdir /tmp/release-$$$$; cd /tmp/release-$$$$; set -x; \
+### 	cvs co -r"$$RTAG" -d unison-$* unison \
+### 		&& tar --exclude CVS -czf ${PWD}/$@ unison-$*; \
+### 	rm -fr /tmp/release-$$$$
 
 
 # cant use 'cvs export' because I don't tag the prerequisites
