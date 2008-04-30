@@ -14,7 +14,7 @@
   <tr>
 	<td valign="top">
 	  <span style="font-size: 150%; font-weight: bold;">Welcome to</span>
-	  <br><img src="av/logo5.png" alt="[Unison Logo]">
+	  <br><a class="nofeedback" href="index.html"><img src="av/logo5.png" alt="[Unison Logo]"></a>
 	  <br><i>integrated, precomputed proteomic predictions for rapid
 	  feature-based mining, sequence analysis, and hypothesis generation</i>
 	</td>
@@ -27,11 +27,11 @@
 	  <tr>
 	   <td class="quicklinks_title">info</td>
 	   <td class=quicklinks>
-	      <a href="index.html">home</a> 
-		| <a href="moreinfo.html">more info</a>
+	      <b>home</b> 
+		| <a href="more.html">more</a>
    <!-- | <a href="docs/index.html">docs</a> -->
-        | <a href="tour/index.html">tour</a>
-	    | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
+        | <a class="extlink" target="_blank" href="tour/index.html">tour</a>
+	    | <a href="shots.html">screenshots</a>
 	    | <a href="license.html">license</a>
 	    | <a href="credits.html">credits</a>
 	   </td>
@@ -40,16 +40,16 @@
 	  <tr>
 	   <td class="quicklinks_title">contacts</td>
 	   <td class=quicklinks>
-		  <a href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a>
-		| <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
+		  <a class="extlink" target="_blank" href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a>
+		| <a class="extlink" target="_blank" href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
 	  </tr>
 
 	  <tr>
 	   <td class="quicklinks_title">develop</td>
 	   <td class=quicklinks>
-		  <a href="http://sourceforge.net/projects/unison-db/">SourceForge</a>
-		| <a href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/trunk/">svn trunk</a>
-		| <a href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
+		  <a class="extlink" target="_blank" href="http://sourceforge.net/projects/unison-db/">SourceForge</a>
+		| <a class="extlink" target="_blank" href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/trunk/">brown svn trunk</a>
+		| <a class="extlink" target="_blank" href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
 	  </tr>
 
 	  <tr>
@@ -65,15 +65,26 @@
 <!-- quicklinks end -->
 
 
-<hr>
+<hr style="clear: both;">
 
-<p>
-Unison integrates many types of protein predictions to enable mining of
-sequences based on holistic protein feature criteria, synthesis of these
-predictions for the analysis of individual sequences, and refinement of
-hypotheses regarding the composition of protein families.
+<fieldset class="group" style="width: 40%; float: right;">
+<legend>
+Unison in a Nutshell
+</legend>
+Unison integrates many types of protein predictions to enable holistic
+mining of sequences based on protein features, synthesis of these
+predictions for the analysis of individual and sets of sequences, and
+refinement of hypotheses regarding the composition of protein families.
 
-<div style="position: relative; left: 20;">
+<div style="text-align:">
+<a href="moreinfo.html">
+<img width="100%" src="av/concept-graphic.jpg" alt="[Concept]">
+</a>
+<br><a href="moreinfo.html">Learn more about Unison.</a>
+</div>
+</fieldset>
+
+<div>
   <dl>
 	<dt><b>Analysis of an Individual Sequence</b>
 	  <dd>
@@ -100,18 +111,12 @@ hypotheses regarding the composition of protein families.
 		queries</a>.
 	  </dd>
 
-	  <br>
-
-	<dt><b>Learn more about Unison</b>
-	  <dd>Much more sophisticated queries are possible using the Perl API
-		and the PostgreSQL interactive SQL interpreter.  Please see
-		the <a href="tour/index.html">Unison tour</a> for real-life examples
-		and a demonstration of some of Unison's features.
-	  </dd>
   </dl>
 </div>
 
-<hr>
+
+<hr style="clear: both;">
+
 
 <table class="credits" width="100%">
   <tr>
@@ -141,7 +146,7 @@ hypotheses regarding the composition of protein families.
   </tr>
 </table>
 
-<hr>
+<hr style="clear: both;">
 
 <p>Please contact Reece Hart &lt;<a href="mailto:rkh@gene.com?Subject=Unison">rkh@gene.com</a>&gt; for more
 information.

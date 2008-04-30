@@ -9,7 +9,7 @@ default:
 
 #renav -- update the navigation banner in the web pages
 renav: FORCE
-	./bin/insert-quicklink-menu.pl credits.html index.html license.html moreinfo.html topnav.html
+	./bin/insert-quicklink-menu.pl credits.html index.html license.html more.html shots.html topnav.html
 
 #www-prep -- prepare a web directory for use
 #This is only needed when unison/www is the document root.

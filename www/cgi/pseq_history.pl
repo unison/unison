@@ -17,6 +17,9 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
+# TODO: add commandline to this query
+# (I didn't do this now because it would break with the currently staged db)
+# 2008-04-29 Reece Hart <reece@harts.net>
 my $sql =
 qq/select params,modelset,ran_on from run_history_v where pseq_id=$v->{pseq_id}/;
 my $ar;

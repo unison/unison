@@ -14,7 +14,7 @@
   <tr>
 	<td valign="top">
 	  <span style="font-size: 150%; font-weight: bold;">Welcome to</span>
-	  <br><img src="av/logo5.png" alt="[Unison Logo]">
+	  <br><a class="nofeedback" href="index.html"><img src="av/logo5.png" alt="[Unison Logo]"></a>
 	  <br><i>integrated, precomputed proteomic predictions for rapid
 	  feature-based mining, sequence analysis, and hypothesis generation</i>
 	</td>
@@ -28,10 +28,10 @@
 	   <td class="quicklinks_title">info</td>
 	   <td class=quicklinks>
 	      <a href="index.html">home</a> 
-		| <a href="moreinfo.html">more info</a>
+		| <b>more</b>
    <!-- | <a href="docs/index.html">docs</a> -->
-        | <a href="tour/index.html">tour</a>
-	    | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
+        | <a class="extlink" target="_blank" href="tour/index.html">tour</a>
+	    | <a href="shots.html">screenshots</a>
 	    | <a href="license.html">license</a>
 	    | <a href="credits.html">credits</a>
 	   </td>
@@ -40,16 +40,16 @@
 	  <tr>
 	   <td class="quicklinks_title">contacts</td>
 	   <td class=quicklinks>
-		  <a href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a>
-		| <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
+		  <a class="extlink" target="_blank" href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a>
+		| <a class="extlink" target="_blank" href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
 	  </tr>
 
 	  <tr>
 	   <td class="quicklinks_title">develop</td>
 	   <td class=quicklinks>
-		  <a href="http://sourceforge.net/projects/unison-db/">SourceForge</a>
-		| <a href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/trunk/">svn trunk</a>
-		| <a href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
+		  <a class="extlink" target="_blank" href="http://sourceforge.net/projects/unison-db/">SourceForge</a>
+		| <a class="extlink" target="_blank" href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/trunk/">brown svn trunk</a>
+		| <a class="extlink" target="_blank" href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
 	  </tr>
 
 	  <tr>
@@ -73,6 +73,26 @@
 <div style="text-align: center;"><img width="80%" src="av/concept-graphic.jpg" alt="[Concept]"></div>
 
 
+
+<hr style="clear: both;">
+
+<fieldset class="group" style="width: 40%; float: right;">
+<legend>
+Results Sliced to Order
+</legend>
+
+<a href="av/results-cube.jpg">
+<img style="width: 100%;" src="av/results-cube.jpg" alt="[Results Cube]">
+</a>
+
+<br>Results in Unison are stored in a sparse cube. The axes of the cube
+are 1) distinct sequences, 2) feature types/models, and 3) parameters.
+The elements of the cube store structured data appropriate for the
+prediction.
+
+</fieldset>
+
+
 <h2>Unison Goals</h2>
 
 Unison's primary goal is to decrease the challenges associated with asking
@@ -80,24 +100,28 @@ both simple and complex questions about protein function and structure.
 Unison was designed with three key functional goals in mind:
 
 <ul>
-  <li><b>Feature-based mining</b> Given a set of protein characteristics, identify
-	matching proteins.
+  <li><b>Sequence analysis</b>
+	<br>Given a sequence, provide a reliable, up-to-date source of
+	features.
 
-	<br>Example: <i>Identify Human proteins containing an immunoglobulin
-	(ig) domain, a transmembrane (TM) domain, and an intracellular
-	immunotyrosine inhibitory motif (ITIM), and whose mouse ortholog has
-	similar feature composition.</i>
+  <li><b>Feature-based mining</b>
+	<br>Given a set of protein characteristics, identify matching
+	proteins. This is the inverse of sequence analysis.
 
-  <li><b>Synthetic biology and hypothesis generation</b> Analyze the function of
-	a set of proteins in terms of their constituent features.
-	<br>Example: <i>Do ITIMs occur in the context of other extracellular
-	  domains in a set of putative immune signaling proteins?</i>
+	<br>Example: <i>Identify Human proteins that contain an immunoglobulin
+	(ig) domain by Pfam HMM or structure prediction, a transmembrane (TM)
+	domain, and an intracellular immunotyrosine inhibitory motif (ITIM),
+	in that order, and that have a mouse ortholog with similar feature
+	composition.</i>
 
-  <li><b>Sequence analysis</b>Provide a reliable, up-to-date source of
-	features for the analysis of single sequences.
-
+  <li><b>Hypothesis generation</b>
+	<br>Analyze the function of a set of proteins in terms of their
+	constituent features.
+	<br>Example: <i>In a set of putative immune signaling proteins, do
+	  ITIMs occur in the context of other extracellular domains?</i>
 </ul>
 
+<hr style="clear: both;">
 
 <h2>Unique Features of Unison</h2>
 
@@ -128,9 +152,12 @@ A few of Unison's distinguishing features are:
 	Proteins, NCBI HomoloGene, NCBI GeneRIF, the Protein Data Bank (PDB),
 	and others.
 
-  <li><b>Unison is completely free.</b> The database schema, tools, web pages,
-	and non-proprietary data are available for local installation. In
-	addition, the database and web interface are available for public access.
+  <li><b>Unison is freely available to use and download.</b>
+	<br>The database schema, tools, web pages, and non-proprietary data
+	are released under the Academic Free License,
+	an <a href="http://www.opensource.org/">OpenSource</a> (TM) approved
+	license.  The database and web interface are available for public
+	access (query times are limited).
 </ul>
 
 <div style="padding: 5px; margin-left: 20px; margin-right: 20px; border: thin solid
@@ -139,10 +166,19 @@ contains only public sequences and results of non-proprietary methods.
 The entire schema and loading tools are included with the public release;
 institutions may load these proprietary data if they wish.</div>
 
+<hr style="clear: both;">
+
+<h2>Take the Tour</h2>
+Much more sophisticated queries are possible using the Perl API
+and the PostgreSQL interactive SQL interpreter.  Please see
+the <a href="tour/index.html">Unison tour</a> for real-life examples
+and a demonstration of some of Unison's features.
+
+<hr style="clear: both;">
 
 <p><b>Contact</b>
 <p>Please <a
-href="mailto:reece@harts.net,rkh@gene.com?subject=Unison">email Reece
+href="mailto:reece@unison-db.org,rkh@gene.com?subject=Unison">email Reece
 Hart</a> with questions.
 
 

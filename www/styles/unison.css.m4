@@ -22,9 +22,12 @@ body {
 }
 
 img {
- border: none;
+ border: 0px;
 }
 
+hr {
+ clear: both;
+}
 
 a:hover {
  background: U_HIGHLIGHT_BG;
@@ -34,7 +37,6 @@ a.extlink {
   /* consider css2 :after pseudo-element instead */
  background: url(../av/extlink.gif) right center no-repeat;
  padding-right: 14px;
-  target: new-window;
 }
 
 a.nofeedback:hover {
@@ -101,7 +103,6 @@ div.nav li {
  background: U_NAV_BG;
  border: thin solid U_NAV_FRAME;
  -moz-border-radius: 3px;
- border-radius: 3px;
  color: U_NAV_FG;
 }
 div.nav li.selected { 
@@ -141,7 +142,9 @@ fieldset {
 }
 
 legend {
- border: thin solid U_LEGEND_FRAME;
+ border-color: U_LEGEND_FRAME;
+  border-style: solid;
+  border-width: 0px medium 0px medium;
  background: U_LEGEND_BG;
  color: U_LEGEND_FG;
  font-weight: bold;
@@ -151,7 +154,6 @@ legend {
 span.group_ctl {
  background: U_BG;
  color: U_FRAME;
-
 }
 
 
@@ -193,6 +195,27 @@ table.summary td {
 
 
 
+/* (screen)shots */
+table.shots {
+ width: 60%;
+  /* center table with margin-left == margin-right */
+  margin-left: auto;
+  margin-right: auto;
+}
+table.shots th {
+ width: 20%;
+  vertical-align: middle;
+ border: thin solid U_FRAME;
+}
+table.shots td {
+  vertical-align: middle;
+  font-weight: bold;
+ border: thin solid U_FRAME;
+}
+table.shots th img {
+ width: 100%;
+}
+
 
 /* Quick Links */
 table.quicklinks {
@@ -208,7 +231,6 @@ td.quicklinks_title {
 }
 td.quicklinks {
  border:  thin solid U_NAV_FG;
- color: U_NAV_FG;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
@@ -217,7 +239,7 @@ td.quicklinks {
 
 /* credits */
 table.credits {
- border: U_FRAME thin solid;
+ border: none; /* U_FRAME thin solid; */
 }
 table.credits th {
  border: U_FRAME thin solid;
@@ -276,7 +298,7 @@ table.uwtable th {
 table.uwtable td {
   border-color: U_UWTABLE_TD_FRAME;
   color:  U_UWTABLE_TD_FG;
-  white-space: wrap;
+  white-space: normal;
 }
 table.uwtable .highlighted, table.uwtable .highlighted td {
  border-color: U_UWTABLE_HIGHLIGHT_FRAME;
@@ -345,8 +367,8 @@ span.tooltip {
  color: U_TOOLTIP_FG;
  font-weight: bold;
  font-size: smaller;
- padding: none;
- margin: none;
+ padding: 0px;
+ margin: 0px;
 }
 
 span.tooltip:hover {
@@ -393,7 +415,7 @@ dt {
 }
 dd {
  margin-right: 50px;
- font-size: smaller;
+  /*font-size: smaller; */
 }
 
 /* miscellany */
