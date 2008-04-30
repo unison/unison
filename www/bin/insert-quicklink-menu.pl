@@ -22,6 +22,7 @@ while ( my $fn = shift ) {
     close(F);
 
     my $my_ql_table = $ql_table;
+	$my_ql_table =~ s%<a href="$fn">(.+?)</a>%<b>$1</b>%;
     $html =~
       s/$ql_start_tag.*$ql_end_tag/$ql_start_tag$my_ql_table$ql_end_tag/s;
     if ( not $& ) {
@@ -49,7 +50,7 @@ __DATA__
   <tr>
 	<td valign="top">
 	  <span style="font-size: 150%; font-weight: bold;">Welcome to</span>
-	  <br><img src="av/logo5.png" alt="[Unison Logo]">
+	  <br><a class="nofeedback" href="index.html"><img src="av/logo5.png" alt="[Unison Logo]"></a>
 	  <br><i>integrated, precomputed proteomic predictions for rapid
 	  feature-based mining, sequence analysis, and hypothesis generation</i>
 	</td>
@@ -63,10 +64,10 @@ __DATA__
 	   <td class="quicklinks_title">info</td>
 	   <td class=quicklinks>
 	      <a href="index.html">home</a> 
-		| <a href="moreinfo.html">more info</a>
+		| <a href="more.html">more</a>
    <!-- | <a href="docs/index.html">docs</a> -->
-        | <a href="tour/index.html">tour</a>
-	    | <a href="http://sourceforge.net/project/screenshots.php?group_id=140591">screenshots</a>
+        | <a class="extlink" target="_blank" href="tour/index.html">tour</a>
+	    | <a href="shots.html">screenshots</a>
 	    | <a href="license.html">license</a>
 	    | <a href="credits.html">credits</a>
 	   </td>
@@ -75,16 +76,16 @@ __DATA__
 	  <tr>
 	   <td class="quicklinks_title">contacts</td>
 	   <td class=quicklinks>
-		  <a href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a>
-		| <a href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
+		  <a class="extlink" target="_blank" href="http://sourceforge.net/tracker/?atid=759616&amp;group_id=140591&amp;func=browse">issue tracker</a>
+		| <a class="extlink" target="_blank" href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">announcment mailing list</a></td>
 	  </tr>
 
 	  <tr>
 	   <td class="quicklinks_title">develop</td>
 	   <td class=quicklinks>
-		  <a href="http://sourceforge.net/projects/unison-db/">SourceForge</a>
-		| <a href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/trunk/">svn trunk</a>
-		| <a href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
+		  <a class="extlink" target="_blank" href="http://sourceforge.net/projects/unison-db/">SourceForge</a>
+		| <a class="extlink" target="_blank" href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/trunk/">brown svn trunk</a>
+		| <a class="extlink" target="_blank" href="http://sourceforge.net/project/showfiles.php?group_id=140591">download code &amp; data</a></td>
 	  </tr>
 
 	  <tr>

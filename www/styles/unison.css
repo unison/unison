@@ -97,9 +97,12 @@ body {
 }
 
 img {
- border: none;
+ border: 0px;
 }
 
+hr {
+ clear: both;
+}
 
 a:hover {
  background: #FFD980;
@@ -109,7 +112,6 @@ a.extlink {
   /* consider css2 :after pseudo-element instead */
  background: url(../av/extlink.gif) right center no-repeat;
  padding-right: 14px;
-  target: new-window;
 }
 
 a.nofeedback:hover {
@@ -176,7 +178,6 @@ div.nav li {
  background: white;
  border: thin solid #6D6DBF;
  -moz-border-radius: 3px;
- border-radius: 3px;
  color: #6D6DBF;
 }
 div.nav li.selected { 
@@ -216,7 +217,9 @@ fieldset {
 }
 
 legend {
- border: thin solid #6D6DBF;
+ border-color: #6D6DBF;
+  border-style: solid;
+  border-width: 0px medium 0px medium;
  background: #C8C8FF;
  color: black;
  font-weight: bold;
@@ -226,7 +229,6 @@ legend {
 span.group_ctl {
  background: white;
  color: #6D6DBF;
-
 }
 
 
@@ -268,6 +270,27 @@ table.summary td {
 
 
 
+/* (screen)shots */
+table.shots {
+ width: 60%;
+  /* center table with margin-left == margin-right */
+  margin-left: auto;
+  margin-right: auto;
+}
+table.shots th {
+ width: 20%;
+  vertical-align: middle;
+ border: thin solid #6D6DBF;
+}
+table.shots td {
+  vertical-align: middle;
+  font-weight: bold;
+ border: thin solid #6D6DBF;
+}
+table.shots th img {
+ width: 100%;
+}
+
 
 /* Quick Links */
 table.quicklinks {
@@ -283,7 +306,6 @@ td.quicklinks_title {
 }
 td.quicklinks {
  border:  thin solid #6D6DBF;
- color: #6D6DBF;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
@@ -292,7 +314,7 @@ td.quicklinks {
 
 /* credits */
 table.credits {
- border: #6D6DBF thin solid;
+ border: none; /* #6D6DBF thin solid; */
 }
 table.credits th {
  border: #6D6DBF thin solid;
@@ -351,7 +373,7 @@ table.uwtable th {
 table.uwtable td {
   border-color: #73BF60;
   color:  black;
-  white-space: wrap;
+  white-space: normal;
 }
 table.uwtable .highlighted, table.uwtable .highlighted td {
  border-color: #73BF60;
@@ -420,8 +442,8 @@ span.tooltip {
  color: black;
  font-weight: bold;
  font-size: smaller;
- padding: none;
- margin: none;
+ padding: 0px;
+ margin: 0px;
 }
 
 span.tooltip:hover {
@@ -468,7 +490,7 @@ dt {
 }
 dd {
  margin-right: 50px;
- font-size: smaller;
+  /*font-size: smaller; */
 }
 
 /* miscellany */
