@@ -1,0 +1,8 @@
+IMPORTANT
+
+Unison used to require a simple server-side function in C to canonicalize
+("clean") sequences.  Perl couldn't be used because the s/// opcode was
+restricted (required plperlu).  s/// is now available in plperl and the
+server-side C code is obsolete. Yea!
+
+-2008-04-29 Reece Hart <reece@harts.net>
