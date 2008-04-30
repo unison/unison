@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
         "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
 <head>
-<title>Unison Protein Database</title>
+<title>Unison: Unison in Depth</title>
 <link rel="shortcut icon" href="av/favicon.png">
 <link rel="stylesheet" type="text/css" href="styles/unison.css">
 </head>
@@ -31,8 +31,8 @@
 	   <td>
 	      <a href="index.html">home</a>
 		| <a href="more.html">more</a>
-	    | <a href="shots.html">screenshots</a>
-	    | <b>license</b>
+	    | <b>screenshots</b>
+	    | <a href="license.html">license</a>
 	    | <a href="credits.html">credits</a>
 	   </td>
 	  </tr>
@@ -73,15 +73,71 @@
 
 <hr>
 
-Unison is release under the <a
-href="http://opensource.org/licenses/afl-2.1.php">Academic Free License
-v2.1</a>.  The text of the license is show below.
+<h1>Unison Screenshots</h1>
 
-<p>
+<table class="shots">
 
-<iframe height="500" width="100%" frameborder=1 src="LICENSE">
-</iframe>
+<tr>
+  <th><a href="av/ss-summary.png"><img src="av/ss-summary.png"></a></th>
+  <td>The Unison summary page for a specified sequence.</td>
+</tr>
+
+<tr>
+  <th><a href="av/ss-aliases.png"><img src="av/ss-aliases.png"></a></th>
+  <td>Aliases are the identifiers and accessions by which a sequence is
+  known. Most sequences appear in multiple databases (sometimes multiple
+  times), but they're stored non-redundantly in Unison. This page shows
+  all of the aliases for a given sequence.</td>
+</tr>
+
+<tr>
+  <th><a href="av/ss-patents.png"><img src="av/ss-patents.png"></a></th>
+  <td>Sequences from NCBI's patent database within a user-specifiable
+  neighborhood of a query. Derwent Geneseq sequences will also be shown if
+  available, but these are not included in the public release.
+  </td>
+</tr>
+
+<tr>
+  <th><a href="av/ss-loci.png"><img src="av/ss-loci.png"></a></th>
+  <td>Most human sequences are aligned to the Human Genome
+  using <a href="http://share.gene.com">pmap</a> (Tom Wu, Colin Watanabe).
+  This page summarizes those alignments.
+</td>
+</tr>
+
+<tr>
+  <th><a href="av/ss-functions.png"><img src="av/ss-functions.png"></a></th>
+  <td>GO and NCBI GeneRIFs (References into Function)</td>
+</tr>
+
+<tr>
+  <th><a href="av/ss-features.png"><img src="av/ss-features.png"></a></th>
+  <td>All predicted sequence features on one panel. Mouseovers on features
+  provide a digest of the feature, and most features provide links to
+  models or source data.</td>
+</tr>
+
+<tr>
+  <th><a href="av/ss-structure.png"><img src="av/ss-structure.png"></a></th>
+  <td>Structure and domain visualization using JMol. Domains, SNPs, and
+  other features stored in Unison may be selected and displayed on
+  structure.  This page also supports the display of features that are
+  specified by URL query arguments.
+ </td>
+</tr>
+
+</table>
+
+
+
+<hr>
+
+<p><b>Contact</b>
+<p>Please <a
+href="mailto:reece@unison-db.org,rkh@gene.com?subject=Unison">email Reece
+Hart</a> with questions.
+
 
 </body>
-
 </html>

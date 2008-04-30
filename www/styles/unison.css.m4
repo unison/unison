@@ -158,6 +158,7 @@ span.group_ctl {
 
 
 
+/* Summary table */
 table.summary {
  width: 100%;
  background: U_BG;
@@ -194,6 +195,19 @@ table.summary td {
 }
 
 
+/* Quick Links */
+table.quicklinks th, table.quicklinks td {
+ border:  thin solid U_NAV_FG;
+ padding-left: 2px;
+ padding-right: 2px;
+ white-space: nowrap;
+}
+table.quicklinks th {
+ background: U_NAV_FG;
+ color: U_NAV_BG;
+ font-style: italic; 
+}
+
 
 /* (screen)shots */
 table.shots {
@@ -214,26 +228,6 @@ table.shots td {
 }
 table.shots th img {
  width: 100%;
-}
-
-
-/* Quick Links */
-table.quicklinks {
-  /* border:  U_FRAME thin solid; */
-}
-td.quicklinks_title {
- background: U_NAV_FG;
- color: U_NAV_BG;
- padding-left: 2px;
- padding-right: 2px;
- white-space: nowrap;
- font-style: italic; 
-}
-td.quicklinks {
- border:  thin solid U_NAV_FG;
- padding-left: 2px;
- padding-right: 2px;
- white-space: nowrap;
 }
 
 

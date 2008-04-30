@@ -233,6 +233,7 @@ span.group_ctl {
 
 
 
+/* Summary table */
 table.summary {
  width: 100%;
  background: white;
@@ -269,6 +270,19 @@ table.summary td {
 }
 
 
+/* Quick Links */
+table.quicklinks th, table.quicklinks td {
+ border:  thin solid #6D6DBF;
+ padding-left: 2px;
+ padding-right: 2px;
+ white-space: nowrap;
+}
+table.quicklinks th {
+ background: #6D6DBF;
+ color: white;
+ font-style: italic; 
+}
+
 
 /* (screen)shots */
 table.shots {
@@ -289,26 +303,6 @@ table.shots td {
 }
 table.shots th img {
  width: 100%;
-}
-
-
-/* Quick Links */
-table.quicklinks {
-  /* border:  #6D6DBF thin solid; */
-}
-td.quicklinks_title {
- background: #6D6DBF;
- color: white;
- padding-left: 2px;
- padding-right: 2px;
- white-space: nowrap;
- font-style: italic; 
-}
-td.quicklinks {
- border:  thin solid #6D6DBF;
- padding-left: 2px;
- padding-right: 2px;
- white-space: nowrap;
 }
 
 
