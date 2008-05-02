@@ -22,14 +22,13 @@ my $v = $p->Vars();
 my @ps = $u->get_params_info_by_pftype('pmap');
 $v->{params_id} = $ps[0]->[0] unless ( defined $v->{params_id} );
 
-## BUG: the genasm_id isn't passed to the Unison or geode views.
+# BUG: the genasm_id isn't passed to the Unison or geode views.
 # genasm_id=2 (NHGD 35) because that's all geode supports and I don't want
 # to show incorrect coords. This needs a better solution.
 
-# FEATURE: should add inline frame with <div> and
-# javascript frame updates. Consider new cgi class for
-# embeddable features, e.g., embed_genome_features.pl
-# which returns just the graphic and image map.
+# TODO: should add inline frame with <div> and javascript frame
+# updates. Consider new cgi class for embeddable features, e.g.,
+# embed_genome_features.pl which returns just the graphic and image map.
 
 my $sql = <<EOSQL;
 SELECT params_id,pstart,pstop,pct_ident,pct_cov,L.genasm_id,G.tax_id,T.latin,G.name as genome_name,chr,strand,gstart,gstop
@@ -41,7 +40,7 @@ ORDER BY tax_id,genasm_id,chr
 EOSQL
 
 my @cols = (
-    'pstart-pstop', '% ident', '% cov', 'species',
+    'protein start-stop', '% identity', '% coverage', 'species',
     'genome name',  'locus',   'inset'
 );    #, 'links' );
 
@@ -52,10 +51,10 @@ try {
 
     while ( my $r = $sth->fetchrow_hashref() ) {
         my (%row_data) = map { $_ => '' } @cols;
-        $row_data{'pstart-pstop'} =
+        $row_data{'protein start-stop'} =
           sprintf( '%d-%d', $r->{pstart}, $r->{pstop} );
-        $row_data{'% ident'}     = $r->{pct_ident};
-        $row_data{'% cov'}       = $r->{pct_cov};
+        $row_data{'% identity'}     = $r->{pct_ident};
+        $row_data{'% coverage'}       = $r->{pct_cov};
         $row_data{'species'}     = $r->{latin};
         $row_data{'genome name'} = $r->{genome_name};
         $row_data{'locus'}       = sprintf( '%s%s:%d-%d',
