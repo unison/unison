@@ -125,7 +125,9 @@ chmod 777
 
 * jmol 11 support
 
-
+* start,stop integer -> 2 byte smallint w/offset
+This must be done everywhere, but is most relevant for small tables to
+make row sizes smaller. The effect of this should be assessed.
 
 
 

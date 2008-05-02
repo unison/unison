@@ -196,8 +196,11 @@ table.summary td {
 
 
 /* Quick Links */
+table.quicklinks {
+  border-collapse: collapse;
+}
 table.quicklinks th, table.quicklinks td {
- border:  thin solid U_NAV_FG;
+  border: U_NAV_FG thin solid;
  padding-left: 2px;
  padding-right: 2px;
  white-space: nowrap;
@@ -245,6 +248,8 @@ table.credits td {
 }
 
 
+/* Gene Ontology table (used for nice spacing) */
+/* (a ul or dl might be more natural) */
 table.go {
   border-collapse: collapse;
 }
@@ -266,7 +271,10 @@ table.go td {
  padding: 1px;
 }
 
+
+/* uwtable (e.g., commonly inside the group fieldset) */
 table.uwtable {
+ width: 100%;
  background: U_UWTABLE_BG;
  border: none;
   border-collapse: collapse;
