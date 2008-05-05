@@ -13,6 +13,7 @@ our @EXPORT_OK = qw(
 					 coalesce pdbc_rcsb_link
 					 ncbi_gene_link ncbi_refseq_link
 					 maprofile_link genengenes_link
+					 pfam_link
 				  );
 
 our @EXPORT = ();
@@ -85,6 +86,12 @@ sub alias_ghlink {
 		  $_[1]||$_[0]);
 }
 
+sub pfam_link {
+  return unless defined $_[0];
+  extlink("http://pfam.janelia.org/family?id=$_[0]>",
+		  $_[1]||$_[0]);
+}
+
 sub alias_splink {
   return unless defined $_[0];
   extlink('http://us.expasy.org/cgi-bin/niceprot.pl?'.$_[0],
@@ -107,10 +114,9 @@ sub alias_mint_link {
   "<a class=\"extlink\" target=\"_blank\" href=\"http://mint.bio.uniroma2.it/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
 }
 
-sub alias_pubmed_link {
+sub alias_mint_link {
   return unless defined $_[0];
-  extlink('http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids='.$_[0],
-		  $_[1]||$_[0]);
+  "<a class=\"extlink\" target=\"_blank\" href=\"http://mint.bio.uniroma2.it/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
 }
 
 sub maprofile_link {
@@ -149,8 +155,12 @@ sub pseq_summary_link {
 	return "<a href=\"pseq_summary.pl?pseq_id=$pseq_id\">$tag</a>";
 }
 
+# use hashes here (and, really, probably everywhere)
 sub extlink {
-  sprintf('<a class="extlink" target="_blank" href="%s">%s</a>', @_);
+  sprintf('<a class="extlink" %s target="_blank" href="%s">%s</a>', 
+		 (defined $_[2] ? 'tooltip='.$_[2] : ''),
+		  @_[0,1]
+		 );
 }
 
 

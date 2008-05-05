@@ -12,15 +12,23 @@ use Unison::pmodelset;
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
+use Unison::WWW::utilities qw(pfam_link);
 use Data::Dumper;
 
 sub _fetch($);
+
+my $align_elem_name = 'emb_hmm_alignment';
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
 $p->ensure_required_params(qw(pseq_id));
+
+
+$v->{enable_alignment} = not $p->is_public_instance();
+$v->{enable_align_checked} = 0;				# BROKEN!
+
 
 try {
     my @ps = $u->get_params_info_by_pftype('hmm');
@@ -41,22 +49,6 @@ try {
 
     my ( $cref, $rref, $sql ) = _fetch($p);
 
-    my $js = <<EOJS;
-<script type="text/javascript" language="javascript">
-function update_emb_hmm_alignment(pseq_id, params_id, pmodelset_id, acc) {
-var emb_elem = document.getElementById('emb_hmm_alignment');
-if (emb_elem) {
-  var emb_url = 'emb_hmm_alignment.pl?';
-  emb_url += 'pseq_id='+pseq_id;
-  emb_url += ';params_id='+params_id;
-  emb_url += ';pmodelset_id='+pmodelset_id;
-  emb_url += ';profiles='+acc;
-  emb_elem.setAttribute('src', emb_url);
-  emb_elem.style.display = 'block';
-  }
-}
-</script>
-EOJS
 
     print $p->render(
 					 "HMM alignments for Unison:$v->{pseq_id}",
@@ -64,7 +56,7 @@ EOJS
 
 					 '<!-- parameters -->',
 					 $p->start_form( -method => 'GET' ),
-					 $js,
+					 _javascript(),			# see below
 					 $p->hidden( 'pseq_id', $v->{pseq_id} ),
 					 '<br>parameters: ',
 					 $p->popup_menu(
@@ -92,21 +84,30 @@ EOJS
 							   'HMM alignments',
 							   Unison::WWW::Table::render( $cref, $rref ),
 
-# Akk! group creates a form. Nested forms are not allowed. The checkboxes
-# are trapped inside the group's form, inaccessible to a form outside of it.
-# Solution: group needs to be reworked to not create a form, perhaps optionally
-# Until then, dynamic HMM alignments are disabled.
-#							   ( not $p->is_public() ? '' :
-#								 '<!-- HMM profile alignment -->',
-#								 $p->start_form( -action => 'hmm_alignment.pl', -method => "GET" ),
-#								 $p->hidden( 'pseq_id',      $v->{pseq_id} ),
-#								 $p->hidden( 'params_id',    $v->{params_id} ),
-#								 $p->hidden( 'pmodelset_id', $v->{pmodelset_id} ),
-#								 $p->submit( -value => 'align checked' ),
-#								 '<p><iframe style="display: none" id="emb_hmm_alignment" width="100%" height="300px" scrolling="yes">',
-#								 'Sorry. I cannot display alignments because your browser does not support iframes.','</iframe>'
-#							   )
-							  ),
+							   ( $v->{enable_align_checked} ?
+								 (
+								  '<!-- HMM profile alignment -->',
+								  $p->start_form( -action => 'hmm_alignment.pl', -method => "GET" ),
+								  $p->hidden( 'pseq_id',      $v->{pseq_id} ),
+								  $p->hidden( 'params_id',    $v->{params_id} ),
+								  $p->hidden( 'pmodelset_id', $v->{pmodelset_id} ),
+								  $p->submit( -value => 'align checked' ),
+								  $p->end_form(),
+								 )
+								 : ''
+							   ),
+
+							   ( $v->{enable_alignment}
+								 ? ( 
+									"<p><iframe style=\"display: none\" id=\"$align_elem_name\" width=\"100%\" height=\"300px\" scrolling=\"yes\">",
+									'Sorry. I cannot display alignments because your browser does not support iframes.',
+									'</iframe>'
+								   )
+								 : ''
+							   ),
+
+							  ),			# end group
+					 "\n",
 
 					 '<!-- sql -->',
 					 $p->sql($sql)
@@ -117,6 +118,28 @@ catch Unison::Exception with {
 };
 
 exit(0);
+
+
+
+sub _javascript {
+    return <<EOJS;
+<script type="text/javascript" language="javascript">
+function update_emb_hmm_alignment(pseq_id, params_id, pmodelset_id, acc) {
+var emb_elem = document.getElementById('$align_elem_name');
+if (emb_elem) {
+  var emb_url = 'emb_hmm_alignment.pl?';
+  emb_url += 'pseq_id='+pseq_id;
+  emb_url += ';params_id='+params_id;
+  emb_url += ';pmodelset_id='+pmodelset_id;
+  emb_url += ';profiles='+acc;
+  emb_elem.setAttribute('src', emb_url);
+  emb_elem.style.display = 'block';
+  }
+}
+</script>
+EOJS
+  }
+
 
 sub _fetch($) {
     my $p = shift;
@@ -132,39 +155,38 @@ EOSQL
     my $ar  = $sth->execute();
 
     my @cols =
-      ( 'name', 'start-stop', 'mstart-mstop', 'ends', 'score', 'eval' );
-# See forms discussion above
-#    if ( not $p->is_public_instance() ) {
-#        unshift( @cols, 'align' );
-#    }
+      ( 'name', 'descr', 'start-stop', 'mstart-mstop', 'ends', 'score', 'eval' );
+    if ( $v->{enable_alignment} ) {
+        unshift( @cols, 'align' );
+    }
     my @rows;
 
     while ( my $r = $sth->fetchrow_hashref() ) {
-        my $name =
-          sprintf(
-'<a class="extlink" tooltip="%s" href="http://pfam.janelia.org/family?id=%s">%s (%s)</a>',
-            $r->{descr}, $r->{name}, $r->{name}, $r->{acc} );
         my @row;
 
-# See forms discussion above
-#        if ( not $p->is_public_instance() ) {
-#		  my $ckbox =
-#			"<input type=\"checkbox\" name=\"profiles\" value=\"$r->{name}\">";
-#		  my $aln = sprintf(
-#							'<a href="javascript:update_emb_hmm_alignment(%d,%d,%d,\'%s\')">show</a>',
-#							$v->{pseq_id},      $v->{params_id},
-#							$v->{pmodelset_id}, $r->{name}
-#						   );
-#		  push( @row, "$ckbox &nbsp; &nbsp; $aln" );
-#        }
+        if ( $v->{enable_alignment} ) {
+		  my @td;
+		  if ( $v->{enable_align_checked} ) {
+			push(@td, "<input type=\"checkbox\" name=\"profiles\" value=\"$r->{name}\">");
+		  }
+		  push(@td,
+			   sprintf('<a href="javascript:update_emb_hmm_alignment(%d,%d,%d,\'%s\')">show</a>',
+					   $v->{pseq_id},      $v->{params_id},
+					   $v->{pmodelset_id}, $r->{name}
+					  )
+			  );
+		  push( @row, join('&nbsp;',@td) );
+        }
 
         push( @row,
-            $name,
-            sprintf( "%d-%d", $r->{start},  $r->{stop} ),
-            sprintf( "%d-%d", $r->{mstart}, $r->{mstop} ),
-            $r->{ends},
-            $r->{score},
-            $r->{eval} );
+			  pfam_link($r->{acc}, "$r->{name} ($r->{acc})"),
+			  $r->{descr},
+			  sprintf( "%d-%d", $r->{start},  $r->{stop} ),
+			  sprintf( "%d-%d", $r->{mstart}, $r->{mstop} ),
+			  $r->{ends},
+			  $r->{score},
+			  $r->{eval}
+			);
 
         push( @rows, \@row );
     }
