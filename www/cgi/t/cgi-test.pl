@@ -124,6 +124,8 @@ my @cgi_scripts = (
         "pseq_id=98 userfeatures=Estrand\@164-174,mysnp\@170 highlight=user:Estrand:green,user:mysnp:cyan,HMM:TNF:blue"
     ],
     [ '../pseq_summary.pl', "pseq_id=$pseq_id" ],
+    [ '../pseq_functions.pl', "pseq_id=$pseq_id" ],
+    [ '../pseq_homologs.pl', "pseq_id=$pseq_id" ],
     [ '../search_alias.pl', "alias=EGFR_HUMAN" ],
     [   '../search_properties.pl',
         "o_sel=RefSeq r_species=on r_species_sel=9606 r_age_sel=30d r_len=on r_len_min=100 r_len_max=400 r_sigp=on r_sigp_sel=0.6 al_hmm_eval=1e-10 al_pssm_eval=1e-10 al_prospect=on al_prospect_svm=9 al_prospect_params_id=1 al_ms_sel=2 al_go_sel=5164 x_set_sel=5 submit=submit"

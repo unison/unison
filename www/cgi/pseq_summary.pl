@@ -194,7 +194,7 @@ sub summary_group ($) {
 					 '<tr><th><div>Predicted Domains</div></th> <td>',
 					 'Domain Digest: ', $domain_digest,
 					 '<br>','Phosphorylation sites (pos;probability): ', $netphos_digest,
-					 features_graphic($p),
+					 '<br>',features_graphic($p),
 					  '<span class="note">'
 					  . sprintf('See the <a href="pseq_features.pl?pseq_id=%d">Features</a> tab for additional sequence features.',
 								$v->{pseq_id})
