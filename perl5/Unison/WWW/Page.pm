@@ -1253,7 +1253,7 @@ sub _navbar {
 		 'pseq_blast.pl', $pseq_id
 		],
 		[
-		 1, 0, 'Prospect', 'Prospect threadings',
+		 0, 0, 'Prospect', 'Prospect threadings',
 		 'pseq_paprospect.pl', $pseq_id
 		],
 		[
