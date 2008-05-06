@@ -114,9 +114,10 @@ sub alias_mint_link {
   "<a class=\"extlink\" target=\"_blank\" href=\"http://mint.bio.uniroma2.it/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
 }
 
-sub alias_mint_link {
-  return unless defined $_[0];
-  "<a class=\"extlink\" target=\"_blank\" href=\"http://mint.bio.uniroma2.it/mint/search/window0.php?swisstrembl_ac=$_[0]\">$_[0]</a>";
+sub alias_pubmed_link {
+    return unless defined $_[0];
+    extlink('http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids='.$_[0],
+	    $_[1]||$_[0]);
 }
 
 sub maprofile_link {
