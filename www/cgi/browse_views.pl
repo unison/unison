@@ -14,6 +14,7 @@ use Unison::WWW;
 use Unison::WWW::Page;
 use Unison::WWW::Table;
 use Unison::Exceptions;
+use Unison::WWW::utilities qw(maprofile_link);
 
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
