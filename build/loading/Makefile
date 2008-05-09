@@ -71,7 +71,7 @@ pseq_gene_mv.log: aux.log
 # dependencies elsewhere.
 
 COMPUTE_DIRS:=
-COMPUTE_DIRS+=pfantigenic pfbigpi pfnetphos pfpepcoil pfpsipred pfregexp \
+COMPUTE_DIRS+=pfbigpi pfnetphos pfpepcoil pfpsipred pfregexp \
 	pfseg pfsignalp pftmhmm
 # TODO: pfsigcleave?
 COMPUTE_DIRS+=pahmm papseq #paprospect
