@@ -8,7 +8,7 @@ PMAP_RUN_ID:=`${PSQL_DCMD} "select preferred_run_id_by_pftype('PMAP')"`
 
 RUNSET=runC-human
 
-PATH:=/gne/research/apps/gmap/current/x86_64-linux-2.6/bin:${PATH}
+PATH:=/gne/research/apps/gmap/gmap-2006-12-08/x86_64-linux-2.6/bin:${PATH}
 SHELL=bash
 CMDLINE:=$(shell ${PSQL_DCMD} "select replace(p.commandline,'%s','') from params p join run r on r.params_id=p.params_id where r.run_id=${PMAP_RUN_ID}")
 QPPN:=2
