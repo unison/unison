@@ -15,3 +15,4 @@
 logs
 qsub
 run[ABC]-*
+tmp

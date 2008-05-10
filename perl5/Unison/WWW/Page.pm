@@ -218,21 +218,21 @@ yet.
 =cut
 
 sub tempfile {
-    my $self = shift;
-    $self->_make_temp_dir();    # no return if failure
-    my %opts = (                # order is important:
-        UNLINK => 0,            # - items before @_ are defaults
-        @_,                     # - items after @_ override any
-        DIR => $self->{tmpdir}  #   calling arguments
-    );
+  my $self = shift;
+  $self->_make_temp_dir();					# no return if failure
+  my %opts = (								# order is important:
+			  UNLINK => 0,				  # - items before @_ are defaults
+			  @_,						   # - items after @_ override any
+			  DIR => $self->{tmp_droot_path} #   calling arguments
+			 );
 
-    if ( my ( $fh, $fn ) = File::Temp::tempfile(%opts) ) {
-        my ($urn) = $fn =~ m/^$self->{tmproot}(\/.+)/;
-        $urn = $fn unless defined $urn;    # command-line
-        return ( $fh, $fn, $urn );
-    }
+  if ( my ( $fh, $fn ) = File::Temp::tempfile(%opts) ) {
+	my $urn = $fn;
+	$urn =~ s/^$self->{tmp_droot_path}/$self->{tmp_droot_urn}/;
+	return ( $fh, $fn, $urn );
+  }
 
-    return undef;
+  return undef;
 }
 
 ######################################################################
@@ -1523,52 +1523,66 @@ EOHTML
 }
 
 sub _make_temp_dir () {
+  # It's fairly difficult to establish a temporary directory that works
+  # with command line testing, with various document roots, and behind
+  # proxies. The key is to establish a reliable mapping between a url and
+  # a filesystem path.  This function builds that mapping.
+  #
+  # http://ddd/eee/cccc/tmp/date/   ->   /aaaa/bbbb/cccc/tmp/date/
+  #       |- tmp_root_urn |              |- tmp_root_path -|
+  #       |- tmp_droot_urn ----|         |- tmp_droot_path -----|
 
-    # set the temporary file directory and ensure that it exists
-    # tmp files will be created in DOCUMENT_ROOT/tmp/<date> if called
-    # as a CGI, or in /tmp/ if run on the command line
-    # sets: $self->{tmproot} as the root of the tmp directory
-    # 		(either /tmp/ or DOCUMENT_ROOT/tmp/)
-    #       $self->{tmpuri} as the URI-portion of the temporary file
-    #         directory which may be used in URLs
-    #       $self->{tmpdir} is the full local path of the actual location of
-    #       temporary files
+  my $self = shift;
 
-    my $self = shift;
+  return if exists $self->{tmp_root_urn};	# been here before
 
-    return if exists $self->{tmpdir};    # been here before
+  if (defined $ENV{SCRIPT_FILENAME}) {
+	# in web env
+	($self->{tmp_root_path} = $ENV{SCRIPT_FILENAME}) =~ s%/cgi/.+%/tmp%;
+	($self->{tmp_root_urn}  = $ENV{SCRIPT_NAME})     =~ s%/cgi/.+%/tmp%;
+  } else {
+	# command line
+	$self->{tmp_root_path} = '/tmp';
+	$self->{tmp_root_urn} = '/tmp';
+  }
 
-    my @lt = localtime();
-    my $date = sprintf( "%4d-%02d-%02d", $lt[5] + 1900, $lt[4] + 1, $lt[3] );
-    $self->{tmproot} = defined $ENV{DOCUMENT_ROOT} ? $ENV{DOCUMENT_ROOT} : '/';
-    $self->{tmpuri}  = "tmp/$date";
-    $self->{tmpdir}  = "$self->{tmproot}/$self->{tmpuri}";
+  if ( not -d $self->{tmp_root_path} ) {
+	mkdir( $self->{tmp_root_path} )
+	  || $self->die("mkdir($self->{tmp_root_path}): $!\n");
+  }
 
-    if ( not -d $self->{tmpdir} ) {
-        mkdir( $self->{tmpdir} )
-          || $self->die("mkdir($self->{tmpdir}: $!\n");
-        $self->_cleanup_temp($date);     # cleanup dirs before date
-    }
+  my @lt = localtime();
+  my $date = sprintf( "%4d-%02d-%02d", $lt[5] + 1900, $lt[4] + 1, $lt[3] );
+  $self->{tmp_droot_path} = "$self->{tmp_root_path}/$date";
+  $self->{tmp_droot_urn} = "$self->{tmp_root_urn}/$date";
 
-    return $self->{tmpdir};
+  if ( not -d $self->{tmp_droot_path} ) {
+	mkdir( $self->{tmp_droot_path} )
+	  || $self->die("mkdir($self->{tmp_droot_path}): $!\n");
+
+	# first call that makes a new temp dir cleans up old ones
+	$self->_cleanup_temp($date);
+  }
+
+  return $self->{tmp_dir};
 }
 
 sub _cleanup_temp ($$) {
-
-    # This is intended to provide self-cleaning for Unison web page temp files
-    my $self = shift;
-    my $date = shift;
-    my $root = "$self->{tmproot}/tmp";
-    my @old =
-      grep { m%^$root/\d{4}-\d{2}-\d{2}$% and $_ lt "$root/$date" }
+  # This provides self-cleaning for Unison web page temp files
+  my ($self,$date) = @_;
+  my $root = $self->{tmp_root_path};
+  my @old =
+	grep { m%^$root/\d{4}-\d{2}-\d{2}$%
+			 and $_ ne "$root/$date" }
       glob("$root/*");
-    foreach my $dir (@old) {
-        if ( system("/bin/rm -fr $dir") ) {
-            print( STDERR "FAILED: $dir: $!\n" );
-        }
-        print( STDERR "temp dir cleanup: removed $dir/\n" );
-    }
+  foreach my $dir (@old) {
+	if ( system("/bin/rm -fr $dir") ) {
+	  print( STDERR "FAILED: $dir: $!\n" );
+	}
+	print( STDERR "temp dir cleanup: removed $dir/\n" );
+  }
 }
+
 
 ######################################################################
 ## page_variables()
