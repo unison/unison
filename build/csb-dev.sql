@@ -6485,24 +6485,6 @@ COMMENT ON VIEW _missing_fk_indexes IS 'pk-fk relationships which are missing in
 
 
 --
--- Name: _nph; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE TABLE _nph (
-    pfeature_id integer,
-    pseq_id integer,
-    pftype_id integer,
-    start integer,
-    stop integer,
-    params_id integer,
-    prob double precision,
-    kinase text
-);
-
-
-ALTER TABLE unison._nph OWNER TO unison;
-
---
 -- Name: _pmsm_pmhmm_expand_by_pfam_name; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -6857,7 +6839,7 @@ COMMENT ON COLUMN known_bcl2_overlaps_mv.t_gstop IS 'genomic stop of target sequ
 --
 
 CREATE VIEW bcl2_zebrafish_v AS
-    SELECT DISTINCT ON (p.score, p.pseq_id, m.name) (EXISTS (SELECT known_bcl2_overlaps_mv.q_pseq_id FROM known_bcl2_overlaps_mv WHERE ((known_bcl2_overlaps_mv.t_pseq_id = a.pseq_id) OR ((known_bcl2_overlaps_mv.q_pseq_id = a.pseq_id) AND (known_bcl2_overlaps_mv.t_pseq_id IS NULL))))) AS known, a.pseq_id, m.name AS bh_name, p.start AS bh_start, p.stop AS bh_stop, p.mstart AS bh_mstart, p.mstop AS bh_mstop, p.score AS bh_score, p.eval AS bh_eval, t.start AS tm_start, t.stop AS tm_stop, a.alias, a.descr FROM ((((pahmm p JOIN pmhmm m ON ((p.pmodel_id = m.pmodel_id))) JOIN pmsm_pmhmm ms ON (((m.pmodel_id = ms.pmodel_id) AND (ms.pmodelset_id = pmodelset_id('Bcl-2 domains'::text))))) JOIN current_annotations_v a ON (((p.pseq_id = a.pseq_id) AND (a.tax_id = tax.gs2tax_id('BRARE'::text))))) LEFT JOIN pftmhmm t ON (((t.pseq_id = a.pseq_id) AND (t.start > p.stop)))) WHERE (p.params_id = params_id('Bcl-2 ls DEPRECATED'::text)) ORDER BY p.score DESC, p.pseq_id, m.name;
+    SELECT DISTINCT ON (p.score, p.pseq_id, m.name) (EXISTS (SELECT known_bcl2_overlaps_mv.q_pseq_id FROM known_bcl2_overlaps_mv WHERE ((known_bcl2_overlaps_mv.t_pseq_id = a.pseq_id) OR ((known_bcl2_overlaps_mv.q_pseq_id = a.pseq_id) AND (known_bcl2_overlaps_mv.t_pseq_id IS NULL))))) AS known, a.pseq_id, m.name AS bh_name, p.start AS bh_start, p.stop AS bh_stop, p.mstart AS bh_mstart, p.mstop AS bh_mstop, p.score AS bh_score, p.eval AS bh_eval, t.start AS tm_start, t.stop AS tm_stop, a.alias, a.descr FROM (((pahmm p JOIN pmhmm m ON ((p.pmodel_id = m.pmodel_id))) JOIN palias a ON (((p.pseq_id = a.pseq_id) AND (a.tax_id = tax.gs2tax_id('DANRE'::text))))) LEFT JOIN pftmhmm t ON (((t.pseq_id = a.pseq_id) AND (t.start > p.stop)))) WHERE ((p.params_id = params_id('Bcl-2 ls DEPRECATED'::text)) AND (m.pmodel_id IN (SELECT pmsm_pmhmm.pmodel_id FROM pmsm_pmhmm WHERE (pmsm_pmhmm.pmodelset_id = pmodelset_id('Bcl-2 domains'::text))))) ORDER BY p.score DESC, p.pseq_id, m.name;
 
 
 ALTER TABLE unison.bcl2_zebrafish_v OWNER TO unison;
@@ -10405,6 +10387,44 @@ COMMENT ON VIEW pmap_locus_representative_v IS 'unambiguously "better" (lower an
 
 
 --
+-- Name: pmap_pfam_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE pmap_pfam_mv (
+    pmap_params_id integer,
+    genasm_id integer,
+    aln_id integer,
+    pstart integer,
+    pstop integer,
+    chr text,
+    strand character(1),
+    gstart integer,
+    gstop integer,
+    feature_type text,
+    params_id integer,
+    params_name text,
+    pseq_id integer,
+    start integer,
+    stop integer,
+    score integer,
+    eval double precision,
+    origin_id integer,
+    origin text,
+    pmodel_id integer,
+    feature text,
+    acc text,
+    descr text,
+    details text,
+    digest text,
+    link_url text,
+    pfam_start integer,
+    pfam_stop integer
+);
+
+
+ALTER TABLE unison.pmap_pfam_mv OWNER TO unison;
+
+--
 -- Name: pmap_unambiguous_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -10435,6 +10455,26 @@ ALTER TABLE unison.pmap_unambiguous_mv OWNER TO unison;
 
 COMMENT ON TABLE pmap_unambiguous_mv IS 'matview of pmap_unambiguous_v';
 
+
+--
+-- Name: pseq_features_pfam_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pseq_features_pfam_v AS
+    SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f.start, f.stop, f.score, f.eval, m.origin_id, o.origin, f.pmodel_id, m.name AS feature, m.acc, m.descr, NULL::text AS details, domain_digest(f.start, f.stop, m.name, f.score, f.eval) AS digest, link_url(m.origin_id, m.acc) AS link_url FROM ((((((pahmm f JOIN pmhmm m ON ((f.pmodel_id = m.pmodel_id))) JOIN pmsm_pmhmm ms ON ((ms.pmodel_id = m.pmodel_id))) JOIN origin o ON ((m.origin_id = o.origin_id))) JOIN params p ON ((f.params_id = p.params_id))) JOIN pftype ft ON ((p.pftype_id = ft.pftype_id))) JOIN run r ON (((r.params_id = f.params_id) AND (r.pmodelset_id = ms.pmodelset_id)))) WHERE ((r.run_id = preferred_run_id_by_pftype('HMM'::text)) AND (f.eval < (1)::double precision));
+
+
+ALTER TABLE unison.pseq_features_pfam_v OWNER TO unison;
+
+--
+-- Name: pmap_pfam_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pmap_pfam_v AS
+    SELECT g.params_id AS pmap_params_id, g.genasm_id, g.aln_id, g.pstart, g.pstop, g.chr, g.strand, g.gstart, g.gstop, f.feature_type, f.params_id, f.params_name, f.pseq_id, f.start, f.stop, f.score, f.eval, f.origin_id, f.origin, f.pmodel_id, f.feature, f.acc, f.descr, f.details, f.digest, f.link_url, (SELECT ((e.gstart + ((f.start - e.pstart) * 3)) - 1) FROM (pmap_alnhsp ah JOIN pmap_hsp e ON ((e.hsp_id = ah.hsp_id))) WHERE ((g.aln_id = ah.aln_id) AND ((f.start >= e.pstart) AND (f.start <= e.pstop)))) AS pfam_start, (SELECT ((e.gstart + ((f.stop - e.pstart) * 3)) - 1) FROM (pmap_alnhsp ah JOIN pmap_hsp e ON ((e.hsp_id = ah.hsp_id))) WHERE ((g.aln_id = ah.aln_id) AND ((f.stop >= e.pstart) AND (f.stop <= e.pstop)))) AS pfam_stop FROM (pseq_features_pfam_v f JOIN pmap_unambiguous_mv g ON ((g.pseq_id = f.pseq_id))) WHERE (g.params_id = (SELECT run.params_id FROM run WHERE (run.run_id = preferred_run_id_by_pftype('PMAP'::text)))) ORDER BY f.pseq_id, f.start;
+
+
+ALTER TABLE unison.pmap_pfam_v OWNER TO unison;
 
 --
 -- Name: pmap_unambiguous_overlaps_v; Type: VIEW; Schema: unison; Owner: unison
@@ -11017,16 +11057,6 @@ CREATE VIEW pseq_features_netphos_v AS
 
 
 ALTER TABLE unison.pseq_features_netphos_v OWNER TO unison;
-
---
--- Name: pseq_features_pfam_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW pseq_features_pfam_v AS
-    SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f.start, f.stop, f.score, f.eval, m.origin_id, o.origin, f.pmodel_id, m.name AS feature, m.acc, m.descr, NULL::text AS details, domain_digest(f.start, f.stop, m.name, f.score, f.eval) AS digest, link_url(m.origin_id, m.acc) AS link_url FROM ((((((pahmm f JOIN pmhmm m ON ((f.pmodel_id = m.pmodel_id))) JOIN pmsm_pmhmm ms ON ((ms.pmodel_id = m.pmodel_id))) JOIN origin o ON ((m.origin_id = o.origin_id))) JOIN params p ON ((f.params_id = p.params_id))) JOIN pftype ft ON ((p.pftype_id = ft.pftype_id))) JOIN run r ON (((r.params_id = f.params_id) AND (r.pmodelset_id = ms.pmodelset_id)))) WHERE ((r.run_id = preferred_run_id_by_pftype('HMM'::text)) AND (f.eval < (1)::double precision));
-
-
-ALTER TABLE unison.pseq_features_pfam_v OWNER TO unison;
 
 --
 -- Name: pseq_features_prosite_v; Type: VIEW; Schema: unison; Owner: unison
@@ -11665,7 +11695,7 @@ COMMENT ON TABLE sp_var IS 'EXPERIMENTAL! Swiss-Prot variants';
 --
 
 CREATE VIEW pseq_sp_var_v AS
-    SELECT a.pseq_id, s.sp_id, s.start_pos, s.end_pos, s.original_aa, s.variant_aa, s.descr, s.var_id FROM palias a, sp_var s WHERE ((a.origin_id = origin_id('Swiss-Prot'::text)) AND (a.alias = (s.sp_id)::text));
+    SELECT a.pseq_id, s.sp_id, s.start_pos, s.end_pos, s.original_aa, s.variant_aa, s.descr, s.var_id FROM palias a, sp_var s WHERE ((a.origin_id = origin_id('UniProtKB/Swiss-Prot'::text)) AND (a.alias = (s.sp_id)::text));
 
 
 ALTER TABLE unison.pseq_sp_var_v OWNER TO unison;
@@ -12633,10 +12663,17 @@ COMMENT ON COLUMN public_pseq_ids_dv.pseq_id IS 'unique protein sequence identif
 --
 
 CREATE VIEW run_history_v AS
-    SELECT r.run_id, h.pseq_id, r.params_id, p.name AS params, r.pmodelset_id, m.name AS modelset, to_char(h.ran_on, 'YYYY-MM-DD HH24:MI'::text) AS ran_on, h.failed FROM (((run_history h JOIN run r ON ((r.run_id = h.run_id))) JOIN params p ON ((r.params_id = p.params_id))) LEFT JOIN pmodelset m ON ((r.pmodelset_id = m.pmodelset_id))) ORDER BY h.pseq_id, p.name, m.name;
+    SELECT r.run_id, h.pseq_id, r.params_id, p.name AS params, p.commandline, r.pmodelset_id, m.name AS modelset, to_char(h.ran_on, 'YYYY-MM-DD HH24:MI'::text) AS ran_on, h.failed FROM (((run_history h JOIN run r ON ((r.run_id = h.run_id))) JOIN params p ON ((r.params_id = p.params_id))) LEFT JOIN pmodelset m ON ((r.pmodelset_id = m.pmodelset_id))) ORDER BY h.pseq_id, p.name, m.name;
 
 
 ALTER TABLE unison.run_history_v OWNER TO unison;
+
+--
+-- Name: VIEW run_history_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW run_history_v IS 'history of analyses by sequence and run (=<parameter,modelset>)';
+
 
 --
 -- Name: run_v; Type: VIEW; Schema: unison; Owner: unison
@@ -14038,8 +14075,13 @@ ALTER FUNCTION unison.chr2locus(text, integer) OWNER TO unison;
 --
 
 CREATE FUNCTION clean_sequence(text) RETURNS text
-    AS 'unison', 'pg_clean_sequence'
-    LANGUAGE c IMMUTABLE STRICT;
+    AS $_$
+  my $x = shift;
+  $x =~ s/[^-\*ABCDEFGHIKLMNPQRSTUVWXYZ]//g;
+  $x =~ s/\*+$//;
+  return $x;
+$_$
+    LANGUAGE plperl IMMUTABLE STRICT;
 
 
 ALTER FUNCTION unison.clean_sequence(text) OWNER TO unison;
@@ -20276,6 +20318,27 @@ CREATE INDEX pmap_locus_representative_mv_pseq_idx ON pmap_locus_representative_
 
 
 --
+-- Name: pmap_pfam_feature_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_pfam_feature_idx ON pmap_pfam_mv USING btree (feature);
+
+
+--
+-- Name: pmap_pfam_pseq_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_pfam_pseq_idx ON pmap_pfam_mv USING btree (pseq_id);
+
+
+--
+-- Name: pmap_pfam_search1_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_pfam_search1_idx ON pmap_pfam_mv USING btree (genasm_id, chr, strand, pfam_start, pfam_stop);
+
+
+--
 -- Name: pmap_unambiguous_genomic_search_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -24842,6 +24905,16 @@ GRANT SELECT ON TABLE pmap_locus_representative_v TO PUBLIC;
 
 
 --
+-- Name: pmap_pfam_mv; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pmap_pfam_mv FROM PUBLIC;
+REVOKE ALL ON TABLE pmap_pfam_mv FROM unison;
+GRANT ALL ON TABLE pmap_pfam_mv TO unison;
+GRANT SELECT ON TABLE pmap_pfam_mv TO PUBLIC;
+
+
+--
 -- Name: pmap_unambiguous_mv; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -24849,6 +24922,26 @@ REVOKE ALL ON TABLE pmap_unambiguous_mv FROM PUBLIC;
 REVOKE ALL ON TABLE pmap_unambiguous_mv FROM unison;
 GRANT ALL ON TABLE pmap_unambiguous_mv TO unison;
 GRANT SELECT ON TABLE pmap_unambiguous_mv TO PUBLIC;
+
+
+--
+-- Name: pseq_features_pfam_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pseq_features_pfam_v FROM PUBLIC;
+REVOKE ALL ON TABLE pseq_features_pfam_v FROM unison;
+GRANT ALL ON TABLE pseq_features_pfam_v TO unison;
+GRANT SELECT ON TABLE pseq_features_pfam_v TO PUBLIC;
+
+
+--
+-- Name: pmap_pfam_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pmap_pfam_v FROM PUBLIC;
+REVOKE ALL ON TABLE pmap_pfam_v FROM unison;
+GRANT ALL ON TABLE pmap_pfam_v TO unison;
+GRANT SELECT ON TABLE pmap_pfam_v TO PUBLIC;
 
 
 --
@@ -25027,16 +25120,6 @@ REVOKE ALL ON TABLE pseq_features_netphos_v FROM PUBLIC;
 REVOKE ALL ON TABLE pseq_features_netphos_v FROM unison;
 GRANT ALL ON TABLE pseq_features_netphos_v TO unison;
 GRANT SELECT ON TABLE pseq_features_netphos_v TO PUBLIC;
-
-
---
--- Name: pseq_features_pfam_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE pseq_features_pfam_v FROM PUBLIC;
-REVOKE ALL ON TABLE pseq_features_pfam_v FROM unison;
-GRANT ALL ON TABLE pseq_features_pfam_v TO unison;
-GRANT SELECT ON TABLE pseq_features_pfam_v TO PUBLIC;
 
 
 --

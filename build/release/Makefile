@@ -28,11 +28,6 @@ default all:
 	@echo "Ain't no stinking $@ target" 1>&2; exit 1
 
 
-.PHONY: csb-pub-push csb-dev-pub-push
-csb-pub-push csb-dev-pub-push: %-push: 
-	@[ `id -u` == 13922 ] || { echo "You're not Reece; this is guaranteed to fail" 1>&2; exit 1; }
-	ssh-agent /bin/sh -c 'ssh-add; make $*.pgdfc.d-wepush.log'
-
 .PRECIOUS: %-pub.log
 %-pub.log: 
 	( -dropdb $*-pub; \
@@ -43,11 +38,20 @@ csb-pub-push csb-dev-pub-push: %-push:
 	) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
 
+
+.PRECIOUS: %-pub.sql.gz
+%-pub.sql.gz:
+	(time ${PG_SUDO} ../../tools/sbin/publicize $* | gzip -c >$@ ) >$@.err 2>&1
+	/bin/mv -f "$@.err" "$@.log"
+
+
 # run as postgres
 .PRECIOUS: %.pgdfc
 %.pgdfc: %.log
 	(time ${PG_SUDO} pg_dump -Fc $* >$@.tmp) 2>$@.err 
 	/bin/mv -f "$@.tmp" "$@"
+
+
 
 # file-split is in Reece's directory. This will fail if you're not me.
 %.d: %
@@ -55,33 +59,15 @@ csb-pub-push csb-dev-pub-push: %-push:
 
 # NB: `./' is to prevent rsync from interpreting colons in timestamps
 # run as rkh
-%.d-wepush.log: %.d
-	(time rsync -av --progress ./$< we:tmp/) >$@.tmp 2>&1
+%.pushlog: %
+	(time rsync -av --progress ./$< we:) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
 
+%-push: 
+	@[ `id -u` == 13922 ] || { echo "You're not Reece; this is guaranteed to fail" 1>&2; exit 1; }
+	ssh-agent /bin/sh -c 'ssh-add; make $*.pushlog'
 
-### CVS INOP -- moved to svn
-### # build a tarball of the web pages
-### # NOTE: this rule must be before unison-%.tgz
-### # should use 'cvs export'
-### .PHONY: unison-web-%.tgz
-### unison-web-%.tgz:
-### 	@RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
-### 	mkdir /tmp/release-$$$$; cd /tmp/release-$$$$; set -x; \
-### 	cvs co -r"$$RTAG" -d unison-web-$* unison-web \
-### 		&& tar --exclude CVS -czf ${PWD}/$@ unison-web-$*; \
-### 	rm -fr /tmp/release-$$$$
-### 
-### 
-### # build a tarball of a specific release
-### # should use 'cvs export'
-### .PHONY: unison-%.tgz
-### unison-%.tgz:
-### 	@RTAG=`echo "rel_$*" | sed -e 's/\./-/g'`; \
-### 	mkdir /tmp/release-$$$$; cd /tmp/release-$$$$; set -x; \
-### 	cvs co -r"$$RTAG" -d unison-$* unison \
-### 		&& tar --exclude CVS -czf ${PWD}/$@ unison-$*; \
-### 	rm -fr /tmp/release-$$$$
+
 
 
 # cant use 'cvs export' because I don't tag the prerequisites
@@ -174,4 +160,5 @@ clean:
 cleaner: clean
 	/bin/rm -f *.asc *.md5
 cleanest: cleaner
-	/bin/rm -f *.tgz
+	/bin/rm -f *.tgz *pushlog *.log
+	/bin/rm -fr *.d

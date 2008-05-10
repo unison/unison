@@ -10,6 +10,8 @@ $ export PGDATA=/srv/postgresql
 $ unset PGHOST PGPORT
 $ sudo -H -s -u postgres
 (all subsequent command lines assume that you're the postgres user)
+- for web, layout includes at least unison/{perl5,www}
+
 
 * Starting a database cluster for the first time
 $ initdb -Upostgres -W -A password --locale=C -D $PGDATA
