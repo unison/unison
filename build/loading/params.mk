@@ -13,19 +13,20 @@ GO_DIR:=${RESEARCH_PREFIX}/data/public/go
 
 ############################################################################
 #### PSEQ
-ENSEMBL_DIR:=${RESEARCH_PREFIX}/data/public/ensembl
-PDB_DIR=${RESEARCH_PREFIX}/data/public/pdb/divided.pdb
-GNE_PDB_DIR=${RESEARCH_PREFIX}/data/structures/final
-REFSEQ_DIR:=${RESEARCH_PREFIX}/data/public/refseq
-GENESEQ_DIR:=${RESEARCH_PREFIX}/data/licensed/geneseq
-KAZUSA_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.kazusa.or.jp/pub
-HUGE_DIR:=${KAZUSA_DIR}/huge
-ROUGE_DIR:=${KAZUSA_DIR}/rouge
 CCDS_HUMAN_PATH:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/current/CCDS_protein.03032005.faa.gz
-UNIPROT_DIR:=${RESEARCH_PREFIX}/data/public/uniprot
-PATAA_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/pataa.fa
-NR_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/nr.fa
 COSMIC_DIR:=${RESEARCH_PREFIX}/data/mirrors/ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
+ENSEMBL_DIR:=${RESEARCH_PREFIX}/data/public/ensembl
+GENESEQ_DIR:=${RESEARCH_PREFIX}/data/licensed/geneseq
+GNE_PDB_DIR=${RESEARCH_PREFIX}/data/structures/final
+HUGE_DIR:=${KAZUSA_DIR}/huge
+KAZUSA_DIR:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.kazusa.or.jp/pub
+NR_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/nr.fa
+PATAA_FA:=${RESEARCH_PREFIX}/data/public/seqdb/aa/pataa.fa
+PDB_DIR=${RESEARCH_PREFIX}/data/public/pdb/divided.pdb
+REFSEQ_DIR:=${RESEARCH_PREFIX}/data/public/refseq
+ROUGE_DIR:=${KAZUSA_DIR}/rouge
+STRING_DIR:=${RESEARCH_PREFIX}/data/mirrors/string.embl.de/newstring_download
+UNIPROT_DIR:=${RESEARCH_PREFIX}/data/public/uniprot
 
 
 ############################################################################

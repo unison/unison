@@ -24,15 +24,14 @@ use strict;
 use FindBin;
 use lib "$FindBin::RealBin/../../../perl5";
 
-use Bio::SeqIO;
-use Getopt::Long qw(:config gnu_getopt);
 use Unison;
 use Unison::Exceptions;
 use Unison::Utilities::misc qw(clean_sequence sequence_md5);
-use IO::File;
-use IO::Zlib;
+
 use Benchmark;
-use Data::Dumper;
+use Bio::SeqIO;
+use Getopt::Long qw(:config gnu_getopt);
+use Module::Load;
 
 
 sub tally ($%);
@@ -141,11 +140,27 @@ foreach my $fn ( @ARGV ) {
   # Use IO::Zlib or IO::File, depending on whether the suffix suggests compression
   # STDIN is presumed to be uncompressed
   my $fh;
-  if ($fn =~ m/\.gz/) {
-	$fh = new IO::Zlib;
-	$fh->open($fn,"rb")
-	  || die("$fn: $!\n");
+  if ($fn =~ m/\.gz$/) {
+	##The code below using IO::Zlib is broken because IO::Zlib ignores $/,
+	##which is required for parsing multi-line records.  From the IO::Zlib
+	##perldoc: 
+	##   getline
+    ##     Return the next line from the file, or undef on end of string.  Can
+    ##     safely be called in an array context.  Currently ignores $/
+    ##     ($INPUT_RECORD_SEPARATOR or $RS when English is in use) and treats
+    ##     lines as delimited by "\n".
+	## In the interime, I'll open an IO::Pipe.
+	## -- 2008-05-22 Reece Hart <reece@harts.net>
+	# $fh = new IO::Zlib;
+	# $fh->open($fn,'rb')
+	#   || die("$fn: $!\n");
+
+	load IO::Pipe;
+	$fh = new IO::Pipe;
+	$fh->reader('gzip', '-cdq', $fn)
+	   || die("gzip -cd $fn: $!\n");
   } else {
+	load IO::File;
 	$fh = new IO::File;
 	$fh->open($fn)
 	  || die("$fn: $!\n");
@@ -269,7 +284,7 @@ sub process_seq ($$$) {
 
   # split ctrl-A delimited entries into explict entries for this sequence
   # this is effectively a no-op for single-entry deflines.  It's necessary to
-  # deal with NCBI fasta files which contain collect non-redundant annotations into
+  # deal with NCBI fasta files which collect non-redundant annotations into
   # one defline.  Also try to infer the tax_id from the descr
   foreach my $ad ( split(/\01/, "$id $descr") ) {
 	my ($a,$d) = $ad =~ m/^(\S+)\s+(.*)/g;
@@ -356,6 +371,12 @@ sub process_seq ($$$) {
 	  } else {
 		$warnings{'unknown latin species'}{$latin}++
 		  || warn("! no species found for '$os', first seen in $a ($d)\n");
+	  }
+	} elsif ($o =~ m/^string$/i) {
+	  # infer tax_id from STRING alias irrespective of infer-tax-id
+	  if ( not ( ($t) = $a =~ m/^(\d+)\./ ) ) {
+		# STRING aliases always have the form <tax_id>.<text>
+		die("Improperly formatted alias `$a' for STRING\n");
 	  }
 	}
 
