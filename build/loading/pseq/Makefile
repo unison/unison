@@ -116,7 +116,13 @@ PDB.load:
 ## loaded in single invocation of load-pseq
 REFSEQ_RELEASE:=$(patsubst RefSeq-release%.txt,%,$(notdir $(shell /bin/ls -t ${REFSEQ_DIR}/../release-notes/*.txt | head -1)))
 refseq.load: $(wildcard ${REFSEQ_DIR}/complete[0-9]*gpff.gz)
-	PERL5LIB=../../../perl5:$$PERL5LIB time -p load-pseq --deprecate -vv -fgenbank -oRefSeq --infer-tax-id -V"${REFSEQ_RELEASE}" $^ >$@.err 2>&1
+	time -p load-pseq --deprecate -vv -fgenbank -oRefSeq --infer-tax-id -V"${REFSEQ_RELEASE}" $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+
+
+string.load: ${STRING_DIR}/protein.sequences.v7.1.fa.gz
+	R=`expr "$<" : '.*\.v([0-9]\.[0-9]).fa.gz'`; \
+	gzip -cdq $^ | time -p load-pseq --deprecate -vv -ffasta -oSTRING -V$$R - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
