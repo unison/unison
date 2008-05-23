@@ -88,7 +88,7 @@ sub alias_ghlink {
 
 sub pfam_link {
   return unless defined $_[0];
-  extlink("http://pfam.janelia.org/family?id=$_[0]>",
+  extlink("http://pfam.janelia.org/family?entry=$_[0]",
 		  $_[1]||$_[0]);
 }
 
