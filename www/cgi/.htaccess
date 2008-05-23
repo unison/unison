@@ -8,3 +8,11 @@ AddHandler cgi-script .sh
 AddHandler cgi-script .pl
 
 Require valid-user
+
+
+<Files nph-pdb-fetch.sh>
+    Order allow,deny
+    Allow from all
+    Satisfy any
+</Files>
+

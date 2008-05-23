@@ -874,10 +874,9 @@ Return true if this is a production version of Unison.
 =cut
 
 sub is_prd_instance {
-
-    # should ~user/ paths be dev?
-    return 1 if ( defined $ENV{SERVER_PORT} and $ENV{SERVER_PORT} == 80 );
-    return 0;
+  # should ~user/ paths be dev?
+  return 1 if ( defined $ENV{SERVER_PORT} and $ENV{SERVER_PORT} == 80 );
+  return 0;
 }
 
 ######################################################################
@@ -910,10 +909,11 @@ they depend on data that are not released with Unison.
 =cut
 
 sub is_public_instance {
-    return 1
-      if defined $ENV{SERVER_ADDR}
-          and $ENV{SERVER_ADDR} !~ m/^128\.137\./;    # .gene.com domain
-    return 0;
+  if (defined $ENV{SERVER_ADDR}
+	  and $ENV{SERVER_ADDR} !~ m/^(?:128\.137|10\.246)\./) {
+    return 1;
+  }
+  return 0;
 }
 sub is_public { goto &is_public_instance; }
 
