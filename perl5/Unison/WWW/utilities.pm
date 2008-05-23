@@ -31,34 +31,46 @@ use Text::Wrap;
 
 sub alias_link {
     my ( $alias, $origin ) = @_;
+
+	# origin eq
     if ( $origin eq 'GenenGenes' ) {
         return ( alias_gglink($alias) );
     }
     elsif ( $origin eq 'Swiss-Prot' ) {
         return ( alias_splink($alias) );
     }
-    elsif ( $origin =~ m/^uniprot/i ) {
-        return ( alias_uniprot_link($alias) );
-    }
-    elsif ( $origin eq 'Ensembl' ) {
-        return ( alias_enslink($alias) )
-
-          # diabling the url. //research/products/proteome does not work
-          #  } elsif ($origin eq 'Proteome') {
-          #	return( alias_proteome_link($alias) )
-    }
     elsif ( $origin eq 'Mint' ) {
         return ( alias_mint_link($alias) );
+    }
+    elsif ( $origin eq 'STRING' ) {
+        return ( alias_string_link($alias) );
     }
     elsif ( $origin eq 'Pubmed' ) {
         return ( alias_pubmed_link($alias) );
     }
-    elsif ( $alias =~ m/^[XN]P/ ) {
-        return ( alias_reflink($alias) );
+    elsif ( $origin eq 'IPI' ) {
+        return ( alias_ipi_link($alias) );
+    }
+
+	# origin =~
+    elsif ( $origin =~ m/^UniProt/i ) {
+        return ( alias_uniprot_link($alias) );
+    }
+    elsif ( $origin =~ m/^Ensembl/i ) {
+        return ( alias_ensembl_link($alias) );
     }
     elsif ( $origin =~ m/GeneHub/ ) {
         return ( alias_ghlink($alias) );
     }
+    elsif ( $origin =~ m/^CCDS/ ) {
+        return ( alias_ccds_link($alias) );
+    }
+
+	# alias =~
+    elsif ( $alias =~ m/^[XN]P/ ) {
+        return ( alias_reflink($alias) );
+    }
+
     else {
         return ( $_[0] );
     }
@@ -83,6 +95,32 @@ sub genengenes_link {
 sub alias_ghlink {
   return unless defined $_[0];
   extlink('http://research/genehub/jsp/SearchAction.jsp?searchVal0='.$_[0],
+		  $_[1]||$_[0]);
+}
+
+sub alias_string_link {
+  return unless defined $_[0];
+  extlink('http://string.embl.de/newstring_cgi/show_network_section.pl?identifier='.$_[0],
+		  $_[1]||$_[0]);
+}
+
+sub alias_ccds_link {
+  return unless defined $_[0];
+  extlink('http://www.ncbi.nlm.nih.gov/CCDS/CcdsBrowse.cgi?REQUEST=CCDS&DATA='.$_[0],
+		  $_[1]||$_[0]
+		 );
+}
+
+sub alias_ipi_link {
+  return unless defined $_[0];
+  extlink(sprintf("http://srs.ebi.ac.uk/srsbin/cgi-bin/wgetz?-e+[IPI:'%s']",$_[0]),
+		  $_[1]||$_[0]
+		 );
+}
+
+sub alias_ensembl_link {
+  return unless defined $_[0];
+  extlink('http://www.ensembl.org/Homo_sapiens/searchview?species=;idx=;q='.$_[0],
 		  $_[1]||$_[0]);
 }
 

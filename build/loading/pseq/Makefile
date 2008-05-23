@@ -29,8 +29,14 @@ update: $(addsuffix .load,${ORIGINS})
 
 
 ## CCDS
-ccds-human.load: ${CCDS_HUMAN_PATH}
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oCCDS/Human -ffasta -t9606 - >$@.err 2>&1
+## NOTE: the human *protein* sequence file does indeed have a .fna suffix
+ccds-human.load: $(wildcard ${CCDS_DIR}/current_human/CCDS_protein.*.fna.gz)
+	R=`expr "$<" : '.*/CCDS_protein\.\([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\)\.fna\.gz'`; \
+	time -p load-pseq --deprecate -vv -oCCDS/Human -ffasta -t9606 -V$$R $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
+ccds-mouse.load: $(wildcard ${CCDS_DIR}/current_mouse/CCDS_protein.*.faa.gz)
+	R=`expr "$<" : '.*/CCDS_protein\.\([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\)\.faa\.gz'`; \
+	time -p load-pseq --deprecate -vv -oCCDS/Mouse -ffasta -t10090 -V$$R $< >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 

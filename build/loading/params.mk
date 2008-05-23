@@ -13,7 +13,7 @@ GO_DIR:=${RESEARCH_PREFIX}/data/public/go
 
 ############################################################################
 #### PSEQ
-CCDS_HUMAN_PATH:=${RESEARCH_PREFIX}/data/public/mirrors/ftp.ncbi.nlm.nih.gov/pub/CCDS/current/CCDS_protein.03032005.faa.gz
+CCDS_DIR:=${RESEARCH_PREFIX}/data/mirrors/ftp.ncbi.nih.gov/pub/CCDS
 COSMIC_DIR:=${RESEARCH_PREFIX}/data/mirrors/ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
 ENSEMBL_DIR:=${RESEARCH_PREFIX}/data/public/ensembl
 GENESEQ_DIR:=${RESEARCH_PREFIX}/data/licensed/geneseq
