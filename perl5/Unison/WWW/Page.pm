@@ -874,9 +874,7 @@ Return true if this is a production version of Unison.
 =cut
 
 sub is_prd_instance {
-  # should ~user/ paths be dev?
-  return 1 if ( defined $ENV{SERVER_PORT} and $ENV{SERVER_PORT} == 80 );
-  return 0;
+  return not is_dev_instance();
 }
 
 ######################################################################
@@ -892,7 +890,17 @@ being served by a user development directory
 =cut
 
 sub is_dev_instance {
-    return not is_prd_instance();
+  # use SERVER_NAME as a proxy for being called in a web environment If
+  # not defined, we're probably being called from a command line for
+  # debugging.
+  return 1 if (not defined $ENV{SERVER_NAME});
+
+  # In web env => SERVER_PORT, SERVER_NAME, REQUEST_URI should be defined
+  return 1 if (    $ENV{SERVER_PORT} = 8080
+				or $ENV{SERVER_NAME} eq 'resdev'
+				or $ENV{REQUEST_URI} =~ m%/people/|/~% );
+
+  return 0;
 }
 
 ######################################################################
