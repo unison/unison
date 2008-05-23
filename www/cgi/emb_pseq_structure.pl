@@ -22,11 +22,6 @@ use Unison::Jmol;
 use Unison::Utilities::pseq_structure;
 use Unison::Utilities::pseq_features qw( %opts );
 
-my $pdbDir =
-  (
-    defined( $ENV{PDB_PATH} )
-    ? $ENV{PDB_PATH}
-    : '/gne/research/data/public/pdb/all.ent' );
 
 my $p = new Unison::WWW::EmbPage;
 
