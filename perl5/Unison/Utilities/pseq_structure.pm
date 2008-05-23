@@ -74,8 +74,13 @@ sub jmol {
 
 sub find_structures {
     my $self = shift;
-    my $structures_sql =
-"select a.pdbc, a.descr, p.len from alias_pdbcs_v a join pseq p on a.pseq_id=p.pseq_id where a.pseq_id=$self->{'pseq_id'}";
+    my $structures_sql = <<EOSQL;
+SELECT DISTINCT ON (substr(pdbc,1,4))
+	   a.pdbc, a.descr, p.len
+  FROM alias_pdbcs_v a
+  JOIN pseq p on a.pseq_id=p.pseq_id
+ WHERE a.pseq_id=$self->{'pseq_id'}
+EOSQL
     my $structures_ar = $self->{'unison'}->selectall_arrayref($structures_sql);
     return undef unless defined($structures_ar);
     $self->initialize_structures($structures_ar);
@@ -247,13 +252,13 @@ sub set_js_vars {
 sub region_script {
     my ( $self, $start, $end, $label, $color ) = @_;
     my $jmol = $self->{'jmol'};
-    return "javascript:" . $jmol->selectRegion( $start, $end, $label, $color );
+    return "javascript:" . $jmol->selectRegion( $start, $end, $label, $color||'' );
 }
 
 sub pos_script {
     my ( $self, $pos, $label, $color ) = @_;
     my $jmol = $self->{'jmol'};
-    return "javascript:" . $jmol->selectPosition( $pos, $label, $color );
+    return "javascript:" . $jmol->selectPosition( $pos, $label, $color||'' );
 }
 
 sub change_structure {

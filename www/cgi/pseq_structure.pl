@@ -127,7 +127,7 @@ sub edit_snp_rows {
     foreach my $r ( @{ $pseq_structure->{'features'}{'snps'} } ) {
         my $snp_lnk =
             "<a href=\"javascript:"
-          . $jmol->selectPosition( $r->{'start'}, $r->{'wt_aa'} )
+          . $jmol->selectPosition( $r->{'start'}, $r->{'wt_aa'}, '' )
           . "\">$r->{'wt_aa'}</a>";
         my $name = ( defined( $r->{name} ) ? $r->{name} : $r->{ref} );
         my $swiss_lnk = "<a href=\"$href$r->{ref}\">$name</a>";
