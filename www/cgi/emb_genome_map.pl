@@ -67,7 +67,7 @@ qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$text" HREF="pseq_summar
         else {
             my ( $chip, $probe ) = split( /:/, $fname );
             $imagemap .=
-qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$chip:$probe" HREF=http://research/projects/maprofile/bin/secure/maprofile.cgi?probeid=$probe">\n);
+qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2" TOOLTIP="$chip:$probe" HREF=http://research/maprofile/cgi-bin/maprofile.cgi?probeid=$probe">\n);
         }
     }
 }
