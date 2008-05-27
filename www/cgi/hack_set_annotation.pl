@@ -375,7 +375,7 @@ print $p->render(
 # 			  my ( $chip, $probe ) =
 # 				$elems[$elems_i] =~ m/(\w+):(\w+)/;
 # 			  push( @links,
-# 					"<a target=\"_blank\" href=\"http://research/projects/maprofile/bin/secure/maprofile.cgi?probeid=$probe\">$elems[$elems_i]</a>"
+# 					"<a target=\"_blank\" href=\"http://research/maprofile/cg-bin/maprofile.cgi?probeid=$probe\">$elems[$elems_i]</a>"
 # 				  );
 # 			}
 # 			$row->[$i] = join( '<br>', sort @links );

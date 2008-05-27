@@ -163,7 +163,7 @@ sub maprofile_link {
   return unless defined $_[0];
   my ($chip,$probe) = $#_ == 0 ? $_[0] =~ m/(\w+):(\w+)/ : @_;
   return unless (defined $chip and defined $probe);
-  extlink("http://research/projects/maprofile/bin/secure/maprofile.cgi?probeid=$probe","$chip:$probe");
+  extlink("http://research/maprofile/cgi-bin/maprofile.cgi?probeid=$probe","$chip:$probe");
 }
 
 sub alias_reflink {
