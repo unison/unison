@@ -37,6 +37,10 @@ ignore-reset:
 ## 	| xargs -0rt svn propset svn:keywords 'Date Id Revision'
 
 
+precommit:
+	make -C build csb-dev.sql
+
+
 .PHONY: clean cleaner cleanest
 clean:
 	rm -f *.log

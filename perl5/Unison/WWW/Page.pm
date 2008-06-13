@@ -367,68 +367,97 @@ sub render {
   my $self  = shift;
   my $title = shift;
 
-  my $elapsed     = time - $self->{starttime};
+  return (
+		  $self->header(),
+		  $self->start_html( -title => "Unison: $title" ),
+		  $self->start_page(),
+		  @_,
+		  $self->end_page(),
+		  $self->end_html(),
+		 );
+}
+
+
+######################################################################
+## start_page()
+
+=pod
+
+=item B<< $p->start_page( C<> ) >>
+
+=cut
+
+sub start_page() {
+  my $p = shift;
+  my $navbar = $p->_navbar();
+
+  return <<EOF;
+<table class="page">
+<tr>
+<!-- ========== begin logo ========== -->
+  <td class="left">
+    <a class="nofeedback" href="../index.html">
+      <img width=120 height=34 src="../av/unison.png">
+    </a>
+  </td>
+<!-- ========== end logo ========== -->
+
+<!-- ========== begin navbar ========== -->
+  <td>$navbar</td>
+<!-- ========== end navbar ========== -->
+</tr>
+
+<!-- ========== begin body ========== -->
+<tr>
+  <td colspan=2 class="body">
+EOF
+}
+
+######################################################################
+## end_page()
+
+=pod
+
+=item B<< $p->end_page( C<> ) >>
+
+=cut
+
+sub end_page() {
+  my $p = shift;
+  my $self_url = self->url();
+  my $addl_footer = (defined $p->{footer}
+					 ? ( map { "<br>$_" } @{ $p->{footer} } )
+					 : '');
+  my $elapsed     = time - $p->{starttime};
   my $elapsed_msg = sprintf( 'page generated in %s second%s',
 							 $elapsed, $elapsed == 1 ? '' : 's' );
 
-  return (
-		  $self->header(),
+  return <<EOF;
+</td></tr>
+<!-- ========== end body ========== -->
 
-		  $self->start_html( -title => "Unison: $title" ),
+<!-- ========== begin footer ========== -->
+<tr>
+  <td class="left">
+    <a href="http://www.postgresql.org/">
+      <img class="logo" src="../av/poweredby_postgresql.gif">
+    </a>
+  </td>',
 
-		  "\n",
+  <td class="footer">',
+  Questions?  Email <a href="mailto:unison\@unison-db.org?subject=Unison Question&body=Regarding $self_url">unison\@unison-db.org</a>.
+  &nbsp; &nbsp;
+  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.
+  <br>$elapsed_msg
+  $addl_footer
+  </td>
+</tr>
+<!-- ========== end footer ========== -->
 
-		  '<table class="page">', "\n",
-		  '<tr>', "\n",
-		  "\n<!-- ========== begin logo ========== -->\n",
-		  '  <td class="left"> <a class="nofeedback" href="../index.html"><img width=120 height=34 src="../av/unison.png"></a> </td>', "\n",
-		  "\n<!-- ========== end logo ========== -->\n",
-		  "\n<!-- ========== begin navbar ========== -->\n",
-		  '  <td>', $self->_navbar(), '</td>', "\n",
-		  "\n<!-- ========== end navbar ========== -->\n",
-		  '</tr>', 
-
-		  "\n<!-- ========== begin body ========== -->\n",
-		  '<tr><td colspan=2 class="body">', "\n",
-		  # no longer show page title
-		  # '<span class="page_title">', $title, '</span>', "\n",
-		  #'<br>',
-		  @_,
-		  "\n",
-		  '</td></tr>',                "\n",
-		  "\n<!-- ========== end body ========== -->\n",
-
-		  "\n<!-- ========== begin footer ========== -->\n",
-		  '<tr>', "\n",
-		  '  <td class="left"><a href="http://www.postgresql.org/"><img class="logo" ',
-		  ' src="../av/poweredby_postgresql.gif"></a></td>',
-		  "\n",
-		  '  <td class="footer">',
-		  '  Questions?  Email <a href="mailto:unison@unison-db.org?subject=Unison Question&body=Regarding ',
-		  $self->url(),
-		  ' : ',
-		  '">unison@unison-db.org</a>.',
-		  '  &nbsp; &nbsp; ',
-		  '  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.',
-		  '     <br>',
-		  $elapsed_msg,
-		  "\n",
-		  (
-		   defined $self->{footer}
-		   ? ( map { "<br>$_" } @{ $self->{footer} } )
-		   : ''
-		  ),
-		  "  </td>\n",
-		  "</tr>\n",
-		  "\n<!-- ========== end footer ========== -->\n",
-
-		  "</table>\n",
-
-		  "\n",
-		  $self->end_html(),
-		  "\n"
-		 );
+</table>
+EOF
 }
+
 
 ######################################################################
 ## group()
@@ -896,7 +925,7 @@ sub is_dev_instance {
   return 1 if (not defined $ENV{SERVER_NAME});
 
   # In web env => SERVER_PORT, SERVER_NAME, REQUEST_URI should be defined
-  return 1 if (    $ENV{SERVER_PORT} = 8080
+  return 1 if (    $ENV{SERVER_PORT} == 8080
 				or $ENV{SERVER_NAME} eq 'resdev'
 				or $ENV{REQUEST_URI} =~ m%/people/|/~% );
 
@@ -1014,7 +1043,7 @@ sub _genentech_connection_params ($) {
         $v->{username} =
           $ENV{REMOTE_USER};    # what about krb5 outside of webserver?!
         $v->{username} =~ s/@.+//;    # strip realm from krb identity
-        $v->{host} = 'csb';
+        $v->{host} = 'respgsql';
     }
     else {
         $v->{username} = 'PUBLIC';

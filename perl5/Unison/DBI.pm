@@ -37,16 +37,15 @@ use Getopt::Long;
 #use lib '/gne/research/apps/bioperl/prd/lib/perl5';
 
 our %opts = (
-
-    # use PGHOST if it's not '', otherwise set based on whether we're
-    # on csb (local), comp* (cvs), else exo-cluster (csb)
+    # use PGHOST when set (and not = ''), otherwise set to 'respgsql'
     # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
-
+	# TODO: The entire connection setup needs an overhaul to 
+	# accommodate multiple installation environments.
     host 		=> ( ( ( exists $ENV{PGHOST} )
 					   and ( $ENV{PGHOST} =~ m/\w/ ) )
 					 ? $ENV{PGHOST}
-					 : 'csb' ),
-    dbname 		=> $ENV{PGDATABASE} || 'csb',
+					 : 'respgsql' ),
+    dbname 		=> $ENV{PGDATABASE} || 'respgsql',
     username 	=> $ENV{PGUSER}   || eval {my $tmp = `/usr/bin/id -un`;
 										   chomp $tmp;
 										   $tmp;
@@ -150,13 +149,13 @@ sub connect {
     if (    defined $self->{username}
         and $self->{username} eq 'PUBLIC'
         and defined $self->{host}
-        and $self->{host} =~ m/^(?:csb|resdev|research)/ )
+        and $self->{host} =~ m/^(?:csb|rescomp\d\d|respgsql|resdev|research)/ )
     {
         warn(<<EOT);
-! You are using the PUBLIC login to Unison. This is -- and has
-! always been -- deprecated, and it will be discontinued
-! eventually. You should use Kerberos authentiation whenever
-! possible by typing `kinit' and your password.
+! You are using the PUBLIC login to Unison. This is -- and has always
+! been -- unsupported.  It will be discontinued eventually. You
+! should use Kerberos authentiation whenever possible; see the Unison
+! documentation at http://research/unison/.
 EOT
     }
 
