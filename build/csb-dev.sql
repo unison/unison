@@ -85,6 +85,15 @@ COMMENT ON SCHEMA scop IS 'Structural Classification of Proteins v1.61 (http://s
 
 
 --
+-- Name: sst; Type: SCHEMA; Schema: -; Owner: unison
+--
+
+CREATE SCHEMA sst;
+
+
+ALTER SCHEMA sst OWNER TO unison;
+
+--
 -- Name: tax; Type: SCHEMA; Schema: -; Owner: unison
 --
 
@@ -5559,6 +5568,37 @@ ALTER TABLE unison.pmap_locus_representative_mv OWNER TO unison;
 COMMENT ON TABLE pmap_locus_representative_mv IS 'mat view of pmap_genomic_representative_v';
 
 
+SET search_path = sst, pg_catalog;
+
+--
+-- Name: v_trans; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE v_trans (
+    dnaid integer NOT NULL,
+    pseq_id integer NOT NULL
+);
+
+
+ALTER TABLE sst.v_trans OWNER TO unison;
+
+--
+-- Name: v_unq2dna; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE v_unq2dna (
+    dnaid integer NOT NULL,
+    proid integer NOT NULL,
+    unqid integer NOT NULL,
+    unqname text,
+    shortname text
+);
+
+
+ALTER TABLE sst.v_unq2dna OWNER TO unison;
+
+SET search_path = unison, pg_catalog;
+
 --
 -- Name: ncbi_pseq_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
@@ -6188,6 +6228,133 @@ ALTER TABLE scop.hie OWNER TO unison;
 
 COMMENT ON TABLE hie IS 'SCOP node hierarchy (http://scop.berkeley.edu/)';
 
+
+SET search_path = sst, pg_catalog;
+
+--
+-- Name: dna; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE dna (
+    dnaid integer NOT NULL,
+    is_primarydna character(1)
+);
+
+
+ALTER TABLE sst.dna OWNER TO unison;
+
+--
+-- Name: fam; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE fam (
+    famid integer,
+    familyname text,
+    shortname text
+);
+
+
+ALTER TABLE sst.fam OWNER TO unison;
+
+--
+-- Name: TABLE fam; Type: COMMENT; Schema: sst; Owner: unison
+--
+
+COMMENT ON TABLE fam IS 'mirror of sst FAM table';
+
+
+--
+-- Name: pro; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE pro (
+    proid integer NOT NULL,
+    unqid integer,
+    proname text,
+    formalname text
+);
+
+
+ALTER TABLE sst.pro OWNER TO unison;
+
+--
+-- Name: prodna; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE prodna (
+    proid integer NOT NULL,
+    dnaid integer NOT NULL
+);
+
+
+ALTER TABLE sst.prodna OWNER TO unison;
+
+--
+-- Name: spdi_list; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE spdi_list (
+    loc text,
+    gene text,
+    domains text,
+    genbank text,
+    unqid integer,
+    proid integer,
+    dnaid integer
+);
+
+
+ALTER TABLE sst.spdi_list OWNER TO unison;
+
+--
+-- Name: TABLE spdi_list; Type: COMMENT; Schema: sst; Owner: unison
+--
+
+COMMENT ON TABLE spdi_list IS 'direct import from SPDI supplementary data (http://share.gene.com/share/clark.gr.2003/Clark-12930_Supp.doc)';
+
+
+--
+-- Name: unq; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE unq (
+    unqid integer NOT NULL,
+    shortname text
+);
+
+
+ALTER TABLE sst.unq OWNER TO unison;
+
+--
+-- Name: unqfamily; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE unqfamily (
+    unqid integer,
+    famid integer
+);
+
+
+ALTER TABLE sst.unqfamily OWNER TO unison;
+
+--
+-- Name: TABLE unqfamily; Type: COMMENT; Schema: sst; Owner: unison
+--
+
+COMMENT ON TABLE unqfamily IS 'mirror of sst UNQFAMILY table';
+
+
+--
+-- Name: unqproform; Type: TABLE; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE unqproform (
+    unqid integer NOT NULL,
+    proid integer NOT NULL
+);
+
+
+ALTER TABLE sst.unqproform OWNER TO unison;
 
 SET search_path = taxonomy, pg_catalog;
 
@@ -18127,6 +18294,32 @@ ALTER TABLE ONLY cla
     ADD CONSTRAINT scop_cla_sid_unique UNIQUE (sid);
 
 
+SET search_path = sst, pg_catalog;
+
+--
+-- Name: dna_pkey; Type: CONSTRAINT; Schema: sst; Owner: unison; Tablespace: 
+--
+
+ALTER TABLE ONLY dna
+    ADD CONSTRAINT dna_pkey PRIMARY KEY (dnaid);
+
+
+--
+-- Name: pro_pkey; Type: CONSTRAINT; Schema: sst; Owner: unison; Tablespace: 
+--
+
+ALTER TABLE ONLY pro
+    ADD CONSTRAINT pro_pkey PRIMARY KEY (proid);
+
+
+--
+-- Name: unq_pkey; Type: CONSTRAINT; Schema: sst; Owner: unison; Tablespace: 
+--
+
+ALTER TABLE ONLY unq
+    ADD CONSTRAINT unq_pkey PRIMARY KEY (unqid);
+
+
 SET search_path = tax, pg_catalog;
 
 --
@@ -19366,6 +19559,50 @@ CREATE INDEX sccs_idx ON cla USING btree (sccs);
 --
 
 CREATE INDEX sid_idx ON cla USING btree (sid);
+
+
+SET search_path = sst, pg_catalog;
+
+--
+-- Name: spdi_list_proid_idx; Type: INDEX; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX spdi_list_proid_idx ON spdi_list USING btree (proid);
+
+
+--
+-- Name: unqfamily_f_idx; Type: INDEX; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX unqfamily_f_idx ON unqfamily USING btree (famid);
+
+
+--
+-- Name: unqfamily_u_idx; Type: INDEX; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX unqfamily_u_idx ON unqfamily USING btree (unqid);
+
+
+--
+-- Name: v_trans_dna_pseq_idx; Type: INDEX; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE UNIQUE INDEX v_trans_dna_pseq_idx ON v_trans USING btree (dnaid, pseq_id);
+
+
+--
+-- Name: v_trans_pseq_idx; Type: INDEX; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX v_trans_pseq_idx ON v_trans USING btree (pseq_id);
+
+
+--
+-- Name: v_unq2dna_dna_unq_idx; Type: INDEX; Schema: sst; Owner: unison; Tablespace: 
+--
+
+CREATE UNIQUE INDEX v_unq2dna_dna_unq_idx ON v_unq2dna USING btree (dnaid, proid, unqid);
 
 
 SET search_path = tax, pg_catalog;
@@ -22227,6 +22464,16 @@ GRANT USAGE ON SCHEMA scop TO PUBLIC;
 
 
 --
+-- Name: sst; Type: ACL; Schema: -; Owner: unison
+--
+
+REVOKE ALL ON SCHEMA sst FROM PUBLIC;
+REVOKE ALL ON SCHEMA sst FROM unison;
+GRANT ALL ON SCHEMA sst TO unison;
+GRANT USAGE ON SCHEMA sst TO PUBLIC;
+
+
+--
 -- Name: tax; Type: ACL; Schema: -; Owner: unison
 --
 
@@ -23824,6 +24071,30 @@ GRANT ALL ON TABLE pmap_locus_representative_mv TO unison;
 GRANT SELECT ON TABLE pmap_locus_representative_mv TO PUBLIC;
 
 
+SET search_path = sst, pg_catalog;
+
+--
+-- Name: v_trans; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE v_trans FROM PUBLIC;
+REVOKE ALL ON TABLE v_trans FROM unison;
+GRANT ALL ON TABLE v_trans TO unison;
+GRANT SELECT ON TABLE v_trans TO PUBLIC;
+
+
+--
+-- Name: v_unq2dna; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE v_unq2dna FROM PUBLIC;
+REVOKE ALL ON TABLE v_unq2dna FROM unison;
+GRANT ALL ON TABLE v_unq2dna TO unison;
+GRANT SELECT ON TABLE v_unq2dna TO PUBLIC;
+
+
+SET search_path = unison, pg_catalog;
+
 --
 -- Name: ncbi_pseq_mv; Type: ACL; Schema: unison; Owner: unison
 --
@@ -23962,6 +24233,80 @@ REVOKE ALL ON TABLE hie FROM unison;
 GRANT ALL ON TABLE hie TO unison;
 GRANT INSERT,UPDATE ON TABLE hie TO loader;
 GRANT SELECT ON TABLE hie TO PUBLIC;
+
+
+SET search_path = sst, pg_catalog;
+
+--
+-- Name: dna; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE dna FROM PUBLIC;
+REVOKE ALL ON TABLE dna FROM unison;
+GRANT ALL ON TABLE dna TO unison;
+GRANT SELECT ON TABLE dna TO PUBLIC;
+
+
+--
+-- Name: fam; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE fam FROM PUBLIC;
+REVOKE ALL ON TABLE fam FROM unison;
+GRANT ALL ON TABLE fam TO unison;
+GRANT INSERT,DELETE,UPDATE ON TABLE fam TO loader;
+GRANT SELECT ON TABLE fam TO PUBLIC;
+
+
+--
+-- Name: pro; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE pro FROM PUBLIC;
+REVOKE ALL ON TABLE pro FROM unison;
+GRANT ALL ON TABLE pro TO unison;
+GRANT SELECT ON TABLE pro TO PUBLIC;
+
+
+--
+-- Name: prodna; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE prodna FROM PUBLIC;
+REVOKE ALL ON TABLE prodna FROM unison;
+GRANT ALL ON TABLE prodna TO unison;
+GRANT SELECT ON TABLE prodna TO PUBLIC;
+
+
+--
+-- Name: unq; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE unq FROM PUBLIC;
+REVOKE ALL ON TABLE unq FROM unison;
+GRANT ALL ON TABLE unq TO unison;
+GRANT SELECT ON TABLE unq TO PUBLIC;
+
+
+--
+-- Name: unqfamily; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE unqfamily FROM PUBLIC;
+REVOKE ALL ON TABLE unqfamily FROM unison;
+GRANT ALL ON TABLE unqfamily TO unison;
+GRANT INSERT,DELETE,UPDATE ON TABLE unqfamily TO loader;
+GRANT SELECT ON TABLE unqfamily TO PUBLIC;
+
+
+--
+-- Name: unqproform; Type: ACL; Schema: sst; Owner: unison
+--
+
+REVOKE ALL ON TABLE unqproform FROM PUBLIC;
+REVOKE ALL ON TABLE unqproform FROM unison;
+GRANT ALL ON TABLE unqproform TO unison;
+GRANT SELECT ON TABLE unqproform TO PUBLIC;
 
 
 SET search_path = unison, pg_catalog;
