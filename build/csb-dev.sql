@@ -708,14 +708,14 @@ COMMENT ON COLUMN pahmm.tgaps IS 'number of gaps in target sequence';
 -- Name: COLUMN pahmm.score; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN pahmm.score IS 'algorithm-specific score';
+COMMENT ON COLUMN pahmm.score IS '(single) domain score; this is not the "sequence classification score"';
 
 
 --
 -- Name: COLUMN pahmm.eval; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN pahmm.eval IS 'expectation value';
+COMMENT ON COLUMN pahmm.eval IS 'expecation eval (from domain score)';
 
 
 --
@@ -3201,7 +3201,7 @@ COMMENT ON COLUMN pmpseq.pseq_id IS 'unique protein sequence identifier -- see p
 --
 
 CREATE VIEW papseq_v AS
-    SELECT a.pfeature_id, a.pseq_id AS q_pseq_id, a.start AS q_start, a.stop AS q_stop, b.pseq_id AS t_pseq_id, a.mstart AS t_start, a.mstop AS t_stop, a.ident, a.sim, a.gaps, a.qgaps, a.tgaps, a.score, a.eval, a.len, a.pct_ident, a.pct_hsp_coverage, a.pct_coverage FROM (papseq a JOIN pmpseq b ON ((a.pmodel_id = b.pmodel_id))) UNION SELECT a.pfeature_id, b.pseq_id AS q_pseq_id, a.mstart AS q_start, a.mstop AS q_stop, a.pseq_id AS t_pseq_id, a.start AS t_start, a.stop AS t_stop, a.ident, a.sim, a.gaps, a.qgaps, a.tgaps, a.score, a.eval, a.len, a.pct_ident, a.pct_hsp_coverage, a.pct_coverage FROM (papseq a JOIN pmpseq b ON ((a.pmodel_id = b.pmodel_id)));
+    SELECT a.pfeature_id, a.pseq_id AS q_pseq_id, a.start AS q_start, a.stop AS q_stop, b.pseq_id AS t_pseq_id, a.mstart AS t_start, a.mstop AS t_stop, a.ident, a.sim, a.gaps, a.qgaps, a.tgaps, a.score, a.eval, a.len, a.pct_ident, a.pct_hsp_coverage, a.pct_coverage FROM (papseq a JOIN pmpseq b ON ((a.pmodel_id = b.pmodel_id))) UNION ALL SELECT a.pfeature_id, b.pseq_id AS q_pseq_id, a.mstart AS q_start, a.mstop AS q_stop, a.pseq_id AS t_pseq_id, a.start AS t_start, a.stop AS t_stop, a.ident, a.sim, a.gaps, a.qgaps, a.tgaps, a.score, a.eval, a.len, a.pct_ident, a.pct_hsp_coverage, a.pct_coverage FROM (papseq a JOIN pmpseq b ON ((a.pmodel_id = b.pmodel_id)));
 
 
 ALTER TABLE unison.papseq_v OWNER TO unison;
@@ -3979,7 +3979,7 @@ SET search_path = unison, pg_catalog;
 --
 
 CREATE VIEW blasts_v AS
-    SELECT a.pseq_id AS q_pseq_id, m.pseq_id AS t_pseq_id, a.pct_ident FROM (papseq a JOIN pmpseq m ON ((a.pmodel_id = m.pmodel_id))) UNION SELECT m.pseq_id AS q_pseq_id, a.pseq_id AS t_pseq_id, a.pct_ident FROM (papseq a JOIN pmpseq m ON ((a.pmodel_id = m.pmodel_id)));
+    SELECT a.pseq_id AS q_pseq_id, m.pseq_id AS t_pseq_id, a.pct_ident FROM (papseq a JOIN pmpseq m ON ((a.pmodel_id = m.pmodel_id))) UNION ALL SELECT m.pseq_id AS q_pseq_id, a.pseq_id AS t_pseq_id, a.pct_ident FROM (papseq a JOIN pmpseq m ON ((a.pmodel_id = m.pmodel_id)));
 
 
 ALTER TABLE unison.blasts_v OWNER TO unison;
@@ -4081,7 +4081,7 @@ COMMENT ON COLUMN pmprospect.ncores IS 'number of cores in template';
 --
 
 CREATE VIEW pmprospect_scop_v AS
-    (SELECT m.origin_id, m.pmodel_id, m.acc, c.sunid, c.sid, c.pdb, 1 AS "case" FROM (pmprospect m JOIN scop.cla c ON ((m.acc = c.sid))) WHERE (m.origin_id = origin_id('Prospect/SCOP'::text)) UNION SELECT m.origin_id, m.pmodel_id, m.acc, c.sunid, c.sid, c.pdb, 2 AS "case" FROM (pmprospect m JOIN scop.cla c ON ((rpad(m.acc, 5, '_'::text) = substr(c.sid, 2, 5)))) WHERE (m.origin_id = origin_id('Prospect/FSSP'::text))) UNION SELECT m.origin_id, m.pmodel_id, m.acc, c.sunid, c.sid, c.pdb, 2 AS "case" FROM (pmprospect m JOIN scop.cla c ON ((rpad(m.acc, 5, '_'::text) = substr(c.sid, 2, 5)))) WHERE (m.origin_id = origin_id('Prospect-3.0/FSSP'::text));
+    (SELECT m.origin_id, m.pmodel_id, m.acc, c.sunid, c.sid, c.pdb, 1 AS "case" FROM (pmprospect m JOIN scop.cla c ON ((m.acc = c.sid))) WHERE (m.origin_id = origin_id('Prospect/SCOP'::text)) UNION ALL SELECT m.origin_id, m.pmodel_id, m.acc, c.sunid, c.sid, c.pdb, 2 AS "case" FROM (pmprospect m JOIN scop.cla c ON ((rpad(m.acc, 5, '_'::text) = substr(c.sid, 2, 5)))) WHERE (m.origin_id = origin_id('Prospect/FSSP'::text))) UNION ALL SELECT m.origin_id, m.pmodel_id, m.acc, c.sunid, c.sid, c.pdb, 2 AS "case" FROM (pmprospect m JOIN scop.cla c ON ((rpad(m.acc, 5, '_'::text) = substr(c.sid, 2, 5)))) WHERE (m.origin_id = origin_id('Prospect-3.0/FSSP'::text));
 
 
 ALTER TABLE unison.pmprospect_scop_v OWNER TO unison;
@@ -4779,8 +4779,8 @@ SET search_path = pdb, pg_catalog;
 
 CREATE TABLE ligand (
     ligand_id text NOT NULL,
-    formula text NOT NULL,
-    formula_weight numeric NOT NULL,
+    formula text,
+    formula_weight numeric,
     last_modified date NOT NULL,
     formal_charge integer NOT NULL,
     type text NOT NULL
@@ -6410,7 +6410,7 @@ COMMENT ON COLUMN _infer_tax_id_uniprot_v.tax_id IS 'NCBI taxonomy identifier';
 --
 
 CREATE VIEW _infer_tax_id_v AS
-    (((SELECT _v_infer_tax_id_ensembl.origin_id, _v_infer_tax_id_ensembl.palias_id, _v_infer_tax_id_ensembl.tax_id, _v_infer_tax_id_ensembl.inferred_tax_id FROM _infer_tax_id_ensembl_v _v_infer_tax_id_ensembl UNION SELECT _v_infer_tax_id_genengenes.origin_id, _v_infer_tax_id_genengenes.palias_id, _v_infer_tax_id_genengenes.tax_id, _v_infer_tax_id_genengenes.inferred_tax_id FROM _infer_tax_id_genengenes_v _v_infer_tax_id_genengenes) UNION SELECT _v_infer_tax_id_geneseq.origin_id, _v_infer_tax_id_geneseq.palias_id, _v_infer_tax_id_geneseq.tax_id, _v_infer_tax_id_geneseq.inferred_tax_id FROM _infer_tax_id_geneseq_v _v_infer_tax_id_geneseq) UNION SELECT _v_infer_tax_id_refseq.origin_id, _v_infer_tax_id_refseq.palias_id, _v_infer_tax_id_refseq.tax_id, _v_infer_tax_id_refseq.inferred_tax_id FROM _infer_tax_id_refseq_v _v_infer_tax_id_refseq) UNION SELECT _v_infer_tax_id_uniprot.origin_id, _v_infer_tax_id_uniprot.palias_id, _v_infer_tax_id_uniprot.tax_id, _v_infer_tax_id_uniprot.inferred_tax_id FROM _infer_tax_id_uniprot_v _v_infer_tax_id_uniprot;
+    (((SELECT _v_infer_tax_id_ensembl.origin_id, _v_infer_tax_id_ensembl.palias_id, _v_infer_tax_id_ensembl.tax_id, _v_infer_tax_id_ensembl.inferred_tax_id FROM _infer_tax_id_ensembl_v _v_infer_tax_id_ensembl UNION ALL SELECT _v_infer_tax_id_genengenes.origin_id, _v_infer_tax_id_genengenes.palias_id, _v_infer_tax_id_genengenes.tax_id, _v_infer_tax_id_genengenes.inferred_tax_id FROM _infer_tax_id_genengenes_v _v_infer_tax_id_genengenes) UNION ALL SELECT _v_infer_tax_id_geneseq.origin_id, _v_infer_tax_id_geneseq.palias_id, _v_infer_tax_id_geneseq.tax_id, _v_infer_tax_id_geneseq.inferred_tax_id FROM _infer_tax_id_geneseq_v _v_infer_tax_id_geneseq) UNION ALL SELECT _v_infer_tax_id_refseq.origin_id, _v_infer_tax_id_refseq.palias_id, _v_infer_tax_id_refseq.tax_id, _v_infer_tax_id_refseq.inferred_tax_id FROM _infer_tax_id_refseq_v _v_infer_tax_id_refseq) UNION ALL SELECT _v_infer_tax_id_uniprot.origin_id, _v_infer_tax_id_uniprot.palias_id, _v_infer_tax_id_uniprot.tax_id, _v_infer_tax_id_uniprot.inferred_tax_id FROM _infer_tax_id_uniprot_v _v_infer_tax_id_uniprot;
 
 
 ALTER TABLE unison._infer_tax_id_v OWNER TO unison;
@@ -8378,7 +8378,7 @@ COMMENT ON VIEW mint_one_way_v IS 'abridged view of mint with pseq_ids';
 --
 
 CREATE VIEW mint_v AS
-    SELECT a.pseq_id_a, a.sprot_a, a.pseq_id_b, a.sprot_b, a.interaction_detection_method, a.pmid FROM mint_one_way_v a UNION SELECT a.pseq_id_b AS pseq_id_a, a.sprot_b AS sprot_a, a.pseq_id_a AS pseq_id_b, a.sprot_a AS sprot_b, a.interaction_detection_method, a.pmid FROM mint_one_way_v a;
+    SELECT a.pseq_id_a, a.sprot_a, a.pseq_id_b, a.sprot_b, a.interaction_detection_method, a.pmid FROM mint_one_way_v a UNION ALL SELECT a.pseq_id_b AS pseq_id_a, a.sprot_b AS sprot_a, a.pseq_id_a AS pseq_id_b, a.sprot_a AS sprot_b, a.interaction_detection_method, a.pmid FROM mint_one_way_v a;
 
 
 ALTER TABLE unison.mint_v OWNER TO unison;
@@ -8412,7 +8412,7 @@ COMMENT ON VIEW ncbi_pseq_v IS 'maps accessions from NCBI''s gene2accession tabl
 --
 
 CREATE VIEW nearby_sequences_v AS
-    SELECT pseq.pseq_id AS q_pseq_id, pseq.pseq_id AS t_pseq_id, pseq.len, 100 AS pct_ident, 100 AS pct_coverage FROM pseq UNION SELECT v_papseq.q_pseq_id, v_papseq.t_pseq_id, v_papseq.len, v_papseq.pct_ident, v_papseq.pct_coverage FROM papseq_v v_papseq WHERE ((v_papseq.pct_ident > (90)::double precision) AND (v_papseq.pct_coverage > (90)::double precision)) ORDER BY 5 DESC, 4 DESC, 2;
+    SELECT pseq.pseq_id AS q_pseq_id, pseq.pseq_id AS t_pseq_id, pseq.len, 100 AS pct_ident, 100 AS pct_coverage FROM pseq UNION ALL SELECT v_papseq.q_pseq_id, v_papseq.t_pseq_id, v_papseq.len, v_papseq.pct_ident, v_papseq.pct_coverage FROM papseq_v v_papseq WHERE ((v_papseq.pct_ident > (90)::double precision) AND (v_papseq.pct_coverage > (90)::double precision)) ORDER BY 5 DESC, 4 DESC, 2;
 
 
 ALTER TABLE unison.nearby_sequences_v OWNER TO unison;
@@ -11212,7 +11212,7 @@ ALTER TABLE unison.pseq_features_scop_v OWNER TO unison;
 --
 
 CREATE VIEW pseq_features_v AS
-    (((SELECT pseq_features_bigpi_v.feature_type, pseq_features_bigpi_v.params_id, pseq_features_bigpi_v.params_name, pseq_features_bigpi_v.pseq_id, pseq_features_bigpi_v.start, pseq_features_bigpi_v.stop, pseq_features_bigpi_v.score, pseq_features_bigpi_v.eval, pseq_features_bigpi_v.origin_id, pseq_features_bigpi_v.origin, pseq_features_bigpi_v.pmodel_id, pseq_features_bigpi_v.feature, pseq_features_bigpi_v.acc, pseq_features_bigpi_v.descr, pseq_features_bigpi_v.details, pseq_features_bigpi_v.digest, pseq_features_bigpi_v.link_url FROM pseq_features_bigpi_v UNION SELECT pseq_features_pfam_v.feature_type, pseq_features_pfam_v.params_id, pseq_features_pfam_v.params_name, pseq_features_pfam_v.pseq_id, pseq_features_pfam_v.start, pseq_features_pfam_v.stop, pseq_features_pfam_v.score, pseq_features_pfam_v.eval, pseq_features_pfam_v.origin_id, pseq_features_pfam_v.origin, pseq_features_pfam_v.pmodel_id, pseq_features_pfam_v.feature, pseq_features_pfam_v.acc, pseq_features_pfam_v.descr, pseq_features_pfam_v.details, pseq_features_pfam_v.digest, pseq_features_pfam_v.link_url FROM pseq_features_pfam_v) UNION SELECT pseq_features_prosite_v.feature_type, pseq_features_prosite_v.params_id, pseq_features_prosite_v.params_name, pseq_features_prosite_v.pseq_id, pseq_features_prosite_v.start, pseq_features_prosite_v.stop, pseq_features_prosite_v.score, pseq_features_prosite_v.eval, pseq_features_prosite_v.origin_id, pseq_features_prosite_v.origin, pseq_features_prosite_v.pmodel_id, pseq_features_prosite_v.feature, pseq_features_prosite_v.acc, pseq_features_prosite_v.descr, pseq_features_prosite_v.details, pseq_features_prosite_v.digest, pseq_features_prosite_v.link_url FROM pseq_features_prosite_v) UNION SELECT pseq_features_signalpnn_v.feature_type, pseq_features_signalpnn_v.params_id, pseq_features_signalpnn_v.params_name, pseq_features_signalpnn_v.pseq_id, pseq_features_signalpnn_v.start, pseq_features_signalpnn_v.stop, pseq_features_signalpnn_v.score, pseq_features_signalpnn_v.eval, pseq_features_signalpnn_v.origin_id, pseq_features_signalpnn_v.origin, pseq_features_signalpnn_v.pmodel_id, pseq_features_signalpnn_v.feature, pseq_features_signalpnn_v.acc, pseq_features_signalpnn_v.descr, pseq_features_signalpnn_v.details, pseq_features_signalpnn_v.digest, pseq_features_signalpnn_v.link_url FROM pseq_features_signalpnn_v) UNION SELECT pseq_features_tmhmm_v.feature_type, pseq_features_tmhmm_v.params_id, pseq_features_tmhmm_v.params_name, pseq_features_tmhmm_v.pseq_id, pseq_features_tmhmm_v.start, pseq_features_tmhmm_v.stop, pseq_features_tmhmm_v.score, pseq_features_tmhmm_v.eval, pseq_features_tmhmm_v.origin_id, pseq_features_tmhmm_v.origin, pseq_features_tmhmm_v.pmodel_id, pseq_features_tmhmm_v.feature, pseq_features_tmhmm_v.acc, pseq_features_tmhmm_v.descr, pseq_features_tmhmm_v.details, pseq_features_tmhmm_v.digest, pseq_features_tmhmm_v.link_url FROM pseq_features_tmhmm_v ORDER BY 4, 5, 6;
+    (((SELECT pseq_features_bigpi_v.feature_type, pseq_features_bigpi_v.params_id, pseq_features_bigpi_v.params_name, pseq_features_bigpi_v.pseq_id, pseq_features_bigpi_v.start, pseq_features_bigpi_v.stop, pseq_features_bigpi_v.score, pseq_features_bigpi_v.eval, pseq_features_bigpi_v.origin_id, pseq_features_bigpi_v.origin, pseq_features_bigpi_v.pmodel_id, pseq_features_bigpi_v.feature, pseq_features_bigpi_v.acc, pseq_features_bigpi_v.descr, pseq_features_bigpi_v.details, pseq_features_bigpi_v.digest, pseq_features_bigpi_v.link_url FROM pseq_features_bigpi_v UNION ALL SELECT pseq_features_pfam_v.feature_type, pseq_features_pfam_v.params_id, pseq_features_pfam_v.params_name, pseq_features_pfam_v.pseq_id, pseq_features_pfam_v.start, pseq_features_pfam_v.stop, pseq_features_pfam_v.score, pseq_features_pfam_v.eval, pseq_features_pfam_v.origin_id, pseq_features_pfam_v.origin, pseq_features_pfam_v.pmodel_id, pseq_features_pfam_v.feature, pseq_features_pfam_v.acc, pseq_features_pfam_v.descr, pseq_features_pfam_v.details, pseq_features_pfam_v.digest, pseq_features_pfam_v.link_url FROM pseq_features_pfam_v) UNION ALL SELECT pseq_features_prosite_v.feature_type, pseq_features_prosite_v.params_id, pseq_features_prosite_v.params_name, pseq_features_prosite_v.pseq_id, pseq_features_prosite_v.start, pseq_features_prosite_v.stop, pseq_features_prosite_v.score, pseq_features_prosite_v.eval, pseq_features_prosite_v.origin_id, pseq_features_prosite_v.origin, pseq_features_prosite_v.pmodel_id, pseq_features_prosite_v.feature, pseq_features_prosite_v.acc, pseq_features_prosite_v.descr, pseq_features_prosite_v.details, pseq_features_prosite_v.digest, pseq_features_prosite_v.link_url FROM pseq_features_prosite_v) UNION ALL SELECT pseq_features_signalpnn_v.feature_type, pseq_features_signalpnn_v.params_id, pseq_features_signalpnn_v.params_name, pseq_features_signalpnn_v.pseq_id, pseq_features_signalpnn_v.start, pseq_features_signalpnn_v.stop, pseq_features_signalpnn_v.score, pseq_features_signalpnn_v.eval, pseq_features_signalpnn_v.origin_id, pseq_features_signalpnn_v.origin, pseq_features_signalpnn_v.pmodel_id, pseq_features_signalpnn_v.feature, pseq_features_signalpnn_v.acc, pseq_features_signalpnn_v.descr, pseq_features_signalpnn_v.details, pseq_features_signalpnn_v.digest, pseq_features_signalpnn_v.link_url FROM pseq_features_signalpnn_v) UNION ALL SELECT pseq_features_tmhmm_v.feature_type, pseq_features_tmhmm_v.params_id, pseq_features_tmhmm_v.params_name, pseq_features_tmhmm_v.pseq_id, pseq_features_tmhmm_v.start, pseq_features_tmhmm_v.stop, pseq_features_tmhmm_v.score, pseq_features_tmhmm_v.eval, pseq_features_tmhmm_v.origin_id, pseq_features_tmhmm_v.origin, pseq_features_tmhmm_v.pmodel_id, pseq_features_tmhmm_v.feature, pseq_features_tmhmm_v.acc, pseq_features_tmhmm_v.descr, pseq_features_tmhmm_v.details, pseq_features_tmhmm_v.digest, pseq_features_tmhmm_v.link_url FROM pseq_features_tmhmm_v ORDER BY 4, 5, 6;
 
 
 ALTER TABLE unison.pseq_features_v OWNER TO unison;
@@ -12608,7 +12608,7 @@ COMMENT ON COLUMN psprotcomp_v.int_score IS 'best integral score';
 --
 
 CREATE VIEW psprotcomp_reliable_v AS
-    SELECT pc.pseq_id, pc.params_id, pc.sim_psloc_id AS psloc_id, pc.sim_loc AS loc, 'sequence similarity' AS method, pc.sim_target_ac AS details FROM psprotcomp_v pc WHERE (pc.sim_psloc_id <> 0) UNION SELECT pc.pseq_id, pc.params_id, pc.nn_psloc_id AS psloc_id, pc.nn_loc AS loc, 'nn & integral agreement' AS method, NULL::unknown AS details FROM psprotcomp_v pc WHERE ((pc.sim_psloc_id = 0) AND (pc.int_psloc_id = pc.nn_psloc_id));
+    SELECT pc.pseq_id, pc.params_id, pc.sim_psloc_id AS psloc_id, pc.sim_loc AS loc, 'sequence similarity' AS method, pc.sim_target_ac AS details FROM psprotcomp_v pc WHERE (pc.sim_psloc_id <> 0) UNION ALL SELECT pc.pseq_id, pc.params_id, pc.nn_psloc_id AS psloc_id, pc.nn_loc AS loc, 'nn & integral agreement' AS method, NULL::unknown AS details FROM psprotcomp_v pc WHERE ((pc.sim_psloc_id = 0) AND (pc.int_psloc_id = pc.nn_psloc_id));
 
 
 ALTER TABLE unison.psprotcomp_reliable_v OWNER TO unison;
@@ -16778,7 +16778,7 @@ BEGIN
     END IF;
     RAISE DEBUG '* % (pset_id=%)', v_row.name, v_row.pset_id;
 
-    v_tmptblname := 'update_pset_' || v_pset_id || '_' || md5(now()||random());
+    v_tmptblname := 'update_pset_' || v_pset_id || '_' || md5(now()::text||random()::text);
 
 	-- materialize a temp table of the current set contents
     v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||' AS SELECT DISTINCT pseq_id FROM ('||v_row.def||') X';
