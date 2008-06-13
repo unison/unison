@@ -14,10 +14,15 @@ my %opts =
 my @table_defs =
   (
    #  table			columns								distinct
-   [ 'v_trans',            [qw(dnaid pseq_id)],         1],
-   [ 'v_unq2dna',          [qw(dnaid proid unqid shortname unqname)],         1],
-   [ 'fam', 	 	   [qw(famid familyname shortname)],         1],
-   [ 'unqfamily',	   [qw(unqid famid)],                        1]
+   [ 'v_trans'      , [qw(dnaid pseq_id)]                     		, 1],
+   [ 'v_unq2dna'    , [qw(dnaid proid unqid shortname unqname)]		, 1],
+   [ 'fam'			, [qw(famid familyname shortname)]				, 1],
+   [ 'unqfamily'	, [qw(unqid famid)]				             	, 1],
+   [ 'dna'			, [qw(dnaid is_primarydna)]						, 1],
+   [ 'pro'			, [qw(proid unqid proname formalname)]			, 1],
+   [ 'unq'			, [qw(unqid shortname)]							, 1],
+   [ 'unqproform'	, [qw(unqid proid)], 							, 1],
+   [ 'prodna'		, [qw(proid dnaid)],							, 1],
   );
 
 

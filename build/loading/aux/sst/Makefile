@@ -15,7 +15,7 @@ sst.log: sst.sql
 	/bin/mv -f $@.err $@
 
 .PRECIOUS: sst.sql
-sst.sql: FORCE
+sst.sql: ${FORCE}
 	(time -p ./sst-import >$@.tmp) 2>$@.err \
 	&& /bin/mv -f $@.err $@.log && /bin/mv -f $@.tmp $@
 
