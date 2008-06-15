@@ -10975,6 +10975,31 @@ COMMENT ON VIEW pmap_locus_representative_v IS 'unambiguously "better" (lower an
 
 
 --
+-- Name: pmap_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE pmap_mv (
+    params_id integer,
+    genasm_id integer,
+    pseq_id integer,
+    aln_id integer,
+    pstart integer,
+    pstop integer,
+    exons bigint,
+    aln_length bigint,
+    pct_cov integer,
+    ident integer,
+    pct_ident integer,
+    chr text,
+    strand character(1),
+    gstart integer,
+    gstop integer
+);
+
+
+ALTER TABLE unison.pmap_mv OWNER TO unison;
+
+--
 -- Name: pmap_pfam_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -20689,6 +20714,20 @@ ALTER TABLE pmap_alnhsp CLUSTER ON pmap_alnhsp_unq_idx;
 
 
 --
+-- Name: pmap_chr_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_chr_idx ON pmap_mv USING btree (chr);
+
+
+--
+-- Name: pmap_g_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_g_idx ON pmap_mv USING btree (genasm_id);
+
+
+--
 -- Name: pmap_gg_representative_genomic_search_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -20700,6 +20739,20 @@ CREATE INDEX pmap_gg_representative_genomic_search_idx ON pmap_gg_representative
 --
 
 CREATE INDEX pmap_gg_representative_mv_pseq_idx ON pmap_gg_representative_mv USING btree (q_pseq_id, t_pseq_id);
+
+
+--
+-- Name: pmap_gstart_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_gstart_idx ON pmap_mv USING btree (gstart);
+
+
+--
+-- Name: pmap_gstop_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_gstop_idx ON pmap_mv USING btree (gstop);
 
 
 --
@@ -20747,6 +20800,13 @@ CREATE INDEX pmap_locus_representative_mv_pseq_idx ON pmap_locus_representative_
 
 
 --
+-- Name: pmap_p_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_p_idx ON pmap_mv USING btree (params_id);
+
+
+--
 -- Name: pmap_pfam_feature_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -20765,6 +20825,20 @@ CREATE INDEX pmap_pfam_pseq_idx ON pmap_pfam_mv USING btree (pseq_id);
 --
 
 CREATE INDEX pmap_pfam_search1_idx ON pmap_pfam_mv USING btree (genasm_id, chr, strand, pfam_start, pfam_stop);
+
+
+--
+-- Name: pmap_q_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_q_idx ON pmap_mv USING btree (pseq_id);
+
+
+--
+-- Name: pmap_strand_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pmap_strand_idx ON pmap_mv USING btree (strand);
 
 
 --
@@ -25541,6 +25615,16 @@ REVOKE ALL ON TABLE pmap_locus_representative_v FROM PUBLIC;
 REVOKE ALL ON TABLE pmap_locus_representative_v FROM unison;
 GRANT ALL ON TABLE pmap_locus_representative_v TO unison;
 GRANT SELECT ON TABLE pmap_locus_representative_v TO PUBLIC;
+
+
+--
+-- Name: pmap_mv; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pmap_mv FROM PUBLIC;
+REVOKE ALL ON TABLE pmap_mv FROM unison;
+GRANT ALL ON TABLE pmap_mv TO unison;
+GRANT SELECT ON TABLE pmap_mv TO PUBLIC;
 
 
 --
