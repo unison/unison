@@ -227,7 +227,7 @@ sub add_pmaploci {
 
     my $sql = <<EOSQL;
 SELECT aln_id,pseq_id,ident,gstart,gstop,strand
-FROM pmap_v
+FROM pmap_mv
 WHERE genasm_id=$opts{genasm_id}
   AND params_id=$opts{params_id}
   AND chr='$opts{chr}' AND gstart>=$opts{gstart} AND gstop<=$opts{gstop}
@@ -236,7 +236,7 @@ EOSQL
     if ( defined $opts{pseq_id} and not $opts{show_all} ) {
         $sql .= " and pseq_id=$opts{pseq_id}";
     }
-    print( STDERR $sql, ";\n\n" ) if $opts{verbose};
+    print( STDERR $sql, ";\n\n" ); # if $opts{verbose};
     my $sth = $u->prepare($sql);
     $sth->execute();
 
