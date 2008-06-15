@@ -75,7 +75,7 @@ div.nav table {
  margin: 0px;
  padding: 0px;
  width: 100%;
-  font-size: 0.8em;
+  font-size: 0.9em;
   font-variant: small-caps;
 }
 div.nav table.navp {
@@ -424,17 +424,6 @@ dd {
 span.debug {
   background-color: U_DEBUG_BG;
 }
-div.sql {
- border: U_CODE_FRAME thin solid;
- padding: 2px;
- margin: 5px;
- color: U_CODE_FG;
- background-color: U_CODE_BG;
- font-family: monospace;
- font-size: xx-small;
-}
-
-
 span.note {
   font-style: italic;
   color: U_ERROR_FG;
@@ -443,24 +432,24 @@ span.error {
  color: U_NOTICE_FG;
  background: U_NOTICE_BG;
 }
-div.notice {
- border: thin solid U_ERROR_FG;
+
+div.sql {
+ border: U_CODE_FRAME thin solid;
  padding: 2px;
  margin: 5px;
- color: U_ERROR_FG;
+ color: U_CODE_FG;
+ background-color: U_CODE_BG;
+ font-family: monospace;
  font-size: 0.8em;
+}
+div.notice, div.warning, div.important {
+ border: medium solid U_ERROR_FG;
+ padding: 4px;
  font-style: italic;
 }
-div.warning {
- border: U_ERROR_FG medium solid;
- padding: 2px;
- margin: 5px;
- color: U_ERROR_FG;
+div.notice {
+ margin: 5px 25px 5px 25px;
 }
-div.important {
- border: red medium solid;
- padding: 4px;
- margin: 20px 20px 20px 20px;
- color: U_ERROR_FG;
- background-color: U_ERROR_BG;
+div.warning, div.important {
+ margin: 25px;
 }

@@ -424,7 +424,7 @@ EOF
 
 sub end_page() {
   my $p = shift;
-  my $self_url = self->url();
+  my $self_url = $p->url();
   my $addl_footer = (defined $p->{footer}
 					 ? ( map { "<br>$_" } @{ $p->{footer} } )
 					 : '');
@@ -442,9 +442,9 @@ sub end_page() {
     <a href="http://www.postgresql.org/">
       <img class="logo" src="../av/poweredby_postgresql.gif">
     </a>
-  </td>',
+  </td>
 
-  <td class="footer">',
+  <td class="footer">
   Questions?  Email <a href="mailto:unison\@unison-db.org?subject=Unison Question&body=Regarding $self_url">unison\@unison-db.org</a>.
   &nbsp; &nbsp;
   Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.
@@ -582,8 +582,7 @@ sub sql {
     my $sql = join( '', map { CGI::escapeHTML($_) } text_wrap(@_) );
     $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
     $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
-    $sql =~
-s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
+    $sql =~ s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
     $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
     $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
     $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
@@ -704,6 +703,7 @@ sub warn {
     return ( "\n", '<p><div class="warning"><b>Warning:</b> ', @_, '</div>',
         "\n" );
 }
+
 
 ######################################################################
 ## die()
@@ -933,7 +933,7 @@ sub is_dev_instance {
 }
 
 ######################################################################
-## is_public
+## is_public_instance
 
 =pod
 
@@ -952,7 +952,6 @@ sub is_public_instance {
   }
   return 0;
 }
-sub is_public { goto &is_public_instance; }
 
 ######################################################################
 
@@ -1052,12 +1051,7 @@ sub _genentech_connection_params ($) {
         );
     }
 
-    if    ( $ENV{SERVER_PORT} == 80 )   { $v->{dbname} = 'csb' }
-    elsif ( $ENV{SERVER_PORT} == 8000 ) { $v->{dbname} = 'csb-pub' }
-    elsif ( $ENV{SERVER_PORT} == 8040 ) { $v->{dbname} = 'csb-stage' }
-    elsif ( $ENV{SERVER_PORT} == 8080 ) { $v->{dbname} = 'csb-dev' }
-
-	if    ( $ENV{REQUEST_URI} =~ /~/ )   { $v->{dbname} = 'csb-dev' };
+	$v->{dbname} = 	$self->is_dev_instance() ? 'csb-dev' : 'csb';
 
     return;
 }
@@ -1381,7 +1375,7 @@ sub _navbar {
 
     @navs = __format_tab_labels(@navs);
     @navs =
-      __filter_navs( $self->is_prd_instance(), $self->is_public(), @navs );
+      __filter_navs( $self->is_prd_instance(), $self->is_public_instance(), @navs );
     my ( $navi, $subnavi ) = $self->_find_nav_ids(@navs);
     $navi = -1 unless defined $navi;
 

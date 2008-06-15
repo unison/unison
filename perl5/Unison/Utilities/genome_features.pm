@@ -30,6 +30,7 @@ our @EXPORT_OK = qw( genome_features_panel );
 use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::pmap;
+use Unison::Utilities::misc qw( unison_logo );
 
 sub genome_features_panel($%);
 
@@ -135,33 +136,36 @@ sub genome_features_panel ($%) {
 
     add_pmaploci( $u, $panel, %opts );
 
-    $panel->add_track( -key => 'Affymentrix and Agilents Probes', );
+    $panel->add_track( -key => 'Affymetrix and Agilent Probes' );
     $panel->add_track();    # spacing
     $panel->add_track(
         -key_font => 'gdSmallFont',
         -bgcolor  => 'green',
         -bump     => +1,
-        -key =>
-          '$Id$',
         add_probes( $u, $panel, %opts )
     );
 
+	# Add version string and logo
     my $gd = $panel->gd();
-    ## FIXME: the following file needs to be relocated to the Unison perl5
-    ## directory (or the dependency removed)
-    my $unison_fn = '/home/rkh/www/csb/unison/av/unison.xpm';
-    if ( -f $unison_fn ) {
-        my $ugd = GD::Image->newFromXpm($unison_fn);
-        if ( defined $ugd ) {
-            my ( $sw, $sh ) = $ugd->getBounds();
-            my ( $dw, $dh ) = $gd->getBounds();
-            $gd->copy(
-                $ugd,
-                $dw - $sw - $logo_margin,
-                $dh - $sh - $logo_margin,
-                0, 0, $sw, $sh
-            );
-        }
+    my ( $dw, $dh ) = $gd->getBounds();
+    my $black = $gd->colorAllocate( 0, 0, 0 );
+    my $IdFont = GD::Font->MediumBold;
+    $gd->string(
+        $IdFont,
+        $opts{logo_margin},
+        $dh - $opts{logo_margin} - $IdFont->height,
+        '$Id$',
+        $black
+    );
+    my $ugd = unison_logo();
+    if ( defined $ugd ) {
+        my ( $sw, $sh ) = $ugd->getBounds();
+        $gd->copy(
+            $ugd,
+            $dw - $sw - $opts{logo_margin},
+            $dh - $sh - $opts{logo_margin},
+            0, 0, $sw, $sh
+        );
     }
 
     return $panel;

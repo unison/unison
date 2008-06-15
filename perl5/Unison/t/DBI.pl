@@ -10,9 +10,6 @@ use Unison::DBI;
 use Unison::Exceptions;
 use Data::Dumper;
 
-# must provide at least the following connection info
-#   host=>'csb', dbname=>'csb', username=>'PUBLIC'
-# or perhaps through PGHOST, PGDATABASE, and PGUSER
 my $u = new Unison();
 
 select(STDERR);

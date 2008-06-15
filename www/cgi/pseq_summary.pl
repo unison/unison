@@ -45,7 +45,6 @@ EOT
 try {
     print $p->render(
         "Unison:$v->{pseq_id} Summary",
-		rep_redirect($p),
         summary_group($p),
 		);
 }
@@ -138,6 +137,8 @@ sub summary_group ($) {
 					 'Summary',
 
 					 '<table class="summary">',
+
+					 rep_redirect($p),
 
 					 '<tr><th><div>Best Annotation</div></th> <td>',
 					 $ba,

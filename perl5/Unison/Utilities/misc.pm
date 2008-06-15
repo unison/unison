@@ -24,9 +24,11 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
 use base Exporter;
 @EXPORT    = ();
-@EXPORT_OK = qw/ warn_deprecated range_to_enum clean_sequence
-  sequence_md5 wrap unison_logo elide_sequence
-  use_at_runtime /;
+@EXPORT_OK = qw(
+				 clean_sequence context_highlight elide_sequence
+				 get_context_coords range_to_enum sequence_md5 unison_logo
+				 use_at_runtime warn_deprecated wrap
+			  );
 
 use strict;
 use warnings;
@@ -216,6 +218,85 @@ sub elide_sequence {
     }
     return $seq;
 }
+
+
+######################################################################
+
+=pod
+
+=item B<< get_context_coords(len,rl,rr,ml,mr) >>
+
+For a string of length len, and a region [rl,rr] in that string, return
+*as a hash* the coordinates of a context string with margins ml on left
+and mr on right, and the *relative* coordinates of the region within the
+context.  This function takes pains to handle corner cases near the
+terminii correctly.
+
+The intent of this function is to identify sequence contexts and
+coordinates within to facilitate motif highlighting.
+
+Example:
+ # Highlight 'def' ([4,6]) with context of 2 aa on left, 1 on right
+ my $seq = 'abcdefghi';
+ my %c = get_context_coords(length($seq),4,6,2,1);
+ my $ctx = substr($seq,$c{cl}-1,$c{cw});    # susbtr is 0-based!
+ my $ctx_hl = $ctx;
+ substr($ctx_hl,$c{hr}+1 ,0) = '<';
+ substr($ctx_hl,$c{hl}   ,0) = '>';
+
+=cut
+
+sub get_context_coords {
+  my ($len,$rl,$rr,$ml,$mr) = @_;
+  my $rw = $rr-$rl+1;
+  my ($hl,$hr);
+
+  $ml =      $rl-1 if ($rl - $ml < 1   );
+  $mr = $len-$rr   if ($rr + $mr > $len);
+
+  my $cl = $rl - $ml;
+  my $cr = $rr + $mr;
+  my $cw = $cr - $cl + 1;
+
+  $hl = $ml;
+  $hr = $ml + $rw-1;
+
+  return (
+		  rl => $rl, rr => $rr, rw => $rw,
+		  ml => $ml, mr => $mr,
+		  cl => $cl, cr => $cr, cw => $cw,
+		  hl => $hl, hr => $hr,
+		 );
+}
+
+
+
+######################################################################
+
+=pod
+
+=item B<< context_highlight(seq,tagl,tagr,rl,rr,ml,mr) >>
+
+Use get_context_coords to extract a region from a sequence and wrap it
+with tagl and tagr.
+
+Example:
+ my $seq = 'abcdefghi';
+ my $ctx = context_highlight($seq,'<b>','</b>',4,6,1,2)
+
+=cut
+
+sub context_highlight {
+  my ($seq,$tagl,$tagr,$rl,$rr,$ml,$mr) = @_;
+  my %c = get_context_coords(length($seq),$rl,$rr,$ml,$mr);
+  my $ctx_hl = substr($seq,$c{cl}-1,$c{cw}); # susbtr is 0-based!
+  substr($ctx_hl,$c{hr}+1 ,0) = $tagr;
+  substr($ctx_hl,$c{hl}   ,0) = $tagl;
+  return $ctx_hl;
+}
+
+
+
 
 
 ######################################################################

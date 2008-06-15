@@ -20,7 +20,7 @@ my $v = $p->Vars();
 my $sql = new Unison::SQL;
 $sql->columns(qw(origin alias latin descr))->tables('current_annotations_v')
   ->where("pseq_id=$v->{pseq_id}");
-if ( not $p->is_public() ) {
+if ( not $p->is_public_instance() ) {
     $sql->where("origin_id!=origin_id('Geneseq')");
 }
 
