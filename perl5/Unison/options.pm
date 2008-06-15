@@ -25,13 +25,11 @@ use warnings;
 use Getopt::Long;
 
 our %opts = (
-
     # use PGHOST if it's not '', otherwise set based on whether we're
-    # on csb (local), comp* (csb), else exo-cluster (csb)
-    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
+    # NOTE: Set PGHOST to '' if you want a Unix socket connection
     host => ( ( exists $ENV{PGHOST} ) and ( $ENV{PGHOST} =~ m/\w/ ) )
     ? $ENV{PGHOST}
-    : 'csb',
+    : 'respgsql',
 
     # by default, use the production db
     dbname => $ENV{PGDATABASE} || 'csb',
@@ -49,7 +47,7 @@ our %opts = (
         RaiseError => 0,
         AutoCommit => 1,
 
-     # XXX: does the following work?
+     # FIXME: does the following work?
      # HandleError = sub { throw Unison::Exception::DBIError ($dbh->errstr()) },
     },
 );

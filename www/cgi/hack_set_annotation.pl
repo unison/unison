@@ -97,6 +97,11 @@ sub do_search {
 
   return unless defined $v->{submit};
 
+## 
+STOPPED HERE
+rewrite to assemble table piecemeal, not in one query
+
+
   my $sql = <<EOSQL;
 SELECT DISTINCT
 	A.alias,A.origin,A.descr,A.pseq_id,
@@ -205,29 +210,6 @@ EOSQL
 
 
 
-#TNFB_HUMAN
-#$VAR1 = {
-#  'alias' => 'TNFB_HUMAN'
-#  'common_annotations' => 'GenenGenes:PRO21836,GenenGenes:PRO272071,GenenGenes:PRO35994,GenenGenes:PRO7,GenenGenes:PRO91831,GenenGenes:PRO91899,UniProtKB/Swiss-Prot:P01374,UniProtKB/Swiss-Prot:TNFB_HUMAN',
-#  'cytoband' => '6p21.33',
-#  'descr' => 'Lymphotoxin-alpha precursor (LT-alpha) (TNF-beta) (Tumor necrosis factor ligand superfamily member 1).',
-#  'domain_digests' => 'SS(1-34;0.859),TM(7-29),TNF(77-205;177;6.3e-50),TNF_1(99-115)',
-#  'human_locus' => '6+:31648499-31649444',
-#  'origin_id' => '10052',
-#  'pg_alias' => 'NP_000586.2',
-#  'pg_descr' => 'lymphotoxin alpha precursor [Homo sapiens].',
-#  'pg_gene_id' => '4049',
-#  'probes' => '',
-#  'pros' => 'PRO272071,PRO7,PRO91831,PRO91899',
-#  'pseq_id' => '97',
-#  'rep_alias' => 'IPI:IPI00001670.1',
-#  'rep_pseq_id' => '97',
-#  'unqs' => 'UNQ7',
-#};
-
-
-
-
 
 
 __END__
@@ -236,7 +218,7 @@ __END__
 my $sql = new Unison::SQL;
 $sql->columns(qw(origin alias latin descr))->tables('current_annotations_v')
   ->where("pseq_id=$v->{pseq_id}");
-if ( not $p->is_public() ) {
+if ( not $p->is_public_instance() ) {
     $sql->where("origin_id!=origin_id('Geneseq')");
 }
 

@@ -150,7 +150,7 @@ div.nav table {
  margin: 0px;
  padding: 0px;
  width: 100%;
-  font-size: 0.8em;
+  font-size: 0.9em;
   font-variant: small-caps;
 }
 div.nav table.navp {
@@ -518,24 +518,15 @@ span.error {
  color: black;
  background: #FFE6F1;
 }
-div.notice {
- border: thin solid #BF608A;
- padding: 2px;
- margin: 5px;
- color: #BF608A;
- font-size: 0.8em;
+
+div.notice, div.warning, div.important {
+ border: medium solid #BF608A;
+ padding: 4px;
  font-style: italic;
 }
-div.warning {
- border: #BF608A medium solid;
- padding: 2px;
- margin: 5px;
- color: #BF608A;
+div.notice {
+ margin: 5px 25px 5px 25px;
 }
-div.important {
- border: red medium solid;
- padding: 4px;
- margin: 20px 20px 20px 20px;
- color: #BF608A;
- background-color: white;
+div.warning, div.important {
+ margin: 25px;
 }

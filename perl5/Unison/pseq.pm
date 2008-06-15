@@ -194,7 +194,7 @@ sub entrez_go_annotations {
     $self->is_open()
       || croak("Unison connection not established");
     my $sth = $self->prepare_cached(<<EOSQL);
-SELECT *
+SELECT DISTINCT GG.*
   FROM pseq_gene_mv PG
   JOIN ncbi.gene2go GG on PG.gene_id=GG.gene_id
  WHERE PG.pseq_id=?

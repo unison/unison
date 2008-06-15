@@ -15,14 +15,6 @@ my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
 
-if ( $u->is_public() ) {
-    $p->die( 'Patents not available.', <<EOT);
-Sorry, patents are not part of the public Unison release. We load
-patent data from Derwent Geneseq, and the tools do this yourself are
-part of the Unison source code distribution.
-EOT
-}
-
 $v->{pct_ident}    = 98 unless exists $v->{pct_ident};
 $v->{pct_coverage} = 98 unless exists $v->{pct_coverage};
 $v->{pseq_id} = $p->_infer_pseq_id(); # internal function called. Shame on me.
@@ -67,40 +59,26 @@ sub do_search {
     my $v = $p->Vars();
     return '' unless ( defined $v->{pseq_id} and $v->{pseq_id} ne '' );
 
-# substring(AO.descr,'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([^\\\\s\\\\]]+)') as patent_authority,
-# I'd much prefer to have this query view-ized, but as of 2006-06-25,
-# the subquery below joined with patents_v is extremely slow.  I think the problem
-# is the join across the union.
+	my $patents_view = $p->is_public_instance ? 'patents_pataa_v' : 'patents_geneseq_v';
+
     my $sql = <<EOSQL;
-SELECT
-	X1.*,
-	origin_alias_fmt(O.origin,AO.alias),
-	T.latin as species,
-	substring(AO.descr,E'\\\\[DT: (\\\\S+)')::date as patent_date,
-	substring(AO.descr,E'\\\\[PA:\\\\s+\\\\([^\\\\)]+\\\\)\\\\s+([\\\\w\\\\d\\\\s\\\\.]+)') as patent_authority,
-	AO.descr
-FROM (SELECT t_pseq_id AS pseq_id,len,pct_ident::smallint,pct_coverage::smallint
-	  FROM papseq_v
-	  WHERE q_pseq_id=$v->{pseq_id}
-		AND pct_ident>=$v->{pct_ident}
-		AND pct_coverage>=$v->{pct_coverage}
-	  UNION
-	  SELECT pseq_id,len,100,100
-	  FROM pseq
-	  WHERE pseq_id=$v->{pseq_id}
-  	) X1
-JOIN pseqalias SA on X1.pseq_id=SA.pseq_id
-JOIN paliasorigin AO on	AO.palias_id=SA.palias_id
-JOIN origin O on O.origin_id=AO.origin_id
-LEFT JOIN spspec T on AO.tax_id=T.tax_id
-WHERE SA.is_current=true
-  AND AO.origin_id=origin_id('Geneseq')
-ORDER BY pct_coverage desc,pct_ident desc,patent_date,patent_authority,alias
+SELECT t_pseq_id,len,pct_coverage,pct_ident,
+		origin_alias_fmt(origin,alias),species,patent_date,patent_authority,descr
+    FROM nearby_sequences_unsorted_v B
+    JOIN $patents_view P ON B.t_pseq_id=P.pseq_id
+    WHERE B.q_pseq_id=$v->{pseq_id} 
+      AND pct_ident>=$v->{pct_ident}
+      AND pct_coverage>=$v->{pct_coverage}
+ORDER BY pct_coverage desc,pct_ident desc,pseq_id,patent_date,patent_authority,origin = 'pataa', alias
 EOSQL
 
     my $ar = $u->selectall_arrayref($sql);
-    my @f
-        = qw( pseq_id len %IDE %COV alias species date authority description );
+	foreach my $rr (@$ar) {
+	  $rr->[2] = sprintf("%d",$rr->[2]);
+	  $rr->[3] = sprintf("%d",$rr->[3]);
+	}
+
+    my @f = qw( pseq_id len %COV %IDE alias species date authority description );
     return (
         "<hr>\n",
         $p->group( "Patent Results", Unison::WWW::Table::render( \@f, $ar ) ),

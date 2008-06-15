@@ -35,7 +35,7 @@ sub origin_group($) {
         'descr',
         'url'
     )->table('origin')->where('ann_pref is not null')->order('origin');
-    $sql->where('is_public=TRUE') if $u->is_public();
+    $sql->where('is_public=TRUE') if $u->is_public_instance();
 
     my $sth  = $u->prepare("$sql");
     my $ar   = $u->selectall_arrayref($sth);
