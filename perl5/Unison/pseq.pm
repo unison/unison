@@ -99,12 +99,14 @@ sub best_alias {
     # my $from_view = true_or_false( shift );
     $self->is_open()
       || croak("Unison connection not established");
-    my $sth =
-      (
-        defined $gs
-        ? $self->prepare_cached("select best_alias(?,?)")
-        : $self->prepare_cached("select best_alias(?)") );
-    defined $gs ? $sth->execute( $pseq_id, $gs ) : $sth->execute($pseq_id);
+    my $sth;
+	if (defined $gs) {
+	  $sth = $self->prepare_cached("select best_alias(?,?)");
+	  $sth->execute( $pseq_id, $gs );
+	} else {
+	  $sth = $self->prepare_cached("select best_alias(?)");
+	  $sth->execute($pseq_id);
+	}
     my $ba = $sth->fetchrow_array();
     $sth->finish();
     return ($ba);
