@@ -6,19 +6,18 @@ use strict;
 use warnings;
 use base 'Exporter';
 our @EXPORT_OK = qw(
-					 alias_link alias_proteome_link alias_gglink
-					 alias_ghlink alias_splink alias_uniprot_link
-					 alias_reflink alias_enslink alias_mint_link
-					 alias_pubmed_link pseq_summary_link text_wrap
-					 coalesce pdbc_rcsb_link
-					 ncbi_gene_link ncbi_refseq_link
-					 maprofile_link genengenes_link
-					 pfam_link
+					 alias_enslink alias_gglink alias_ghlink alias_link
+					 alias_mint_link alias_proteome_link alias_pubmed_link
+					 alias_reflink alias_splink alias_uniprot_link
+					 coalesce genengenes_link maprofile_link
+					 ncbi_gene_link ncbi_refseq_link pdbc_rcsb_link
+					 pfam_link pseq_summary_link render_app_list text_wrap
 				  );
 
 our @EXPORT = ();
 
 use Text::Wrap;
+use Data::Dumper;
 
 # TODO:
 # The URL formats /should/ come from the origin table (origin.url)
@@ -217,5 +216,37 @@ sub coalesce {
     }
     return $_[0];    # may be undef if list exhausted
 }
+
+sub render_app_list {
+  my $prd_only = shift;
+  my $pub_only = shift;
+
+  my @apps = @_;
+  if ($prd_only) {
+	print(STDERR "removing non-prd elems\n");
+	@apps = grep { defined $_->{prd} } @apps;
+  }
+  if ($pub_only) {
+	print(STDERR "removing non-pub elems\n");
+	@apps = grep { defined $_->{pub} } @apps;
+  }
+
+  return(
+		 qq(<div class="top">\n<dl>\n), 
+		 ( map { _format_app_entry($_) } @apps ),
+		 qq(</dl>\n</div>\n)
+		)
+}
+
+sub _format_app_entry {
+  my $ae = shift;
+  my $tags = ($ae->{prd} ? '' : 'D') . ($ae->{pub} ? '' : 'P');
+  $tags = "($tags)" if $tags;
+  return <<EOHTML;
+<dt><a href="$ae->{script}">$ae->{name}</a> $tags - $ae->{brief}
+<dd>$ae->{descr}
+EOHTML
+}
+
 
 1;

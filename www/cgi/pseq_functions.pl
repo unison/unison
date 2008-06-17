@@ -110,7 +110,7 @@ sub generif_group {
   $sql->columns(qw(last_update::date generif pubmed_ids))
 	->tables('pseq_generif_v')
 	  ->where("q_pseq_id=$v->{pseq_id}",
-			  "generif !~ 'HuGENet'")		# these are useless
+			  "generif !~ 'HuGENet|HuGE Navigator'") # these are uninformative
 		->order("last_update desc");
 
   my $sql_s = "$sql";

@@ -19,7 +19,7 @@ use Unison::Utilities::compare_scores;
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 
-if ( $u->is_public() ) {
+if ( $u->is_public_instance() ) {
     $p->die( 'Prospect threadings not available.', <<EOT);
 Sorry, Prospect threading results are not part of the public Unison
 release. We load these data using scripts which are part of the <a

@@ -32,7 +32,7 @@ $v->{params_id} = $ps[0]->[0] unless ( defined $v->{params_id} );
 
 my $sql = <<EOSQL;
 SELECT params_id,pstart,pstop,pct_ident,pct_cov,L.genasm_id,G.tax_id,T.latin,G.name as genome_name,chr,strand,gstart,gstop
-FROM pmap_v L
+FROM pmap_mv L
 JOIN genasm G ON L.genasm_id=G.genasm_id
 JOIN tax.spspec T on G.tax_id=T.tax_id
 WHERE L.genasm_id=G.genasm_id AND L.params_id=$v->{params_id} AND L.pseq_id=$v->{pseq_id}
@@ -46,10 +46,27 @@ my @cols = (
 
 try {
     my @data;
+	my $first_hit;
     my $sth = $u->prepare($sql);
     $sth->execute();
 
     while ( my $r = $sth->fetchrow_hashref() ) {
+		my $fx = sprintf('update_emb_genome_map(%d,\'%s\',%d,%d,%d)',
+						 $r->{genasm_id}, $r->{chr},
+						 $r->{gstart} - $margin,
+						 $r->{gstop} + $margin,
+						 $v->{params_id}
+						);
+		if (not defined $first_hit) {
+		  $first_hit = sprintf('emb_genome_map.pl?genasm_id=%d;chr=%s;gstart=%d;gstop=%d;params_id=%d',
+							   $r->{genasm_id},
+							   $r->{chr},
+							   $r->{gstart} - $margin,
+							   $r->{gstop} + $margin,
+							   $v->{params_id}
+							  );
+		}
+
         my (%row_data) = map { $_ => '' } @cols;
         $row_data{'protein start-stop'} =
           sprintf( '%d-%d', $r->{pstart}, $r->{pstop} );
@@ -59,14 +76,7 @@ try {
         $row_data{'genome name'} = $r->{genome_name};
         $row_data{'locus'}       = sprintf( '%s%s:%d-%d',
             $r->{chr}, $r->{strand}, $r->{gstart}, $r->{gstop} );
-        $row_data{'inset'} = sprintf(
-'<a href="javascript:update_emb_genome_map(%d,\'%s\',%d,%d,%d)">show</a>',
-            $r->{genasm_id}, $r->{chr},
-            $r->{gstart} - $margin,
-            $r->{gstop} + $margin,
-            $v->{params_id}
-        );
-
+        $row_data{'inset'} = "<a href=\"javascript:$fx\">show</a>";
         #$row_data{'links'} = genome_links($r);
         push( @data, [ map { $row_data{$_} } @cols ] );
     }
@@ -98,7 +108,7 @@ EOJS
             Unison::WWW::Table::render( \@cols, \@data ),
             '</div>'
         ),
-'<p><iframe style="display:none" id="emb_genome_map" width="100%" height="300px" scrolling="yes">',
+'<p><iframe id="emb_genome_map" src="'.$first_hit.'" width="100%" height="400px" scrolling="auto">',
 'Sorry. I cannot display alignments because your browser does not support iframes.',
         '</iframe>',
 
