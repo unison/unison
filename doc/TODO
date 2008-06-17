@@ -2,9 +2,19 @@
 
 * standardize calling conventions
 use hashes/hash references for everything
-
-* show sql
-use collapsable frames for sql
+# Q: to use key=>val or -key=>val (why do people like -key?)
+# A: From http://perldoc.perl.org/perlmodstyle.html:
+#   The use of hash keys starting with a hyphen (-name ) or entirely in
+#   upper case (NAME ) is a relic of older versions of Perl in which
+#   ordinary lower case strings were not handled correctly by the =>
+#   operator. While some modules retain uppercase or hyphenated argument
+#   keys for historical reasons or as a matter of personal style, most new
+#   modules should use simple lower case keys. Whatever you choose, be
+#   consistent!
+- implemenation should include a mechanism to include defaults, checking
+  for undefined or missing opts, perhaps checking arg types, and reporting
+  failure context.
+- see ~rkh/sandbox/perl/named-fx-args and perl best practices
 
 * collapsable fieldsets for groups
 Collapse fieldsets to save space
@@ -15,6 +25,11 @@ UPDATE: see Ubuntu's launchpad. They do exactly this. See
 https://bugs.launchpad.net/ubuntu/+source/gnome-terminal/+bug/189656
 and click 'Add a comment/attachment' at the bottom
 Also see http://template-toolkit.org/about.html .
+
+* use exceptions more broadly
+
+* show sql
+use collapsable frames for sql too
 
 * disprot
 Refactor disprot loading to be more like other loading.

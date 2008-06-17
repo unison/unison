@@ -43,11 +43,12 @@ sub _conn_info_html ($) {
     my $info = 'not connected to the Unison database';
 
     if ( ref $p and defined $u and $u->is_open() ) {
-        my $dev_str
-            = '<span style="color: red">development</span> (no release tag)';
+        my $dev_str = '<span style="color: red">development</span>';
         my $pub_str = '<span style="color: green">public</span>';
-        my $www_rel = ( $p->is_public_instance ? $pub_str : '' ) . ' '
-            . ( $Unison::WWW::RELEASE || $dev_str );
+
+        my $www_rel = (   ( $p->is_public_instance ? $pub_str : '' )
+						. ( $p->is_dev_instance    ? $dev_str : ('('.($Unison::RELEASE || 'no RELEASE tag').')' ) )
+					  );
         my $api_rel = $Unison::RELEASE || $dev_str;
         my $db_rel = ( $u->is_public_instance ? $pub_str : '' ) . ' '
             . ( $u->release_timestamp() || $dev_str );

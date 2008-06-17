@@ -75,7 +75,7 @@ div.nav table {
  margin: 0px;
  padding: 0px;
  width: 100%;
-  font-size: 0.8em;
+  font-size: 0.9em;
   font-variant: small-caps;
 }
 div.nav table.navp {
@@ -409,32 +409,48 @@ pre.code {
 }
 
 
-dl {
- margin-right: 50px;
+
+/* "top" pages */
+div.top {
+  margin-left: 10%;
+  margin-right: 10%;
 }
-dt {
- font-style: italic;
+
+div.top dl {
 }
-dd {
- margin-right: 50px;
-  /*font-size: smaller; */
+div.top dt {
+ margin: 0px;
+  border-bottom: thin dotted U_FRAME_BG;
+  font-weight: bold;
 }
+div.top dd {
+ margin: 0px 0px 10px 0px;
+}
+
+div.top fieldset {
+ border: thin dotted U_FRAME;
+ margin: 5px;
+ padding: 3px;
+ width: 40%;
+}
+div.top legend {
+ border-color: U_LEGEND_FRAME;
+  border-style: solid;
+  border-width: 0px thin 0px thin;
+ background: U_LEGEND_BG;
+ color: U_LEGEND_FG;
+ font-weight: bold;
+ padding: 2px 5px 2px 5px;
+}
+
+
+
+
 
 /* miscellany */
 span.debug {
   background-color: U_DEBUG_BG;
 }
-div.sql {
- border: U_CODE_FRAME thin solid;
- padding: 2px;
- margin: 5px;
- color: U_CODE_FG;
- background-color: U_CODE_BG;
- font-family: monospace;
- font-size: xx-small;
-}
-
-
 span.note {
   font-style: italic;
   color: U_ERROR_FG;
@@ -443,24 +459,24 @@ span.error {
  color: U_NOTICE_FG;
  background: U_NOTICE_BG;
 }
-div.notice {
- border: thin solid U_ERROR_FG;
+
+div.sql {
+ border: U_CODE_FRAME thin solid;
  padding: 2px;
  margin: 5px;
- color: U_ERROR_FG;
+ color: U_CODE_FG;
+ background-color: U_CODE_BG;
+ font-family: monospace;
  font-size: 0.8em;
+}
+div.notice, div.warning, div.important {
+ border: medium solid U_ERROR_FG;
+ padding: 4px;
  font-style: italic;
 }
-div.warning {
- border: U_ERROR_FG medium solid;
- padding: 2px;
- margin: 5px;
- color: U_ERROR_FG;
+div.notice {
+ margin: 5px 25px 5px 25px;
 }
-div.important {
- border: red medium solid;
- padding: 4px;
- margin: 20px 20px 20px 20px;
- color: U_ERROR_FG;
- background-color: U_ERROR_BG;
+div.warning, div.important {
+ margin: 25px;
 }

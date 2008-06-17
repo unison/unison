@@ -21,11 +21,12 @@ S<$Id$>
 ## FIXME: put run_history timestamp in track label (or, instead, just
 ## indicate when it hasn't been run)
 
-## FIXME: standardize tooltip format as: <start>-<stop> (elided subseq)<br>score, etc
-
 ## FIXME: ALWAYS check return val for functions like params_id(). When
 ## they're null/undef, we need to return. When uncaught (eg, in pub web
 ## site when params doesn't exist), the page barfs.
+
+## BUG: feature tooltips should be html-escaped, but unsure where.
+
 
 package Unison::Utilities::pseq_features;
 use CBT::debug;
@@ -42,7 +43,7 @@ use Bio::Graphics;
 use Bio::Graphics::Feature;
 use Unison::params;
 use Unison::run;
-use Unison::Utilities::misc qw( warn_deprecated unison_logo elide_sequence );
+use Unison::Utilities::misc qw( warn_deprecated unison_logo elide_sequence context_highlight );
 use Unison::Utilities::pseq_structure;
 
 my @default_panel_features = qw ( antigenic bigpi disprot hmm psipred
@@ -51,15 +52,17 @@ my @default_panel_features = qw ( antigenic bigpi disprot hmm psipred
 # pssm sigcleave
 
 our %opts = (
-    pseq_id     => undef,
-    width       => 750,
-    verbose     => 0,
-    pad         => 10,
-    logo_margin => 10,
+			 pseq_id     => undef,
+			 width       => 750,
+			 verbose     => 0,
+			 pad         => 10,
+			 logo_margin => 10,
+			 seq_context_margin => 5, 		# left & right margin for
+                                            # feature context
 
-    # this is the default track length needed for imagemap links
-    def_track_length => 60,
-    synopsis         => 0,
+			 # this is the default track length needed for imagemap links
+			 def_track_length => 60,
+			 synopsis         => 0,
 );
 
 =pod
@@ -82,21 +85,18 @@ sub as_png() {
 }
 
 sub imagemap_body($) {
-    my $self     = shift;
-    my $imagemap = '';
-    foreach my $box ( $self->{panel}->boxes() ) {
-        my ( $feature, $x1, $y1, $x2, $y2 ) = @$box;
-        my $attr = $feature->{attributes};
-        next unless defined $attr;
-        $imagemap .= sprintf(
-            '<AREA SHAPE="RECT" COORDS="%d,%d,%d,%d" TOOLTIP="%s" HREF="%s">'
-              . "\n",
-            $x1, $y1, $x2, $y2,
-            $attr->{tooltip} || '',
-            $attr->{href}    || ''
-        );
-    }
-    return $imagemap;
+  my $self     = shift;
+  my $imagemap = '';
+  foreach my $box ( $self->{panel}->boxes() ) {
+	my ( $feature, $x1, $y1, $x2, $y2 ) = @$box;
+	my $attr = $feature->{attributes};
+	next unless defined $attr;
+	$imagemap .= "<AREA SHAPE=\"RECT\" COORDS=\"$x1,$y1,$x2,$y2\"";
+	$imagemap .= " TOOLTIP=\"$attr->{tooltip}\"" if defined $attr->{tooltip};
+	$imagemap .= " HREF=\"$attr->{href}\""       if defined $attr->{href};
+	$imagemap .= ">\n";
+  }
+  return $imagemap;
 }
 
 ######################################################################
@@ -207,6 +207,8 @@ sub pseq_features_panel($%) {
 
     $panel->add_track() for 1 .. 3;    # spacing
 
+
+	# Add version string and logo
     my $gd = $panel->gd();
     my ( $dw, $dh ) = $gd->getBounds();
     my $black = $gd->colorAllocate( 0, 0, 0 );
@@ -219,7 +221,6 @@ sub pseq_features_panel($%) {
         $black
     );
     my $ugd = unison_logo();
-
     if ( defined $ugd ) {
         my ( $sw, $sh ) = $ugd->getBounds();
         $gd->copy(
@@ -229,6 +230,7 @@ sub pseq_features_panel($%) {
             0, 0, $sw, $sh
         );
     }
+
     return $panel;
 }
 
@@ -964,13 +966,6 @@ EOSQL
     my $featref = $u->selectall_arrayref($sql);
 
     foreach my $r (@$featref) {
-	  my $half_width = 5;
-	  my ($il,$hl) = ($r->[0] <= $half_width) ? (1,$r->[0]) : ($r->[0]-$half_width,$half_width);
-	  my $ir = $il + $half_width*2;
-	  $ir = length($seq)-1 if $ir >= length($seq);
-	  my $subseq = substr($seq,$il-1,$ir-$il+1);
-	  substr($subseq,$hl+1,0) = '</b>-';
-	  substr($subseq,$hl,0) = '-<b>';
 	  my $desc = $r->[3];
 	  $desc =~ s/^predicted phospho-\w\w\w; //;
 	  $track->add_feature(
@@ -988,7 +983,8 @@ EOSQL
 																	 ),
 													  -attributes => { tooltip => 
 																	   sprintf("%d (<code>%s</code>)<br>max score=%s<br>kinases: %s",
-																			   $r->[0],$subseq,
+																			   $r->[0],
+																			   _feature_context( $seq, $r->[0], $r->[0] ),
 																			   $r->[1],
 																			   $desc)
 																	 }
@@ -1458,6 +1454,16 @@ sub _feature_tooltip {
 					   elide_sequence( substr( $seq,$start-1,$stop-$start+1 )));
 	$text .= "<br>$feature_text" if defined $feature_text;
 	return $text;
+}
+
+sub _feature_context {
+  my ($seq, $start, $stop) = @_;
+  #TODO: html-escape
+  return context_highlight($seq,
+						   '-<b>', '</b>-',
+						   $start, $stop,
+						   $opts{seq_context_margin}, $opts{seq_context_margin}
+						  );
 }
 
 

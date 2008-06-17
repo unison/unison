@@ -5,7 +5,7 @@ Options ExecCGI Indexes FollowSymLinks
 #AllowOverride All
 
 AddHandler cgi-script .sh
-AddHandler cgi-script .pl
+#AddHandler cgi-script .pl
 
 Require valid-user
 

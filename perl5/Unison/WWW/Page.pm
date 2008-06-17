@@ -17,28 +17,6 @@ web pages. It's simple and not powerful.
 
 =cut
 
-## BEGIN {
-##   # if $log_fn below exists and is writable, then we'll open it for logging.
-##   # NOTE: the file must be writable by the web server.
-##   # Typically, do something like:
-##   # $ touch /tmp/unison-rkh.log
-##   # $ chmod a+w /tmp/unison-rkh.log
-##   # to enable logging.
-##   # THIS WILL SLOW THINGS DOWN... DON'T FORGET TO DELETE THE LOG!
-##   if (exists $ENV{REMOTE_USER}) {
-## 	my $log_fn = "/tmp/unison-$ENV{REMOTE_USER}.log";
-## 	if (-f $log_fn and -w $log_fn) {
-## 	  close(STDERR);
-## 	  if (not open(STDERR, ">>$log_fn")) {
-## 		# this error will end up on the web server error log
-## 		print(STDERR __PACKAGE__ . ':' . __LINE__ . ": $log_fn: $!\n");
-## 		exit(0);
-## 	  }
-## 	  $ENV{DEBUG} = 1;
-## 	}
-##   }
-## }
-
 package Unison::WWW::Page;
 use Unison::WWW;
 use CBT::debug;
@@ -57,6 +35,7 @@ use Unison;
 use Unison::Exceptions;
 use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
+use Unison::WWW::NavBar;
 use File::Temp;
 use Text::Wrap;
 use Data::Dumper;
@@ -65,12 +44,10 @@ $Data::Dumper::Indent = 1;
 
 sub _set_connection_params ($);
 sub _genentech_connection_params ($);
-sub _page_connect ($);
 sub _infer_pseq_id ($);
 sub _make_temp_dir ();
 sub _cleanup_temp($$);
-sub __format_tab_labels(@);
-sub __filter_navs($$@);
+sub _page_connect ($);
 
 our $infer_pseq_id = 0;
 
@@ -389,7 +366,7 @@ sub render {
 
 sub start_page() {
   my $p = shift;
-  my $navbar = $p->_navbar();
+  my $navbar = Unison::WWW::NavBar::render_navbar($p);
 
   return <<EOF;
 <table class="page">
@@ -424,7 +401,7 @@ EOF
 
 sub end_page() {
   my $p = shift;
-  my $self_url = self->url();
+  my $self_url = $p->url();
   my $addl_footer = (defined $p->{footer}
 					 ? ( map { "<br>$_" } @{ $p->{footer} } )
 					 : '');
@@ -439,12 +416,12 @@ sub end_page() {
 <!-- ========== begin footer ========== -->
 <tr>
   <td class="left">
-    <a href="http://www.postgresql.org/">
-      <img class="logo" src="../av/poweredby_postgresql.gif">
+    <a class="nofeedback" target="_blank" href="http://www.gene.com/">
+      <img class="logo" width=116 height=27 src="../av/genentech.gif">
     </a>
-  </td>',
+  </td>
 
-  <td class="footer">',
+  <td class="footer">
   Questions?  Email <a href="mailto:unison\@unison-db.org?subject=Unison Question&body=Regarding $self_url">unison\@unison-db.org</a>.
   &nbsp; &nbsp;
   Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.
@@ -582,8 +559,7 @@ sub sql {
     my $sql = join( '', map { CGI::escapeHTML($_) } text_wrap(@_) );
     $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
     $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
-    $sql =~
-s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
+    $sql =~ s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
     $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
     $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
     $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
@@ -704,6 +680,7 @@ sub warn {
     return ( "\n", '<p><div class="warning"><b>Warning:</b> ', @_, '</div>',
         "\n" );
 }
+
 
 ######################################################################
 ## die()
@@ -933,7 +910,7 @@ sub is_dev_instance {
 }
 
 ######################################################################
-## is_public
+## is_public_instance
 
 =pod
 
@@ -952,7 +929,6 @@ sub is_public_instance {
   }
   return 0;
 }
-sub is_public { goto &is_public_instance; }
 
 ######################################################################
 
@@ -1052,12 +1028,7 @@ sub _genentech_connection_params ($) {
         );
     }
 
-    if    ( $ENV{SERVER_PORT} == 80 )   { $v->{dbname} = 'csb' }
-    elsif ( $ENV{SERVER_PORT} == 8000 ) { $v->{dbname} = 'csb-pub' }
-    elsif ( $ENV{SERVER_PORT} == 8040 ) { $v->{dbname} = 'csb-stage' }
-    elsif ( $ENV{SERVER_PORT} == 8080 ) { $v->{dbname} = 'csb-dev' }
-
-	if    ( $ENV{REQUEST_URI} =~ /~/ )   { $v->{dbname} = 'csb-dev' };
+	$v->{dbname} = 	$self->is_dev_instance() ? 'csb-dev' : 'csb';
 
     return;
 }
@@ -1171,354 +1142,6 @@ sub _infer_pseq_id ($) {
     # NO RETURN
 }
 
-######################################################################
-## NAVBAR CODE
-## This navbar code is among the ugliest, most fragile, and least
-## maintainable bits of flotsam I've ever created.  It should be
-## jettisoned, except that there's so little glamor in rewriting something
-## that works.  Long live inertia!
-
-sub _nav_dump {
-    eval 'use Data::Dumper;  $Data::Dumper::Indent = 0;';
-    my $n = shift;
-    my $d = Dumper( \@_ );
-    $d =~ s/\],/],\n/g;
-    print( STDERR "$n: ", $#_ + 1, " items:\n", $d, "\n" );
-}
-
-sub _navbar {
-    my $self    = shift;
-    my $v       = $self->Vars() || {};
-    my $pseq_id = exists $v->{pseq_id} ? "pseq_id=$v->{pseq_id}" : '';
-    my @navs =
-      ## format: @navs = ( menu, menu, ... );
-      ## where each menu is
-      ## [
-      ##   [ prd, pub, major_name, tooltip ],
-      ##   [ prd, pub, minor_name, tooltip, script, args ],
-      ##   [ prd, pub, minor_name, tooltip, script, args ],
-      ##   ...
-      ## ]
-      ## prd = production? 1=yes, 0=no (i.e., show ONLY in production)
-      ## pub = public? 1=yes, 0=no (i.e., show ONLY in public version)
-      (
-	   ## Search menu
-	   [
-		[
-		 1, 1, 'Search', 'Text- and Feature-based mining',
-		 'search_alias.pl'
-		],
-		[
-		 1, 1, 'By Alias',
-		 'search for sequences by alias/name/accession',
-		 'search_alias.pl'
-		],
-		[
-		 1, 1,
-		 'By Properties',
-		 'mine for sequences based on properties',
-		 'search_properties.pl'
-		],
-		[
-		 1, 0, 'Compare Sets',
-		 'compare a set of sequences to a set of models ',
-		 'search_sets.pl'
-		],
-		[
-		 1, 0, 'Framework',
-		 'search for sequences matching a set of sequence regions',
-		 'search_framework.pl'
-		],
-	   ],
-
-
-	   ## Browse menu
-	   [
-		[
-		 1, 1, 'Browse',
-		 'browse curated queries and precomputed sequences sets',
-		 'browse_views.pl'
-		],
-		[
-		 1, 1, 'Views', 'browse dynamic queries of protein sequences',
-		 'browse_views.pl'
-		],
-		[
-		 1, 1, 'Sets', 'browse precomputed sets of proteins',
-		 'browse_sets.pl'
-		],
-	   ],
-
-
-	   ## Analyze menu
-	   [
-		[
-		 1, 1, 'Analyze',
-		 'display precomputed analyses for a single sequence',
-		 'pseq_summary.pl'
-		],
-		[
-		 1, 1, 'Summary', 'summary of sequence information',
-		 'pseq_summary.pl', $pseq_id
-		],
-		[
-		 1, 1, 'Aliases', 'all aliases of this sequence',
-		 'pseq_paliases.pl', $pseq_id
-		],
-		[
-		 1, 0, 'Patents', 'patents on this sequence',
-		 'pseq_patents.pl', $pseq_id
-		],
-		[
-		 1, 1, 'Homologs', 'orthologs and paralogs of this sequence',
-		 'pseq_homologs.pl', $pseq_id
-		],
-		[
-		 1, 1, 'Functions', 'Protein Functions and References ',
-		 'pseq_functions.pl', $pseq_id
-		],
-		[
-		 1, 1, 'Features', 'sequences features',
-		 'pseq_features.pl', $pseq_id
-		],
-		[
-		 1, 1, 'Structure', 'structural features',
-		 'pseq_structure.pl', $pseq_id
-		],
-		[
-		 0, 1, 'BLAST', 'BLAST-related sequences',
-		 'pseq_blast.pl', $pseq_id
-		],
-		[
-		 0, 0, 'Prospect', 'Prospect threadings',
-		 'pseq_paprospect.pl', $pseq_id
-		],
-		[
-		 1, 1, 'HMM', 'Hidden Markov Model alignments',
-		 'pseq_pahmm.pl', $pseq_id
-		],
-		[ 0, 1, 'PSSM', 'PSSM alignments', 'pseq_papssm.pl', $pseq_id ],
-		[
-		 0, 1, 'Interactions', 'Protein-Protein Interactions',
-		 'pseq_intx.pl', $pseq_id
-		],
-		[ 1, 1, 'Loci', 'genomic localization', 'pseq_loci.pl', $pseq_id ],
-		[
-		 0, 0, 'Notes', 'user notes on this sequence',
-		 'pseq_notes.pl', $pseq_id
-		],
-		[ 1, 1, 'History', 'run history', 'pseq_history.pl', $pseq_id ],
-	   ],
-
-
-	   ## Hacks menu
-	   [									#
-		[
-		 0, 0, 'Hacks', 'Hacks-in-Progress', 'hack_set_annotation.pl'
-		],
-		[
-		 0, 0, 'Set Annotation', 'Get tabulated summaries for a protein set',
-		 'hack_set_annotation.pl'
-		],
-	   ],
-
-
-	   ## Assess menu
-	   [			
-		[
-		 0, 0, 'Assess', 'compare sequence sets and analysis methods',
-		 'compare_scores.pl'
-		],
-		[ 0, 0, 'Scores', 'compare scoring systems', 'compare_scores.pl' ],
-		[
-		 0, 0, 'Methods', 'compare threading methods',
-		 'compare_methods.pl'
-		],
-	   ],
-
-	   # empty list forces right-justification of subsequent menus
-	   [ [''] ],
-
-	   [									# About menu
-		[
-		 1, 1, 'About', ('Click for more information about Unison.'
-						 . sprintf("<br>host=%s; db=%s; user=%s",
-								   $v->{host}, $v->{dbname}, $v->{username})),
-		 'about_unison.pl'
-		],
-		[ 1, 1, 'About Unison', 'Unison overview', 'about_unison.pl' ],
-		[
-		 1, 1, 'Statistics', 'Unison summary statistics',
-		 'about_statistics.pl'
-		],
-		[ 1, 1, 'Origins', 'Unison data sources', 'about_origins.pl' ],
-		[
-		 1, 1, 'Params', 'Unison precomputed data types',
-		 'about_params.pl'
-		],
-		[ 0, 1, 'Env',   'environment info', 'about_env.pl' ],
-		[ 0, 1, 'Prefs', 'user prefs',       'about_prefs.pl' ],
-	   ],
-
-	   #[ # run menu
-	   # [1,1,'Run', 'run analyses on sequences for which precomputed results aren\'t available'],
-	   # [1,1,'BLAST', undef, 'run_blast.pl'],
-	   # [1,1,'Pfam', undef, 'run_pfam.pl']
-	   #],
-
-	   #[ # special menu
-	   # [1,1,'Special', 'special projects'],
-	   # [1,1,'Preferences', 'user preferences']
-	   # [1,1,'UNQ', 'UNQ browsing']
-	   #],
-
-	   #[ # admin menu
-	   # [1,1,'Admin', 'Unison administration'],
-	   # [1,1,'Aliases', 'update aliases', 'pseq_paliases.pl', 'upd=1']
-	   #],
-
-      );
-
-    @navs = __format_tab_labels(@navs);
-    @navs =
-      __filter_navs( $self->is_prd_instance(), $self->is_public(), @navs );
-    my ( $navi, $subnavi ) = $self->_find_nav_ids(@navs);
-    $navi = -1 unless defined $navi;
-
-    my @nav = @{ $navs[$navi] };
-    shift @nav;    # menu header is first item; subnav items remain
-
-    return(
-		"<div class=\"nav\">\n"
-      . "  <table class=\"navp\">\n"
-      . _make_navrow( $navi, map { $_->[0] } @navs )
-	  . "  </table>\n"
-	  . "  <table class=\"navc\">\n" 
-	  . _make_navrow( $subnavi, @nav )
-	  . "  </table>\n"
-	  . "</div>\n"
-	)
-}
-
-sub __format_tab_labels(@) {
-    my @navs = @_;
-    for ( my $i = 0 ; $i <= $#navs ; $i++ ) {
-        for ( my $j = 0 ; $j <= $#{ $navs[$i] } ; $j++ ) {
-            my @tooltip_tags = ();
-            if ( not $navs[$i]->[$j]->[1] ) {
-                $navs[$i]->[$j]->[2] = "<i>$navs[$i]->[$j]->[2]</i>"
-                  if defined $navs[$i]->[$j]->[2];
-                push( @tooltip_tags, 'public' );
-            }
-            if ( not $navs[$i]->[$j]->[0] ) {
-                $navs[$i]->[$j]->[2] = "<u>$navs[$i]->[$j]->[2]</u>"
-                  if defined $navs[$i]->[$j]->[2];
-                push( @tooltip_tags, 'production' );
-            }
-            if (@tooltip_tags) {
-                $navs[$i]->[$j]->[3] = '' unless $navs[$i]->[$j]->[3];
-                $navs[$i]->[$j]->[3] .=
-                  ( '<hr>NOTE: This tab contains data that will not appear in '
-                      . join( ' or ', @tooltip_tags )
-                      . ' versions of Unison.' );
-            }
-        }
-    }
-    return @navs;
-}
-
-sub __filter_navs($$@) {
-    ## Purpose: remove development tabs from production environments, and remove
-    ## proprietary tabs from public environments.  The result is a modified navbar
-    ## array WITHOUT the prd and pub bits (array elems 0 and 1).
-
-    my ( $is_prd, $is_pub, @navs ) = @_;
-    for ( my $i = $#navs ; $i >= 0 ; $i-- ) {
-        if ( $navs[$i][0][0] eq '' ) {
-
-            # menu break
-            next;
-        }
-
-        if (   ( $is_prd and not $navs[$i][0][0] )
-            or ( $is_pub and not $navs[$i][0][1] ) )
-        {
-            splice( @navs, $i, 1 );    # entire major menu is tossed
-            next;
-        }
-
-        # else...
-        @{ $navs[$i] } =
-          grep { ( ( not $is_prd or $_->[0] ) and ( not $is_pub or $_->[1] ) ) }
-          @{ $navs[$i] };
-        @{ $navs[$i] } = map { [ splice( @$_, 2 ) ] } @{ $navs[$i] };
-    }
-
-    #_nav_dump("is_prd=$is_prd; is_pub=$is_pub; returned=",@navs);
-    return @navs;
-}
-
-sub _find_nav_ids {
-    # identify indexes in  major and minor @nav entries for
-    # the current page
-    my $self   = shift;
-    my @navs   = @_;
-    my $script = $self->url( -relative => 1 );
-	return unless defined $script;			# e.g., when command line debugging
-    $script =~ s/\?$//;
-    for ( my $i = 0 ; $i <= $#navs ; $i++ ) {
-        my @snavs = @{ $navs[$i] };
-        shift @snavs;    # menu title
-        for ( my $j = 0 ; $j <= $#snavs ; $j++ ) {
-		  if ( defined $snavs[$j]->[2] and $snavs[$j]->[2] eq $script ) {
-			return ( $i, $j )
-		  }
-        }
-    }
-    return;
-}
-
-sub _make_navrow {
-    # A navrow is a tr, with 2 tds, each with 1 ul, each of which has >=0
-    # li entities. 
-    # $sel is which is selected, and may be undef
-    # @tu = array ref of [tab_label,tooltip,url,params]
-    my ( $sel, @tu ) = @_;
-    my $nav = "    <tr>\n      <td><ul>\n";
-	my $close_open = "      </ul></td>\n      <td class=\"right\"><ul>\n";
-
-    for ( my $i = 0 ; $i <= $#tu ; $i++ ) {
-        my ( $tab_label, $tooltip, $url, $params ) = @{ $tu[$i] };
-		
-        if ( $tab_label eq '' ) {
-            $nav .= $close_open;
-			$close_open = '';
-            next;
-        }
-
-        $url .= "?$params" if defined $params;
-        my $cl = '';
-        if ( defined $sel and $sel == $i ) {
-            $cl  = ' class="selected"';
-            $url = undef;
-        }
-
-		my $tt = ( (defined $tooltip and $tooltip =~ m/\w/)
-				   ? sprintf('tooltip="%s"',CGI::escapeHTML($tooltip))
-				   : '' );
-		$nav .= 
-			"\t<li$cl>"
-			. (defined $url 
-			   ? "<a $tt href=\"$url\">$tab_label</a>" 
-			   : "<span $tt>$tab_label</span>")
-			. "</li>\n"
-    }
-
-    $nav .= $close_open;
-    $nav .= "      </ul></td>\n    </tr>\n";
-
-    return $nav;
-}
 
 sub _conn_info_html ($) {
     my $self = shift;
@@ -1675,3 +1298,27 @@ These methods typically begin with two underscores (e.g., __internal_routine).
 =cut
 
 1;
+
+
+## BEGIN {
+##   # if $log_fn below exists and is writable, then we'll open it for logging.
+##   # NOTE: the file must be writable by the web server.
+##   # Typically, do something like:
+##   # $ touch /tmp/unison-rkh.log
+##   # $ chmod a+w /tmp/unison-rkh.log
+##   # to enable logging.
+##   # THIS WILL SLOW THINGS DOWN... DON'T FORGET TO DELETE THE LOG!
+##   if (exists $ENV{REMOTE_USER}) {
+## 	my $log_fn = "/tmp/unison-$ENV{REMOTE_USER}.log";
+## 	if (-f $log_fn and -w $log_fn) {
+## 	  close(STDERR);
+## 	  if (not open(STDERR, ">>$log_fn")) {
+## 		# this error will end up on the web server error log
+## 		print(STDERR __PACKAGE__ . ':' . __LINE__ . ": $log_fn: $!\n");
+## 		exit(0);
+## 	  }
+## 	  $ENV{DEBUG} = 1;
+## 	}
+##   }
+## }
+
