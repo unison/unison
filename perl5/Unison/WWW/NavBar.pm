@@ -104,7 +104,7 @@ sub _build_navs {
 	  'Browse', 
 	  'browse curated queries and precomputed sequences sets',
 	  'browse_top.pl',
-	  \@Unison::WWW::PageInfo::search_info
+	  \@Unison::WWW::PageInfo::browse_info
 	 ],
 	 [
 	  'Analyze',
@@ -116,11 +116,25 @@ sub _build_navs {
 	  'Tools',
 	  'Miscellaneous services',
 	  'tools_top.pl',
-	  \@Unison::WWW::PageInfo::tools_info ],
+	  \@Unison::WWW::PageInfo::tools_info 
+	 ],
+
+	 'break',
+
+	 [
+	  'About',
+	  'Information about Unison',
+	  'about_unison.pl',
+	  \@Unison::WWW::PageInfo::unison_info
+	 ]
 	);
 
   my @navm;
   foreach my $ps (@page_sets) {
+	if (not ref $ps and $ps eq 'break') {
+	  push(@navm, [['']]);					# special magic in old navbar code
+	  next;
+	}
 	my @snavs;
 	my $pub = 0;
 	my $prd = 0;
@@ -252,7 +266,7 @@ sub _make_navrow {
 
   for ( my $i = 0 ; $i <= $#tu ; $i++ ) {
 	my ( $tab_label, $tooltip, $url, $params ) = @{ $tu[$i] };
-		
+
 	if ( $tab_label eq '' ) {
 	  $nav .= $close_open;
 	  $close_open = '';

@@ -9,9 +9,10 @@ our @EXPORT_OK = qw(
 					 alias_enslink alias_gglink alias_ghlink alias_link
 					 alias_mint_link alias_proteome_link alias_pubmed_link
 					 alias_reflink alias_splink alias_uniprot_link
-					 coalesce genengenes_link maprofile_link
-					 ncbi_gene_link ncbi_refseq_link pdbc_rcsb_link
-					 pfam_link pseq_summary_link render_app_list text_wrap
+					 coalesce genengenes_link homologene_link
+					 maprofile_link ncbi_gene_link ncbi_refseq_link
+					 pdbc_rcsb_link pfam_link pseq_summary_link
+					 render_app_list text_wrap
 				  );
 
 our @EXPORT = ();
@@ -120,6 +121,12 @@ sub alias_ipi_link {
 sub alias_ensembl_link {
   return unless defined $_[0];
   extlink('http://www.ensembl.org/Homo_sapiens/searchview?species=;idx=;q='.$_[0],
+		  $_[1]||$_[0]);
+}
+
+sub homologene_link {
+  return unless defined $_[0];
+  extlink('http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene&term='.$_[0],
 		  $_[1]||$_[0]);
 }
 

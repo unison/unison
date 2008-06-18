@@ -366,14 +366,17 @@ sub render {
 
 sub start_page() {
   my $p = shift;
+  my $v = $p->Vars();
   my $navbar = Unison::WWW::NavBar::render_navbar($p);
+  my $logo_tooltip = sprintf("<br>host=%s; db=%s; user=%s",
+							 $v->{host}, $v->{dbname}, $v->{username});
 
   return <<EOF;
 <table class="page">
 <tr>
 <!-- ========== begin logo ========== -->
   <td class="left">
-    <a class="nofeedback" href="../index.html">
+    <a tooltip="$logo_tooltip" class="nofeedback" href="../index.html">
       <img width=120 height=34 src="../av/unison.png">
     </a>
   </td>
