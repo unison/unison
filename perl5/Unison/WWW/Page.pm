@@ -69,87 +69,87 @@ our $infer_pseq_id = 0;
 =cut
 
 sub new {
-    my $class = shift;
-    my $self  = $class->SUPER::new(@_);
-    $self->{starttime} = time;
-    my $v = $self->Vars();
-    $v->{debug} = 0 unless defined $v->{debug};
+  my $class = shift;
+  my $self  = $class->SUPER::new(@_);
+  $self->{starttime} = time;
+  my $v = $self->Vars();
+  $v->{debug} = 0 unless defined $v->{debug};
 
-    try {
-        $self->_set_connection_params();
-        _page_connect($self);
-    }
+  try {
+	$self->_set_connection_params();
+	_page_connect($self);
+  }
     catch Unison::Exception with {
-        $self->die(
-            $_[0],
+	  $self->die(
+				 $_[0],
 
-            # plus some addition stuff to tack on...
-            'Relevant environment settings:',
-            join(
-                '',
-                map( {
+				 # plus some addition stuff to tack on...
+				 'Relevant environment settings:',
+				 join(
+					  '',
+					  map( {
                             "<br><code>$_: "
-                          . ( defined $ENV{$_} ? $ENV{$_} : '<i>undef</i>' )
-                          . "</code>\n"
-                    } qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT)
-                )
-            )
-        );
+							. ( defined $ENV{$_} ? $ENV{$_} : '<i>undef</i>' )
+							. "</code>\n"
+						   } qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT)
+						 )
+					 )
+				);
     };
 
-    $self->{userprefs} = $self->{unison}->get_userprefs();
-    $self->{readonly}  = 1;
-    $self->{js_tags}   = [
-        {
-            -language => 'JAVASCRIPT',
-            -src      => '../js/domTT/domLib.js'
-        },
-        {
-            -language => 'JAVASCRIPT',
-            -src      => '../js/domTT/domTT.js'
-        },
-        {
-            -language => 'JAVASCRIPT',
-            -src      => '../js/unison_domTT.js'
-        },
-        {
-            -language => 'JAVASCRIPT',
-            -code     => "var domTT_styleClass = 'domTTUnison';"
-        }
-    ];
+  $self->{userprefs} = $self->{unison}->get_userprefs();
+  $self->{readonly}  = 1;
+  $self->{js_tags}   = [
+						{
+						 -language => 'JAVASCRIPT',
+						 -src      => '../js/domTT/domLib.js'
+						},
+						{
+						 -language => 'JAVASCRIPT',
+						 -src      => '../js/domTT/domTT.js'
+						},
+						{
+						 -language => 'JAVASCRIPT',
+						 -src      => '../js/unison_domTT.js'
+						},
+						{
+						 -language => 'JAVASCRIPT',
+						 -code     => "var domTT_styleClass = 'domTTUnison';"
+						}
+					   ];
 
-    # all pseq_id inference should be moved elsewhere...
-    if ( not exists $v->{pseq_id} and $infer_pseq_id ) {
-        my @st = grep { exists $v->{$_} } qw(q pseq_id seq md5 alias);
-        if ( @st > 1 ) {
-            $self->die(
-                "please don't provide more than one search parameter",
-                sprintf(
-                    'You provided criteria for %d terms (%s)',
-                    $#st + 1, join( ',', @st )
-                )
-            );
-        }
-        try {
-            $v->{pseq_id} = _infer_pseq_id($self);
-        }
-        catch Unison::Exception with {
-            $self->die( $_[0] );
-        };
-        if ( not defined $v->{pseq_id} ) {
-            $self->die("couldn't infer pseq_id from arguments");
-        }
+  # all pseq_id inference should be moved elsewhere...
+  if ( not exists $v->{pseq_id} and $infer_pseq_id ) {
+	my @st = grep { exists $v->{$_} } qw(q pseq_id seq md5 alias);
+	if ( @st > 1 ) {
+	  $self->die(
+				 "please don't provide more than one search parameter",
+				 sprintf(
+						 'You provided criteria for %d terms (%s)',
+						 $#st + 1, join( ',', @st )
+						)
+				);
+	}
+	try {
+	  $v->{pseq_id} = _infer_pseq_id($self);
+	}
+	  catch Unison::Exception with {
+		$self->die( $_[0] );
+	  };
+	if ( not defined $v->{pseq_id} ) {
+	  $self->die("couldn't infer pseq_id from arguments");
+	}
 
-        # hereafter, we don't want these polluting our variables
-        delete $v->{'q'};
-        delete $v->{alias};
-        delete $v->{md5};
-        delete $v->{seq};
-    }
+	# hereafter, we don't want these polluting our variables
+	delete $v->{'q'};
+	delete $v->{alias};
+	delete $v->{md5};
+	delete $v->{seq};
+  }
 
-    $self->start_html;
+  $self->start_html;
 
-    return $self;
+  return $self;
 }
 
 ######################################################################
@@ -166,12 +166,12 @@ calls are trivial.
 =cut
 
 sub Vars {
-    my $self = shift;
-    return unless ref $self;
-    if ( not exists $self->{Vars} ) {
-        $self->{Vars} = $self->SUPER::Vars();
-    }
-    return $self->{Vars};
+  my $self = shift;
+  return unless ref $self;
+  if ( not exists $self->{Vars} ) {
+	$self->{Vars} = $self->SUPER::Vars();
+  }
+  return $self->{Vars};
 }
 
 ######################################################################
@@ -225,17 +225,17 @@ request. If not, the page C<dies> (which see) with an appropriate error.
 =cut
 
 sub ensure_required_params {
-    my $self = shift;
-    my @undefd =
-      grep { not defined $self->param($_) or $self->param($_) eq '' } @_;
-    return 0 unless @undefd;
-    $self->die(
-        'Missing parameters',
-        '<br>The follow parameters were missing:',
-        '<br>&nbsp;&nbsp;&nbsp; <code>' . join( ', ', @undefd ) . '</code>'
-    );
+  my $self = shift;
+  my @undefd =
+	grep { not defined $self->param($_) or $self->param($_) eq '' } @_;
+  return 0 unless @undefd;
+  $self->die(
+			 'Missing parameters',
+			 '<br>The follow parameters were missing:',
+			 '<br>&nbsp;&nbsp;&nbsp; <code>' . join( ', ', @undefd ) . '</code>'
+			);
 
-    # doesn't return
+  # doesn't return
 }
 
 ######################################################################
@@ -250,11 +250,11 @@ Ensure that the pseq_id is valid and throw an exception if not.
 =cut
 
 sub is_valid_pseq_id {
-    my $self = shift;
-    my $q    = shift;
-    return 1 unless defined $q;
-    return 1 if $self->{unison}->get_sequence_by_pseq_id($q);
-    throw Unison::Exception("Unison:$q doesn't exist");
+  my $self = shift;
+  my $q    = shift;
+  return 1 unless defined $q;
+  return 1 if $self->{unison}->get_sequence_by_pseq_id($q);
+  throw Unison::Exception("Unison:$q doesn't exist");
 }
 
 ######################################################################
@@ -269,9 +269,9 @@ returns the HTML header
 =cut
 
 sub header {
-    my $self = shift;
-    return '' if ref $self and $self->{already_did_header}++;
-    return $self->SUPER::header();
+  my $self = shift;
+  return '' if ref $self and $self->{already_did_header}++;
+  return $self->SUPER::header();
 }
 
 ######################################################################
@@ -286,15 +286,14 @@ adds HTML tags
 =cut
 
 sub add_html {
-    my $self = shift;
-    my (@params) = @_;
-    foreach my $i ( 0 .. $#params ) {
-        if ( $params[$i] eq '-script'
-            and ref( $params[ $i + 1 ] ) eq 'HASH' )
-        {
-            push( @{ $self->{js_tags} }, $params[ $i + 1 ] );
-        }
-    }
+  my $self = shift;
+  my (@params) = @_;
+  foreach my $i ( 0 .. $#params ) {
+	if ( $params[$i] eq '-script'
+		 and ref( $params[ $i + 1 ] ) eq 'HASH' ) {
+	  push( @{ $self->{js_tags} }, $params[ $i + 1 ] );
+	}
+  }
 }
 
 ######################################################################
@@ -309,23 +308,23 @@ returns a Unison-specific preamble for a web page.
 =cut
 
 sub start_html {
-    my $self = shift;
+  my $self = shift;
 
-    return $self->SUPER::start_html(
-        @_,
-        -head => [
-            $self->Link(
-                {
-                    -rel  => 'shortcut icon',
-                    -href => '../av/favicon.png'
-                }
-            )
-        ],
-        -style  => { -src => ['../styles/unison.css'] },
-        -target => '_top',
-        -onload => 'javascript:{ unison_activateTooltips(); }',
-        -script => $self->{js_tags},
-    );
+  return $self->SUPER::start_html(
+								  @_,
+								  -head => [
+											$self->Link(
+														{
+														 -rel  => 'shortcut icon',
+														 -href => '../av/favicon.png'
+														}
+													   )
+										   ],
+								  -style  => { -src => ['../styles/unison.css'] },
+								  -target => '_top',
+								  -onload => 'javascript:{ unison_activateTooltips(); }',
+								  -script => $self->{js_tags},
+								 );
 }
 
 ######################################################################
@@ -449,25 +448,25 @@ EOF
 =cut
 
 sub group {
-    my $self = shift;
-    my ($spec) = shift;
-	my ($name,$ctl);
+  my $self = shift;
+  my ($spec) = shift;
+  my ($name,$ctl);
 
-	if (ref $spec eq 'ARRAY') {
-	  ($name,$ctl) = @$spec;
-	} else {
-	  $name = $spec;
-	}
+  if (ref $spec eq 'ARRAY') {
+	($name,$ctl) = @$spec;
+  } else {
+	$name = $spec;
+  }
 
-    $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;
+  $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;
 
-	my $tag = $name;
+  my $tag = $name;
 
-	if (defined $ctl) {
-	  $tag .= sprintf(' <span class="group_ctl">%s</span>',$ctl);
-	}
+  if (defined $ctl) {
+	$tag .= sprintf(' <span class="group_ctl">%s</span>',$ctl);
+  }
 
-    return <<EOF;
+  return <<EOF;
 <fieldset>
 <legend>$tag</legend>
 @_
@@ -476,26 +475,26 @@ EOF
 }
 
 sub group2 {
-    my $self = shift;
-    my $name = shift;
-    my $ctl  = '';
+  my $self = shift;
+  my $name = shift;
+  my $ctl  = '';
 
-    # for backward compatibility, $name may be a scalar
-    # to introduce a new feature, I unforunately needed to permit
-    # $name to be an array ref, in which case it is expected to contain
-    # the group name (as before) and HTML to be right justified on the same tr
-    if ( ref $name eq 'ARRAY' ) {
-        ( $name, $ctl ) = @$name;
-    }
-    $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;    # don't nbsp-ize HTML
-    return (
-        "<table class=\"group\">\n",
-"<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
-        "<tr><td colspan=\"2\">\n",
-        @_,
-        "\n</td></tr>\n",
-        "</table>\n"
-    );
+  # for backward compatibility, $name may be a scalar
+  # to introduce a new feature, I unforunately needed to permit
+  # $name to be an array ref, in which case it is expected to contain
+  # the group name (as before) and HTML to be right justified on the same tr
+  if ( ref $name eq 'ARRAY' ) {
+	( $name, $ctl ) = @$name;
+  }
+  $name =~ s/\s+/\&nbsp;/g unless $name =~ m/<.+>/;	# don't nbsp-ize HTML
+  return (
+		  "<table class=\"group\">\n",
+		  "<tr><th class=\"grouptag\">$name</th><th valign=\"middle\" align=\"right\">$ctl</th></tr>\n",
+		  "<tr><td colspan=\"2\">\n",
+		  @_,
+		  "\n</td></tr>\n",
+		  "</table>\n"
+		 );
 }
 
 ######################################################################
@@ -511,27 +510,26 @@ variable list
 =cut
 
 sub make_url {
-    my $self     = shift;
-    my $vars     = $self->Vars();
-    my $addlvars = ref $_[0] ? shift : {};
-    my %vars     = ( %$vars, %$addlvars );
+  my $self     = shift;
+  my $vars     = $self->Vars();
+  my $addlvars = ref $_[0] ? shift : {};
+  my %vars     = ( %$vars, %$addlvars );
 
-    my @keys;
-    if (@_) {    # specified query vars only
-        my %keys = map { $_ => 1 } @_, keys %$addlvars;
-        @keys = sort keys %keys;
-    }
-    else {       # or default is all vars
-        @keys = sort keys %vars;
-    }
+  my @keys;
+  if (@_) {									# specified query vars only
+	my %keys = map { $_ => 1 } @_, keys %$addlvars;
+	@keys = sort keys %keys;
+  } else {									# or default is all vars
+	@keys = sort keys %vars;
+  }
 
-    my $url = $self->url( -relative => 1 );
+  my $url = $self->url( -relative => 1 );
 
-    my $qargs =
-      join( ';', map { "$_=$vars{$_}" } grep { defined $vars{$_} } @keys );
-    $url .= '?' . $qargs if $qargs ne '';
+  my $qargs =
+	join( ';', map { "$_=$vars{$_}" } grep { defined $vars{$_} } @keys );
+  $url .= '?' . $qargs if $qargs ne '';
 
-    return $url;
+  return $url;
 }
 
 =pod
@@ -554,23 +552,23 @@ format C<text> as a SQL block on the web page
 =cut
 
 sub sql {
-    my $self = shift;
+  my $self = shift;
 
-    #return '' unless $self->{userprefs}->{'show_sql'};
-    # poor man's SQL pretty-printer.  This is not a bulletproof general
-    # reformatter, but it suffices for most Unison queries.
-    my $sql = join( '', map { CGI::escapeHTML($_) } text_wrap(@_) );
-    $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
-    $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
-    $sql =~ s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
-    $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
-    $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
-    $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
-    $sql =~ s/\s+LIMIT\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LIMIT /ix;
-    $sql =~ s/\s+OFFSET\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;OFFSET /ix;
+  #return '' unless $self->{userprefs}->{'show_sql'};
+  # poor man's SQL pretty-printer.  This is not a bulletproof general
+  # reformatter, but it suffices for most Unison queries.
+  my $sql = join( '', map { CGI::escapeHTML($_) } text_wrap(@_) );
+  $sql =~ s/^\s*SELECT\s+   /<br>&nbsp;&nbsp;&nbsp;&nbsp;SELECT /ix;
+  $sql =~ s/\s+FROM\s+      /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FROM /ix;
+  $sql =~ s/\s+((?:LEFT|RIGHT|INNER)?\s*JOIN)\s+/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$1 /ixg;
+  $sql =~ s/\s+WHERE\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE /ix;
+  $sql =~ s/\s+ORDER\s+BY\s+/<br>&nbsp;&nbsp;ORDER BY /ix;
+  $sql =~ s/\s+HAVING\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;HAVING /ix;
+  $sql =~ s/\s+LIMIT\s+     /<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LIMIT /ix;
+  $sql =~ s/\s+OFFSET\s+    /<br>&nbsp;&nbsp;&nbsp;&nbsp;OFFSET /ix;
 
-    return ( "\n", '<p><div class="sql"><b>SQL query:</b>', $sql, '</div>',
-        "\n" );
+  return ( "\n", '<p><div class="sql"><b>SQL query:</b>', $sql, '</div>',
+		   "\n" );
 }
 
 ######################################################################
@@ -585,9 +583,9 @@ format C<text> as a "tip" block on the web page
 =cut
 
 sub tip {
-    my $self = shift;
-    return '' unless $self->{userprefs}->{'show_tips'};
-    return ( "\n", '<p><div class="tip"><b>Tip:</b> ', @_, '</div>', "\n" );
+  my $self = shift;
+  return '' unless $self->{userprefs}->{'show_tips'};
+  return ( "\n", '<p><div class="tip"><b>Tip:</b> ', @_, '</div>', "\n" );
 }
 
 ######################################################################
@@ -605,16 +603,16 @@ C<text>.
 =cut
 
 sub popup {
-    shift if ref $_[0];    # method or fx
-    my $cue     = shift;          # cue, caption, content may contain HTML tags!
-    my $caption = shift;
-    my $content = join( '', @_ );
-    $content =~ s/\n/ /g;
-    $content =~ s/"/&quot;/g;
-    return
-      sprintf(
-'<span onmouseover="domTT_activate(this, event, \'caption\', \'%s\', \'content\', \'%s\', \'trail\', \'x\');">%s</span>',
-        $caption, $content, $cue );
+  shift if ref $_[0];						# method or fx
+  my $cue     = shift;		# cue, caption, content may contain HTML tags!
+  my $caption = shift;
+  my $content = join( '', @_ );
+  $content =~ s/\n/ /g;
+  $content =~ s/"/&quot;/g;
+  return
+	sprintf(
+			'<span onmouseover="domTT_activate(this, event, \'caption\', \'%s\', \'content\', \'%s\', \'trail\', \'x\');">%s</span>',
+			$caption, $content, $cue );
 }
 
 ######################################################################
@@ -632,18 +630,18 @@ C<text>.
 =cut
 
 sub tooltip {
-    shift if ref $_[0];    # can be called as method or fx
-    my ( $text, $tooltip, $class ) = @_;
-    return $text unless defined $tooltip;
-    local $Text::Wrap::columns = 80;
-    $tooltip =~ s/\s+/ /g;
+  shift if ref $_[0];					   # can be called as method or fx
+  my ( $text, $tooltip, $class ) = @_;
+  return $text unless defined $tooltip;
+  local $Text::Wrap::columns = 80;
+  $tooltip =~ s/\s+/ /g;
 
-    # NOTE: wrap() doesn't work correctly on HTML (e.g., embedded <br> tags)
-    $tooltip = Text::Wrap::wrap( '', '', $tooltip );
-    $tooltip =~ s/\n+/<br>/g;
-    $class = 'has_tooltip' unless defined $class;
-    return sprintf('<span class="%s" tooltip="%s">%s</span>',
-				   $class,$tooltip,$text);
+  # NOTE: wrap() doesn't work correctly on HTML (e.g., embedded <br> tags)
+  $tooltip = Text::Wrap::wrap( '', '', $tooltip );
+  $tooltip =~ s/\n+/<br>/g;
+  $class = 'has_tooltip' unless defined $class;
+  return sprintf('<span class="%s" tooltip="%s">%s</span>',
+				 $class,$tooltip,$text);
 }
 
 
@@ -661,7 +659,7 @@ Format C<text> as an inline "note".
 =cut
 
 sub note {
-  shift if ref $_[0];    # can be called as method or fx
+  shift if ref $_[0];					   # can be called as method or fx
   return ('<span class="note">', @_, '</span>');
 }
 
@@ -679,9 +677,9 @@ with other Unison::Page "body" elements.
 =cut
 
 sub warn {
-    my $self = shift;
-    return ( "\n", '<p><div class="warning"><b>Warning:</b> ', @_, '</div>',
-        "\n" );
+  my $self = shift;
+  return ( "\n", '<p><div class="warning"><b>Warning:</b> ', @_, '</div>',
+		   "\n" );
 }
 
 
@@ -702,56 +700,56 @@ exits with status 0 (so that webservers will actually return the page).
 ## TODO: get the error text to the apache error_log or to a Unison log
 
 sub die {
-    if ( ref( $_[1] ) and $_[1]->isa('Unison::Exception') ) {
-        goto &_die_with_exception;
-    }
-    goto &_die;
+  if ( ref( $_[1] ) and $_[1]->isa('Unison::Exception') ) {
+	goto &_die_with_exception;
+  }
+  goto &_die;
 }
 
 sub _die {
-    my $self = shift;
-    $self->_error_page(@_);
-    exit(0);    # => doesn't appear to be a server error to user
+  my $self = shift;
+  $self->_error_page(@_);
+  exit(0);				  # => doesn't appear to be a server error to user
 }
 
 sub _die_with_exception {
-    my $self = shift;
-    my $ex   = shift;
+  my $self = shift;
+  my $ex   = shift;
 
-    if ( not defined $ex or not ref $ex or not $ex->isa('Unison::Exception') ) {
-        $self->_die( __FILE__ . ':' 
-              . __LINE__
-              . ": die_with_exception called without an exception\n"
-              . '(instead it was called with a '
-              . ( ref($ex) || 'non-reference' )
-              . ').' );
-    }
+  if ( not defined $ex or not ref $ex or not $ex->isa('Unison::Exception') ) {
+	$self->_die( __FILE__ . ':' 
+				 . __LINE__
+				 . ": die_with_exception called without an exception\n"
+				 . '(instead it was called with a '
+				 . ( ref($ex) || 'non-reference' )
+				 . ').' );
+  }
 
-    my $ex_text =
-      (
-        defined $ex->{error}
-        ? CGI::escapeHTML( $ex->{error} )
-        : '(no exception summary)' );
+  my $ex_text =
+	(
+	 defined $ex->{error}
+	 ? CGI::escapeHTML( $ex->{error} )
+	 : '(no exception summary)' );
 
-    $self->_die(
-        $ex->error(),
-        '<pre>' . $ex . '</pre>',
-        ( @_ ? ( '<hr>', @_ ) : '' )
-    );
+  $self->_die(
+			  $ex->error(),
+			  '<pre>' . $ex . '</pre>',
+			  ( @_ ? ( '<hr>', @_ ) : '' )
+			 );
 
-    # no return
+  # no return
 }
 
 sub _error_page {
-    my $self = shift;
-    my $t    = shift;
-    print $self->render(
-        "Error: $t",
-        '<p><div class="warning">',
-        '<b>Error:</b> ',
-        $t, '<br>', join( ' ', @_ ),
-        '</div>', "\n"
-    );
+  my $self = shift;
+  my $t    = shift;
+  print $self->render(
+					  "Error: $t",
+					  '<p><div class="warning">',
+					  '<b>Error:</b> ',
+					  $t, '<br>', join( ' ', @_ ),
+					  '</div>', "\n"
+					 );
 }
 
 ######################################################################
@@ -767,25 +765,25 @@ C<pseq_id>
 =cut
 
 sub best_annotation {
-    my $self    = shift;
-    my $pseq_id = shift;
-    my $tooltip = <<EOT;
+  my $self    = shift;
+  my $pseq_id = shift;
+  my $tooltip = <<EOT;
 A best annotation is a guess about the most informative and reliable
 annotation for this sequence from all source databases.
 <br>Click the Aliases tab to see all annotations
 EOT
 
-# try best human annotation first, otherwise get best annotation for any species
-    my $ba = $self->{unison}->best_annotation( $pseq_id, 'HUMAN' )
-      || $self->{unison}->best_annotation($pseq_id);
+  # try best human annotation first, otherwise get best annotation for any species
+  my $ba = $self->{unison}->best_annotation( $pseq_id, 'HUMAN' )
+	|| $self->{unison}->best_annotation($pseq_id);
 
-    return (
-        '<table class="summary">', '<tr>',
-        '<th><div>Best Annotation ', $self->tooltip( '?', $tooltip ),
-        '</div></th>',              '<td>',
-        $ba,                        '</td>',
-        '</tr>',                    '</table>'
-    );
+  return (
+		  '<table class="summary">', '<tr>',
+		  '<th><div>Best Annotation ', $self->tooltip( '?', $tooltip ),
+		  '</div></th>',              '<td>',
+		  $ba,                        '</td>',
+		  '</tr>',                    '</table>'
+		 );
 }
 
 ######################################################################
@@ -801,28 +799,27 @@ C<pseq_id>
 =cut
 
 sub entrez_annotation_UNIMPLEMENTED {
-    my $self    = shift;
-    my $pseq_id = shift;
-    my $u       = $self->{unison};
-    my $entrez  = '<br><b>Entrez annotation</b>&nbsp;'
-      . $self->tooltip( '?', 'Entrez Gene annotation' ) . ': ';
+  my $self    = shift;
+  my $pseq_id = shift;
+  my $u       = $self->{unison};
+  my $entrez  = '<br><b>Entrez annotation</b>&nbsp;'
+	. $self->tooltip( '?', 'Entrez Gene annotation' ) . ': ';
 
-    my (@entrez) = $u->entrez_annotations($pseq_id);
-    $entrez .= '<div style="width: 80%; padding-left: 50px;">';
-    if (@entrez) {
-        $entrez .= '<table padding: 0; style="width: 100%;">';
-        foreach my $res (@entrez) {
-            $entrez .=
-              '<tr>' . ( join( '', map { "<td>$_</td>" } @$res ) ) . '</tr>';
-        }
-        $entrez .= "</table>\n";
-    }
-    else {
-        $entrez .= '<i>no Entrez Gene information for this sequence</i>';
-    }
-    $entrez .= '</div>';
+  my (@entrez) = $u->entrez_annotations($pseq_id);
+  $entrez .= '<div style="width: 80%; padding-left: 50px;">';
+  if (@entrez) {
+	$entrez .= '<table padding: 0; style="width: 100%;">';
+	foreach my $res (@entrez) {
+	  $entrez .=
+		'<tr>' . ( join( '', map { "<td>$_</td>" } @$res ) ) . '</tr>';
+	}
+	$entrez .= "</table>\n";
+  } else {
+	$entrez .= '<i>no Entrez Gene information for this sequence</i>';
+  }
+  $entrez .= '</div>';
 
-    return $entrez;
+  return $entrez;
 }
 
 ######################################################################
@@ -837,8 +834,8 @@ adds the specified lines to the footer
 =cut
 
 sub add_footer_lines {
-    my $self = shift;
-    push( @{ $self->{footer} }, @_ );
+  my $self = shift;
+  push( @{ $self->{footer} }, @_ );
 }
 
 ######################################################################
@@ -853,22 +850,22 @@ render C<message> in a special debugging block
 =cut
 
 sub debug {
-    my $self = shift;
-    print $self->render(
-        "debug: $_[0]",
-        '<span class="debug">',
-        join( '<br>', @_ ), '</span>'
-    );
+  my $self = shift;
+  print $self->render(
+					  "debug: $_[0]",
+					  '<span class="debug">',
+					  join( '<br>', @_ ), '</span>'
+					 );
 }
 
 ######################################################################
 ## import
 
 sub import {
-    my $self = shift;
-    for (@_) {
-        $infer_pseq_id = 1 if ( $_ eq 'infer_pseq_id' );
-    }
+  my $self = shift;
+  for (@_) {
+	$infer_pseq_id = 1 if ( $_ eq 'infer_pseq_id' );
+  }
 }
 
 ######################################################################
@@ -906,8 +903,8 @@ sub is_dev_instance {
 
   # In web env => SERVER_PORT, SERVER_NAME, REQUEST_URI should be defined
   return 1 if (    $ENV{SERVER_PORT} == 8080
-				or $ENV{SERVER_NAME} eq 'resdev'
-				or $ENV{REQUEST_URI} =~ m%/people/|/~% );
+				   or $ENV{SERVER_NAME} eq 'resdev'
+				   or $ENV{REQUEST_URI} =~ m%/people/|/~% );
 
   return 0;
 }
@@ -949,91 +946,102 @@ These methods typically begin with one underscore (e.g., _internal_method).
 ## _page_connect
 
 sub _page_connect ($) {
-    my $self = shift;
-    my $v    = $self->Vars();
+  my $self = shift;
+  my $v    = $self->Vars();
 
-    $self->{unison} = new Unison(
-        host     => $v->{host},
-        dbname   => $v->{dbname},
-        username => $v->{username},
-        password => $v->{password}
+  $self->{unison} = new Unison(
+							   host     => $v->{host},
+							   dbname   => $v->{dbname},
+							   username => $v->{username},
+							   password => $v->{password}
 
-          # NB: KRB5CCNAME may affect connection success
-    );
+							   # NB: KRB5CCNAME may affect connection success
+							  );
 
-    # Errors are caught by exceptions.
+  # Errors are caught by exceptions.
 
-    # If the connection succeeded, then set PG vars so that spawned apps
-    # connect to the same database.  The krb credential, if any, is
-    # implicitly passed in KRB5CCNAME.
-    if ( $v->{host} ) { $ENV{PGHOST} = $v->{host} }
-    else              { delete $ENV{PGHOST} }
-    if ( $v->{database} ) { $ENV{PGDATABASE} = $v->{database} }
-    else                  { delete $ENV{PGDATABASE} }
-    if ( $v->{username} ) { $ENV{PGUSER} = $v->{username} }
-    else                  { delete $ENV{PGUSER} }
-    if ( $v->{password} ) { $ENV{PGPASSWORD} = $v->{password} }
-    else                  { delete $ENV{PGPASSWORD} }
+  # If the connection succeeded, then set PG vars so that spawned apps
+  # connect to the same database.  The krb credential, if any, is
+  # implicitly passed in KRB5CCNAME.
+  if ( $v->{host} ) {
+	$ENV{PGHOST} = $v->{host};
+  } else {
+	delete $ENV{PGHOST};
+  }
+  if ( $v->{database} ) {
+	$ENV{PGDATABASE} = $v->{database};
+  } else {
+	delete $ENV{PGDATABASE};
+  }
+  if ( $v->{username} ) {
+	$ENV{PGUSER} = $v->{username};
+  } else {
+	delete $ENV{PGUSER};
+  }
+  if ( $v->{password} ) {
+	$ENV{PGPASSWORD} = $v->{password};
+  } else {
+	delete $ENV{PGPASSWORD};
+  }
 
- # TODO: consider setting search_path here in lieu of a per-database search_path
-    $self->{unison}->do('set statement_timeout = 300000');    # milliseconds
+  # TODO: consider setting search_path here in lieu of a per-database search_path
+  $self->{unison}->do('set statement_timeout = 300000'); # milliseconds
 
-    return $self->{unison};
+  return $self->{unison};
 }
 
 ######################################################################
 ## _set_connection_params
 ## sets connection parameters in the Page's instance variables
 sub _set_connection_params ($) {
-    my $p = shift;
-    my $v = $p->Vars();
+  my $p = shift;
+  my $v = $p->Vars();
 
-    if ( not defined $ENV{SERVER_ADDR} ) {
+  if ( not defined $ENV{SERVER_ADDR} ) {
 
-        # debugging from the command line
-        $v->{username} = $ENV{USER}   || `/usr/bin/id -un`;
-        $v->{dbname}   = $v->{dbname} || 'csb-dev';
-        return;
-    }
+	# debugging from the command line
+	$v->{username} = $ENV{USER}   || `/usr/bin/id -un`;
+	$v->{dbname}   = $v->{dbname} || 'csb-dev';
+	return;
+  }
 
-    # Default connections params for public versions of Unison
-    # Some hash values may have been preset in U::WWW::Page::new()
-    if ( not defined $v->{dbname} ) {
-        $v->{dbname} = $p->is_dev_instance() ? 'unison-dev' : 'unison';
-    }
-    if ( not defined $v->{username} ) {
-        $v->{username} = 'PUBLIC';
-    }
+  # Default connections params for public versions of Unison
+  # Some hash values may have been preset in U::WWW::Page::new()
+  if ( not defined $v->{dbname} ) {
+	$v->{dbname} = $p->is_dev_instance() ? 'unison-dev' : 'unison';
+  }
+  if ( not defined $v->{username} ) {
+	$v->{username} = 'PUBLIC';
+  }
 
-    # $v->{host}, $v->{password}->{host} may be undef
+  # $v->{host}, $v->{password}->{host} may be undef
 
-    $p->_genentech_connection_params()
-      if ( $ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)' );
+  $p->_genentech_connection_params()
+	if ( $ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)' );
 }
 
 ######################################################################
 ## _genentech_connection_params
 sub _genentech_connection_params ($) {
-    my $self = shift;
-    my $v    = $self->Vars();
+  my $self = shift;
+  my $v    = $self->Vars();
 
-    # If KRB5CCNAME is set, we're doing kerberos authentication.
-    if ( defined $ENV{KRB5CCNAME} ) {
-        $v->{username} =
-          $ENV{REMOTE_USER};    # what about krb5 outside of webserver?!
-        $v->{username} =~ s/@.+//;    # strip realm from krb identity
-        $v->{host} = 'respgsql';
-    }
-    else {
-        $v->{username} = 'PUBLIC';
-        CORE::warn(
-"_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user."
-        );
-    }
+  # If KRB5CCNAME is set, we're doing kerberos authentication.
+  if ( defined $ENV{KRB5CCNAME} ) {
+	$v->{username} =
+	  $ENV{REMOTE_USER};		  # what about krb5 outside of webserver?!
+	$v->{username} =~ s/@.+//;			   # strip realm from krb identity
+	$v->{host} = 'respgsql';
+  } else {
+	$v->{username} = 'PUBLIC';
+	CORE::warn(
+			   "_genentech_connection_params: called without kerberos ticket. Trying PUBLIC user."
+			  );
+  }
 
-	$v->{dbname} = 	$self->is_dev_instance() ? 'csb-dev' : 'csb';
+  $v->{dbname} = 	$self->is_dev_instance() ? 'csb-dev' : 'csb';
 
-    return;
+  return;
 }
 
 ######################################################################
@@ -1047,122 +1055,116 @@ sub _genentech_connection_params ($) {
 
 sub _infer_pseq_id ($) {
 
-    # Most pages should refer to sequences by pseq_id. If pseq_id isn't
-    # defined, then we attempt to infer it from given 'seq', 'md5', or
-    # 'alias' (in that order).  Furthermore, if none of those are defined
-    # but 'q' is, then we heuristically attempt to guess whether q is a
-    # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
-    # right thing' lookups (e.g., from a browswer toolbar)
+  # Most pages should refer to sequences by pseq_id. If pseq_id isn't
+  # defined, then we attempt to infer it from given 'seq', 'md5', or
+  # 'alias' (in that order).  Furthermore, if none of those are defined
+  # but 'q' is, then we heuristically attempt to guess whether q is a
+  # pseq_id, md5, or alias.  This is an effort to facilitate 'just do the
+  # right thing' lookups (e.g., from a browswer toolbar)
 
-    my $self = shift;
-    my $v    = $self->Vars();
+  my $self = shift;
+  my $v    = $self->Vars();
 
-    # if q is defined, quess what type it is and assign it to
-    # an appropriate query term
-    if ( exists $v->{'q'} ) {
-        my $q = $v->{'q'};
-        if ( $q !~ m/\D/ ) {    # only numbers
-            $v->{pseq_id} = $q;
-        }
-        elsif ( length($q) == 32 and $q !~ m/[^0-9a-f]/i ) {    # md5
-            $v->{md5} = $q;
-        }
-        elsif ( length($q) > 20 and $q !~ m/[^A-Z]/ ) {
-            $v->{seq} = $q;
-        }
-        else {
-            $v->{alias} = $q;
-        }
-    }
+  # if q is defined, quess what type it is and assign it to
+  # an appropriate query term
+  if ( exists $v->{'q'} ) {
+	my $q = $v->{'q'};
+	if ( $q !~ m/\D/ ) {					# only numbers
+	  $v->{pseq_id} = $q;
+	} elsif ( length($q) == 32 and $q !~ m/[^0-9a-f]/i ) { # md5
+	  $v->{md5} = $q;
+	} elsif ( length($q) > 20 and $q !~ m/[^A-Z]/ ) {
+	  $v->{seq} = $q;
+	} else {
+	  $v->{alias} = $q;
+	}
+  }
 
-    if ( defined $v->{pseq_id} ) {
-        return $v->{pseq_id};
-    }
+  if ( defined $v->{pseq_id} ) {
+	return $v->{pseq_id};
+  }
 
-    if ( exists $v->{seq} ) {
-        my $pseq_id = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
-        if ( not defined $pseq_id ) {
-            $self->die( 'sequence not found',
-                'The sequence you provided wasn\'t found in Unison.' );
-        }
-        return $pseq_id;
-    }
+  if ( exists $v->{seq} ) {
+	my $pseq_id = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
+	if ( not defined $pseq_id ) {
+	  $self->die( 'sequence not found',
+				  'The sequence you provided wasn\'t found in Unison.' );
+	}
+	return $pseq_id;
+  }
 
-    if ( exists $v->{md5} ) {
-        my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
-        if ( $#ids == -1 ) {
-            $self->die( 'md5 checksum not found',
-                'The md5 checksum you provided wasn\'t found in Unison.' );
-        }
-        elsif ( $#ids > 0 ) {
+  if ( exists $v->{md5} ) {
+	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
+	if ( $#ids == -1 ) {
+	  $self->die( 'md5 checksum not found',
+				  'The md5 checksum you provided wasn\'t found in Unison.' );
+	} elsif ( $#ids > 0 ) {
 
-# md5 collision! (hasn't happened yet and I don't expect it), but just in case...
-            $self->die(
-                'md5 collision!',
-'The md5 checksum you provided corresponds to more than one sequence.'
-            );
-        }
-        return $ids[0];
-    }
+	  # md5 collision! (hasn't happened yet and I don't expect it), but just in case...
+	  $self->die(
+				 'md5 collision!',
+				 'The md5 checksum you provided corresponds to more than one sequence.'
+				);
+	}
+	return $ids[0];
+  }
 
-    if ( exists $v->{alias} ) {
-        my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
-        if ( $#ids == -1 ) {
-            $self->die(
-                'alias not found',
-'The alias you provided wasn\'t found in Unison (exact search, case insensitive).'
-            );
-        }
-        elsif ( $#ids > 0 ) {
-            print CGI::redirect("search_alias.pl?alias=$v->{alias}");
-            exit(0);
-        }
-        return $ids[0];
-    }
+  if ( exists $v->{alias} ) {
+	my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
+	if ( $#ids == -1 ) {
+	  $self->die(
+				 'alias not found',
+				 'The alias you provided wasn\'t found in Unison (exact search, case insensitive).'
+				);
+	} elsif ( $#ids > 0 ) {
+	  print CGI::redirect("search_alias.pl?alias=$v->{alias}");
+	  exit(0);
+	}
+	return $ids[0];
+  }
 
-    # if we don't have a pseq_id by this point, we need to
-    # throw up a generic search box
-    print $self->render(
-        'Please specify a sequence',
-'<p>Please specify a protein sequence by sequence alias/accession, Unison pseq_id, or md5 checksum.',
-'<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>',
+  # if we don't have a pseq_id by this point, we need to
+  # throw up a generic search box
+  print $self->render(
+					  'Please specify a sequence',
+					  '<p>Please specify a protein sequence by sequence alias/accession, Unison pseq_id, or md5 checksum.',
+					  '<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>',
 
-        $self->start_form( -method => 'GET' ),
-        'query: ',
-        $self->textfield(
-            -name      => 'q',
-            -size      => 32,
-            -maxlength => 32
-        ),
-        $self->submit( -value => 'submit' ),
-        '<p>',
-        $self->end_form(),
-        "\n",
-'You may wish to use the more advanced search abilities under the "Search" tab instead.'
-    );
-    exit(0);
+					  $self->start_form( -method => 'GET' ),
+					  'query: ',
+					  $self->textfield(
+									   -name      => 'q',
+									   -size      => 32,
+									   -maxlength => 32
+									  ),
+					  $self->submit( -value => 'submit' ),
+					  '<p>',
+					  $self->end_form(),
+					  "\n",
+					  'You may wish to use the more advanced search abilities under the "Search" tab instead.'
+					 );
+  exit(0);
 
-    # NO RETURN
+  # NO RETURN
 }
 
 
 sub _conn_info_html ($) {
-    my $self = shift;
-    my $info = 'not connected to the Unison database';
+  my $self = shift;
+  my $info = 'not connected to the Unison database';
 
-    if ( ref $self and defined $self->{unison} and $self->{unison}->is_open() )
-    {
-        my $state =
-          is_dev_instance()
-          ? '<center><span style="background-color: red">development</span></center>'
+  if ( ref $self and defined $self->{unison} and $self->{unison}->is_open() ) {
+	my $state =
+	  is_dev_instance()
+		? '<center><span style="background-color: red">development</span></center>'
           : '';
-        my $db_rel =
-          $self->{unison}->selectrow_array(
-            'select value::date from meta where key=\'release timestamp\'')
-          || '';
-        my $db_host = $self->{unison}->{host} || 'local';
+	my $db_rel =
+	  $self->{unison}->selectrow_array(
+									   'select value::date from meta where key=\'release timestamp\'')
+		|| '';
+	my $db_host = $self->{unison}->{host} || 'local';
 
-        $info = <<EOHTML;
+	$info = <<EOHTML;
 $state
 
 <p><u>versions</u>
@@ -1180,9 +1182,9 @@ $state
 <br>- database $self->{unison}->{dbname}
 <br>- username: $self->{unison}->{username}
 EOHTML
-    }
+  }
 
-    return $info;
+  return $info;
 }
 
 sub _make_temp_dir () {
@@ -1201,8 +1203,8 @@ sub _make_temp_dir () {
 
   if (defined $ENV{SCRIPT_FILENAME}) {
 	# in web env
-	($self->{tmp_root_path} = $ENV{SCRIPT_FILENAME}) =~ s%/cgi/.+%/tmp%;
-	($self->{tmp_root_urn}  = $ENV{SCRIPT_NAME})     =~ s%/cgi/.+%/tmp%;
+	($self->{tmp_root_path} = $ENV{SCRIPT_FILENAME}) =~ s%/cgi/.+%/tmp/unison-web%;
+	($self->{tmp_root_urn}  = $ENV{SCRIPT_NAME})     =~ s%/cgi/.+%/tmp/unison-web%;
   } else {
 	# command line
 	$self->{tmp_root_path} = '/tmp';
@@ -1259,9 +1261,9 @@ FOR DEBUGGING: render a list pf page variables
 =cut
 
 sub page_variables {
-    my $self = shift;
-    my $v    = $self->Vars();
-    return map { "<br><code>$_: $v->{$_}</code>\n" } ( sort keys %$v );
+  my $self = shift;
+  my $v    = $self->Vars();
+  return map { "<br><code>$_: $v->{$_}</code>\n" } ( sort keys %$v );
 }
 
 ######################################################################
@@ -1277,11 +1279,11 @@ page-specific content provided by an array of C<body elems>.
 =cut
 
 sub iframe {
-    my $self  = shift;
-    my $title = shift;
-    my $src   = shift;
+  my $self  = shift;
+  my $title = shift;
+  my $src   = shift;
 
-    return <<EOHTML;
+  return <<EOHTML;
 <style type="text/css">
 div.iframe { text-align:center;}
 </style>
