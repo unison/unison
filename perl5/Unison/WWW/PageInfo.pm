@@ -166,6 +166,7 @@ our @analyze_info =
    {
 	name => 'Summary',
 	script => 'pseq_summary.pl',
+	args => [ qw(pseq_id) ],
 	prd => 1,
 	pub => 1,
 	brief => 'Protein sequence summary',
@@ -176,6 +177,7 @@ our @analyze_info =
    {
 	name => 'Aliases',
 	script => 'pseq_paliases.pl',
+	args => [ qw(pseq_id) ],
 	prd => 1,
 	pub => 1,
 	brief => 'All aliases for a protein sequence',
@@ -186,6 +188,7 @@ our @analyze_info =
    {
 	name => 'Patents',
 	script => 'pseq_patents.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Patents "near" a given sequence',
 	descr => qq(),
 	prd => 1,
@@ -195,6 +198,7 @@ our @analyze_info =
    {
 	name => 'Features',
 	script => 'pseq_features.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Protein sequence features/domains/motifs',
 	descr => qq(),
 	prd => 1,
@@ -204,6 +208,7 @@ our @analyze_info =
    {
 	name => 'BLAST',
 	script => 'pseq_blast.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Precomputed BLAST results',
 	descr => qq(),
 	prd => 1,
@@ -213,6 +218,7 @@ our @analyze_info =
    {
 	name => 'PSSM',
 	script => 'pseq_papssm.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Precomputed Position-Specific Scoring Matrix alignments',
 	descr => qq(),
 	#prd => 1,
@@ -222,6 +228,7 @@ our @analyze_info =
    {
 	name => 'HMM',
 	script => 'pseq_pahmm.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Precomputed Hidden Markov Model alignments',
 	descr => qq(),
 	prd => 1,
@@ -231,6 +238,7 @@ our @analyze_info =
    {
 	name => 'Prospect',
 	script => 'pseq_paprospect.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Prospect Pro sequence threadings',
 	descr => qq(),
 	prd => 1,
@@ -240,6 +248,7 @@ our @analyze_info =
    {
 	name => 'Structures',
 	script => 'pseq_structure.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Structures and models',
 	descr => qq(),
 	prd => 1,
@@ -249,6 +258,7 @@ our @analyze_info =
    {
 	name => 'Functions',
 	script => 'pseq_functions.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Gene Ontology and GeneRIF annotations',
 	descr => qq(),
 	prd => 1,
@@ -258,6 +268,7 @@ our @analyze_info =
    {
 	name => 'Homologs',
 	script => 'pseq_homologs.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Homologs from HomoloGene',
 	descr => qq(),
 	prd => 1,
@@ -267,6 +278,7 @@ our @analyze_info =
    {
 	name => 'Interactions',
 	script => 'pseq_intx.pl',
+	args => [ qw(pseq_id) ],
 	brief => '',
 	descr => qq(),
 	#prd => 1,
@@ -276,6 +288,7 @@ our @analyze_info =
    {
 	name => 'Loci',
 	script => 'pseq_loci.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Protein-to-Genome alignments',
 	descr => qq(),
 	prd => 1,
@@ -285,6 +298,7 @@ our @analyze_info =
    {
 	name => 'History',
 	script => 'pseq_history.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Run history for sequence',
 	descr => qq(),
 	prd => 1,
@@ -294,6 +308,7 @@ our @analyze_info =
    {
 	name => 'Notes',
 	script => 'pseq_notes.pl',
+	args => [ qw(pseq_id) ],
 	brief => 'Sequence notes',
 	descr => qq(),
    },

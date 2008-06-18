@@ -52,9 +52,8 @@ use Data::Dumper;
 sub render_navbar {
   my $p = shift;
   my $v = $p->Vars() || {};
-  my $pseq_id = exists $v->{pseq_id} ? "pseq_id=$v->{pseq_id}" : '';
 
-  my @navs =  __build_navs();
+  my @navs =  _build_navs($p);
   @navs = __format_tab_labels( @navs );
   @navs =
 	__filter_navs( $p->is_prd_instance(), $p->is_public_instance(), @navs );
@@ -89,7 +88,10 @@ sub _nav_dump {
   print( STDERR "$n: ", $#_ + 1, " items:\n", $d, "\n" );
 }
 
-sub __build_navs {
+sub _build_navs {
+  my $p = shift;
+  my $v = $p->Vars();
+
   my @page_sets = 
 	(
 	 [
@@ -125,13 +127,22 @@ sub __build_navs {
 	foreach my $t (@{$ps->[3]}) {
 	  $pub++ if $t->{pub};
 	  $prd++ if $t->{prd};
+	  my $query_args;
+	  if (defined $t->{args}) {
+		$query_args = join(';', (
+								 map { "$_=$v->{$_}" }
+								 grep { defined $v->{$_} } 
+								 @{$t->{args}} 
+								)
+						  );
+	  }
 	  push( @snavs, [
 					 $t->{prd}||0,
 					 $t->{pub}||0,
 					 $t->{name},
 					 $t->{brief},
 					 $t->{script},
-					 $t->{args}
+					 $query_args
 					] );
 	}
 	push( @navm, [
