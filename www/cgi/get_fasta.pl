@@ -21,18 +21,19 @@ $p->ensure_required_params(qw( pseq_id ));
 my $seq;
 my $alias;
 
-try {
-    $seq   = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
-    $alias = $u->best_annotation( $v->{pseq_id} );
-}
-catch Unison::Exception with {
-    $p->die(@_);
-};
+try
+{
+  $seq   = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
+  $alias = $u->best_annotation( $v->{pseq_id} );
+  }
+catch Unison::Exception with
+{
+  $p->die(@_);
+  };
 
 print(
-    "Content-type: text/plain\n",
-    "Content-disposition: attachment; filename=Unison$v->{pseq_id}.fa\n",
-    "\n",
-    ">Unison:$v->{pseq_id} $alias\n",
-    wrap($seq)
-);
+       "Content-type: text/plain\n",
+       "Content-disposition: attachment; filename=Unison$v->{pseq_id}.fa\n",
+       "\n",
+       ">Unison:$v->{pseq_id} $alias\n",
+       wrap($seq) );

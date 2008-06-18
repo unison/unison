@@ -16,15 +16,17 @@ ignore-reset:
 # 1 gets run through perltidy
 # 1+2+3 are candidates for propset
 
-## .PHONY: perltidy
-## perltidy:
-## 	(find .                    -type f \! -name \*~ -name \*.p[lm];  \
-## 	 find tools/bin tools/sbin -type f \! -name \*~ -perm /ugo+x   ) \
-## 	| sort -u
-## # \
-## #	| tr \\012 \\0 \
-## #	xargs -0r perltidy --profile=unison.perltidy -b
-## 
+.PHONY: perltidy
+perl-files.ls:
+	(find .                    -type f -name \*.p[lm];  \
+	 find tools/bin tools/sbin -type f -perm /ugo+x   ) \
+	| grep -v '~$' \
+	| sort -u >$@
+
+perltidy: perl-files.ls
+	tr \\012 \\0 <$< \
+	| xargs -0r perltidy --profile=unison.perltidy -b
+
 ## .PHONY: propset
 ## propset:
 ## 	# WARNING: You should be using svn auto-props in ~/.subversion/config .
@@ -39,6 +41,14 @@ ignore-reset:
 
 precommit:
 	make -C build csb-dev.sql
+
+
+SVN2CL_OPTS=--group-by-day
+ChangeLog:
+	svn2cl -o $@ ${SVN2CL_OPTS}
+ChangeLog.html:
+	svn2cl -o $@ ${SVN2CL_OPTS} --html
+# consider dated logs w/ -r '{2006-01-01}:{2005-01-01}'
 
 
 .PHONY: clean cleaner cleanest
