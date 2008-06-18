@@ -409,16 +409,43 @@ pre.code {
 }
 
 
-dl {
- margin-right: 50px;
+
+/* "top" pages */
+div.top {
+  margin-left: 10%;
+  margin-right: 10%;
 }
-dt {
- font-style: italic;
+
+div.top dl {
 }
-dd {
- margin-right: 50px;
-  /*font-size: smaller; */
+div.top dt {
+ margin: 0px;
+  border-bottom: thin dotted U_FRAME_BG;
+  font-weight: bold;
 }
+div.top dd {
+ margin: 0px 0px 10px 0px;
+}
+
+div.top fieldset {
+ border: thin dotted U_FRAME;
+ margin: 5px;
+ padding: 3px;
+ width: 40%;
+}
+div.top legend {
+ border-color: U_LEGEND_FRAME;
+  border-style: solid;
+  border-width: 0px thin 0px thin;
+ background: U_LEGEND_BG;
+ color: U_LEGEND_FG;
+ font-weight: bold;
+ padding: 2px 5px 2px 5px;
+}
+
+
+
+
 
 /* miscellany */
 span.debug {
