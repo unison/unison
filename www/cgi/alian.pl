@@ -66,7 +66,7 @@ sub build_form {
 					$p->start_form( -method => 'GET' ),
 					'<table border=0 width="100%"><tr>',
 
-					'<td style="vertical-align: top; border-right: thin dotted;" width="50%">',
+					'<td style="vertical-align: top;" width="50%">',
 					'<b>Enter protein accessions or identifiers...</b>',
 					$p->textarea(-name => 'aliases', 
 								 -default => $p->{aliases} || '',
@@ -77,9 +77,10 @@ sub build_form {
 					removed. Identifiers must match exactly.'),
 					'</td>',
 
-					'<td style="vertical-align: top;">',
-					'<b>Select optional annotations...</b>',
-					'<br>(the site of future expansion)',
+					'<td>',
+#					'<td style="vertical-align: top; border-left: thin dotted;">',
+#					'<b>Select optional annotations...</b>',
+#					'<br>(the site of future expansion)',
 					'</td>',
 					'</tr></table>',
 					$p->submit( -name => 'submit',
@@ -96,11 +97,6 @@ sub do_search {
   my %params = (%defaults, %$v);
 
   return unless defined $v->{submit};
-
-## 
-STOPPED HERE
-rewrite to assemble table piecemeal, not in one query
-
 
   my $sql = <<EOSQL;
 SELECT DISTINCT
