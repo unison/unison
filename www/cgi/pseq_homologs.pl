@@ -12,7 +12,7 @@ use Unison::Exceptions;
 use Unison::WWW;
 use Unison::WWW::Page qw(infer_pseq_id);
 use Unison::WWW::Table;
-use Unison::WWW::utilities qw(alias_link pseq_summary_link);
+use Unison::WWW::utilities qw(alias_link pseq_summary_link homologene_link);
 use Unison::SQL;
 
 sub homologs_group ($);
@@ -37,12 +37,6 @@ exit(0);
 
 ############################################################################
 ## INTERNAL FUNCTIONS
-
-sub homologene_link {
-    sprintf(
-'<a href="http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=homologene&term=%s">%s</a>',
-        $_[0], $_[0] );
-}
 
 sub homologs_group ($) {
     my $p            = shift;

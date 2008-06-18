@@ -60,6 +60,224 @@ EOHTML
 # },
 
 
+
+our @search_info = 
+  (
+   {
+	name => 'Alias Search',
+	script => 'search_alias.pl',
+	brief => 'Search for proteins by alias',
+	descr => q(Search Unison by protein accession, identifier, or checksum.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Feature Search',
+	script => 'search_features.pl',
+	brief => 'Feature-based mining for protein sequecnes',
+	descr => qq(Search for protein sequence based on a variety of criteria.),
+	pub => 1,
+   },
+
+   {
+	name => 'Property Search',
+	script => 'search_properties.pl',
+	brief => 'Property-based sequence searches',
+	descr => qq(Search for sequences based on sequence source, size, age,
+	species, and selected sequence features.),
+	prd => 1,
+	pub => 1,
+   },
+  );
+
+our @browse_info = 
+  (
+   {
+	name => 'Sets',
+	script => 'browse_sets.pl',
+	brief => 'Precomputed sequence sets',
+	descr => qq(Browse curated sets of sequences culled from literature or mining.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Views',
+	script => 'browse_views.pl',
+	brief => 'Dynamic sequence searches with predefined queries',
+	descr => qq(Run "canned queries" to search for sequences using predifined criteria.),
+	prd => 1,
+	pub => 1,
+   },
+  );
+
+our @analyze_info = 
+  (
+   {
+	name => 'Summary',
+	script => 'pseq_summary.pl',
+	args => [ qw(pseq_id) ],
+	prd => 1,
+	pub => 1,
+	brief => 'Protein sequence summary',
+	descr => qq(Displays the most pertient and reliable information for a
+	specific protein sequence.),
+   },
+
+   {
+	name => 'Aliases',
+	script => 'pseq_paliases.pl',
+	args => [ qw(pseq_id) ],
+	prd => 1,
+	pub => 1,
+	brief => 'All aliases for a protein sequence',
+	descr => qq(Shows all aliases (accessions and identifiers) for a protein
+	sequence.),
+   },
+
+   {
+	name => 'Patents',
+	script => 'pseq_patents.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Patents "near" a given sequence',
+	descr => qq(Displays patents to the specified sequence and those
+	within a small sequence similarity "neighborhood".),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Features',
+	script => 'pseq_features.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Protein sequence features/domains/motifs',
+	descr => qq(Displays nearly all precomputed sequence features
+	graphically.  Mouseovers and links to underlying data provide
+	additional information.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'BLAST',
+	script => 'pseq_blast.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Precomputed BLAST results',
+	descr => qq(Show precomputed BLAST summary statistics.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'PSSM',
+	script => 'pseq_papssm.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Precomputed Position-Specific Scoring Matrix alignments',
+	descr => qq(Display precomputed Position-Specific Scoring Matrix
+	(PSSM) alignments.),
+	#prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'HMM',
+	script => 'pseq_pahmm.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Precomputed Hidden Markov Model alignments',
+	descr => qq(Display precomputed Hidden Markov Model (HMM)
+	alignments. Unison currently contains HMMs only from Pfam. ),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Prospect',
+	script => 'pseq_paprospect.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Prospect Pro sequence threadings',
+	descr => qq(Displays protein threading alignments generated with Prospect Pro.),
+	prd => 1,
+	#pub => 1,
+   },
+
+   {
+	name => 'Structures',
+	script => 'pseq_structure.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Structures and models',
+	descr => qq(Displays interactive 3D structures and models for a
+	specified sequence using Jmol. Sequence features and SNPs may be
+	"painted" on the structure.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Functions',
+	script => 'pseq_functions.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Gene Ontology and GeneRIF annotations',
+	descr => qq(Display Gene Ontology (GO) annotations and NCBI's
+	References Into Function (RIF). Both include links to PubMed
+	publications.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Homologs',
+	script => 'pseq_homologs.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Homologs from HomoloGene',
+	descr => qq(Displays homologs from HomoloGene.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Interactions',
+	script => 'pseq_intx.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Protein-Protein interactions',
+	descr => qq(),
+	#prd => 1,
+	#pub => 1,
+   },
+
+   {
+	name => 'Loci',
+	script => 'pseq_loci.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Protein-to-Genome alignments',
+	descr => qq(Displays the genomic region in which the specified
+	sequence, splice forms, and nearby sequences align. Affymetrix and
+	Agilent probes are also displayed.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'History',
+	script => 'pseq_history.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Run history for sequence',
+	descr => qq(Unison maintains extensive run histories for each
+	sequence.  This tab shows which analyses were run.),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Notes',
+	script => 'pseq_notes.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Sequence notes',
+	descr => qq(),
+   },
+
+  );
+
 our @tools_info = 
   (
    {
@@ -131,207 +349,61 @@ Adams' Babel fish</a>.),
   );
 
 
-our @search_info = 
+our @unison_info = 
   (
    {
-	name => 'Alias Search',
-	script => 'search_alias.pl',
-	brief => 'Search for proteins by alias',
-	descr => q(Search Unison by protein accession, identifier, or checksum.),
+	name => 'About',
+	# tab => consider '<img width="10px" height="10px" src="../av/favicon.gif" alt="u">'
+	script => 'about_unison.pl',
+	brief => 'Click for more information about Unison.',
+	pub => 1,
 	prd => 1,
-	pub => 1,
+	#descr => q()
    },
 
    {
-	name => 'Feature Search',
-	script => 'search_features.pl',
-	brief => 'Search for proteins by features',
-	descr => qq(),
+	name => 'Stats',
+	script => 'about_statistics.pl',
+	# brief =>
 	pub => 1,
+	prd => 1,
+	# descr => ,
    },
 
    {
-	name => 'Property Search',
-	script => 'search_properties.pl',
+	name => 'Origins',
+	script => 'about_origins.pl',
+	brief => 'Unison data sources',
+	pub => 1,
+	prd => 1,
+	#descr => ,
+   },
+
+   {
+	name => 'Params',
+	script => 'about_params.pl',
+	brief => 'Unison precomputed data types',
+	pub => 1,
+	prd => 1,
+	#descr => ,
+   },
+
+   {
+	name => 'Env',
+	script => 'about_env.pl',
 	brief => '',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-  );
-
-
-our @analyze_info = 
-  (
-   {
-	name => 'Summary',
-	script => 'pseq_summary.pl',
-	args => [ qw(pseq_id) ],
-	prd => 1,
-	pub => 1,
-	brief => 'Protein sequence summary',
-	descr => qq(Displays the most pertient and reliable information for a
-	specific protein sequence.),
-   },
-
-   {
-	name => 'Aliases',
-	script => 'pseq_paliases.pl',
-	args => [ qw(pseq_id) ],
-	prd => 1,
-	pub => 1,
-	brief => 'All aliases for a protein sequence',
-	descr => qq(Shows all aliases (accessions and identifiers) for a protein
-	sequence.),
-   },
-
-   {
-	name => 'Patents',
-	script => 'pseq_patents.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Patents "near" a given sequence',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Features',
-	script => 'pseq_features.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Protein sequence features/domains/motifs',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'BLAST',
-	script => 'pseq_blast.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Precomputed BLAST results',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'PSSM',
-	script => 'pseq_papssm.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Precomputed Position-Specific Scoring Matrix alignments',
-	descr => qq(),
-	#prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'HMM',
-	script => 'pseq_pahmm.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Precomputed Hidden Markov Model alignments',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Prospect',
-	script => 'pseq_paprospect.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Prospect Pro sequence threadings',
-	descr => qq(),
-	prd => 1,
 	#pub => 1,
+	#prd => 1,
+	#descr => ,
    },
 
    {
-	name => 'Structures',
-	script => 'pseq_structure.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Structures and models',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Functions',
-	script => 'pseq_functions.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Gene Ontology and GeneRIF annotations',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Homologs',
-	script => 'pseq_homologs.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Homologs from HomoloGene',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Interactions',
-	script => 'pseq_intx.pl',
-	args => [ qw(pseq_id) ],
+	name => 'Prefs',
+	script => 'about_prefs.pl',
 	brief => '',
-	descr => qq(),
-	#prd => 1,
 	#pub => 1,
+	#prd => 1,
+	#descr => ,
    },
 
-   {
-	name => 'Loci',
-	script => 'pseq_loci.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Protein-to-Genome alignments',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'History',
-	script => 'pseq_history.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Run history for sequence',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Notes',
-	script => 'pseq_notes.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Sequence notes',
-	descr => qq(),
-   },
-
-  );
-
-our @browse_info = 
-  (
-   {
-	name => 'Sets',
-	script => 'browse_sets.pl',
-	brief => 'Precomputed sequence sets',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Views',
-	script => 'browse_views.pl',
-	brief => 'Dynamic sequence searches with predifined queries',
-	descr => qq(),
-	prd => 1,
-	pub => 1,
-   },
   );
