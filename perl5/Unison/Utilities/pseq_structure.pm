@@ -176,8 +176,8 @@ sub _get_seq_str_map {
     return undef unless defined($map_ar);
     foreach my $r (@$map_ar) {
         $self->{'seq_str_map'}{$pdbCode}{ $r->[0] }{'res_id'}   = $r->[1];
-        $self->{'seq_str_map'}{$pdbCode}{ $r->[0] }{'seq_res'}  = $r->[3];
-        $self->{'seq_str_map'}{$pdbCode}{ $r->[0] }{'atom_res'} = $r->[4];
+        $self->{'seq_str_map'}{$pdbCode}{ $r->[0] }{'seq_res'}  = $r->[2];
+        $self->{'seq_str_map'}{$pdbCode}{ $r->[0] }{'atom_res'} = $r->[3];
     }
 }
 
