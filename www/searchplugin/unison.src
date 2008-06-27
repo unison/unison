@@ -6,12 +6,14 @@
 # helped tremendously:
 #   http://mycroft.mozdev.org/deepdocs/quickstart.html#firstplugin
 
+# FIXME: Migrate this to an OpenSearch plugin. See:
+# http://developer.mozilla.org/en/docs/Creating_OpenSearch_plugins_for_Firefox
 
 <search 
 	name="Unison"
 	version="7.1"
 	description="Unison (http://unison-db.org/) protein database search plugin"
-	action="http://unison-db.org/cgi/pseq_summary.pl"
+	action="http://unison-db.org/cgi/search.pl"
 	method="GET"
 >
 
