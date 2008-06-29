@@ -106,7 +106,7 @@ my @cgi_scripts = (
     [   '../p2cm.pl',
         "pseq_id=$pseq_id viewer=rasmol params_id=1 templates=1jtzx"
     ],
-    [ '../pseq_blast.pl',      "pseq_id=$pseq_id" ],
+    [ '../pseq_similarity.pl', "pseq_id=$pseq_id" ],
     [ '../pseq_features.pl',   "pseq_id=$pseq_id" ],
     [ '../pseq_history.pl',    "pseq_id=$pseq_id" ],
     [ '../pseq_loci.pl',       "pseq_id=$pseq_id" ],

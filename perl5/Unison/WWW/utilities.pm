@@ -11,8 +11,9 @@ our @EXPORT_OK = qw(
 					 alias_reflink alias_splink alias_uniprot_link
 					 coalesce genengenes_link homologene_link html_link
 					 maprofile_link ncbi_gene_link ncbi_refseq_link
-					 pdbc_rcsb_link pfam_link pseq_functions_link
-					 pseq_summary_link render_app_list text_wrap
+					 pdbc_rcsb_link pfam_link pseq_annotations_link
+					 pseq_functions_link pseq_summary_link render_app_list
+					 text_wrap
 				  );
 
 our @EXPORT = ();
@@ -197,6 +198,11 @@ sub ncbi_gene_link {
 
 sub pseq_summary_link {
   int_link("pseq_summary.pl?pseq_id=$_[0]",
+		   $_[1]||"Unison:$_[0]",
+		   $_[2]);
+}
+sub pseq_annotations_link {
+  int_link("pseq_annotations.pl?pseq_id=$_[0]",
 		   $_[1]||"Unison:$_[0]",
 		   $_[2]);
 }
