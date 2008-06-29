@@ -7,7 +7,7 @@ use warnings;
 use Digest::MD5 qw(md5_hex);
 
 use FindBin;
-use lib "$FindBin::RealBin/../../perl5";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison;
 

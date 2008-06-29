@@ -8,7 +8,7 @@ use warnings;
 use Bio::SeqIO;
 
 use FindBin;
-use lib "$FindBin::RealBin/../../perl5";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison;
 use Unison::run_history;

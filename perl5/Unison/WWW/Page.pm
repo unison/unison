@@ -367,7 +367,7 @@ sub start_page() {
   my $p = shift;
   my $v = $p->Vars();
   my $navbar = Unison::WWW::NavBar::render_navbar($p);
-  my $logo_tooltip = sprintf("<b>Connection information:</b><br><b>host:</b> %s<br><b>db:</b> %s<br><b>user:</b> %s",
+  my $logo_tooltip = sprintf("<b>Connection information:</b><br><b>db host:</b> %s<br><b>db instance:</b> %s<br><b>db user:</b> %s",
 							 $v->{host}, $v->{dbname}, $v->{username});
 
   return <<EOF;
@@ -426,7 +426,7 @@ sub end_page() {
   <td class="footer">
   Questions?  Email <a href="mailto:unison\@unison-db.org?subject=Unison Question&body=Regarding $self_url">unison\@unison-db.org</a>.
   &nbsp; &nbsp;
-  Bugs and requests? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.
+  Problems? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.
   <br>$elapsed_msg
   $addl_footer
   </td>
@@ -651,8 +651,6 @@ sub tooltip {
 =pod
 
 =item B<< $p->note( C<@text> ) >>
-
-=item B<< tooltip( C<@text> ) >> (without object reference)
 
 Format C<text> as an inline "note".
 
@@ -1217,16 +1215,23 @@ sub _make_temp_dir () {
   }
 
   my @lt = localtime();
-  my $date = sprintf( "%4d-%02d-%02d", $lt[5] + 1900, $lt[4] + 1, $lt[3] );
-  $self->{tmp_droot_path} = "$self->{tmp_root_path}/$date";
-  $self->{tmp_droot_urn} = "$self->{tmp_root_urn}/$date";
+  my $ts = sprintf( "%4d-%02d-%02d-%02d",
+					$lt[5] + 1900, $lt[4] + 1, $lt[3], $lt[2] );
+  # WARNING: Technically, the YYYY-MM-DD-HH bin scheme is susceptible to a
+  # race in which two requests bracket an hour change and the first
+  # request (just before the hour) doesn't have time to fetch a file
+  # before it's cleaned up by the second request (just after the hour).
+  # This seems so unlikely for our current load that I've ignored it.
+
+  $self->{tmp_droot_path} = "$self->{tmp_root_path}/$ts";
+  $self->{tmp_droot_urn} = "$self->{tmp_root_urn}/$ts";
 
   if ( not -d $self->{tmp_droot_path} ) {
 	mkdir( $self->{tmp_droot_path} )
 	  || $self->die("mkdir($self->{tmp_droot_path}): $!\n");
 
 	# first call that makes a new temp dir cleans up old ones
-	$self->_cleanup_temp($date);
+	$self->_cleanup_temp($ts);
   }
 
   return $self->{tmp_dir};
@@ -1234,12 +1239,11 @@ sub _make_temp_dir () {
 
 sub _cleanup_temp ($$) {
   # This provides self-cleaning for Unison web page temp files
-  my ($self,$date) = @_;
+  my ($self,$ts) = @_;
   my $root = $self->{tmp_root_path};
-  my @old =
-	grep { m%^$root/\d{4}-\d{2}-\d{2}$%
-			 and $_ ne "$root/$date" }
-      glob("$root/*");
+  my @old = ( grep { m%^$root/\d{4}-\d{2}-\d{2}(?:-\d{2})?$%
+					   and $_ lt "$root/$ts" } 
+			  glob("$root/*") );
   foreach my $dir (@old) {
 	if ( system("/bin/rm -fr $dir") ) {
 	  print( STDERR "FAILED: $dir: $!\n" );

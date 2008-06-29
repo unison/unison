@@ -15,7 +15,7 @@ use Bio::Tools::pSW;
 use Bio::AlignIO;
 
 use FindBin;
-use lib "$FindBin::RealBin/../../perl5";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison;
 

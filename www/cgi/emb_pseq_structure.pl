@@ -5,8 +5,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq",
-  "$FindBin::Bin/../../perl5";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use CGI( -debug );
 use CGI::Carp qw(fatalsToBrowser);

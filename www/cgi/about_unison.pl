@@ -4,8 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../perl5", "$FindBin::Bin/../perl5-prereq",
-    "$FindBin::Bin/../../perl5";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison::WWW;
 use Unison::WWW::Page;
@@ -22,17 +21,16 @@ informative queries regarding protein families, structure, and function.
 
 <p>The Unison schema, precomputed data, API, and web interface are
 released to the public under the <a target="_blank"
-href="../license.html">Academic Free
-License</a>.
+href="http://opensource.org/licenses/afl-3.0.php">Academic Free
+License</a>.  The Unison web site, PostgreSQL database backend, and
+non-proprietary data are available for online use or download without
+restriction.</p>
 
-<p>The Unison web site and PostgreSQL database backend available to all
-users.
-
-<p>Please see the <a href="../index.html">Unison Home Page</a> for more
-information about the Unison project, <a
-href="../credits.html">credits</a>, <a href="../license.html">license</a>,
-documentation, direct database connection instructions, a guided tour, and
-download sites.
+<p>Unison Protein Database &mdash; http://unison-db.org/ <br>Copyright
+&copy; 2002-2008 Reece Hart, Genentech, Inc.  <br>Licensed under the
+Licensed under the <a target="_blank"
+href="http://opensource.org/licenses/afl-3.0.php">Academic Free License
+version 3.0</a> </p>
 
 EOHTML
 

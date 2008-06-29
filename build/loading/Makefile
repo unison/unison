@@ -7,43 +7,43 @@ include common.mk
 include local.mk
 include params.mk
 
-update: phase0 phase1 phase2 phase3
+update: phase1 phase2 phase3 phase4 phase5 phase6
 
 
 CLEANUP_DIRS=
 
 
-######################################################################
-# 0. "AUXILIARY" DATABASES AND SCHEMAS
+############################################################################
+# 1. "AUXILIARY" DATABASES AND SCHEMAS
 CLEANUP_DIRS+=aux
-.PHONY: phase0
-phase0: aux.log
+.PHONY: phase1
+phase1: aux.log
 aux.log:
 	time -p make -Caux >$@
 
 
-######################################################################
-# 1. LOAD SEQUENCES
+############################################################################
+# 2. LOAD SEQUENCES
 CLEANUP_DIRS+=pseq
-.PHONY: phase1
-phase1: pseq.log
+.PHONY: phase2
+phase2: pseq.log
 
 pseq.log: aux.log
 # see generic directory rule below
 
 
-######################################################################
-# 2. UPDATE INTRINSIC SETS AND OTHER DATA
+############################################################################
+# 3. UPDATE INTRINSIC SETS AND OTHER DATA
 # FIXME: mvs/dvs are potentially interdependent and therefore order
 # is important.  These should all be moved to the db itself
 # for updating.
-PHASE2_FX:=update_tax_ids update_psets_intrinsic
-PHASE2_MVV:=best_annotation pseq_gene gg_famid_pseq_id ensembl_coordinates ensembl_unambiguous_coordinates ensembl_unambiguous_overlaps
-PHASE2_MVDV:=pmprospect_scop
-PHASE2_MV:=${PHASE2_MVDV} ${PHASE2_MVV}
+PHASE3_FX:=update_tax_ids update_psets_intrinsic
+PHASE3_MVV:=best_annotation pseq_gene gg_famid_pseq_id ensembl_coordinates ensembl_unambiguous_coordinates ensembl_unambiguous_overlaps
+PHASE3_MVDV:=pmprospect_scop
+PHASE3_MV:=${PHASE3_MVDV} ${PHASE3_MVV}
 
-.PHONY: phase2
-phase2: $(addsuffix .log,${PHASE2_FX}) $(addsuffix _mv.log,${PHASE2_MV})
+.PHONY: phase3
+phase3: $(addsuffix .log,${PHASE3_FX}) $(addsuffix _mv.log,${PHASE3_MV})
 
 update_tax_ids.log: pseq.log
 update_psets_intrinsic.log: update_tax_ids.log
@@ -53,14 +53,14 @@ pseq_gene_mv.log: aux.log
 
 
 
-######################################################################
-# 3a. MODELS
+############################################################################
+# 4a. MODELS
 # these must be done manually
 #MODEL_DIRS:=pmhmm pmprospect pmregexp
 
 
-######################################################################
-# 3b. COMPUTE
+############################################################################
+# 4b. COMPUTE
 # The 'run' target in the COMPUTE_DIRS directories should run current
 # sequences as necessary.  This ideal is not fully implemented yet.
 #
@@ -79,8 +79,8 @@ COMPUTE_DIRS+=psprotcomp
 # TODO: psdisorder
 COMPUTE_DIRS+=pmap
 CLEANUP_DIRS+=${COMPUTE_DIRS}
-.PHONY: phase3
-phase3: $(addsuffix .log,${COMPUTE_DIRS})
+.PHONY: phase4
+phase4: $(addsuffix .log,${COMPUTE_DIRS})
 
 $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
 	make -C $* update >$@.err 2>&1
@@ -92,15 +92,15 @@ $(addsuffix .log,${COMPUTE_DIRS}): %.log: %
 
 
 
-######################################################################
-# 4. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
-PHASE4_FX:=update_psets_extrinsic
-PHASE4_MVV:=pmap_mv pmap_unambiguous pmap_unambiguous_overlaps pmap_locus_representative pmap_gg_representative pseq_probe papseq_pdbcs
-PHASE4_MVDV:=
-PHASE4_MV:= ${PHASE4_MVDV} ${PHASE4_MVV}
+############################################################################
+# 5. UPDATE TABLES BASED ON PRECOMPUTED RESULTS
+PHASE5_FX:=update_psets_extrinsic
+PHASE5_MVV:=pmap_mv pmap_unambiguous pmap_unambiguous_overlaps pmap_locus_representative pmap_gg_representative pseq_probe papseq_pdbcs
+PHASE5_MVDV:=
+PHASE5_MV:= ${PHASE5_MVDV} ${PHASE5_MVV}
 
-.PHONY: phase4
-phase4: update_psets_extrinsic.log $(addsuffix .log,${PHASE4_FX}) $(addsuffix _mv.log,${PHASE4_MV})
+.PHONY: phase5
+phase5: update_psets_extrinsic.log $(addsuffix .log,${PHASE5_FX}) $(addsuffix _mv.log,${PHASE5_MV})
 pmap_unambiguous_overlaps_mv.log: pmap_unambiguous_mv.log
 pmap_locus_representative_mv.log: pmap_unambiguous_overlaps_mv.log
 
@@ -111,20 +111,22 @@ pmap_locus_representative_mv.log: pmap_unambiguous_overlaps_mv.log
 #	/bin/mv -f $@.err $@
 
 
-######################################################################
-# 5. HOUSEKEEPING
+############################################################################
+# 6. HOUSEKEEPING
 # cluster tables which have cluster indices defined, then vacuum
 # and analyze everything. Vacuuming the clustered tables
 # is pointless, but it's easier that keeping track of those which
 # need it.
-.PHONY: phase5
-phase5: cleanup.log
+.PHONY: phase6
+phase6: cleanup.log
 cleanup.log:
 	(set -x; time -p ${PSQL_VCMD} 'cluster'; time -p ${PSQL_VCMD} 'vacuum analyze') >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
-######################################################################
+
+
+############################################################################
 # GENERIC DIRECTORY RULE
 # make foo.log makes the default target within the directory foo
 # and logs parent make stdout and stderr to foo.log
@@ -133,7 +135,7 @@ cleanup.log:
 	/bin/mv $@.err $@
 
 
-######################################################################
+############################################################################
 # FUNCTIONS AND MATERIALIZED VIEW RULES
 # make foo.log makes the default target within the directory foo
 # and logs parent make stdout and stderr to foo.log
@@ -142,9 +144,9 @@ cleanup.log:
 # views. I chose the latter so that indexes and comments would be
 # preserved.
 
-FX=${PHASE2_FX} ${PHASE4_FX}
-MVV=${PHASE2_MVV} ${PHASE4_MVV}
-MVDV=${PHASE2_MVDV} ${PHASE4_MVDV}
+FX=${PHASE3_FX} ${PHASE5_FX}
+MVV=${PHASE3_MVV} ${PHASE5_MVV}
+MVDV=${PHASE3_MVDV} ${PHASE5_MVDV}
 
 # functions
 $(addsuffix .log,${FX}): %.log:

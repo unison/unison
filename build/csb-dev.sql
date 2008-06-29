@@ -3001,7 +3001,7 @@ SET search_path = unison, pg_catalog;
 --
 
 CREATE VIEW pahmm_v AS
-    SELECT a.params_id, a.pseq_id, a.start, a.stop, a.mstart, a.mstop, ((SELECT CASE WHEN (a.mstart = 1) THEN '['::text ELSE '.'::text END AS "case") || (SELECT CASE WHEN (a.mstop = m.len) THEN ']'::text ELSE '.'::text END AS "case")) AS ends, round((((((a.mstop - a.mstart) + 1))::double precision / (m.len)::double precision) * (100)::double precision)) AS pct_cov, a.score, a.eval, m.origin_id, a.pmodel_id, m.acc, m.name, m.descr FROM (pahmm a JOIN pmhmm m ON ((m.pmodel_id = a.pmodel_id))) ORDER BY a.eval;
+    SELECT a.params_id, a.pseq_id, a.start, a.stop, a.mstart, a.mstop, ((SELECT CASE WHEN (a.mstart = 1) THEN '['::text ELSE '.'::text END AS "case") || (SELECT CASE WHEN (a.mstop = m.len) THEN ']'::text ELSE '.'::text END AS "case")) AS ends, round((((((a.mstop - a.mstart) + 1))::double precision / (m.len)::double precision) * (100)::double precision)) AS pct_cov, a.score, a.eval, m.origin_id, a.pmodel_id, m.acc, m.name, m.descr FROM (pahmm a JOIN pmhmm m ON ((m.pmodel_id = a.pmodel_id)));
 
 
 ALTER TABLE unison.pahmm_v OWNER TO unison;
@@ -6011,7 +6011,7 @@ COMMENT ON COLUMN best_annotation_mv.link_url IS 'URL to source data';
 --
 
 CREATE FUNCTION pseq_locus(integer, integer, integer) RETURNS text
-    AS $_$select locus_fmt(chr,strand,gstart,gstop) from pmap_unambiguous_v where pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
+    AS $_$select locus_fmt(chr,strand,gstart,gstop) from pmap_unambiguous_mv where pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
     LANGUAGE sql IMMUTABLE STRICT;
 
 
@@ -6191,6 +6191,82 @@ COMMENT ON COLUMN all_annotations_unsorted_v.descr IS 'sequence description';
 --
 
 COMMENT ON COLUMN all_annotations_unsorted_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+
+
+--
+-- Name: pfregexp_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pfregexp_v AS
+    SELECT f.params_id, f.pseq_id, f.start, f.stop, m.origin_id, m.pmodel_id, m.acc, m.name, m.descr FROM (pfregexp f JOIN pmregexp m ON ((f.pmodel_id = m.pmodel_id)));
+
+
+ALTER TABLE unison.pfregexp_v OWNER TO unison;
+
+--
+-- Name: VIEW pfregexp_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW pfregexp_v IS 'regexp features with model origin_id, acc, name, and descr';
+
+
+--
+-- Name: pftmhmm_tms_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pftmhmm_tms_v AS
+    SELECT pftmhmm.pfeature_id, pftmhmm.pseq_id, pftmhmm.pftype_id, pftmhmm.start, pftmhmm.stop, pftmhmm.params_id, pftmhmm.type FROM pftmhmm WHERE ((pftmhmm.type = 'M'::bpchar) OR (pftmhmm.type = 'N'::bpchar));
+
+
+ALTER TABLE unison.pftmhmm_tms_v OWNER TO unison;
+
+--
+-- Name: VIEW pftmhmm_tms_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW pftmhmm_tms_v IS 'TM regions from pftmhmm';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.pfeature_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.pfeature_id IS 'unique identifier for this protein feature';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.pftype_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.pftype_id IS 'protein feature type identifier -- see pftype(pftype_id)';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.start; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.start IS 'start of prediction in protein sequence';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.stop; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.stop IS 'stop of prediction in protein sequence';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.params_id IS 'parameter set identifier -- see params(params_id)';
 
 
 --
@@ -10488,23 +10564,6 @@ COMMENT ON COLUMN pfpsipred.params_id IS 'parameter set identifier -- see params
 
 
 --
--- Name: pfregexp_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW pfregexp_v AS
-    SELECT f.params_id, f.pseq_id, f.start, f.stop, m.origin_id, m.pmodel_id, m.acc, m.name, m.descr FROM (pfregexp f JOIN pmregexp m ON ((f.pmodel_id = m.pmodel_id)));
-
-
-ALTER TABLE unison.pfregexp_v OWNER TO unison;
-
---
--- Name: VIEW pfregexp_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW pfregexp_v IS 'regexp features with model origin_id, acc, name, and descr';
-
-
---
 -- Name: pfseg; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -10746,65 +10805,6 @@ CREATE VIEW pftmhmm_ecd_length_v AS
 
 
 ALTER TABLE unison.pftmhmm_ecd_length_v OWNER TO unison;
-
---
--- Name: pftmhmm_tms_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW pftmhmm_tms_v AS
-    SELECT pftmhmm.pfeature_id, pftmhmm.pseq_id, pftmhmm.pftype_id, pftmhmm.start, pftmhmm.stop, pftmhmm.params_id, pftmhmm.type FROM pftmhmm WHERE ((pftmhmm.type = 'M'::bpchar) OR (pftmhmm.type = 'N'::bpchar));
-
-
-ALTER TABLE unison.pftmhmm_tms_v OWNER TO unison;
-
---
--- Name: VIEW pftmhmm_tms_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW pftmhmm_tms_v IS 'TM regions from pftmhmm';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.pfeature_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.pfeature_id IS 'unique identifier for this protein feature';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.pftype_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.pftype_id IS 'protein feature type identifier -- see pftype(pftype_id)';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.start; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.start IS 'start of prediction in protein sequence';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.stop; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.stop IS 'stop of prediction in protein sequence';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.params_id IS 'parameter set identifier -- see params(params_id)';
-
 
 --
 -- Name: pftype_preferred_run_v; Type: VIEW; Schema: unison; Owner: unison
@@ -15384,6 +15384,17 @@ COMMENT ON FUNCTION make_table_read_only(name, name) IS 'make_table_read_only(<s
 
 
 --
+-- Name: md5_to_pseq_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION md5_to_pseq_id(md5 text, OUT pseq_id integer) RETURNS integer
+    AS $_$SELECT pseq_id FROM pseq WHERE md5=$1$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.md5_to_pseq_id(md5 text, OUT pseq_id integer) OWNER TO unison;
+
+--
 -- Name: meta_stats_distinct(); Type: FUNCTION; Schema: unison; Owner: unison
 --
 
@@ -16437,8 +16448,8 @@ ALTER FUNCTION unison.pseq_iu_trigger() OWNER TO unison;
 --
 
 CREATE FUNCTION pseq_locus_rep(integer, integer, integer) RETURNS integer
-    AS $_$select t_pseq_id from pmap_locus_representative_v where q_pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
-    LANGUAGE sql STABLE STRICT;
+    AS $_$select t_pseq_id from pmap_locus_representative_mv where q_pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
+    LANGUAGE sql IMMUTABLE STRICT;
 
 
 ALTER FUNCTION unison.pseq_locus_rep(integer, integer, integer) OWNER TO unison;
@@ -21939,6 +21950,14 @@ ALTER TABLE ONLY pseqalias
 
 
 --
+-- Name: palignment_pmodel_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY palignment
+    ADD CONSTRAINT palignment_pmodel_id_exists FOREIGN KEY (pmodel_id) REFERENCES pmodel(pmodel_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: paprospect_params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
 --
 
@@ -22111,6 +22130,14 @@ ALTER TABLE ONLY pfeature
 --
 
 ALTER TABLE ONLY papseq
+    ADD CONSTRAINT pfeature_params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pfeature_params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY palignment
     ADD CONSTRAINT pfeature_params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
@@ -22440,6 +22467,14 @@ ALTER TABLE ONLY pmsm_pmhmm
 
 ALTER TABLE ONLY pmsm_pmhmm
     ADD CONSTRAINT pmsm_pmhmm_pmodelset_id_exists FOREIGN KEY (pmodelset_id) REFERENCES pmodelset(pmodelset_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pmsm_pmodel_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmsm
+    ADD CONSTRAINT pmsm_pmodel_id_exists FOREIGN KEY (pmodel_id) REFERENCES pmodel(pmodel_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -24498,6 +24533,26 @@ GRANT SELECT ON TABLE all_annotations_unsorted_v TO PUBLIC;
 
 
 --
+-- Name: pfregexp_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pfregexp_v FROM PUBLIC;
+REVOKE ALL ON TABLE pfregexp_v FROM unison;
+GRANT ALL ON TABLE pfregexp_v TO unison;
+GRANT SELECT ON TABLE pfregexp_v TO PUBLIC;
+
+
+--
+-- Name: pftmhmm_tms_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pftmhmm_tms_v FROM PUBLIC;
+REVOKE ALL ON TABLE pftmhmm_tms_v FROM unison;
+GRANT ALL ON TABLE pftmhmm_tms_v TO unison;
+GRANT SELECT ON TABLE pftmhmm_tms_v TO PUBLIC;
+
+
+--
 -- Name: papseq_pdbcs_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25474,16 +25529,6 @@ GRANT SELECT ON TABLE pfpsipred TO PUBLIC;
 
 
 --
--- Name: pfregexp_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE pfregexp_v FROM PUBLIC;
-REVOKE ALL ON TABLE pfregexp_v FROM unison;
-GRANT ALL ON TABLE pfregexp_v TO unison;
-GRANT SELECT ON TABLE pfregexp_v TO PUBLIC;
-
-
---
 -- Name: pfseg; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25545,16 +25590,6 @@ REVOKE ALL ON TABLE pftmhmm_ecd_length_v FROM PUBLIC;
 REVOKE ALL ON TABLE pftmhmm_ecd_length_v FROM unison;
 GRANT ALL ON TABLE pftmhmm_ecd_length_v TO unison;
 GRANT SELECT ON TABLE pftmhmm_ecd_length_v TO PUBLIC;
-
-
---
--- Name: pftmhmm_tms_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE pftmhmm_tms_v FROM PUBLIC;
-REVOKE ALL ON TABLE pftmhmm_tms_v FROM unison;
-GRANT ALL ON TABLE pftmhmm_tms_v TO unison;
-GRANT SELECT ON TABLE pftmhmm_tms_v TO PUBLIC;
 
 
 --
@@ -26741,6 +26776,7 @@ REVOKE ALL ON SEQUENCE pseq_pseq_id_seq FROM unison;
 GRANT ALL ON SEQUENCE pseq_pseq_id_seq TO unison;
 GRANT UPDATE ON SEQUENCE pseq_pseq_id_seq TO loader;
 GRANT UPDATE ON SEQUENCE pseq_pseq_id_seq TO genengenes;
+GRANT SELECT ON SEQUENCE pseq_pseq_id_seq TO PUBLIC;
 
 
 --
