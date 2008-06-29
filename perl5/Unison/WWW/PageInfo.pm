@@ -160,45 +160,13 @@ our @analyze_info =
    },
 
    {
-	name => 'BLAST',
-	script => 'pseq_blast.pl',
+	name => 'Similarity',
+	script => 'pseq_similarity.pl',
 	args => [ qw(pseq_id) ],
 	brief => 'Precomputed BLAST results',
 	descr => qq(Show precomputed BLAST summary statistics.),
 	prd => 1,
 	pub => 1,
-   },
-
-   {
-	name => 'PSSM',
-	script => 'pseq_papssm.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Precomputed Position-Specific Scoring Matrix alignments',
-	descr => qq(Display precomputed Position-Specific Scoring Matrix
-	(PSSM) alignments.),
-	#prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'HMM',
-	script => 'pseq_pahmm.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Precomputed Hidden Markov Model alignments',
-	descr => qq(Display precomputed Hidden Markov Model (HMM)
-	alignments. Unison currently contains HMMs only from Pfam. ),
-	prd => 1,
-	pub => 1,
-   },
-
-   {
-	name => 'Prospect',
-	script => 'pseq_paprospect.pl',
-	args => [ qw(pseq_id) ],
-	brief => 'Prospect Pro sequence threadings',
-	descr => qq(Displays protein threading alignments generated with Prospect Pro.),
-	prd => 1,
-	#pub => 1,
    },
 
    {
@@ -274,6 +242,38 @@ our @analyze_info =
 	args => [ qw(pseq_id) ],
 	brief => 'Sequence notes',
 	descr => qq(),
+   },
+
+   {
+	name => 'PSSM',
+	script => 'pseq_papssm.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Precomputed Position-Specific Scoring Matrix alignments',
+	descr => qq(Display precomputed Position-Specific Scoring Matrix
+	(PSSM) alignments.),
+	#prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'HMM',
+	script => 'pseq_pahmm.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Precomputed Hidden Markov Model alignments',
+	descr => qq(Display precomputed Hidden Markov Model (HMM)
+	alignments. Unison currently contains HMMs only from Pfam. ),
+	prd => 1,
+	pub => 1,
+   },
+
+   {
+	name => 'Prospect',
+	script => 'pseq_paprospect.pl',
+	args => [ qw(pseq_id) ],
+	brief => 'Prospect Pro sequence threadings',
+	descr => qq(Displays protein threading alignments generated with Prospect Pro.),
+	prd => 1,
+	#pub => 1,
    },
 
   );
