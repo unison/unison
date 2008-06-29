@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-use lib "$FindBin::Bin/../../perl5", "$FindBin::Bin/../../perl5-prereq";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison;
 use Unison::Exceptions;

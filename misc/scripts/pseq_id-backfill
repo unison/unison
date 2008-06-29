@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+# pseq_id-backfill -- renumber most recent pseq rows to fill pseq_id holes
+#
+# IMPORTANT: This is intended to correct for the addition of a large
+# number (500K) of bogus sequences in GenenGenes. This is NOT intended for
+# routine use.
+#
+# This script will generate a transaction that renumbers sequences and
+# resets the pseq_id sequence.  No DB modifications are performed by this
+# script itself.
+#
+
+
+use strict;
+use warnings;
+
+use Unison;
+
+my $u = new Unison( dbname => 'csb-dev' );
+my $sql;
+
+
+# Find the holes
+$sql = <<EOSQL;
+SELECT * FROM generate_series(1,(select last_value from pseq_pseq_id_seq))
+  EXCEPT
+SELECT pseq_id from pseq
+EOSQL
+my @holes = map { $_->[0] } @{ $u->selectall_arrayref($sql) };
+@holes = sort { $b <=> $a } @holes;
+printf(STDERR "# %d holes\n", $#holes+1);
+
+# Select the last $#holes+1 sequences to move
+$sql = 'SELECT pseq_id FROM pseq ORDER BY 1 DESC LIMIT ' . ($#holes+1);
+my @transients = map { $_->[0] } @{ $u->selectall_arrayref($sql) };
+@transients = sort { $b <=> $a } @transients;
+printf(STDERR "# %d transients\n", $#holes+1);
+
+# generate the script
+print( "BEGIN;\n" );
+for( my $i=0; $i<=$#holes; $i++ ) {
+  printf("UPDATE pseq SET pseq_id=%d WHERE pseq_id=%d;\n",
+		 $holes[$i], $transients[$i]);
+}
+print( "COMMIT;\n" );
+printf( "SELECT nextval('pseq_pseq_id_seq',%d);", $transients[$#transients] );

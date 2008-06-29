@@ -9,10 +9,10 @@ our @EXPORT_OK = qw(
 					 alias_enslink alias_gglink alias_ghlink alias_link
 					 alias_mint_link alias_proteome_link alias_pubmed_link
 					 alias_reflink alias_splink alias_uniprot_link
-					 coalesce genengenes_link homologene_link
+					 coalesce genengenes_link homologene_link html_link
 					 maprofile_link ncbi_gene_link ncbi_refseq_link
-					 pdbc_rcsb_link pfam_link pseq_summary_link
-					 render_app_list text_wrap
+					 pdbc_rcsb_link pfam_link pseq_functions_link
+					 pseq_summary_link render_app_list text_wrap
 				  );
 
 our @EXPORT = ();
@@ -196,17 +196,33 @@ sub ncbi_gene_link {
 }
 
 sub pseq_summary_link {
-    my ( $pseq_id, $tag ) = @_;
-	return "<a href=\"pseq_summary.pl?pseq_id=$pseq_id\">$tag</a>";
+  int_link("pseq_summary.pl?pseq_id=$_[0]",
+		   $_[1]||"Unison:$_[0]",
+		   $_[2]);
+}
+sub pseq_functions_link {
+  int_link("pseq_functions.pl?pseq_id=$_[0]",
+		   $_[1]||"Unison:$_[0]",
+		   $_[2]);
 }
 
-# use hashes here (and, really, probably everywhere)
-sub extlink {
-  sprintf('<a class="extlink" %s target="_blank" href="%s">%s</a>', 
-		 (defined $_[2] ? 'tooltip='.$_[2] : ''),
-		  @_[0,1]
+
+# should use hashes here (and, really, probably everywhere)
+sub int_link {
+  sprintf('<a href="%s"%s>%s</a>',
+		  $_[0],
+		 (defined $_[2] ? ' tooltip="'.$_[2].'"' : ''),
+		  $_[1]
 		 );
 }
+sub extlink {
+  sprintf('<a class="extlink" target="_blank" href="%s"%s>%s</a>', 
+		  $_[0],
+		 (defined $_[2] ? ' tooltip="'.$_[2].'"' : ''),
+		  $_[1],
+		 );
+}
+
 
 
 sub text_wrap {

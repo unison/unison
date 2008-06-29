@@ -45,7 +45,7 @@ our %opts = (
 					   and ( $ENV{PGHOST} =~ m/\w/ ) )
 					 ? $ENV{PGHOST}
 					 : 'respgsql' ),
-    dbname 		=> $ENV{PGDATABASE} || 'respgsql',
+    dbname 		=> $ENV{PGDATABASE} || 'csb',
     username 	=> $ENV{PGUSER}   || eval {my $tmp = `/usr/bin/id -un`;
 										   chomp $tmp;
 										   $tmp;

@@ -11,7 +11,7 @@ use Bio::Tools::Run::StandAloneBlast;
 use File::Temp qw( tempfile );
 
 use FindBin;
-use lib "$FindBin::RealBin/../../perl5";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison;
 use Getopt::Long qw(:config gnu_getopt);

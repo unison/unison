@@ -24,7 +24,6 @@ use strict;
 use warnings;
 
 use Unison::WWW::PageInfo;
-use Data::Dumper;
 
 =pod
 
@@ -89,48 +88,13 @@ sub _nav_dump {
 }
 
 sub _build_navs {
+  # convert PageInfo menu into the old-style array info
+  # this function is transitional
   my $p = shift;
   my $v = $p->Vars();
 
-  my @page_sets = 
-	(
-	 [
-	  'Search',
-	  'Text- and Feature-based mining',
-	  'search_top.pl',
-	  \@Unison::WWW::PageInfo::search_info
-	 ],
-	 [
-	  'Browse', 
-	  'browse curated queries and precomputed sequences sets',
-	  'browse_top.pl',
-	  \@Unison::WWW::PageInfo::browse_info
-	 ],
-	 [
-	  'Analyze',
-	  'display precomputed analyses for a single protein sequence',
-	  'pseq_top.pl',
-	  \@Unison::WWW::PageInfo::analyze_info
-	 ],
-	 [
-	  'Tools',
-	  'Miscellaneous services',
-	  'tools_top.pl',
-	  \@Unison::WWW::PageInfo::tools_info 
-	 ],
-
-	 'break',
-
-	 [
-	  'About',
-	  'Information about Unison',
-	  'about_unison.pl',
-	  \@Unison::WWW::PageInfo::unison_info
-	 ]
-	);
-
   my @navm;
-  foreach my $ps (@page_sets) {
+  foreach my $ps (@Unison::WWW::PageInfo::page_sets) {
 	if (not ref $ps and $ps eq 'break') {
 	  push(@navm, [['']]);					# special magic in old navbar code
 	  next;

@@ -27,6 +27,25 @@ U::WWW::utilities.pm.
 
 * CONSIDER:
 
+** license change
+The AFL has all of the qualities I (Reece) sought from a license, but it's
+redundant with the much more popular Apache license.  The advantage of
+switching is that we'll use a better understood (presumably) license and
+could consider switching to Google code. The downside is that "Apache
+License" is much less meaningful that "Academic Free License" (i.e., I
+hate the name).
+
+See
+http://www.opensource.org/proliferation-report. 
+http://en.wikipedia.org/wiki/Academic_Free_License
+http://www.rosenlaw.com/OSL3.0-explained.pdf
+
+
+** privacy statement
+we do: collect aggregated user information, domains
+we don't: track users or user progress, incorporate user data without notice
+
+
 ** sequence-sequence relationships
 Currently, all sequences in pseq are equal.  In reality, sequences may be
 usefully related by: 1) subsequences, 2) alternative splicing, 3)
@@ -227,3 +246,5 @@ best_annotation function parameterized by species/tax_id, permits
 NULL tax_id columns as well and defaults to human.
 
 ** DONE: ** drop insert rule on palias
+
+

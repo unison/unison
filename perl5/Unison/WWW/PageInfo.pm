@@ -282,7 +282,7 @@ our @tools_info =
   (
    {
 	name => 'AliAn',
-	script => 'alias_annotation.pl',
+	script => 'alian.pl',
 	brief => 'Annotate a set of protein aliases',
 	pub => 1,
 	#prd => 1,
@@ -366,7 +366,7 @@ our @unison_info =
 	script => 'about_statistics.pl',
 	# brief =>
 	pub => 1,
-	prd => 1,
+	#prd => 1,
 	# descr => ,
    },
 
@@ -407,3 +407,42 @@ our @unison_info =
    },
 
   );
+
+
+our @page_sets = 
+	(
+	 [
+	  'Search',
+	  'Text- and Feature-based mining',
+	  'search_top.pl',
+	  \@search_info
+	 ],
+	 [
+	  'Browse', 
+	  'browse curated queries and precomputed sequences sets',
+	  'browse_top.pl',
+	  \@browse_info
+	 ],
+	 [
+	  'Analyze',
+	  'display precomputed analyses for a single protein sequence',
+	  'pseq_top.pl',
+	  \@analyze_info
+	 ],
+	 [
+	  'Tools',
+	  'Miscellaneous services',
+	  'tools_top.pl',
+	  \@tools_info 
+	 ],
+
+	 'break',
+
+	 [
+	  'About',
+	  'Information about Unison',
+	  'about_unison.pl',
+	  \@unison_info
+	 ]
+	);
+
