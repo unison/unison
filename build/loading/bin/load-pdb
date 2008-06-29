@@ -2,7 +2,7 @@
 
 $^W++;
 use strict;
-use lib ('./perl5','/home/rkh/unison/perl5');
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 use Unison;
 
 $|++; select(STDERR); $|++; select(STDOUT);

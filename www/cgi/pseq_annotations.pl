@@ -39,10 +39,10 @@ do { $_->[2] = text_wrap( $_->[2] ) }
   for @$ar;
 
 print $p->render(
-    "Aliases of Unison:$v->{pseq_id}",
+    "Annotations for Unison:$v->{pseq_id}",
     $p->best_annotation( $v->{pseq_id} ),
     $p->group(
-        "Aliases of Unison:$v->{pseq_id}",
+        "Annotations of Unison:$v->{pseq_id}",
         Unison::WWW::Table::render( \@f, $ar )
     ),
     $p->sql($sql)

@@ -8,7 +8,7 @@ use Bio::SeqIO;
 use Getopt::Long;
 use DBI;
 
-use lib '/home/rkh/unison/perl5';
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 use Unison;
 
 
