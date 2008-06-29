@@ -204,8 +204,8 @@ SELECT
 
 FROM
   pseq S
-  LEFT JOIN pseqalias SA on S.pseq_id = SA.pseq_id
-  JOIN paliasorigin AO on SA.palias_id = AO.palias_id
+  LEFT JOIN pseq_pannotation SA on S.pseq_id = SA.pseq_id
+  JOIN pannotation AO on SA.pannotation_id = AO.pannotation_id
   JOIN origin O on O.origin_id = AO.origin_id
 
 WHERE
@@ -300,11 +300,11 @@ SELECT
 
 FROM
   pseq S
-  LEFT JOIN pseqalias SA on S.pseq_id = SA.pseq_id
-  JOIN paliasorigin AO on SA.palias_id = AO.palias_id
+  LEFT JOIN pseq_pannotation SA on S.pseq_id = SA.pseq_id
+  JOIN pannotation AO on SA.pannotation_id = AO.pannotation_id
   JOIN origin O on O.origin_id = AO.origin_id
-  LEFT JOIN pseqalias GSSA on S.pseq_id = GSSA.pseq_id
-  JOIN paliasorigin GSAO on GSSA.palias_id = GSAO.palias_id
+  LEFT JOIN pseq_pannotation GSSA on S.pseq_id = GSSA.pseq_id
+  JOIN pannotation GSAO on GSSA.pannotation_id = GSAO.pannotation_id
 
 WHERE
   S.seq ~ ?
@@ -315,7 +315,7 @@ WHERE
   AND GSAO.origin_id = origin_id('Geneseq')
 
 ORDER BY
-  S.pseq_id, O.ann_pref, GSAO.palias_id
+  S.pseq_id, O.ann_pref, GSAO.pannotation_id
 EOSQL
 
     $sql =~ s/\s+/ /gs;

@@ -24,7 +24,7 @@ do 'pub-rules.pl';
 apply_custom_configuration( \%tables, \%custom_table_predicates,
     \%custom_copy_queries );
 
-foreach my $st (qw( unison.pseq unison.pseqalias unison.pfeature )) {
+foreach my $st (qw( unison.pseq unison.pseq_pannotation unison.pfeature )) {
 
 #  $tables{$st} = Unison::Schema::Table->new( 'st' => $st ) unless exists $tables{$st};
     print( "==== $st:\n", $tables{$st}->copy_query(), "\n >>======\n\n" );

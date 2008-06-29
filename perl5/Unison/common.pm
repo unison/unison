@@ -18,7 +18,7 @@ submodules in the Unison:: API.  The following are currently loaded:
 
 =item use Unison::Exceptions;
 
-=item use Unison::palias;
+=item use Unison::pannotation;
 
 =item use Unison::paprospect;
 
@@ -51,7 +51,7 @@ if (q$HeadURL: https://unison-db.svn.sourceforge.net/svnroot/unison-db/trunk/per
 
 use Unison::DBI;
 use Unison::Exceptions;
-use Unison::palias;
+use Unison::pannotation;
 use Unison::params;
 use Unison::origin;
 use Unison::pseq;

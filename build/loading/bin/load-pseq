@@ -22,7 +22,7 @@ use warnings;
 use strict;
 
 use FindBin;
-use lib "$FindBin::RealBin/../../../perl5";
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison;
 use Unison::Exceptions;
@@ -123,14 +123,14 @@ my @tally_bins = qw(nseen nadded nskipped nfailed naliases);
 my %totals = map { $_=>0 } @tally_bins;
 my $tts = new Benchmark;
 
-# palias_ids_to_deprecate -- Initially, a hash of all palias ids in this
+# pannotation_ids_to_deprecate -- Initially, a hash of all palias ids in this
 # origin.  As aliases are loaded, we delete from this hash.  When we're
 # done loading sequences, any remaining palias ids refer to accessions
 # that are no longer in the source database.
-my %palias_ids_to_deprecate;
+my %pannotation_ids_to_deprecate;
 if ($opts{deprecate}) {
-  %palias_ids_to_deprecate = map {$_->[0]=>1}
-	@{$u->selectall_arrayref("select palias_id from palias where origin_id=origin_id('$opts{origin}')")};
+  %pannotation_ids_to_deprecate = map {$_->[0]=>1}
+	@{$u->selectall_arrayref("select pannotation_id from palias where origin_id=origin_id('$opts{origin}')")};
 }
 
 
@@ -193,21 +193,21 @@ if ($totals{nadded} > 0 and not $opts{'dry-run'}) {
   my $n_per_line = 8;
 
   if ($opts{deprecate}) {
-	my (@palias_ids_to_deprecate) = sort {$a<=>$b} keys %palias_ids_to_deprecate;
-	printf("# Deprecating %d palias_ids\n",$#palias_ids_to_deprecate+1);
+	my (@pannotation_ids_to_deprecate) = sort {$a<=>$b} keys %pannotation_ids_to_deprecate;
+	printf("# Deprecating %d pannotation_ids\n",$#pannotation_ids_to_deprecate+1);
 	if ($opts{verbose}>1) {
-	  for(my $i=0; $i<=$#palias_ids_to_deprecate; $i += $n_per_line) {
+	  for(my $i=0; $i<=$#pannotation_ids_to_deprecate; $i += $n_per_line) {
 		my $top = $i+$n_per_line-1;
-		$top = $#palias_ids_to_deprecate if $top>$#palias_ids_to_deprecate;
-		print(join("\t",'',@palias_ids_to_deprecate[$i..$top]),"\n");
+		$top = $#pannotation_ids_to_deprecate if $top>$#pannotation_ids_to_deprecate;
+		print(join("\t",'',@pannotation_ids_to_deprecate[$i..$top]),"\n");
 	  }
 	}
 	# Note: we check is_current again because nearly all aliases in the hash
 	# will have been deprecated by assigning the alias to a new pseq_id.
 	# The only sequences we care about are those which aren't in the source
 	# database any longer, i.e., have is_current=TRUE still.
-	my $sth = $u->prepare('update pseqalias set is_current=false where palias_id=? and is_current=TRUE');
-	$sth->execute($_) foreach (@palias_ids_to_deprecate);
+	my $sth = $u->prepare('update pseq_pannotation set is_current=false where pannotation_id=? and is_current=TRUE');
+	$sth->execute($_) foreach (@pannotation_ids_to_deprecate);
   }
 
   print( "update origin set last_updated='",
@@ -433,8 +433,8 @@ sub process_seq ($$$) {
 	}
 
 	try {
-	  my ($palias_id) = $u->assign_alias($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
-	  delete $palias_ids_to_deprecate{$palias_id};
+	  my ($pannotation_id) = $u->assign_alias($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
+	  delete $pannotation_ids_to_deprecate{$pannotation_id};
 	} catch Unison::Exception with {
 	  warn("! Failed to load alias $a for Unison:$pseq_id\n",$_[0]);
 	};

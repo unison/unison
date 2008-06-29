@@ -2,7 +2,7 @@
 
 use warnings;
 use strict;
-use lib ('.', "$ENV{HOME}/unison/perl5");
+use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 use Genentech::Unison;
 
 my $u = new Genentech::Unison;

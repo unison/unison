@@ -1,7 +1,7 @@
 
 =head1 NAME
 
-Unison::palias -- Unison palias table utilities
+Unison::pannotation -- Unison pannotation table utilities
 S<$Id$>
 
 =head1 SYNOPSIS
@@ -44,7 +44,7 @@ use Unison::Exceptions;
 =item B<< $u->assign_alias(origin_id, alias, descr, pseq_id, ref_pseq_id, tax_id) >>
 
 Assigns an alias in the specified origin, and the tax_id, to the pseq_id.
-The alias is created if necessary.  The new or existing palias_id is
+The alias is created if necessary.  The new or existing pannotation_id is
 returned.  This function is equivalent to the server-side function by the
 same name.
 
@@ -267,7 +267,7 @@ sub get_pseq_id_from_alias_fuzzy {
 
 DEPRECATED 2006-09-27 Reece Hart <reece@harts.net>
 
-adds an alias and description record in the paliasorigin and pseqalias
+adds an alias and description record in the pannotation and pseq_pannotation
 tables for the existing origin_id and pseq_id.
 
 =cut

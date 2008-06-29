@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-## update_tax_ids -- minimally update paliasorigin with newly-inferred
+## update_tax_ids -- minimally update pannotation with newly-inferred
 ## tax_ids per infer_tax_id (see infer_tax_id.sql).
 ## This will do any or all of:
 ## - assign (current tax_id is null, infer_tax_id says otherwise)
@@ -9,15 +9,15 @@
 ## NOTE: This works much better when one wants recent additions:
 ## unison@csb-dev=> insert into paotax select
 ##   AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr) from
-##   paliasorigin AO join (select * from pseqalias where added>='yesterday')
+##   pannotation AO join (select * from pseq_pannotation where added>='yesterday')
 ##   SA on SA.palias_id=AO.palias_id join origin O on
 ##   O.origin_id=AO.origin_id;
 ## INSERT 0 111990
 ## Time: 53411.295 ms
 
 ## and this is a huge win for updates:
-## => update paliasorigin set tax_id=infer_tax_id from paotax where
-##   paotax.palias_id=paliasorigin.palias_id and paotax.tax_id is null and
+## => update pannotation set tax_id=infer_tax_id from paotax where
+##   paotax.palias_id=pannotation.palias_id and paotax.tax_id is null and
 ##   paotax.infer_tax_id is not null;
 
 use strict;
@@ -104,7 +104,7 @@ if ( defined $opts{origin} ) {
 if (   not defined $opts{'palias-id-min'}
     or not defined $opts{'palias-id-max'} )
 {
-    my $sql = 'select min(palias_id),max(palias_id) from paliasorigin';
+    my $sql = 'select min(palias_id),max(palias_id) from pannotation';
     $sql .= " WHERE origin_id=$opts{origin_id}"
         if ( defined $opts{origin_id} );
     my ( $b, $e ) = $u->selectrow_array($sql);
@@ -149,7 +149,7 @@ sub create_paotax ($) {
     my $sql = qq/
 	INSERT INTO paotax
 	SELECT AO.palias_id,AO.tax_id,infer_tax_id(O.origin,AO.alias,AO.descr)
-    FROM paliasorigin AO
+    FROM pannotation AO
     JOIN origin O ON AO.origin_id=O.origin_id
     WHERE AO.palias_id>=? and AO.palias_id<?
 	/;
@@ -193,9 +193,9 @@ sub assign_tax_ids ($) {
     ## assign tax_ids which were null but are now not null
     my $u   = shift;
     my $sql = qq/
-	UPDATE paliasorigin
+	UPDATE pannotation
     SET tax_id=(SELECT infer_tax_id FROM paotax 
-				WHERE paliasorigin.palias_id=paotax.palias_id)
+				WHERE pannotation.palias_id=paotax.palias_id)
     WHERE palias_id IN (SELECT palias_id FROM paotax
 						WHERE palias_id>=? and palias_id<? and
                         tax_id IS NULL AND infer_tax_id IS NOT NULL);
@@ -208,9 +208,9 @@ sub reassign_tax_ids ($) {
     ## reassign tax_ids which have changed
     my $u   = shift;
     my $sql = qq/
-	UPDATE paliasorigin
+	UPDATE pannotation
     SET tax_id=(SELECT infer_tax_id FROM paotax
-				WHERE paliasorigin.palias_id=paotax.palias_id)
+				WHERE pannotation.palias_id=paotax.palias_id)
     WHERE palias_id IN (SELECT palias_id FROM paotax
 						WHERE palias_id>=? and palias_id<? and
                         tax_id != infer_tax_id);
@@ -224,7 +224,7 @@ sub nullify_tax_ids ($) {
     ## but the inferred tax_id is NULL
     my $u   = shift;
     my $sql = qq/
-	UPDATE paliasorigin
+	UPDATE pannotation
     SET tax_id=NULL
     WHERE palias_id IN (SELECT palias_id FROM paotax
 						WHERE palias_id>=? and palias_id<? and

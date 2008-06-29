@@ -126,13 +126,13 @@ our @analyze_info =
    },
 
    {
-	name => 'Aliases',
-	script => 'pseq_paliases.pl',
+	name => 'Annotations',
+	script => 'pseq_annotations.pl',
 	args => [ qw(pseq_id) ],
 	prd => 1,
 	pub => 1,
-	brief => 'All aliases for a protein sequence',
-	descr => qq(Shows all aliases (accessions and identifiers) for a protein
+	brief => 'All annotations for a protein sequence',
+	descr => qq(Shows all annotations, accessions and identifiers for a protein
 	sequence.),
    },
 

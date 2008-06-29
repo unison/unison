@@ -176,10 +176,10 @@ sub summary_group ($) {
         "\n",
 
         '<tr><th><div>Common Annotations</div></th> <td>',
-        join( ', ', aliases($p) ),
+        join( ', ', annotations($p) ),
         '<br><span class="note">'
           . sprintf(
-'See the <a href="pseq_paliases.pl?pseq_id=%d">Aliases</a> tab for all aliases of this sequence.',
+'See the <a href="pseq_annotations.pl?pseq_id=%d">Annotations</a> tab for all annotations of this sequence.',
             $v->{pseq_id} )
           . '</span>',
         '</td></tr>',
@@ -243,7 +243,7 @@ qq/select loc,method from psprotcomp_reliable_v where pseq_id=$v->{pseq_id}/;
     return "$hr->{loc} by $hr->{method}";
 }
 
-sub aliases ($) {
+sub annotations ($) {
     my $p = shift;
     my ( $pref_min, $pref_max ) = @_;
     my $u = $p->{unison};
