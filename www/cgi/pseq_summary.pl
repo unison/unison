@@ -78,6 +78,10 @@ sub summary_group ($) {
 
     my $seq = $u->get_sequence_by_pseq_id( $v->{pseq_id} );
 
+	my $props = $u->selectrow_hashref('select * from pseq_prop_v where pseq_id=?',
+									  undef,
+									  $v->{pseq_id});
+
     my ($domain_digest) =
       $u->selectrow_array( 'select * from domain_digests(?)',
         undef, $v->{pseq_id} );
@@ -204,6 +208,13 @@ sub summary_group ($) {
         length($seq),
         'AA (<code>' . elide_sequence( $seq, 15 ) . '</code>)',
         "<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download FASTA</a>",
+        '</td></tr>',
+        "\n",
+
+        '<tr><th><div>Properties</div></th> <td>',
+        sprintf("MW: %.1f Da &nbsp;&nbsp;&nbsp; pI: %.2f &nbsp;&nbsp;&nbsp; &epsilon;<sub>280</sub>: %d M<sup>-1</sup> cm<sup>-1</sup> &nbsp;&nbsp;&nbsp; &epsilon;<sub>280</sub>(1mg/ml): %.2f",
+				@{%$props}{qw(mol_wt pi a280)}, $props->{a280}/$props->{mol_wt}),
+        '</td></tr>',
         "\n",
 
         '<tr><th><div>Structures</div></th> <td>',
