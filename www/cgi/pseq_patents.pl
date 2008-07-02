@@ -63,7 +63,7 @@ sub do_search {
     my $sql = <<EOSQL;
 SELECT t_pseq_id,len,pct_coverage,pct_ident,
 		origin_alias_fmt(origin,alias),species,patent_date,patent_authority,descr
-    FROM nearby_sequences_unsorted_v B
+    FROM nearby_sequences_v B
     JOIN $patents_view P ON B.t_pseq_id=P.pseq_id
     WHERE B.q_pseq_id=$v->{pseq_id} 
       AND pct_ident>=$v->{pct_ident}

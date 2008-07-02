@@ -178,7 +178,7 @@ sub process_seq  {
   }
 
   foreach my $upd_id (@ids)	{
-        $u->assign_alias($pseq_id,$origin_id,$upd_id,$descr,'NULL');
+        $u->assign_annotation($pseq_id,$origin_id,$upd_id,$descr,'NULL');
   }
 
   printf(STDERR "## added pseq_id=$pseq_id$frommd5, len=%d, aliases={@ids}, descr=%s\n",

@@ -89,5 +89,5 @@ sub add1
   my $pseq_id = $udb->si_pseq_id($seq);
   if (not defined $pseq_id)
 	{ warn("sequence add for $id failed"); return; }
-  $udb->assign_alias($pseq_id,$ori,$id,$desc,'NULL');
+  $udb->assign_annotation($pseq_id,$ori,$id,$desc,'NULL');
   }

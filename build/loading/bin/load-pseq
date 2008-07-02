@@ -433,7 +433,7 @@ sub process_seq ($$$) {
 	}
 
 	try {
-	  my ($pannotation_id) = $u->assign_alias($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
+	  my ($pannotation_id) = $u->assign_annotation($pseq_id,$o_id,$a,$d,$t) unless $opts{'dry-run'};
 	  delete $pannotation_ids_to_deprecate{$pannotation_id};
 	} catch Unison::Exception with {
 	  warn("! Failed to load alias $a for Unison:$pseq_id\n",$_[0]);

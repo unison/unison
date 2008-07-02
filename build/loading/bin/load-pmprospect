@@ -97,7 +97,7 @@ sub process1
   if (not defined $pseq_id)
 	{ die("! sequence for $fn not in unison and couldn't be added"); return; }
 
-  $u->assign_alias($pseq_id,$origin_id,$id,$desc,'NULL');
+  $u->assign_annotation($pseq_id,$origin_id,$id,$desc,'NULL');
   $u->add_pmprospect($origin_id,$pseq_id,$id,$len,$ncores);
 
   printf(STDERR "# added $id (pseq_id=$pseq_id) to Prospect templates\n") if($opts{vebose});
