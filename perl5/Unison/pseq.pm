@@ -87,9 +87,6 @@ sub get_sequence_by_pseq_id ($) {
 =item B<< $u->best_alias( C<pseq_id>, [C<gs>] ) >>
 
 return the `best_alias' as determined heuristically by Unison.
-Briefly, the best_alias is the one specified by the pseq.palias_id if
-not null, or the first preference-ordered list of aliases based on
-origin.ann_pref ranking.  See also best_annotation.
 
 =cut
 
@@ -120,8 +117,6 @@ sub best_alias {
 =item B<< $u->best_annotation( C<pseq_id>, [C<gs>] ) >>
 
 return the "best_annotation" as determined heuristically by Unison.
-Compare with the C<best_alias> method and see that for a definition of
-"best". gs (genus-species eg HUMAN) is optional
 
 =cut
 
@@ -233,10 +228,9 @@ sub pseq_get_aliases {
   }
   my $sql = <<EOSQL;
 SELECT origin||':'||alias
-  FROM palias AS a
-  JOIN origin AS o ON a.origin_id=o.origin_id
+  FROM current_annotations_v AS a
  WHERE pseq_id=$pseq_id $ann_pref_clause
-ORDER BY o.ann_pref
+ORDER BY ann_pref
 EOSQL
   return ( map { "@$_" } @{ $self->{'dbh'}->selectall_arrayref($sql) } );
 }
