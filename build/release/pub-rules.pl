@@ -14,13 +14,13 @@
 %custom_copy_queries = (
 
     # The ER diagram looks like:
-    #   origin <-- paliasorigin <-- pseqalias --> pseq
+    #   origin <-- pannotation <-- pseq_pannotation --> pseq
 
     # restrict pseq rows to only those that occur in at least one public
     # origin:
     'unison.pseq' => sub {
         my $qq  = $tables{'unison.pseq'}->pred_query();
-        my $saq = $tables{'unison.pseqalias'}->copy_query();
+        my $saq = $tables{'unison.pseq_pannotation'}->copy_query();
         $qq  =~ s/\n/ /g;
         $saq =~ s/\n/ /g;
         return (  "SELECT Q.* FROM ($qq) Q \n"

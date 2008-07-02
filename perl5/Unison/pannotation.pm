@@ -37,11 +37,11 @@ use Unison::Exceptions;
 =cut
 
 ######################################################################
-## assign_alias( )
+## assign_annotation( )
 
 =pod
 
-=item B<< $u->assign_alias(origin_id, alias, descr, pseq_id, ref_pseq_id, tax_id) >>
+=item B<< $u->assign_annotation(origin_id, alias, descr, pseq_id, ref_pseq_id, tax_id) >>
 
 Assigns an alias in the specified origin, and the tax_id, to the pseq_id.
 The alias is created if necessary.  The new or existing pannotation_id is
@@ -50,10 +50,10 @@ same name.
 
 =cut
 
-sub assign_alias($$$$) {
+sub assign_annotation($$$$) {
     my $self = shift;
     my ( $pseq_id, $origin_id, $alias, $descr, $tax_id ) = @_;
-    my $sth = $self->prepare_cached('select assign_alias(?,?,?,?,?)');
+    my $sth = $self->prepare_cached('select assign_annotation(?,?,?,?,?)');
     return $self->selectrow_array( $sth, undef, $pseq_id, $origin_id, $alias,
         $descr, $tax_id );
 }

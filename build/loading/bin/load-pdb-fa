@@ -34,7 +34,7 @@ while( my $seq = $in->next_seq() )
   if (not defined $pseq_id)
 	{ warn("failed to add $id"); next; }
 
-  $udb->assign_alias($pseq_id,$origin_id,$id,$desc,'NULL');
+  $udb->assign_annotation($pseq_id,$origin_id,$id,$desc,'NULL');
 
   print(STDERR "added $id (pseq_id=$pseq_id)\n");
   }

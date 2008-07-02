@@ -140,7 +140,7 @@ my @long_table_defs = (
         [qw(start stop score eval acc feature descr)]
     ],
     [ 'protcomp', 'psprotcomp_reliable_v', [qw(loc)] ],
-    [   'alias',                  'current_annotations_unsorted_v',
+    [   'alias',                  'current_annotations_v',
         [qw(alias origin descr)], 'ann_pref < 20000'
     ]
 );

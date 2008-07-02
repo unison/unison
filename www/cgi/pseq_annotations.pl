@@ -17,7 +17,8 @@ my $u = $p->{unison};
 my $v = $p->Vars();
 
 my $sql = new Unison::SQL;
-$sql->columns(qw(origin alias latin descr))->tables('current_annotations_v')
+$sql->columns(qw(origin alias latin descr))
+  ->tables('current_annotations_sorted_v')
   ->where("pseq_id=$v->{pseq_id}");
 if ( not $p->is_public_instance() ) {
     $sql->where("origin_id!=origin_id('Geneseq')");
@@ -29,7 +30,9 @@ my @f  = qw( origin alias latin description );
 foreach my $row (@$ar) {
   $row->[1] = alias_link( $row->[1], $row->[0] );
 
-  if ($row->[0] eq 'IPI') { #length($row->[3]) > 30) {
+  # IPI has long aliases imported from their |-delimited
+  # deflines; wrap them.
+  if ($row->[0] eq 'IPI') {
 	$row->[3] =~ s/([;|])/$1 /g;
   }
 }
