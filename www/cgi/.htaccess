@@ -7,7 +7,9 @@ Options ExecCGI Indexes FollowSymLinks
 AddHandler cgi-script .sh
 #AddHandler cgi-script .pl
 
-Require valid-user
+<IfModule mod_auth_kerb.c>
+	Require valid-user
+</IfModule>
 
 
 <Files nph-pdb-fetch.sh>
