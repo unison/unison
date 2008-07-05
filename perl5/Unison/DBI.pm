@@ -22,6 +22,13 @@ B<Unison::Exception> when the underlying DBI fails.
 
 =cut
 
+# TODO:
+# - The entire connection setup needs an overhaul to accommodate multiple
+# installation environments.  This requires a saner way to sniff out where
+# we're running or to just resign ourselves to requiring local
+# configuration (or an optional config that overrides the guesses).
+
+
 package Unison;
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
@@ -37,15 +44,11 @@ use Getopt::Long;
 #use lib '/gne/research/apps/bioperl/prd/lib/perl5';
 
 our %opts = (
-    # use PGHOST when set (and not = ''), otherwise set to 'respgsql'
-    # UNSET PGHOST OR SET TO '' IF YOU WANT A UNIX SOCKET CONNECTION
-	# TODO: The entire connection setup needs an overhaul to 
-	# accommodate multiple installation environments.
     host 		=> ( ( ( exists $ENV{PGHOST} )
 					   and ( $ENV{PGHOST} =~ m/\w/ ) )
 					 ? $ENV{PGHOST}
-					 : 'respgsql' ),
-    dbname 		=> $ENV{PGDATABASE} || 'csb',
+					 : 'unison-db.org' ),
+    dbname 		=> $ENV{PGDATABASE} || 'unison',
     username 	=> $ENV{PGUSER}   || eval {my $tmp = `/usr/bin/id -un`;
 										   chomp $tmp;
 										   $tmp;
@@ -146,6 +149,7 @@ sub connect {
         $dsn .= ";host=$self->{host}";
     }
 
+	# PUBLIC is deprecated within Genentech
     if (    defined $self->{username}
         and $self->{username} eq 'PUBLIC'
         and defined $self->{host}

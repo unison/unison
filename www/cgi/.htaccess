@@ -1,20 +1,18 @@
-HeaderName HEADER.html
-IndexOptions FancyIndexing VersionSort
-
 Options ExecCGI Indexes FollowSymLinks
-#AllowOverride All
-
 AddHandler cgi-script .sh
-#AddHandler cgi-script .pl
+AddHandler cgi-script .pl
+IndexOptions FancyIndexing VersionSort
+HeaderName HEADER.html
 
 <IfModule mod_auth_kerb.c>
 	Require valid-user
+
+	# nph-pdb-fetch.sh must be "open" because Jmol
+	# doesn't know how to handle auth requests for 
+	# files loaded from a URL.
+	<Files nph-pdb-fetch.sh>
+	    Order allow,deny
+	    Allow from all
+	    Satisfy any
+	</Files>
 </IfModule>
-
-
-<Files nph-pdb-fetch.sh>
-    Order allow,deny
-    Allow from all
-    Satisfy any
-</Files>
-
