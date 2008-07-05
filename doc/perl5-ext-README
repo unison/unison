@@ -1,0 +1,65 @@
+perl5-ext README
+
+Unison requires many perl modules, all available from CPAN
+(http://www.cpan.org/).  There are several ways to install perl modules.
+In order of increasing difficulty:
+
+- Install modules that may be available with your operating system
+  distribution. This usually requires root/administrative privileges.
+
+- Compile modules and install into system paths (i.e,. those listed in
+  perl V). This usually requires root/administrative privileges.  Use CPAN
+  for this.
+
+- Install modules into non-standard locations (i.e., not listed in perl V)
+  and set PERL5LIB appropriately.  CPAN will likely work here.
+
+- Install into the perl5-ext directory in the Unison tree.  The perl5-ext
+  directory is automatically searched for modules.  The advantage is that
+  Unison looks here by default.  CPAN makes this very difficult.  Also
+  consider installing into a non-standard location such as a home directly
+  and symlinking (on Unix-ish boxes) perl5-ext to that location.
+
+A mixture of these methods is possible.  Regardless of where the modules
+are installed, Unison requires the following:
+
+Algorithm::Cluster
+Bio::ASN1::EntrezGene
+CGI
+Class::AutoClass
+Clone
+Convert::Binary::C
+DBD::Pg
+DBI
+Data::Stag::XMLWriter
+Error
+File::Temp
+GD
+GD::Graph
+GD::SVG
+GD::Text
+IO
+IO::String
+Pod::Coverage
+PostScript::TextBlock
+Set::Scalar
+Spreadsheet::ParseExcel 
+Statistics::Basic
+Term::ANSIScreen
+Test::Pod
+Text::Shellwords
+Text::Wrap
+XML::DOM::XPath
+XML::Parser::PerlSAX
+XML::SAX
+XML::SAX::Base
+XML::SAX::Writer
+XML::Simple
+XML::Twig
+XML::Writer
+XML::XPath
+XML::XPathEngine
+
+force install S/SE/SENDU/bioperl-1.5.2_102.tar.gz
+
+

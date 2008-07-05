@@ -367,8 +367,14 @@ sub start_page() {
   my $p = shift;
   my $v = $p->Vars();
   my $navbar = Unison::WWW::NavBar::render_navbar($p);
-  my $logo_tooltip = sprintf("<b>Connection information:</b><br><b>db host:</b> %s<br><b>db instance:</b> %s<br><b>db user:</b> %s",
-							 $v->{host}, $v->{dbname}, $v->{username});
+  my $logo_tooltip = sprintf('<b>Connection information:</b>'
+							 .'<br><b>db host:</b> %s'
+							 .'<br><b>db instance:</b> %s'
+							 .'<br><b>db user:</b> %s',
+							 $v->{host} || 'localhost',
+							 $v->{dbname},
+							 $v->{username}
+							);
 
   return <<EOF;
 <table class="page">
@@ -996,10 +1002,9 @@ sub _set_connection_params ($) {
   my $v = $p->Vars();
 
   if ( not defined $ENV{SERVER_ADDR} ) {
-
 	# debugging from the command line
 	$v->{username} = $ENV{USER}   || `/usr/bin/id -un`;
-	$v->{dbname}   = $v->{dbname} || 'csb-dev';
+	$v->{dbname}   = $v->{dbname} || 'unison';
 	return;
   }
 
@@ -1052,7 +1057,6 @@ sub _genentech_connection_params ($) {
 =cut
 
 sub _infer_pseq_id ($) {
-
   # Most pages should refer to sequences by pseq_id. If pseq_id isn't
   # defined, then we attempt to infer it from given 'seq', 'md5', or
   # 'alias' (in that order).  Furthermore, if none of those are defined
@@ -1063,18 +1067,20 @@ sub _infer_pseq_id ($) {
   my $self = shift;
   my $v    = $self->Vars();
 
-  # if q is defined, quess what type it is and assign it to
-  # an appropriate query term
-  if ( exists $v->{'q'} ) {
-	my $q = $v->{'q'};
-	if ( $q !~ m/\D/ ) {					# only numbers
-	  $v->{pseq_id} = $q;
-	} elsif ( length($q) == 32 and $q !~ m/[^0-9a-f]/i ) { # md5
-	  $v->{md5} = $q;
-	} elsif ( length($q) > 20 and $q !~ m/[^A-Z]/ ) {
-	  $v->{seq} = $q;
+  # If q is defined, quess what type it is and assign it to
+  # an appropriate query term.  These are heuristics and fail
+  # under some circumstances.
+  if ( defined $v->{'q'} ) {
+	if ( $v->{'q'} !~ m/\D/ ) {					# only numbers
+	  $v->{pseq_id} = $v->{'q'};
+	} elsif ( length($v->{'q'}) == 32 
+			  and $v->{'q'} !~ m/[^0-9a-f]/i ) { # md5
+	  $v->{md5} = $v->{'q'};
+	} elsif ( length($v->{'q'}) > 20
+			  and $v->{'q'} !~ m/[^A-Z]/ ) {
+	  $v->{seq} = $v->{'q'};
 	} else {
-	  $v->{alias} = $q;
+	  $v->{alias} = $v->{'q'};
 	}
   }
 
@@ -1107,7 +1113,7 @@ sub _infer_pseq_id ($) {
 	return $ids[0];
   }
 
-  if ( exists $v->{alias} ) {
+  if ( defined $v->{alias} ) {
 	my (@ids) = $self->{unison}->get_pseq_id_from_alias( $v->{alias} );
 	if ( $#ids == -1 ) {
 	  $self->die(
