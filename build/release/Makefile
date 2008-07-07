@@ -16,8 +16,9 @@
 export GZIP:=
 DATE:=$(shell date +%Y%m%d)
 
-export PGUSER:=postgres
+#export PGUSER:=postgres
 #export PGHOST:=localhost
+unexport PGUSER
 unexport PGDATABASE
 
 STAGE_DATABASE=csb-stage
@@ -32,7 +33,7 @@ default all:
 %-pub.log: 
 	( -dropdb $*-pub; \
 	createdb -EUTF8 -Ounison $*-pub; \
-	time ${PG_SUDO} ../../tools/sbin/publicize $* | psql -d $*-pub -qa -f -; \
+	time ${PG_SUDO} ../../tools/sbin/publicize $* | psql X -d $*-pub -qa -f -; \
 	psql -d '$*-pub' -c 'alter database "$*-pub" set search_path = "$$user",unison,pdb,gong,scop,tax,public'; \
 	psql -d '$*-pub' -c 'analyze verbose'; \
 	) >$@.tmp 2>&1
@@ -44,6 +45,19 @@ default all:
 	(time ${PG_SUDO} ../../tools/sbin/publicize $* | gzip -c >$@ ) >$@.err 2>&1
 	/bin/mv -f "$@.err" "$@.log"
 
+
+# Reminder: requires password from ~/.pgpass or PGPASSWORD
+%-pub-push.log:
+	@[ "`id -un`" = "rkh" ] || { echo "You're not Reece; this is guaranteed to fail" 1>&2; exit 1; }
+	createdb -h research-pub.gene.com $*-pub
+	( ${PG_SUDO} ../../tools/sbin/publicize -h respgsql $* \
+	| grep -v 'CONSTRAINT sty_residue CHECK' \
+	| time -p psql -X -h research-pub.gene.com -d $*-pub -qaf-) >$@.err 2>&1
+
+
+%-push: 
+	@[ `id -u` == 13922 ] || { echo "You're not Reece; this is guaranteed to fail" 1>&2; exit 1; }
+	ssh-agent /bin/sh -c 'ssh-add; make $*.pushlog'
 
 # run as postgres
 .PRECIOUS: %.pgdfc
@@ -63,9 +77,6 @@ default all:
 	(time rsync -av --progress ./$< we:) >$@.tmp 2>&1
 	/bin/mv -f "$@.tmp" "$@"
 
-%-push: 
-	@[ `id -u` == 13922 ] || { echo "You're not Reece; this is guaranteed to fail" 1>&2; exit 1; }
-	ssh-agent /bin/sh -c 'ssh-add; make $*.pushlog'
 
 
 

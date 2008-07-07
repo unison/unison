@@ -1,0 +1,165 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN"
+        "http://www.w3.org/TR/REC-html40/strict.dtd"><html>
+
+<html>
+
+<head>
+<title>Unison Tour: Web Sequence Analysis</title>
+<link rel="stylesheet" type="text/css" href="../styles/unison.css">
+</head>
+
+<body>
+
+<h2>Unison Tour: Example: ITIM Mining</h2>
+
+<h3>Background</h3>
+
+Immunoreceptor Tyrosine Inhibitory Motif-containing proteins are an
+important class of immune system regulators [see Vivier E, <i>et al.</i>,
+<i>Nat. Immunol.</i> 9:503(2008)].  ITIMs are short sequences in the
+intracellular domain of immune receptors.  Canonical ITIM-containing
+proteins possess an extracellular immunoglobulin domain and a
+transmembrane domain in addition to the intracellular ITIM.  In this
+example, we'll write a query to mine for ITIM-containing proteins, modify
+the query to restrict our results to human sequences that have orthologs,
+and then gather data to build a hypothesis about alternative ITIM protein
+domain composition.
+
+<h3>Mining for Canonical ITIM proteins</h3>
+
+This simple biological model may be translated into a simple SQL command
+that searches for an extracellular Pfam immunoglobulin domain, a
+transmembrane domain (with TMHMM), and an intracellular ITIM.  For
+convenience and reproducibility, it's frequently desireable to use a view
+to capture a search method, as shown here:
+
+<pre class="code">
+CREATE OR REPLACE VIEW itim_search_v AS 
+SELECT IG.pseq_id,IG.start as ig_start,IG.stop as ig_stop,IG.score,IG.eval,
+	   TM.start as tm_start,TM.stop as tm_stop,
+	   ITIM.start as itim_start,ITIM.stop as itim_stop
+  FROM pahmm_current_pfam_v IG
+  JOIN pftmhmm_tms_v TM ON IG.pseq_id=TM.pseq_id AND IG.stop<TM.start
+  JOIN pfregexp ITIM    ON TM.pseq_id=ITIM.pseq_id AND TM.stop<ITIM.start
+  JOIN pmregexp M	    ON ITIM.pmodel_id=M.pmodel_id
+ WHERE IG.name='ig' 
+	   AND IG.eval<1e-2
+	   AND M.acc='MOD_TYR_ITIM';
+</pre>
+
+<p>The models in the above query are:
+<ul>
+  <li><a href="http://pfam.janelia.org/family?entry=ig">Pfam Immunoglobulin</a> domain;
+  <li><a href="http://www.cbs.dtu.dk/services/TMHMM/">TMHMM</a> for transmembrane domains;
+  <li><a href="http://elm.eu.org/elmPages/MOD_TYR_ITIM.html">MOD_TYR_ITIM</a>
+	from the <a href="http://elm.eu.org/">Eukaryotic Linear Motif
+	  resource</a>.
+</ul>
+
+<p>Identifying ITIM proteins is now a matter of selecting from that view:
+<pre class="code">
+eg=> select distinct on (pseq_id) * from itim_search_v where eval<1e-2 order by pseq_id;
+ pseq_id | ig_start | ig_stop | score |  eval   | tm_start | tm_stop | itim_start | itim_stop 
+---------+----------+---------+-------+---------+----------+---------+------------+-----------
+     234 |      262 |     316 |    30 | 7.4e-06 |      440 |     462 |        518 |       523
+     254 |      158 |     213 |    36 | 1.9e-07 |      284 |     306 |        386 |       391
+     368 |       49 |     119 |    32 | 3.3e-06 |      450 |     472 |        632 |       637
+     369 |      108 |     177 |    31 | 4.2e-06 |      502 |     524 |        683 |       688
+[ 966 rows total ]
+</pre>
+
+
+
+<h3>Mining for ITIMs with Orthology</h3>
+
+Although the individual features in <code>itim_search_v</code> are
+non-specific, the conjunction of all three is much rarer.  Nonetheless, we
+can improve our confidence in the human candidates by corroborating them
+with chimp or mouse orthologs from HomoloGene that have similar domain
+composition.
+
+<p>For speed, we'll first make a temporary materialized table of
+orthologs using the existing homologene_orthologs_v view.
+<pre class="code">
+-- build a table of homologene ortholog pairs from
+-- the existing view
+CREATE TABLE homologene_orthologs_mv AS 
+SELECT * FROM  homologene_orthologs_v ;
+CREATE INDEX homologene_orthologs_mv_q  ON homologene_orthologs_mv (q_pseq_id );
+CREATE INDEX homologene_orthologs_mv_qt ON homologene_orthologs_mv (q_tax_id );
+CREATE INDEX homologene_orthologs_mv_t  ON homologene_orthologs_mv (t_pseq_id );
+CREATE INDEX homologene_orthologs_mv_tt ON homologene_orthologs_mv (t_tax_id );
+ANALYZE homologene_orthologs_mv ;
+</pre>
+
+
+<p>Now, we can use the materialized ortholog data and our canonical ITIM
+query from the previous section to define a new view to search for Human
+ITIM proteins and orthologs.
+<pre class="code">
+CREATE OR REPLACE VIEW itim_orthologs_search_v AS
+   SELECT DISTINCT ON (OP.q_pseq_id,OP.t_pseq_id,OP.t_tax_id)
+       OP.q_pseq_id as h_pseq_id,
+       HI.ig_start,HI.ig_stop,HI.score,HI.eval,HI.tm_start,HI.tm_stop,HI.itim_start,HI.itim_stop,
+       OP.t_pseq_id as os_pseq_id,OP.t_tax_id as os_tax_id,tax_id2gs(OP.t_tax_id) as "os_gs"
+
+     -- OP: HomoloGene ortholog pairs
+     FROM homologene_orthologs_mv OP
+
+     -- HI & HA: Human ITIM and Human Annotation
+     JOIN itim_search_v HI      ON OP.q_pseq_id=HI.pseq_id 
+
+     -- OI & OA: Ortholog ITIM and Human Annotation
+LEFT JOIN itim_search_v OI      ON OP.t_pseq_id=OI.pseq_id 
+
+    WHERE OP.q_tax_id=gs2tax_id('HUMAN')
+
+ ORDER BY  OP.q_pseq_id,OP.t_pseq_id,OP.t_tax_id
+;
+</pre>
+
+
+<pre class="code">
+eg=> create table itim_ortho_search as select * from itim_orthologs_search_v where eval<1;
+eg=> select * from itim_ortho_search ;
+ h_pseq_id | ig_start | ig_stop | score |  eval   | tm_start | tm_stop | itim_start | itim_stop | os_pseq_id | os_tax_id | os_gs 
+-----------+----------+---------+-------+---------+----------+---------+------------+-----------+------------+-----------+-------
+       234 |      157 |     215 |    24 | 0.00068 |      440 |     462 |        518 |       523 |    1243401 |     10090 | MOUSE
+       234 |      262 |     316 |    30 | 7.4e-06 |      440 |     462 |        518 |       523 |    5079208 |      9598 | PANTR
+       234 |      262 |     316 |    30 | 7.4e-06 |      440 |     462 |        518 |       523 |    5605704 |     10116 | RAT
+       234 |      157 |     215 |    24 | 0.00068 |      440 |     462 |        518 |       523 |    7203647 |      9615 | CANFA
+       254 |      158 |     213 |    36 | 1.9e-07 |      284 |     306 |        386 |       391 |    5049591 |      9031 | CHICK
+       254 |      158 |     213 |    36 | 1.9e-07 |      284 |     306 |        386 |       391 |    5081221 |      9598 | PANTR
+[ 151 rows total ]
+</pre>
+
+
+
+
+<h3>Exploring Alternative Domain Structures</h3>
+
+<pre class="code">
+eg=> CREATE OR REPLACE VIEW itim_ecds_v AS 
+  SELECT count(*),M.acc,M.name,M.descr
+    FROM pahmm_current_pfam_v IG
+    JOIN pftmhmm_tms_v TM ON IG.pseq_id=TM.pseq_id AND IG.stop<TM.start
+    JOIN pfregexp ITIM    ON TM.pseq_id=ITIM.pseq_id AND TM.stop<ITIM.start
+    JOIN pmregexp M    ON ITIM.pmodel_id=M.pmodel_id
+   WHERE IG.eval<1e-2 AND M.acc='MOD_TYR_ITIM' 
+GROUP BY M.acc,M.name,M.descr;
+</pre>
+
+<pre class="code">
+eg=> select * from itim_ecds_v ;
+</pre>
+
+
+
+<h3>Beyond</h3>
+The queries in this section may be modified to use other HMMs, threading
+or PSSMs to identify immunoglobulin domains, or to identify related
+Immunoreceptor Tyrosine Activating or Switch Motifs.
+
+
+</body>
+</html>

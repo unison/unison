@@ -1,14 +1,17 @@
 #!/usr/bin/perl
-# publicize -- extract a public (non-proprietary) version of the unison database
-
+# publicize -- extract a public (non-proprietary) version of the unison
+# database
+#
 # usage:
 # $ publicize dbname >unison-public.pgdump
 # $ psql -f unison-public.pgdump
-
 #
-
 # TODO
 # - extend to support arbitrary table restrictions that propagate through dump
+# - config tags should include: copy_queries, predicates, include/skip schemas and tables
+# plus there should be a global set of these
+
+
 
 use strict;
 use warnings;
@@ -27,38 +30,38 @@ use FindBin;
 use lib "$FindBin::RealBin/../../perl5", "$FindBin::RealBin/../../perl5-ext";
 
 use Unison;
+use Unison::Exception;
 use Unison::Schema::Table;
 use Unison::Schema::Schema;
 
 sub get_dump_toc($);
-sub get_schema_dump($$);
-sub get_db_toc($$);
+sub dump_schema($$);
+sub restore_selected_toc_elements($$);
 sub apply_custom_configuration($$$);
 sub toc_entry_schema($);
 
-my $CVSId = q$Id$;
-my @PHASE1_KW
-    = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
+my $Id = q$Id$;
+my $ts = gmtime();
+
+
+my @rules_files = ('pub-rules.pl');
+my @PHASE1_KW = qw(AGGREGATE FUNCTION PROCEDURAL SCHEMA SEQUENCE TABLE TYPE VIEW);
 my $TERM_STRING  = '__END_OF_COPY__';
 my $VERBOSE_FREQ = 25000;
-my %SCHEMAS      = map { $_ => 1 }
-    qw( pgutils  go gong marray ncbi pdb scop sst tax unison unison-aux unison_aux );
-my %IGNORE_TABLES = map { $_ => 1 } qw( unison.p2gblataln unison.p2gblatalnhsp
-    unison.p2gblathsp unison.paprospect );
 
-# config tags should include: copy_queries, predicates, include/skip schemas and tables
-# plus there should be a global set of these
 
+our %schemas;
 our %tables;
+our %ignore_tables;
 our %custom_table_predicates;
 our %custom_copy_queries;
 
-require 'pub-rules.pl';
 
 select(STDERR);
 $|++;
 select(STDOUT);
 $|++;
+
 
 my $phase1_re = join( '|', @PHASE1_KW );
 my $tmp_dir = tempdir( 'Unison-publicize-XXXXX', CLEANUP => 1, TMPDIR => 1 );
@@ -67,278 +70,302 @@ my $all_start = [gettimeofday];
 
 my $src_db;
 defined( $src_db = shift )
-    || die("$0: missing source database name\n");
+  || die("$0: missing source database name\n");
 
 print( STDERR "# $0\n",
-    "# $CVSId\n", "# started: ", strftime( "%F %T %Z", localtime() ), "\n" );
+	   "# $Id\n", "# started: ", strftime( "%F %T %Z", localtime() ), "\n" );
 
-# Generated a "custom" format pgdump of the database
-# The TOC of that dump will be used to determine the content
-# and order of the output of this script.
-get_schema_dump( $src_db, $dump_fn );    # dies on error
-my @toc = get_dump_toc($dump_fn);        # dies on error
-@toc = grep {
-    my $s = toc_entry_schema($_);
-    not defined $s or exists $SCHEMAS{$s}
-} @toc;
-printf( STDERR "%d TOC entries\n", $#toc + 1 );
 
 print("-- PHASE 1: SCHEMA\n");
-get_db_toc( $dump_fn, [ grep {m/\s(?:$phase1_re)\s/} @toc ] );
+# Generate a "custom" format pgdump of the database
+# The TOC of that dump will be used to determine the content
+# and order of the output of this script.
+dump_schema( $src_db, $dump_fn );			# dies on error
+my @toc = get_dump_toc($dump_fn);			# dies on error
 
-print("-- PHASE 2: DATA\n");
 my $u = Unison->new( dbname => $src_db, username => 'PUBLIC' );
-%tables = $u->get_table_info();
-apply_custom_configuration( \%tables, \%custom_table_predicates,
-    \%custom_copy_queries );
+%tables = $u->get_table_info();				# see Unison::Schema::Schema
 
-# to prevent cycles, I *think* I need to build the CODE custom copy queries first
+foreach my $rf (@rules_files) {
+  require $rf;
+}
+apply_custom_configuration( \%tables,
+							\%custom_table_predicates,
+							\%custom_copy_queries );
+
+# to prevent cycles, I *think* I need to build the CODE custom copy
+# queries first
 $tables{$_}->copy_query() for ( keys %custom_copy_queries );
 
+
+@toc = grep {
+  my $s = toc_entry_schema($_);
+  not defined $s or exists $schemas{$s}
+} @toc;
+
+restore_selected_toc_elements( $dump_fn,
+							   [ grep {m/\s(?:$phase1_re)\s/} @toc ] );
+
+printf(STDERR "%d toc entries; %d schemas; %d tables; %d ignore_tables; %d ctp; %d ccq\n",
+	   $#toc+1,
+	   scalar keys %schemas,
+	   scalar keys %tables,
+	   scalar keys %ignore_tables,
+	   scalar keys %custom_table_predicates,
+	   scalar keys %custom_copy_queries
+	  );
+
+
+print("-- PHASE 2: DATA\n");
 my ( $src_psql_w, $src_psql_r );
 my $src_psql_pid = open2( $src_psql_r, $src_psql_w, 'psql', '-d', $src_db );
 my @table_tocs = grep {m/^\d+; \d+ \d+ TABLE /} @toc;
 my @cascading_null;
 
 for ( my $i = 0; $i <= $#table_tocs; $i++ ) {
-    my $table_start = [gettimeofday];
+  my $table_start = [gettimeofday];
 
-    my ( $schema, $table )
-        = $table_tocs[$i] =~ m/^\d+; \d+ \d+ TABLE (\S+) (\S+)/;
-    my $st = "$schema.$table";
+  my ( $schema, $table )
+	= $table_tocs[$i] =~ m/^\d+; \d+ \d+ TABLE (\S+) (\S+)/;
+  my $st = "$schema.$table";
 
-    my $pfx = sprintf( "* %3d/%3d %-30s", $i + 1, $#table_tocs + 1, "$st: " );
+  my $pfx = sprintf( "* %3d/%3d %-30s", $i + 1, $#table_tocs + 1, "$st: " );
 
-    if ( exists $IGNORE_TABLES{$st} ) {
-        printf( STDERR "$pfx   %15s\n", 'table skipped' );
-        next;
-    }
+  if ( exists $ignore_tables{$st} ) {
+	printf( STDERR "$pfx   %15s\n", 'table skipped' );
+	next;
+  }
 
-    $tables{$st} = Unison::Schema::Table->new( 'st' => $st )
-        unless exists $tables{$st};
-    my $cq = $tables{$st}->copy_query();
-    die( "$0: FATAL: Got a undef copy query (fkst=$st)\n",
-        Dumper( $tables{$st} ), "\n " )
-        unless defined $cq;
+  $tables{$st} = Unison::Schema::Table->new( 'st' => $st )
+	unless exists $tables{$st};
+  my $cq = $tables{$st}->copy_query();
+  die( "$0: FATAL: Got a undef copy query (fkst=$st)\n",
+	   Dumper( $tables{$st} ), "\n " )
+	unless defined $cq;
 
-    my $cqc = $cq;
-    $cqc =~ s/^/--   /mg;
-    print("-- COPY QUERY FOR $st\n$cqc\n");
+  my $cqc = $cq;
+  $cqc =~ s/^/--   /mg;
+  print("-- COPY QUERY FOR $st\n$cqc\n");
 
-    print( STDERR "$pfx  (querying)\r" ) if ( -t 2 );
-    print("COPY $tables{$st}->{qst} FROM STDIN;\n");
-    $src_psql_w->print("COPY ($cq) TO STDOUT;\n");
-    $src_psql_w->print("\\echo $TERM_STRING\n");
-    my $nrows = 0;
-    while ( my $line = <$src_psql_r> ) {
-        if ( $line =~ m/^ERROR:/ ) {
-            die("Oh, man, are you in trouble.\n$line\n");
-        }
-        if ( $line =~ m/^$TERM_STRING/ ) {
-            print("\\.\n");
-            last;
-        }
-        print($line);
-        $nrows++;
-        printf( STDERR "$pfx %15s\r", "$nrows rows" )
-            if ( -t 2 and $nrows % $VERBOSE_FREQ == 0 );
-    }
+  print( STDERR "$pfx  (querying)\r" ) if ( -t 2 );
+  print("COPY $tables{$st}->{qst} FROM STDIN;\n");
+  $src_psql_w->print("COPY ($cq) TO STDOUT;\n");
+  $src_psql_w->print("\\echo $TERM_STRING\n");
+  my $nrows = 0;
+  while ( my $line = <$src_psql_r> ) {
+	if ( $line =~ m/^ERROR:/ ) {
+	  die("Oh, man, are you in trouble.\n$line\n");
+	}
+	if ( $line =~ m/^$TERM_STRING/ ) {
+	  print("\\.\n");
+	  last;
+	}
+	print($line);
+	$nrows++;
+	printf( STDERR "$pfx %15s\r", "$nrows rows" )
+	  if ( -t 2 and $nrows % $VERBOSE_FREQ == 0 );
+  }
 
-    # push any 'on delete cascade set null' constraints
-    push( @cascading_null,
+  # push any 'on delete cascade set null' constraints
+  push( @cascading_null,
         grep { $_->{ud} =~ 'n$' } @{ $tables{$st}->{fks} } );
 
-    printf( STDERR "$pfx %15s (%d s)\n",
-        "$nrows rows", tv_interval($table_start) );
+  printf( STDERR "$pfx %15s (%d s)\n",
+		  "$nrows rows", tv_interval($table_start) );
 }
 $src_psql_w->print("\\q\n");
 print( STDERR
-        "# waiting for src psql pipe process to die [pid=$src_psql_pid]\n" );
+	   "# waiting for src psql pipe process to die [pid=$src_psql_pid]\n" );
 waitpid( $src_psql_pid, 0 );
 print( STDERR "# src psql process finished\n" );
 
+
 print("-- PHASE 3: RESOLVE `ON DELETE SET NULL' CONSTRAINTS\n");
 {
-    my %idx_created;
-    my %idx_tables;
-    my $cnc;
+  my %idx_created;
+  my %idx_tables;
+  my $cnc;
 
-    foreach $cnc (@cascading_null) {
-        my ( $pks, $pkt, $pkc )
-            = ( $cnc->{pk_namespace}, $cnc->{pk_relation},
-            $cnc->{pk_column} );
-        my $idx_name = "\"__tmp_${pkt}_$pkc\"";
-        next if $idx_created{"$pks.$idx_name"}++;
-        next if $idx_tables{"\"$pks\".\"$pkt\""}++;
-        print(
-            "CREATE UNIQUE INDEX $idx_name on \"$pks\".\"$pkt\"(\"$pkc\");\n"
-        );
-    }
+  foreach $cnc (@cascading_null) {
+	my ( $pks, $pkt, $pkc )
+	  = ( $cnc->{pk_namespace}, $cnc->{pk_relation},
+		  $cnc->{pk_column} );
+	my $idx_name = "\"__tmp_${pkt}_$pkc\"";
+	next if $idx_created{"$pks.$idx_name"}++;
+	next if $idx_tables{"\"$pks\".\"$pkt\""}++;
+	print(
+		  "CREATE UNIQUE INDEX $idx_name on \"$pks\".\"$pkt\"(\"$pkc\");\n"
+		 );
+  }
 
-    print("ANALYZE $_;\n") for keys %idx_tables;
+  print("ANALYZE $_;\n") for keys %idx_tables;
 
-    foreach $cnc (@cascading_null) {
-        printf(
-            'UPDATE ONLY "%s"."%s" FK set "%s"=NULL WHERE NOT exists (select * from "%s"."%s" PK where FK."%s"=PK."%s");'
-                . "\n",
-            $cnc->{fk_namespace}, $cnc->{fk_relation},
-            $cnc->{fk_column},    $cnc->{pk_namespace},
-            $cnc->{pk_relation},  $cnc->{fk_column},
-            $cnc->{pk_column}
-        );
-    }
+  foreach $cnc (@cascading_null) {
+	printf(
+		   'UPDATE ONLY "%s"."%s" FK set "%s"=NULL WHERE NOT exists (select * from "%s"."%s" PK where FK."%s"=PK."%s");'
+		   . "\n",
+		   $cnc->{fk_namespace}, $cnc->{fk_relation},
+		   $cnc->{fk_column},    $cnc->{pk_namespace},
+		   $cnc->{pk_relation},  $cnc->{fk_column},
+		   $cnc->{pk_column}
+		  );
+  }
 
-    print("DROP INDEX $_;\n") for ( keys %idx_created );
+  print("DROP INDEX $_;\n") for ( keys %idx_created );
 }
 
+
 print("-- PHASE 4: INDEXES AND CONSTRAINTS\n");
-get_db_toc( $dump_fn, [ grep { not m/\s(?:$phase1_re)\s/ } @toc ] );
+restore_selected_toc_elements( $dump_fn,
+							   [ grep { not m/\s(?:$phase1_re)\s/ } @toc ] );
+
 
 print("-- PHASE 5: FINISHING UP\n");
+print <<EOT;
+select unison.meta_update_kv('publicize revision'::text,'$Id'::text);
+select unison.meta_update_kv('publicize timestamp'::text,'$ts'::text);
+analyze verbose;
 
-# select meta_update('publicize version',);
-# select meta_update('publicize timestamp',);
-# select unison_log('publicized by '.cvsid);
-# set search_path (get s_p from src_db)
-# analyze verbose
+-- There's no way to set the comment or search_path since we don't know the
+-- name of the database into which we'll restore. That's a shame.
+-- set search_path (get s_p from src_db)
+EOT
+
 
 print( STDERR "# $0\n",
-    '# ended: ', strftime( "%F %T %Z", localtime() ),
-    ' (',
-    sprintf( "%.1f", tv_interval($all_start) / 60 / 60 ),
-    " h elapsed)\n"
-);
+	   '# ended: ', strftime( "%F %T %Z", localtime() ),
+	   ' (',
+	   sprintf( "%.1f", tv_interval($all_start) / 60 / 60 ),
+	   " h elapsed)\n"
+	 );
 
-# There's no way to set the comment or search_path since we don't know the
-# name of the database into which we'll restore. That's a shame.
 
 exit(0);
 
 ## ######################################################################
 ## INTERNALS
 
-sub get_schema_dump($$) {
-    my ( $db, $fn ) = @_;
-    my @cmd = ( 'pg_dump', '-Fc', '-s', '-f', $fn, $db );
-    system(@cmd)
-        && die("@cmd: $!\n");
+sub dump_schema($$) {
+  my ( $db, $fn ) = @_;
+  my @cmd = ( 'pg_dump', '-Fc', '-s', '-f', $fn, $db );
+  system(@cmd)
+	&& die("@cmd: $!\n");
 }
 
 sub get_dump_toc($) {
-    my $fn  = shift;
-    my $io  = new IO::Pipe;
-    my @cmd = ( 'pg_restore', '-l', $fn );
-    $io->reader(@cmd)
-        || die("@cmd: $!\n");
-    return grep { not /^;/ } <$io>;    # perl-mode-bone:/
+  my $fn  = shift;
+  my $io  = new IO::Pipe;
+  my @cmd = ( 'pg_restore', '-l', $fn );
+  $io->reader(@cmd)
+	|| die("@cmd: $!\n");
+  return grep { not /^;/ } <$io>;			# perl-mode-bone:/
 }
 
-sub get_db_toc($$) {
-    my ( $dump_fn, $toc_aref ) = @_;
-    my $toc_fn = "$tmp_dir/toc";
+sub restore_selected_toc_elements($$) {
+  my ( $dump_fn, $toc_aref ) = @_;
+  my $toc_fn = "$tmp_dir/toc";
 
-    my $toc_fh = new IO::File;
-    $toc_fh->open(">$toc_fn")
-        || die("$0: file $toc_fn: $!\n");
-    $toc_fh->print($_) for @$toc_aref;
-    $toc_fh->close();
+  my $toc_fh = new IO::File;
+  $toc_fh->open(">$toc_fn")
+	|| die("$0: file $toc_fn: $!\n");
+  $toc_fh->print($_) for @$toc_aref;
+  $toc_fh->close();
 
-    my $restore_pipe = new IO::Pipe;
-    my @restore_cmd = ( 'pg_restore', '-Fc', '-L', $toc_fn, $dump_fn );
-    $restore_pipe->reader(@restore_cmd)
-        || die("$0: commmand @restore_cmd: $!\n");
-    print($_) while <$restore_pipe>;
-    $restore_pipe->close();
+  my $restore_pipe = new IO::Pipe;
+  my @restore_cmd = ( 'pg_restore', '-Fc', '-L', $toc_fn, $dump_fn );
+  $restore_pipe->reader(@restore_cmd)
+	|| die("$0: commmand @restore_cmd: $!\n");
+  print($_) while <$restore_pipe>;
+  $restore_pipe->close();
 }
 
 sub apply_custom_configuration($$$) {
-    my ( $t, $ctp, $ccq ) = @_;
-    my $st;
-    foreach $st ( sort keys %$ccq ) {
-        $t->{$st} = Unison::Schema::Table->new( 'st' => $st )
-            unless exists $t->{$st};
-        $t->{$st}->{cq} = $ccq->{$st};
-        $t->{$st}->{restricted}++;
-    }
-    foreach $st ( sort keys %$ctp ) {
-        $t->{$st} = Unison::Schema::Table->new( 'st' => $st )
-            unless exists $t->{$st};
-        for ( my $i = 0; $i <= $#{ $ctp->{$st} }; $i++ ) {
-            $t->{$st}->add_pred( $ctp->{$st}->[$i] );
-        }
-    }
+  my ( $t, $ctp, $ccq ) = @_;
+  my $st;
+  foreach $st ( sort keys %$ccq ) {
+	$t->{$st} = Unison::Schema::Table->new( 'st' => $st )
+	  unless exists $t->{$st};
+	$t->{$st}->{cq} = $ccq->{$st};
+	$t->{$st}->{restricted}++;
+  }
+  foreach $st ( sort keys %$ctp ) {
+	$t->{$st} = Unison::Schema::Table->new( 'st' => $st )
+	  unless exists $t->{$st};
+	for ( my $i = 0; $i <= $#{ $ctp->{$st} }; $i++ ) {
+	  $t->{$st}->add_pred( $ctp->{$st}->[$i] );
+	}
+  }
 }
 
 sub toc_entry_schema($) {
-    my $te  = shift;
-    my $tok = '[-\(\)\"\.\$\w]+';
-    my $ldr = '^\d+; \d+ \d+ ';
+  my $te  = shift;
+  my $tok = '[-\(\)\"\.\$\w]+';
+  my $ldr = '^\d+; \d+ \d+ ';
 
-    if ( $te =~ m/${ldr}PROCEDURAL LANGUAGE/ ) {
-        return undef;
-    }
+  if ( $te =~ m/${ldr}PROCEDURAL LANGUAGE/ ) {
+	return undef;
+  }
 
-    if ( $te =~ m/${ldr}SCHEMA - ($tok)/ ) {
-        return $1;
-    }
+  if ( $te =~ m/${ldr}SCHEMA - ($tok)/ ) {
+	return $1;
+  }
 
-    if ( $te =~ m/${ldr}ACL - ($tok)/ ) {
-        return $1;
-    }
+  if ( $te =~ m/${ldr}ACL - ($tok)/ ) {
+	return $1;
+  }
 
-    if ( $te =~ m/${ldr}COMMENT ($tok)/ ) {
-        return $1;
-    }
+  if ( $te =~ m/${ldr}COMMENT ($tok)/ ) {
+	return $1;
+  }
 
-    my @toc_entry_types = (
-        'ACL',           'AGGREGATE',
-        'CONSTRAINT',    'DEFAULT',
-        'FK CONSTRAINT', 'FUNCTION',
-        'INDEX',         'RULE',
-        'SEQUENCE',      'SEQUENCE OWNED BY',
-        'TABLE',         'TRIGGER',
-        'TYPE',          'VIEW'
-    );
+  my @toc_entry_types = (
+						 'ACL',           'AGGREGATE',
+						 'CONSTRAINT',    'DEFAULT',
+						 'FK CONSTRAINT', 'FUNCTION',
+						 'INDEX',         'RULE',
+						 'SEQUENCE',      'SEQUENCE OWNED BY',
+						 'TABLE',         'TRIGGER',
+						 'TYPE',          'VIEW'
+						);
 
-    my $tet_re = join( '|', @toc_entry_types );
-    if ( $te =~ m/$ldr(?:$tet_re) ($tok)/ ) {
-        return $1;
-    }
+  my $tet_re = join( '|', @toc_entry_types );
+  if ( $te =~ m/$ldr(?:$tet_re) ($tok)/ ) {
+	return $1;
+  }
 
-    print( STDERR "TOC schema UNDEF>> $te" );
+  print( STDERR "TOC schema UNDEF>> $te" );
 }
 
 sub toc_entry_sno($) {
-    my $te  = shift;
-    my $tok = '[-\(\)\"\.\$\w]+';
-    my $ldr = '^\d+; \d+ \d+ ';
-    my ( $s, $n, $o ) = ( $tok, $tok, $tok );
+  my $te  = shift;
+  my $tok = '[-\(\)\"\.\$\w]+';
+  my $ldr = '^\d+; \d+ \d+ ';
+  my ( $s, $n, $o ) = ( $tok, $tok, $tok );
 
-    if ( $te =~ m/${ldr}ACL - ($tok) ($tok)$/ ) {
-        return ( $1, undef, $2 );
-    }
+  if ( $te =~ m/${ldr}ACL - ($tok) ($tok)$/ ) {
+	return ( $1, undef, $2 );
+  }
 
-    if ( $te
-        =~ m/${ldr}COMMENT ($tok) (AGGREGATE|COLUMN|FUNCTION|INDEX|TABLE|VIEW) ($tok) ($tok)$/
-        )
-    {
-        return ( $1, $3, $4 );
-    }
+  if ( $te
+	   =~ m/${ldr}COMMENT ($tok) (AGGREGATE|COLUMN|FUNCTION|INDEX|TABLE|VIEW) ($tok) ($tok)$/
+	 ) {
+	return ( $1, $3, $4 );
+  }
 
-    my @toc_entry_types = (
-        'ACL',           'AGGREGATE',
-        'CONSTRAINT',    'DEFAULT',
-        'FK CONSTRAINT', 'FUNCTION',
-        'INDEX',         'RULE',
-        'SEQUENCE',      'SEQUENCE OWNED BY',
-        'TABLE',         'TRIGGER',
-        'TYPE',          'VIEW'
-    );
+  my @toc_entry_types = (
+						 'ACL',           'AGGREGATE',
+						 'CONSTRAINT',    'DEFAULT',
+						 'FK CONSTRAINT', 'FUNCTION',
+						 'INDEX',         'RULE',
+						 'SEQUENCE',      'SEQUENCE OWNED BY',
+						 'TABLE',         'TRIGGER',
+						 'TYPE',          'VIEW'
+						);
 
-    my $tet_re = join( '|', @toc_entry_types );
-    if ( $te =~ m/$ldr(?:$tet_re) ($tok) ($tok) ($tok)/ ) {
-        return ( $1, $2, $3 );
-    }
+  my $tet_re = join( '|', @toc_entry_types );
+  if ( $te =~ m/$ldr(?:$tet_re) ($tok) ($tok) ($tok)/ ) {
+	return ( $1, $2, $3 );
+  }
 
-    print( STDERR "TOC SNO UNDEF>> $te\n" );
+  print( STDERR "TOC SNO UNDEF>> $te\n" );
 }
