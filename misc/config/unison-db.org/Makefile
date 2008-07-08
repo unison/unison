@@ -9,10 +9,9 @@ default:
 
 install: $(addsuffix -install,${FILES})
 %-install: FORCE
-	mkdir -p /${*D}
-	/bin/cp --parents -auv $* /
+	@mkdir -p /${*D}; /bin/cp --parents -auv $* /
 
 archive: $(addsuffix -archive,${FILES})
 %-archive:
-	mkdir -p ${*D}
-	/bin/cp --parents -auv /$* .
+	@mkdir -p ${*D}; /bin/cp --parents -auv /$* .
+
