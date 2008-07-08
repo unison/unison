@@ -16,50 +16,34 @@
 
 
 ### RCSB mirror
-# these point to the root of the rcsb tree
-RCSB_BASE_URL=ftp://ftp.rcsb.org/pub/pdb
-#RCSB_BASE_URL=ftp://pdb.ccdc.cam.ac.uk/rcsb
-#RCSB_BASE_URL=ftp://rutgers.rcsb.org/PDB/pub/pdb
-#RCSB_BASE_URL=ftp://pdb.bic.nus.edu.sg/pub/pdb
-#RCSB_BASE_URL=ftp://pdb.protein.osaka-u.ac.jp/pub/pdb
-#RCSB_BASE_URL=ftp://ftp.pdb.mdc-berlin.de/pub/pdb
+RCSB_BASE_URL='http://www.rcsb.org/pdb/download/downloadFile.do?fileFormat=pdb&compression=NO&structureId='
 
 
 ### Local PDB directory
-# Set this to something bogus (perhaps "/something/bogus"?) 
-# to disable local searching
-LOCAL_PDB_DIR=/gne/research/data/public/pdb/divided.pdb
-
+# Set this to something bogus to disable local searching
+# (e.g., "/something/bogus") 
+LOCAL_PDB_DIR=/gne/research/data/public/pdb/all.pdb
 
 
 export PATH=/usr/bin:/bin
 
 # ID should be just the 4-letter ID
 if [ $# -ne 1 ]; then
-		echo "$0: need exactly 1 argument, a PDB id (got $#: $*)" 1>&2
-		exit 1
+	echo "$0: need exactly 1 argument, a PDB id (got $#: $*)" 1>&2
+	exit 1
 fi
 ID="$1"
-HASH=`expr "$ID" : '.\(..\).'`
 
 
 # try local file first
 FILE="$LOCAL_PDB_DIR/$HASH/$ID.pdb"
 if [ -f "$FILE" ]; then
-		#echo "found $FILE" 1>&2
-		cat "$FILE"
-		exit 0
+	cat "$FILE"
+	exit 0
 fi
 
 # otherwise, try fetching from a mirror
 trap '/bin/rm -f "$TMP";' 0
 TMP=`/bin/mktemp`
-URL="$RCSB_BASE_URL/data/structures/divided/pdb/$HASH/pdb$ID.ent.Z"
-wget -nd -q --retr-symlinks -O- "$URL" | gzip -cdq >"$TMP"
-if [ -s "$TMP" ]; then
-		#echo "found $URL" 1>&2
-		cat "$TMP"
-		exit 0
-fi
-
-exit 1
+URL="${RCSB_BASE_URL}$ID"
+exec wget -qO- --retr-symlinks "$URL"
