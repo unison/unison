@@ -46,6 +46,8 @@ use Unison::run;
 use Unison::Utilities::misc qw( warn_deprecated unison_logo elide_sequence context_highlight );
 use Unison::Utilities::pseq_structure;
 
+use Data::Dumper;
+
 my @default_panel_features = qw ( antigenic bigpi disprot hmm psipred
   netphos pepcoil prospect regexp signalp tmdetect tmhmm );
 
@@ -141,6 +143,11 @@ sub pseq_features_panel($%) {
         $opts{track_length} = int( $len / 10 + 1 ) * 10;
     }
 
+    my $ba = (
+			     $u->best_alias( $opts{pseq_id}, 'HUMAN' )
+			  || $u->best_alias( $opts{pseq_id} )
+			 );
+
     my $panel = Bio::Graphics::Panel->new(
         -spacing    => 10,
         -length     => $opts{track_length},
@@ -151,14 +158,13 @@ sub pseq_features_panel($%) {
         -pad_bottom => $opts{pad},
         -key_style  => 'between'
     );
-    my $ba = $u->best_alias( $opts{pseq_id}, 'HUMAN' )
-      || $u->best_alias( $opts{pseq_id} );
+
     $panel->add_track(
         Bio::Graphics::Feature->new(
             -start => 1,
             -end   => $len,
             -name =>
-              sprintf( "Unison:%d; %d AA; %s", $opts{pseq_id}, $len, $ba )
+              sprintf( "Unison:%d; %d AA; %s", $opts{pseq_id}, $len, $ba || '' )
         ),
         -glyph       => 'arrow',
         -tick        => $tick,
@@ -211,7 +217,7 @@ sub pseq_features_panel($%) {
 	# Add version string and logo
     my $gd = $panel->gd();
     my ( $dw, $dh ) = $gd->getBounds();
-    my $black = $gd->colorAllocate( 0, 0, 0 );
+    my $black = $gd->colorResolve( 0, 0, 0 );
     my $IdFont = GD::Font->MediumBold;
     $gd->string(
         $IdFont,
@@ -1037,13 +1043,12 @@ EOSQL
     my $featref = $u->selectall_arrayref($sql);
 
     foreach my $r (@$featref) {
-        my $seq = elide_sequence( $r->[4] );
         $track->add_feature(
             Bio::Graphics::Feature->new(
                 -start      => $r->[0],
                 -end        => $r->[1],
                 -score      => $r->[3],    # prob!
-                -name       => $seq,
+                -name       => elide_sequence( $r->[4] ),
                 -attributes => {
                     tooltip => _feature_tooltip($seq, @$r[0,1],
 												"score=$r->[2]; prob=$r->[3]")
@@ -1054,6 +1059,8 @@ EOSQL
     }
     return $nadded;
 }
+
+
 ######################################################################
 ## add_pfsigcleave
 
@@ -1450,6 +1457,12 @@ sub avg_confidence {
 
 sub _feature_tooltip {
 	my ($seq,$start,$stop,$feature_text) = @_;
+	my $ss = $start-1;
+	my $l = $stop-$start+1;
+
+	warn("ss ($ss)<0 for $feature_text ($start,$stop)\n") if $ss<0;
+	warn("l ($l) >seq len for $feature_text ($start,$stop)\n") if $l>length($seq);
+
 	my $text = sprintf("%d-%d (%s)", $start,$stop,
 					   elide_sequence( substr( $seq,$start-1,$stop-$start+1 )));
 	$text .= "<br>$feature_text" if defined $feature_text;
