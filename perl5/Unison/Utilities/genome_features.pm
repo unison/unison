@@ -148,7 +148,7 @@ doing.
 	# Add version string and logo
     my $gd = $panel->gd();
     my ( $dw, $dh ) = $gd->getBounds();
-    my $black = $gd->colorAllocate( 0, 0, 0 );
+    my $black = $gd->colorResolve( 0, 0, 0 );
     my $IdFont = GD::Font->MediumBold;
     $gd->string(
 				$IdFont,
