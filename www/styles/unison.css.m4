@@ -33,7 +33,7 @@ a:hover {
  background: U_HIGHLIGHT_BG;
  color: U_HIGHLIGHT_FG;
 }
-a.extlink {
+a.ext_link {
   /* consider css2 :after pseudo-element instead */
  background: url(../av/extlink.gif) right center no-repeat;
  padding-right: 14px;
@@ -280,7 +280,7 @@ table.uwtable {
   border-collapse: collapse;
 }
 table.uwtable tr {
-  background: U_UWTABLE_TD_BG;
+  /*background: U_UWTABLE_TD_BG;*/
 }
 table.uwtable tr:hover {
  background: U_HOVER_BG;

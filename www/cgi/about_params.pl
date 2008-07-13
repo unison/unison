@@ -39,9 +39,9 @@ sub params_group($) {
 
             # rewrite urls to pubmed
             $ar->[$i][2] =~
-              s%(http://.+db=pubmed\S+uids=\d+)%[<a target="_blank" class="extlink" href="$1">PubMed</a>]%g;
+              s%(http://.+db=pubmed\S+uids=\d+)%[<a target="_blank" class="ext_link" href="$1">PubMed</a>]%g;
             $ar->[$i][2] =~
-              s%(?<!href=")(http://[\w/\.~]+)%<a target="_blank" class="extlink" href="$1">$1</a>%g;
+              s%(?<!href=")(http://[\w/\.~]+)%<a target="_blank" class="ext_link" href="$1">$1</a>%g;
         }
 
         $ar->[$i][3] = "<code>$ar->[$i][3]</code>";
