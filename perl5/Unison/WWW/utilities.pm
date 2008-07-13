@@ -13,7 +13,7 @@ our @EXPORT_OK = qw(
 					 maprofile_link ncbi_gene_link ncbi_refseq_link
 					 pdbc_rcsb_link pfam_link pseq_annotations_link
 					 pseq_functions_link pseq_summary_link render_app_list
-					 text_wrap
+					 text_wrap ext_link int_link
 				  );
 
 our @EXPORT = ();
@@ -221,13 +221,14 @@ sub int_link {
 		  $_[1]
 		 );
 }
-sub extlink {
-  sprintf('<a class="extlink" target="_blank" href="%s"%s>%s</a>', 
+sub ext_link {
+  sprintf('<a class="ext_link" target="_blank" href="%s"%s>%s</a>', 
 		  $_[0],
 		 (defined $_[2] ? ' tooltip="'.$_[2].'"' : ''),
 		  $_[1],
 		 );
 }
+sub extlink { goto &ext_link; }
 
 
 

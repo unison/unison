@@ -43,7 +43,7 @@ my %defaults = (
 
 
 try {
-  print $p->render( 'Sequence Set Analysis',
+  print $p->render( 'AliAn -- Alias Annotation',
 					build_form($p),
 					do_search($p)
 				  );
@@ -71,6 +71,7 @@ sub build_form {
 
 					'<td style="vertical-align: top;" width="50%">',
 					'<b>Enter protein accessions or identifiers...</b>',
+					'<br>',
 					$p->textarea(-name => 'aliases', 
 								 -default => $p->{aliases} || '',
 								 -rows => 5,
@@ -129,7 +130,7 @@ SELECT DISTINCT
 	) as common_annotations
 
 
-  FROM palias_v A
+  FROM current_annotations_v A
 LEFT JOIN pseq_gene_mv PG ON A.pseq_id=PG.pseq_id AND PG.tax_id=gs2tax_id('HUMAN')
 LEFT JOIN pseq_sst_v SST ON A.pseq_id=SST.pseq_id
 

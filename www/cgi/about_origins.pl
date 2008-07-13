@@ -41,7 +41,7 @@ sub origin_group($) {
     my @cols = @{ $sth->{NAME} };
     for ( my $i = 0 ; $i <= $#$ar ; $i++ ) {
         $ar->[$i][0] =~ s/\*/$star/;
-        $ar->[$i][3] = "<a target=\"_blank\" class=\"extlink\" href=\"$ar->[$i][3]\">$ar->[$i][3]</a>"
+        $ar->[$i][3] = "<a target=\"_blank\" class=\"ext_link\" href=\"$ar->[$i][3]\">$ar->[$i][3]</a>"
           if defined $ar->[$i][3];
     }
     return $p->group( "Data Sources",

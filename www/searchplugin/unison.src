@@ -18,7 +18,7 @@
 >
 
 <input name="q" user>
-<input name="plugin_id" value="$Revision$">
+<input name="plugin" value="FFSE$Revision$">
 
 </search>
 

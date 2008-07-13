@@ -1,7 +1,7 @@
 #!/bin/sh 
 # tests krb saved credentials by (remote) logging into geneland using the
 # credentials to run a few innocuous commands
-# $Id: krb.sh,v 1.2 2003/05/27 22:28:31 rkh Exp $
+# $Id$
 
 
 exec 2>&1
@@ -29,7 +29,7 @@ echo
 
 
 cat <<EOF
-# \$Id: krb.sh,v 1.2 2003/05/27 22:28:31 rkh Exp $
+# \$Id$
 
 This script tests kerberos authentication by using your saved krb
 credentials (server-side) to log in to a remote machine.  Here we go...
