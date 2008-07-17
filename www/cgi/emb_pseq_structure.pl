@@ -26,7 +26,9 @@ my $p = new Unison::WWW::EmbPage;
 
 my $u = $p->{unison};
 my $v = $p->Vars();
-$v->{width} = 605;
+
+$v->{width} = 600 if not defined $v->{width};
+$v->{height} = 400 if not defined $v->{height};
 $p->ensure_required_params(qw(pseq_id));
 
 # these files are for the image map
@@ -35,7 +37,7 @@ my ( $png_fh, $png_fn, $png_urn ) = $p->tempfile( SUFFIX => '.png' );
 my $pseq_structure = new Unison::Utilities::pseq_structure( $v->{pseq_id} );
 $pseq_structure->unison($u);
 
-my $jmol = new Unison::Jmol( 600, 400 );
+my $jmol = new Unison::Jmol( $v->{width},$v->{height});
 $pseq_structure->jmol($jmol);
 
 my %opts = ( %Unison::Utilities::pseq_features::opts, %$v );
@@ -137,7 +139,7 @@ sub get_user_specs {
     if ( defined( $v->{highlight} ) ) {
         foreach ( split( /,/, $v->{highlight} ) ) {
             $p->die(
-                "wrong highlight format expecting source:feature[:colour]\n")
+                "wrong highlight format expecting source:feature[:color]\n")
               unless (/(\S+)\:(\S+)/);
             my @hl = split(/\:/);
             $p->die("Looks like you didn't define $hl[1]\n")
@@ -167,7 +169,7 @@ sub get_user_specs {
             }
             $hl[2] =~ s/\[//;
             $hl[2] =~ s/\]//;
-            $opts{user_feats}{ $hl[1] }{colour} = $hl[2]
+            $opts{user_feats}{ $hl[1] }{color} = $hl[2]
               if ( $hl[0] =~ /user/i or $hl[0] =~ /hmm/i );
             $p->die(
 "source for the feature to be highlighted must be either user or hmm: you entered $hl[0]"
