@@ -309,14 +309,13 @@ function jmolSelectPosition(pos, labe, colour, targetSuffix) {
 // and then calls jmolScript
 function jmolSelectRegion(posone, postwo, labe, colour, targetSuffix) {
 
-  
-  while(seq_str[pdbid][posone] == '') {
+  while(seq_str[pdbid][posone] == null) {
     posone++;
   } 
-  while(seq_str[pdbid][postwo] == '') {
+  while(seq_str[pdbid][postwo] == null) {
     postwo--;
   }
-  
+
   if(postwo - posone < 0) {
     alert("These amino acids are not defined in the structure, this could either mean i) the amino acids are missing in the structure or ii) we did not map the sequence positions to structure")  ;
     return;
