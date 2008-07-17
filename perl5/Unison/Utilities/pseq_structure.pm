@@ -185,7 +185,7 @@ sub _get_seq_str_map {
 sub get_hmm_range {
     my ( $self, $hmm ) = @_;
     my $sql =
-"select a.start,a.stop from pahmm a join pmodel m on a.pmodel_id=m.pmodel_id where pseq_id=$self->{'pseq_id'} and m.descr ilike \'\%$hmm\%\'";
+"select a.start,a.stop from pahmm a join pmhmm m on a.pmodel_id=m.pmodel_id where pseq_id=$self->{'pseq_id'} and m.name = \'$hmm\'";
     my $ar = $self->{'unison'}->selectall_arrayref($sql);
     return $ar->[0];
 }
