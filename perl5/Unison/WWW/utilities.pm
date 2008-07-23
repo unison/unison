@@ -253,11 +253,9 @@ sub render_app_list {
 
   my @apps = @_;
   if ($prd_only) {
-	print(STDERR "removing non-prd elems\n");
 	@apps = grep { defined $_->{prd} } @apps;
   }
   if ($pub_only) {
-	print(STDERR "removing non-pub elems\n");
 	@apps = grep { defined $_->{pub} } @apps;
   }
 
