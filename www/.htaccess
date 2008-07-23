@@ -8,6 +8,22 @@ DirectoryIndex index.pl index.html
 
 RedirectMatch permanent (.*)/cgi/(.*) $1/$2
 
+# reimplemented static HTML with Unison::WWW::Page
+RedirectMatch permanent (.*)/credits.html		  $1/credits.pl
+RedirectMatch permanent (.*)/index.html 		  $1/index.pl
+RedirectMatch permanent (.*)/license.html 		  $1/license.pl
+RedirectMatch permanent (.*)/more.html 			  $1/about.pl
+RedirectMatch permanent (.*)/shots.html 		  $1/shots.pl
+
+# consolidation and reorganization
+RedirectMatch permanent (.*)/origins.pl 		  $1/contents.pl
+RedirectMatch permanent (.*)/params.pl 		      $1/contents.pl
+RedirectMatch permanent (.*)/about_env.pl 		  $1/env.pl
+
+# moved to ../doc and made symlink to the doc directory
+RedirectMatch permanent (.*)/critical-tables.pdf  $1/doc/critical-tables.pdf
+RedirectMatch permanent (.*)/unison-tutorial.pdf  $1/doc/unison-tutorial.pdf
+
 <IfModule mod_auth_kerb.c>
 	Require valid-user
 
