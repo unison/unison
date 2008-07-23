@@ -39,7 +39,7 @@ $(foreach t,${TABLES_UC_SRCS},logs/$t-load.log): logs/%-load.log: ${GENE_DIR}/DA
 	/bin/mv -f $@.err $@
 
 logs/generif-load.log: logs/%-load.log: ${GENE_DIR}/GeneRIF/generifs_basic.gz
-	(gzip -cdq <$< | perl -ne 'print unless m/^#/' | ${PSQL} -f sql/$*-load.sql) | tee $@.err
+	(gzip -cdq <$< | perl -ne 's/\\//g; print unless m/^#/' | ${PSQL} -f sql/$*-load.sql) | tee $@.err
 	/bin/mv -f $@.err $@
 
 cleanest::
