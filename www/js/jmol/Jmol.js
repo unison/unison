@@ -288,7 +288,7 @@ function jmolSelectPosition(pos, labe, colour, targetSuffix) {
 
   var chain = pdbid.substr(4,1);
   chain = (chain == '' ? '' : ":"+chain);
-  colour = (colour == '' ? 'cpk' : colour);
+  colour = (colour == '' ? 'blue' : colour);
 
   var re = new RegExp ('\-', 'g') ;
   if(colour.match(re)) {
@@ -296,7 +296,7 @@ function jmolSelectPosition(pos, labe, colour, targetSuffix) {
     colour = "["+rgb+"]";
   }
 
-  var script = "save orientation init_orient; select within(10.0, "+selPos+chain+"); hbonds 0.1; ssbonds on; select "+selPos+chain+"; wireframe 0.5;colour  "+colour+";select "+selPos+chain+" and *.CA; label "+labe+":"+selPos+"; colour label white; ";
+  var script = "save orientation init_orient; select within(10.0, "+selPos+chain+"); hbonds 0.1; ssbonds on; select "+selPos+chain+"; wireframe 0.5;colour  "+colour+";select "+selPos+chain+" and *.CA; label "+labe+":"+selPos+"; colour label black; ";
   script += "zoomto 2 (" + selPos+chain + ") 400; ";
   script += "moveto 2 0 1 0 180 400 (" + selPos+chain + "); ";
   script += "moveto 2 0 1 0 -359 400 (" + selPos+chain + "); ";
@@ -338,7 +338,7 @@ function jmolSelectRegion(posone, postwo, labe, colour, targetSuffix) {
   It's not clear why Kiran recolors the whole structure. This steps on other coloring, including any manual user coloring.
   var script = "select all; label off; colour cartoon yellow; select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label white";
   */
-  var script = "save orientation init_orient; select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label white; ";
+  var script = "save orientation init_orient; select "+start+"-"+end+chain+"; colour cartoon "+colour+"; select "+label_pos+chain+" and *.CA; label "+labe+"; colour label black; ";
   script += "zoomto 2 (" + start+"-"+end+chain + ") 200; ";
   script += "moveto 2 0 1 0 180 200 (" + start+"-"+end+chain + "); ";
   script += "moveto 2 0 1 0 -359 200 (" + start+"-"+end+chain + "); ";
