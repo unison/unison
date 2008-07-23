@@ -285,7 +285,7 @@ our @tools_info =
 	script => 'alian.pl',
 	brief => 'Annotate a set of protein aliases',
 	pub => 1,
-	#prd => 1,
+	prd => 1,
 	descr => q(AliAn takes a set of protein accessions and returns a variety of
 descriptive information about those accessions.  This is intend for people
 with data from mass spectroscopy, pull-downs, or other techniques that
@@ -296,7 +296,7 @@ result in sets of protein accessions.),
 	name => 'BabelFish',
 	script => 'babelfish.pl',
 	pub => 1,
-	#prd => 1,
+	prd => 1,
 	brief => 'Translates protein identifiers',
 	descr => qq(
 Unison's Babel fish translates essentially any protein sequence
@@ -456,7 +456,7 @@ our @page_sets =
 	 [
 	  'Unison',
 	  'Information about Unison',
-	  'about_env.pl',
+	  'index.pl',
 	  \@unison_info
 	 ],
 
