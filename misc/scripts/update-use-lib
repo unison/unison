@@ -2,4 +2,4 @@
 # update-use-lib -- resets the 'use lib' line in perl scripts
 # This is for a one-off update after a directory reorg.
 
-xargs perl -i.bak -p0e 's%use\s+lib[^;]+;%use lib "\$FindBin::RealBin/../../perl5", "\$FindBin::RealBin/../../perl5-ext";%x'
+xargs perl -i.bak -p0e 's%use\s+lib[^;]+;%use lib "\$FindBin::RealBin/../perl5", "\$FindBin::RealBin/../perl5-ext";%x'

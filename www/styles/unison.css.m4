@@ -29,6 +29,14 @@ hr {
  clear: both;
 }
 
+dt {
+  font-weight: bold;
+}
+dd {
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
 a:hover {
  background: U_HIGHLIGHT_BG;
  color: U_HIGHLIGHT_FG;
@@ -56,12 +64,12 @@ table.page td {
 table.page td.left {
   text-align: center;
   width: 120px;
-  border-right: medium double U_FRAME;
+  /*border-right: thin dotted U_FRAME;*/
 }
 table.page td.body {
   padding: 10px 0px 10px 0px;
-  border-top: medium double U_FRAME;
-  border-bottom: medium double U_FRAME;
+  border-top: thin solid U_FRAME;
+  border-bottom: thin solid U_FRAME;
 }
 table.page td.right {
   text-align: left;
@@ -75,7 +83,7 @@ div.nav table {
  margin: 0px;
  padding: 0px;
  width: 100%;
-  font-size: 0.9em;
+  /* font-size: 0.9em; */
   font-variant: small-caps;
 }
 div.nav table.navp {
@@ -226,7 +234,7 @@ table.shots th {
 }
 table.shots td {
   vertical-align: middle;
-  font-weight: bold;
+  /*font-weight: bold; */
  border: thin solid U_FRAME;
 }
 table.shots th img {

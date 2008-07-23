@@ -288,7 +288,7 @@ sub _load_script {
 sub pdb_url {
     my $fn = shift;
     my $id = ( $fn =~ m/(....)\.ent$/ ) ? $1 : $fn;
-    return "../cgi/nph-pdb-fetch.sh?$id";
+    return "nph-pdb-fetch.sh?$id";
 }
 
 1;

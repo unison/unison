@@ -13,7 +13,7 @@
 	name="Unison"
 	version="7.1"
 	description="Unison (http://unison-db.org/) protein database search plugin"
-	action="http://unison-db.org/cgi/search.pl"
+	action="http://unison-db.org/search.pl"
 	method="GET"
 >
 

@@ -37,6 +37,7 @@ use Unison::WWW::userprefs;
 use Unison::WWW::utilities qw( text_wrap );
 use Unison::WWW::NavBar;
 use File::Temp;
+use File::Basename qw(dirname);
 use Text::Wrap;
 use Data::Dumper;
 
@@ -50,6 +51,7 @@ sub _cleanup_temp($$);
 sub _page_connect ($);
 
 our $infer_pseq_id = 0;
+our $skip_db_connect = 0;
 
 =pod
 
@@ -75,42 +77,20 @@ sub new {
   my $v = $self->Vars();
   $v->{debug} = 0 unless defined $v->{debug};
 
-  try {
-	$self->_set_connection_params();
-	_page_connect($self);
-  }
-    catch Unison::Exception with {
-	  $self->die(
-				 $_[0],
+  _page_connect($self) unless $skip_db_connect;
 
-				 # plus some addition stuff to tack on...
-				 'Relevant environment settings:',
-				 join(
-					  '',
-					  map( {
-                            "<br><code>$_: "
-							. ( defined $ENV{$_} ? $ENV{$_} : '<i>undef</i>' )
-							. "</code>\n"
-						   } qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT)
-						 )
-					 )
-				);
-    };
-
-  $self->{userprefs} = $self->{unison}->get_userprefs();
-  $self->{readonly}  = 1;
   $self->{js_tags}   = [
 						{
 						 -language => 'JAVASCRIPT',
-						 -src      => '../js/domTT/domLib.js'
+						 -src      => 'js/domTT/domLib.js'
 						},
 						{
 						 -language => 'JAVASCRIPT',
-						 -src      => '../js/domTT/domTT.js'
+						 -src      => 'js/domTT/domTT.js'
 						},
 						{
 						 -language => 'JAVASCRIPT',
-						 -src      => '../js/unison_domTT.js'
+						 -src      => 'js/unison_domTT.js'
 						},
 						{
 						 -language => 'JAVASCRIPT',
@@ -132,10 +112,9 @@ sub new {
 	}
 	try {
 	  $v->{pseq_id} = _infer_pseq_id($self);
-	}
-	  catch Unison::Exception with {
-		$self->die( $_[0] );
-	  };
+	} catch Unison::Exception with {
+	  $self->die( $_[0] );
+	};
 	if ( not defined $v->{pseq_id} ) {
 	  $self->die("couldn't infer pseq_id from arguments");
 	}
@@ -316,11 +295,11 @@ sub start_html {
 											$self->Link(
 														{
 														 -rel  => 'shortcut icon',
-														 -href => '../av/favicon.png'
+														 -href => 'av/favicon.png'
 														}
 													   )
 										   ],
-								  -style  => { -src => ['../styles/unison.css'] },
+								  -style  => { -src => ['styles/unison.css'] },
 								  -target => '_top',
 								  -onload => 'javascript:{ unison_activateTooltips(); }',
 								  -script => $self->{js_tags},
@@ -367,22 +346,27 @@ sub start_page() {
   my $p = shift;
   my $v = $p->Vars();
   my $navbar = Unison::WWW::NavBar::render_navbar($p);
-  my $logo_tooltip = sprintf('<b>Connection information:</b>'
-							 .'<br><b>db host:</b> %s'
-							 .'<br><b>db instance:</b> %s'
-							 .'<br><b>db user:</b> %s',
-							 $v->{host} || 'localhost',
-							 $v->{dbname},
-							 $v->{username}
-							);
+  my $logo_tooltip = ( '<b>Connection information:</b>'
+					   . ( defined $v->{dbname} 
+						   ? sprintf(
+									 '<br><b>db host:</b> %s'
+									 .'<br><b>db instance:</b> %s'
+									 .'<br><b>db user:</b> %s',
+									 $v->{host} || 'localhost',
+									 $v->{dbname},
+									 $v->{username}
+									)
+						   : '<br><i>not connected</i>'
+						 )
+					 );
 
   return <<EOF;
 <table class="page">
 <tr>
 <!-- ========== begin logo ========== -->
   <td class="left">
-    <a tooltip="$logo_tooltip" class="nofeedback" href="../index.html">
-      <img width=120 height=34 src="../av/unison.png">
+    <a tooltip="$logo_tooltip" class="nofeedback" href="index.html">
+      <img width=120 height=34 src="av/unison.gif">
     </a>
   </td>
 <!-- ========== end logo ========== -->
@@ -423,13 +407,7 @@ sub end_page() {
 
 <!-- ========== begin footer ========== -->
 <tr>
-  <td class="left">
-    <a class="nofeedback" target="_blank" href="http://www.gene.com/">
-      <img class="logo" width=116 height=27 src="../av/genentech.gif">
-    </a>
-  </td>
-
-  <td class="footer">
+  <td colspan=2 class="footer">
   Questions?  Email <a href="mailto:unison\@unison-db.org?subject=Unison Question&body=Regarding $self_url">unison\@unison-db.org</a>.
   &nbsp; &nbsp;
   Problems? Use the <a href="http://sourceforge.net/tracker/?group_id=140591">Issue Tracker</a>.
@@ -868,7 +846,8 @@ sub debug {
 sub import {
   my $self = shift;
   for (@_) {
-	$infer_pseq_id = 1 if ( $_ eq 'infer_pseq_id' );
+	if    ($_ eq 'infer_pseq_id')   {$infer_pseq_id = 1 }
+	elsif ($_ eq 'skip_db_connect') { $skip_db_connect = 1 }
   }
 }
 
@@ -953,45 +932,66 @@ sub _page_connect ($) {
   my $self = shift;
   my $v    = $self->Vars();
 
-  $self->{unison} = new Unison(
-							   host     => $v->{host},
-							   dbname   => $v->{dbname},
-							   username => $v->{username},
-							   password => $v->{password}
+  try {
+	$self->_set_connection_params();
+	$self->{unison} = new Unison(
+								 host     => $v->{host},
+								 dbname   => $v->{dbname},
+								 username => $v->{username},
+								 password => $v->{password}
+								 # NB: KRB5CCNAME may affect connection success
+								);
+	# Errors are caught by exceptions.
 
-							   # NB: KRB5CCNAME may affect connection success
-							  );
+	# If the connection succeeded, then set PG vars so that spawned apps
+	# connect to the same database.  The krb credential, if any, is
+	# implicitly passed in KRB5CCNAME.
+	if ( $v->{host} ) {
+	  $ENV{PGHOST} = $v->{host};
+	} else {
+	  delete $ENV{PGHOST};
+	}
+	if ( $v->{database} ) {
+	  $ENV{PGDATABASE} = $v->{database};
+	} else {
+	  delete $ENV{PGDATABASE};
+	}
+	if ( $v->{username} ) {
+	  $ENV{PGUSER} = $v->{username};
+	} else {
+	  delete $ENV{PGUSER};
+	}
+	if ( $v->{password} ) {
+	  $ENV{PGPASSWORD} = $v->{password};
+	} else {
+	  delete $ENV{PGPASSWORD};
+	}
 
-  # Errors are caught by exceptions.
+	# TODO: consider setting search_path here in lieu of a per-database search_path
+	$self->{unison}->do('set statement_timeout = 300000'); # milliseconds
 
-  # If the connection succeeded, then set PG vars so that spawned apps
-  # connect to the same database.  The krb credential, if any, is
-  # implicitly passed in KRB5CCNAME.
-  if ( $v->{host} ) {
-	$ENV{PGHOST} = $v->{host};
-  } else {
-	delete $ENV{PGHOST};
-  }
-  if ( $v->{database} ) {
-	$ENV{PGDATABASE} = $v->{database};
-  } else {
-	delete $ENV{PGDATABASE};
-  }
-  if ( $v->{username} ) {
-	$ENV{PGUSER} = $v->{username};
-  } else {
-	delete $ENV{PGUSER};
-  }
-  if ( $v->{password} ) {
-	$ENV{PGPASSWORD} = $v->{password};
-  } else {
-	delete $ENV{PGPASSWORD};
-  }
+	$self->{userprefs} = $self->{unison}->get_userprefs();
+	$self->{readonly}  = 1;
 
-  # TODO: consider setting search_path here in lieu of a per-database search_path
-  $self->{unison}->do('set statement_timeout = 300000'); # milliseconds
+  } catch Unison::Exception with {
+	$self->die(
+			   $_[0],
 
-  return $self->{unison};
+			   # plus some addition stuff to tack on...
+			   'Relevant environment settings:',
+			   join(
+					'',
+					map( {
+						  "<br><code>$_: "
+						  . ( defined $ENV{$_} ? $ENV{$_} : '<i>undef</i>' )
+						  . "</code>\n"
+						 } qw(REMOTE_USER KRB5CCNAME SERVER_NAME SERVER_ADDR SERVER_PORT)
+					   )
+				   )
+			  );
+  };
+
+  return $self->{unison};					# undef on failure
 }
 
 ######################################################################
@@ -1066,6 +1066,7 @@ sub _infer_pseq_id ($) {
 
   my $self = shift;
   my $v    = $self->Vars();
+  $v->{q} =~ s/\s+//g;
 
   # If q is defined, quess what type it is and assign it to
   # an appropriate query term.  These are heuristics and fail
@@ -1206,19 +1207,26 @@ sub _make_temp_dir () {
   return if exists $self->{tmp_root_urn};	# been here before
 
   if (defined $ENV{SCRIPT_FILENAME}) {
-	# in web env
-	($self->{tmp_root_path} = $ENV{SCRIPT_FILENAME}) =~ s%/cgi/.+%/tmp/unison-web%;
-	($self->{tmp_root_urn}  = $ENV{SCRIPT_NAME})     =~ s%/cgi/.+%/tmp/unison-web%;
+	# In web env, make the web tmp dir a sibling of the current script,
+	# whereever it may be, by symlinking to /tmp.
+	my $tmp_path = dirname($ENV{SCRIPT_FILENAME}) . '/tmp';
+	if ( not -e $tmp_path ) {
+	  symlink('/tmp',$tmp_path)
+		|| $self->die("symlink('/tmp',$tmp_path}): $!\n");
+	}
+	if ( not -d "$tmp_path/unison-web" ) {
+	  mkdir( "$tmp_path/unison-web" )
+		|| $self->die("mkdir($tmp_path/unison-web)): $!\n");
+	}
+
+	$self->{tmp_root_path} = dirname($ENV{SCRIPT_FILENAME}) . '/tmp/unison-web';
+	$self->{tmp_root_urn}  = dirname($ENV{SCRIPT_NAME})     . '/tmp/unison-web';
   } else {
 	# command line
 	$self->{tmp_root_path} = '/tmp';
 	$self->{tmp_root_urn} = '/tmp';
   }
 
-  if ( not -d $self->{tmp_root_path} ) {
-	mkdir( $self->{tmp_root_path} )
-	  || $self->die("mkdir($self->{tmp_root_path}): $!\n");
-  }
 
   my @lt = localtime();
   my $ts = sprintf( "%4d-%02d-%02d-%02d",

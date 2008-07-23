@@ -1,0 +1,8 @@
+Options -ExecCGI Indexes FollowSymLinks
+IndexOptions FancyIndexing VersionSort
+HeaderName HEADER.html
+
+DirectoryIndex index.pl index.html
+
+Allow from all
+Satisfy any

@@ -1,0 +1,22 @@
+Options ExecCGI Indexes FollowSymLinks
+AddHandler cgi-script .sh
+AddHandler cgi-script .pl
+IndexOptions FancyIndexing VersionSort
+HeaderName HEADER.html
+
+DirectoryIndex index.pl index.html
+
+RedirectMatch permanent (.*)/cgi/(.*) $1/$2
+
+<IfModule mod_auth_kerb.c>
+	Require valid-user
+
+	# nph-pdb-fetch.sh must be "open" because Jmol
+	# doesn't know how to handle auth requests for 
+	# files loaded from a URL.
+	<Files nph-pdb-fetch.sh>
+	    Order allow,deny
+	    Allow from all
+	    Satisfy any
+	</Files>
+</IfModule>
