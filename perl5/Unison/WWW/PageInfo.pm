@@ -397,7 +397,7 @@ our @unison_info =
 
    {
 	name => 'Stats',
-	script => 'about_statistics.pl',
+	script => 'stats.pl',
 	# brief =>
 	pub => 1,
 	#prd => 1,
@@ -433,7 +433,7 @@ our @unison_info =
 
 #   {
 #	name => 'Prefs',
-#	script => 'about_prefs.pl',
+#	script => 'prefs.pl',
 #	brief => '',
 #	#pub => 1,
 #	#prd => 1,
@@ -442,7 +442,7 @@ our @unison_info =
 
    {
 	name => 'Environment',
-	script => 'about_env.pl',
+	script => 'env.pl',
 	brief => '',
 	#pub => 1,
 	#prd => 1,

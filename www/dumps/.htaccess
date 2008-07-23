@@ -1,8 +1,10 @@
 Options -ExecCGI Indexes FollowSymLinks
 IndexOptions FancyIndexing VersionSort
-HeaderName HEADER.html
+IndexStyleSheet "../styles/dirindex.css"
+IndexIgnore .svn ..
 
-DirectoryIndex index.pl index.html
+# the parent dir's RedirectMatch causes dumps/index.html to fail. Grr.
+DirectoryIndex /this/is/bogus
 
 Allow from all
 Satisfy any
