@@ -17,7 +17,7 @@ my %opts =
   (
    run_id    => undef,
    params_id => undef,
-   pct_id_cutoff => 80,
+   pct_id_cutoff => 50,
    hsp_len_cutoff => 50,
    verbose => 0
   );
@@ -158,7 +158,7 @@ sub _insert_hsp {
     $t_pseq_id = $q_pseq_id;
     $q_pseq_id = $holder;
   }
-  print "insert this hsp ( q_pseq_id: $q_pseq_id, t_pseq_id: $t_pseq_id )\n" if $ENV{DEBUG};
+  print "insert this hsp ( q_pseq_id: $q_pseq_id, t_pseq_id: $t_pseq_id, params_id=$opts{params_id} )\n" if $ENV{DEBUG};
 
   # get the pmodel_id for this sequence
   my $pmodel_id = $u->_get_pmodel_id_from_pseq_id($t_pseq_id);
@@ -167,7 +167,7 @@ sub _insert_hsp {
   }
 
   try {
-    $u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap );
+    $u->insert_hsp_swap( $q_pseq_id, $pmodel_id, $hsp, $swap, $opts{params_id} );
   } catch Unison::Exception with {
     die("\n$_[0]") unless "$_[0]" =~ m/duplicate key/;
   };
