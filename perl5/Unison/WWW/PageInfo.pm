@@ -352,13 +352,47 @@ Adams' Babel fish</a>.),
 our @unison_info = 
   (
    {
-	name => 'About',
-	# tab => consider '<img width="10px" height="10px" src="../av/favicon.gif" alt="u">'
-	script => 'about_unison.pl',
-	brief => 'Click for more information about Unison.',
+	name => 'Welcome',
+	script => 'index.pl',
+	brief => '',
 	pub => 1,
 	prd => 1,
-	#descr => q()
+	#descr => ,
+   },
+
+   {
+	name => 'About',
+	script => 'about.pl',
+	brief => '',
+	pub => 1,
+	prd => 1,
+	#descr => ,
+   },
+   {
+	name => 'License',
+	script => 'license.pl',
+	brief => '',
+	pub => 1,
+	prd => 1,
+	#descr => ,
+   },
+
+   {
+	name => 'Credits',
+	script => 'credits.pl',
+	brief => '',
+	pub => 1,
+	prd => 1,
+	#descr => ,
+   },
+
+   {
+	name => 'Contents',
+	script => 'contents.pl',
+	brief => 'Unison data sources and parameters',
+	pub => 1,
+	prd => 1,
+	#descr => ,
    },
 
    {
@@ -371,78 +405,87 @@ our @unison_info =
    },
 
    {
-	name => 'Origins',
-	script => 'about_origins.pl',
-	brief => 'Unison data sources',
+	name => 'Getting It',
+	script => 'getting.pl',
+	brief => '',
 	pub => 1,
 	prd => 1,
-	#descr => ,
+	descr => 'Obtaining Unison for local installation',
    },
 
    {
-	name => 'Params',
-	script => 'about_params.pl',
-	brief => 'Unison precomputed data types',
+	name => 'Documentation',
+	script => 'doc.pl',
+	brief => '',
 	pub => 1,
 	prd => 1,
-	#descr => ,
+	descr => '',
    },
 
    {
-	name => 'Env',
+	name => 'Shots',
+	script => 'shots.pl',
+	brief => '',
+	pub => 1,
+	prd => 1,
+	descr => 'Screenshots of the Unison web interface',
+   },
+
+#   {
+#	name => 'Prefs',
+#	script => 'about_prefs.pl',
+#	brief => '',
+#	#pub => 1,
+#	#prd => 1,
+#	#descr => ,
+#   },
+
+   {
+	name => 'Environment',
 	script => 'about_env.pl',
 	brief => '',
 	#pub => 1,
 	#prd => 1,
 	#descr => ,
    },
-
-   {
-	name => 'Prefs',
-	script => 'about_prefs.pl',
-	brief => '',
-	#pub => 1,
-	#prd => 1,
-	#descr => ,
-   },
-
   );
 
 
 our @page_sets = 
 	(
 	 [
+	  'Unison',
+	  'Information about Unison',
+	  'about_env.pl',
+	  \@unison_info
+	 ],
+
+	 [
 	  'Search',
 	  'Text- and Feature-based mining',
 	  'search_top.pl',
 	  \@search_info
 	 ],
+
 	 [
 	  'Browse', 
 	  'browse curated queries and precomputed sequences sets',
 	  'browse_top.pl',
 	  \@browse_info
 	 ],
+
 	 [
 	  'Analyze',
 	  'display precomputed analyses for a single protein sequence',
 	  'pseq_top.pl',
 	  \@analyze_info
 	 ],
+
 	 [
 	  'Tools',
 	  'Miscellaneous services',
 	  'tools_top.pl',
 	  \@tools_info 
 	 ],
-
-	 'break',
-
-	 [
-	  'About',
-	  'Information about Unison',
-	  'about_unison.pl',
-	  \@unison_info
-	 ]
 	);
 
