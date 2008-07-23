@@ -11,6 +11,8 @@ package Unison::Jmol;
 use strict;
 use warnings;
 
+################################################################################
+#sets height and width
 sub new {
     my ( $class, $width, $height ) = @_;
     my $self = {
@@ -22,42 +24,57 @@ sub new {
     return $self;
 }
 
+################################################################################
+#javascript headers
+#
 sub script_header {
     my ($self) = @_;
     my @ret = (
         -script => {
             -languange => 'JAVASCRIPT',
-            -src       => "../js/jmol/Jmol.js"
+            -src       => "js/jmol/Jmol.js"
         }
     );
     return @ret;
 }
 
+##################################################################################
+#handles the initial jmol view
+#pseq_structure is an object of Unison::Utilities::pseq_structure (handles seq-str map)
+#_ar's contain the results of structural template search hits
 sub initialize {
-    my ( $self, $fn, $name, $pseq_structure, $structures_ar, $templates_ar ) =
+    my ( $self, $pdbfilename, $pdbc, $pseq_structure, $structures_ar, $templates_ar ) =
       @_;
-    my $select_chain = ":" . uc( substr( $name, 4, 1 ) ) . ".*";
-    my $pdb_url = pdb_url($fn);
+    my $select_chain = ":" . uc( substr( $pdbc, 4, 1 ) ) . ".*";
+    my $pdb_url = pdb_url($pdbfilename);
+
     my $jmol_menu_arr;
-    $jmol_menu_arr =
-      $self->_get_jmol_menu_scripts( $structures_ar, 'structures' )
+    $jmol_menu_arr = $self->_get_jmol_menu_scripts( $structures_ar, 'structures' )
       if ( defined($structures_ar) );
-    $jmol_menu_arr .=
-      $self->_get_jmol_menu_scripts( $templates_ar, 'templates' )
+    $jmol_menu_arr .= $self->_get_jmol_menu_scripts( $templates_ar, 'templates' )
       if ( defined($templates_ar) );
 
+
+    #html/js for jmol
     my $retval = '';
+
     $retval .= $pseq_structure->set_js_vars(1);
-    $retval .= "\n<table border=1><tr><td colspan=3>\n";
-    $retval .= "<script>jmolInitialize(\"../js/jmol/\");\n";
+    $retval .= "\n<table width=$self->{width} border=1><tr><td colspan=3>\n";
+    $retval .= "<center>";
+    $retval .= "<script>jmolInitialize(\"js/jmol/\");\n";
     $retval .=
       "jmolApplet([$self->{'width'}, $self->{'height'}],\""
-      . $self->_load_script( "../js/Jmol/pdb/all.ent/$fn", $select_chain,
-        $name );
-    $retval .= $self->highlights( $select_chain, $pseq_structure, $name )
+      . $self->_load_script( "../js/Jmol/pdb/all.ent/$pdbfilename", $select_chain,
+        $pdbc );
+
+    #handle user specs
+    $retval .= $self->highlights( $select_chain, $pseq_structure, $pdbc )
       if ( defined( $self->{'highlights'} ) );
+
     $retval .= "\");\n";
-    $retval .= "</script></td></tr>\n";
+    $retval .= "</script></center></td></tr>\n";
+
+    #start of control UI below jmol viewer
     $retval .= "<tr><td colspan=3><center>\n";
     $retval .=
       "<script>jmolMenu([$jmol_menu_arr])</script></center></td></tr>\n";
@@ -66,12 +83,15 @@ sub initialize {
     $retval .=
 "<td width=33%><center><script>jmolButton(\"center $select_chain\", \"center\")</script></center></td>\n";
     $retval .=
-"<td width=33%><script>jmolCheckbox(\"select all; cartoon on;\",\"cartoon on; select $select_chain; restrict selected; center $select_chain;zoom 150;\",\"show all chains\")</script></td></tr>\n";
+"<td width=33%><script>jmolCheckbox(\"select all; cartoon on;\",\"cartoon on; select $select_chain; restrict selected; center $select_chain;zoom 100;\",\"show all chains\")</script></td></tr>\n";
+    #end of controls
+
     $retval .= "</table>\n";
 
     return $retval;
 }
 
+#this routine is not used anymore
 sub initialize_inline {
     my ( $self, $coord, $script, $pseq_structure ) = @_;
 
@@ -115,19 +135,19 @@ EOF
     return $retval;
 }
 
+#returns jmol commands to load a structure
 sub load {
-    my ( $self, $fn, $chain ) = @_;
+    my ( $self, $pdbfilename, $chain ) = @_;
     my $select_chain = ":" . uc($chain) . ".*";
-    my $name         = substr( $fn, 3, 4 );
-    my $pdb_url      = pdb_url($fn);
-    $self->_load_script( $fn, $select_chain, $name );
-
-#return "load $pdb_url; spacefill off; wireframe off; cartoon on; color cartoon structure;select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
+    my $name         = substr( $pdbfilename, 3, 4 );
+    my $pdb_url      = pdb_url($pdbfilename);
+    $self->_load_script( $pdbfilename, $select_chain, $name );
 }
 
+#returns jmol commands to show a residue
 sub pos_view {
     my ( $self, $pos, $chain, $label, $color ) = @_;
-    $color = ( defined($color) ? $color : 'cpk' );
+    $color = ( defined($color) ? $color : 'red' );
     if ( $color =~ /-/ ) {
         $color =~ s/-/,/g;
         $color = "[$color]";
@@ -139,29 +159,31 @@ sub pos_view {
     $retval .= "wireframe 0.5;";
     $retval .= "color $color;";
     $retval .= "select $pos$chain and *.CA;";
-    $retval .= "label $label; color label white;";
-    $retval .= "center $pos$chain; zoom 400; select all;";
+    $retval .= "label $label; color label black;";
     return $retval;
 
 }
 
+#returns jmol commands to show a region
 sub region_view {
     my ( $self, $pos1, $chain1, $pos2, $label, $color ) = @_;
-    $color = ( defined($color) ? $color : 'cpk' );
+    $color = ( defined($color) ? $color : 'red' );
     if ( $color =~ /-/ ) {
         $color =~ s/-/,/g;
         $color = "[$color]";
     }
     return "select $pos1-$pos2$chain1; color cartoon $color; select "
       . int( $pos1 + ( $pos2 - $pos1 ) / 2 )
-      . "$chain1 and *.CA; label $label; color label white;";
+      . "$chain1 and *.CA; label $label; color label black;";
 }
 
+######################################################################
 sub set_highlight_regions {
     my ( $self, $ref ) = @_;
     $self->{'highlights'} = $ref;
 }
 
+#returns jmol commands for display user specs
 sub highlights {
     my ( $self, $chain, $pseq_str, $pdbid ) = @_;
     my $script = '';
@@ -174,9 +196,9 @@ sub highlights {
         keys %{$ref}
       )
     {
-        next unless defined( $ref->{$r}{colour} );
+        next unless defined( $ref->{$r}{color} );
 
-        #translate query coordinates to structure coordinates
+        #translate query coordinates to structure coordinates ->
         my $str =
           (
             defined $pseq_str->{'templates'}{$pdbid}
@@ -187,25 +209,36 @@ sub highlights {
         my $start = $ref->{$r}{start} - $str->{'qstart'};
         my $end = $ref->{$r}{end} - $str->{'qstart'} if defined $ref->{$r}{end};
 
-        #equal to distance from template start(only for ungapped alignments)
-        $ref->{$r}{start} = $str->{'tstart'} + $start;
-        $ref->{$r}{end} = $str->{'tstart'} + $end if defined $end;
+
+	#this is not necessary, unless I forgot this is necessary
+        #commenting for now, 07/16/08: mukhyala
+
+        #-> equal to distance from template start(only for ungapped alignments)
+        #$ref->{$r}{start} = $str->{'tstart'} + $start;
+        #$ref->{$r}{end} = $str->{'tstart'} + $end if defined $end;
+
+	my $stop = defined $end ? $end : $start;
+	foreach my $template_pos($str->{'tstart'} + $start .. $str->{'tstart'} + $stop) {
+	    $ref->{$r}{start}++ if not defined $pseq_str->{'seq_str_map'}{$pdbid}{$template_pos}{atom_res};
+	}
 
         $script .= (
-            defined($end)
+            defined($ref->{$r}{end})
             ? $self->region_view(
                 $ref->{$r}{start}, $chain, $ref->{$r}{end},
-                $r,                $ref->{$r}{colour}
+                $r,                $ref->{$r}{color}
               )
             : $self->pos_view(
                 $ref->{$r}{start},
-                $chain, $r, $ref->{$r}{colour}
+                $chain, $r, $ref->{$r}{color}
             )
         );
     }
     return $script;
 }
 
+#############################################################################
+#the following return js functions calls of the same name
 sub link {
     my ( $self, $script, $name ) = @_;
     return "<form><script>jmolLink(\"$script\",\"$name\");</script></form>";
@@ -244,6 +277,8 @@ sub selectPositionLink {
     return
 "<form><script>jmolSelectPositionLink(\'$pos\',\'$label\',\'$text\');</script></form>";
 }
+#################################################################################
+
 
 sub _get_jmol_menu_scripts {
     my ( $self, $ar, $type ) = @_;
@@ -267,7 +302,7 @@ sub _get_jmol_menu_scripts {
             $_->[1]
           )
           . "\",\""
-          . substr( $_->[13], 0, 48 )
+          . substr( $_->[13], 0, $self->{width}/20)
           . " ($_->[1],eval=$_->[7],ident=$_->[9])\"],"
           for @$ar;
     }
@@ -275,11 +310,11 @@ sub _get_jmol_menu_scripts {
 }
 
 sub _load_script {
-    my ( $self, $fn, $select_chain, $name ) = @_;
+    my ( $self, $pdbfilename, $select_chain, $name ) = @_;
     my $retval  = '';
-    my $pdb_url = pdb_url($fn);
+    my $pdb_url = pdb_url($pdbfilename);
     $retval .=
-"load $pdb_url;set frank off;spacefill off; wireframe off; cartoon on; color cartoon structure; select $select_chain; restrict selected; center $select_chain;zoom 150;set echo off;set echo top left;font echo 18 serif;color echo white; echo $name;";
+"background white; load $pdb_url;set frank off;spacefill off; wireframe off; cartoon on; color cartoon lightgrey; select $select_chain; restrict selected; center $select_chain;zoom 100;set echo off;set echo top left;font echo 18 serif;color echo black; echo $name;";
     return $retval;
 }
 
