@@ -1,7 +1,9 @@
 Options -ExecCGI Indexes FollowSymLinks
-IndexOptions FancyIndexing VersionSort
+IndexOptions FancyIndexing VersionSort DescriptionWidth=*
 IndexStyleSheet "../styles/dirindex.css"
 IndexIgnore .svn ..
+AddDescription "md5 checksum for validation"   *.md5
+AddDescription "PostgreSQL dump (pg_dump -Fc)" *.pgdfc
 
 # the parent dir's RedirectMatch causes dumps/index.html to fail. Grr.
 DirectoryIndex /this/is/bogus

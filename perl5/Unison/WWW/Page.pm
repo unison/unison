@@ -1066,15 +1066,16 @@ sub _infer_pseq_id ($) {
 
   my $self = shift;
   my $v    = $self->Vars();
-  $v->{q} =~ s/\s+//g;
 
   # If q is defined, quess what type it is and assign it to
   # an appropriate query term.  These are heuristics and fail
   # under some circumstances.
   if ( defined $v->{'q'} ) {
+	$v->{q} =~ s/\s+//g;
+
 	if ( $v->{'q'} !~ m/\D/ ) {					# only numbers
 	  $v->{pseq_id} = $v->{'q'};
-	} elsif ( length($v->{'q'}) == 32 
+	} elsif ( length($v->{'q'}) == 32
 			  and $v->{'q'} !~ m/[^0-9a-f]/i ) { # md5
 	  $v->{md5} = $v->{'q'};
 	} elsif ( length($v->{'q'}) > 20
