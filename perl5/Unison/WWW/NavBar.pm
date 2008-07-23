@@ -24,6 +24,7 @@ use strict;
 use warnings;
 
 use Unison::WWW::PageInfo;
+use File::Basename qw(basename);
 
 =pod
 
@@ -196,9 +197,7 @@ sub _find_nav_ids {
   my $p   = shift;
   my @navs   = @_;
 
-  my $script = $p->url( -relative => 1 );
-  return unless defined $script;	   # e.g., when command line debugging
-  $script =~ s/\?$//;
+  my $script = basename( $0 );
 
   for ( my $i = 0 ; $i <= $#navs ; $i++ ) {
 	my @nav = @{ $navs[$i] };
