@@ -34,7 +34,7 @@ GetOptions(\%opts,
 	           'update',
 		  )  || die("$0: you got usage issues, short stack\n");
 
-unshift(@PATH, '/gne/research/apps/seg/current/i686-linux-2.6/bin/');
+unshift(@PATH, '/gne/research/apps/seg/prd/x86_64-linux-2.6/bin/');
 my $u = new Unison();
 
 # prepare the insert statement
