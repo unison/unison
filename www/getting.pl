@@ -19,7 +19,9 @@ print $p->render('Getting It', <<EOBODY);
 
 <dt>Source code
 
-<dd>The Unison source code contains raw the SQL schema, Perl modules,
+<dd>Unison is <a href="http://sourceforge.net/projects/unison-db/">hosted at
+SourceForge</a>.
+<p>The Unison source code contains raw the SQL schema, Perl modules,
 scripts, Makefiles for data loading, and a lot more.  Users may <a class="ext_link" target="_blank"
 href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/trunk/">browse
 the subversion trunk</a> or <a class="ext_link" target="_blank"
@@ -33,8 +35,5 @@ the source code via subversion.
 </dd>
 
 </dl>
-
-Unison is <a href="http://sourceforge.net/projects/unison-db/">hosted at
-SourceForge</a>.
 
 EOBODY

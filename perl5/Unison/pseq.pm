@@ -202,7 +202,6 @@ EOSQL
 	push( @annos, $h );
   }
   $sth->finish();
-  warn("q=$pseq_id; #=$#annos\n");
   return @annos;
 }
 
