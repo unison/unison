@@ -16,7 +16,7 @@ SHELL:=/bin/bash
 
 PSQL=psql -h${PGHOST} -d${PGDATABASE} -U${PGUSER} -X
 PSQL_VCMD=${PSQL} -c
-PSQL_DCMD=${PSQL} -UPUBLIC -At -c
+PSQL_DCMD=${PSQL} -At -c
 
 
 ############################################################################
@@ -33,7 +33,7 @@ PSQL_DCMD=${PSQL} -UPUBLIC -At -c
 vpath %.ids .:..
 .PHONY: ids
 ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids runA-public.ids runB-public.ids runC-public.ids
-.runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids: .%.ids:
+.runA.ids .runB.ids .runC.ids .uniA.ids .uniB.ids .uniC.ids .uniD.ids .uniblast.ids: .%.ids:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*')" >$@
 .runA-human.ids .runB-human.ids .runC-human.ids .uniA-human.ids .uniB-human.ids .uniC-human.ids .uniD-human.ids: .%-human.ids:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$*') intersect select pseq_id from pseqset where pset_id=pset_id('Human')" >$@
@@ -104,17 +104,12 @@ ids: runA.ids runB.ids runC.ids runA-human.ids runB-human.ids runC-human.ids run
 
 # -V is necessary since we'll pass passwords in the env.
 # eg$ make PBSARCH=xeon
-QPPN:=8
-QNODES:=nodes=1:ppn=${QPPN}
-ifdef Q
-QUEUE=-q${Q}
-endif
+QPPN:=2
 ifdef PBSARCH
 QNODES:=${QNODES}:${PBSARCH}
 endif
 QTIME:=120000:00
-#QOE:=-ogoose.gene.com:${PWD}/$@.out -egoose.gene.com:${PWD}/$@.err
-QSUB:=qsub ${QUEUE} -V -lwalltime=${QTIME},pcput=${QTIME},${QNODES} ${QOE}
+QSUB:=qsub -V
 
 
 
@@ -133,7 +128,7 @@ qsub/%:
 	@mkdir -p "${@D}"
 	@N="${QNAME}/`basename '$(basename $*)'`"; \
 	if [ "$${#N}" -gt "15" ]; then N=$${N:$${#N}-15:15}; fi; \
-	echo "make PGPASSWORD=${PGPASSWORD} -C${PWD} $*" | ${QSUB} -N"$$N" >$@.tmp
+	echo "make PGPASSWORD=${PGPASSWORD} -C${PWD} $*" | ${QSUB} -lnodes=1:ppn=${QPPN} -N"$$N" >$@.tmp
 	@/bin/mv -f $@.tmp $@
 	@echo "make -C${PWD} $*": `cat $@`
 
