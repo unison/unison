@@ -1,10 +1,7 @@
-UNISON README
-$Id: README,v 1.10 2006/05/12 03:42:46 rkh Exp $
-==========================================================
 Unison Protein Database -- http://unison-db.org/
-Copyright 2005-2007 Genentech, Inc., Reece Hart
+Copyright 2003-2008 Reece Hart, Genentech, Inc.
 Licensed under the Academic Free License v. 3.0
-Reece Hart <reece@unison-db.org>
+See the LICENSE file for the license text.
 
 Unison is a database of precomputed predictions on a comprehensive,
 non-redundant set of protein sequences from numerous sources.  It excels
@@ -13,5 +10,7 @@ matching sequences), but it is also well-suited to sequence analysis
 (given a sequence, show features).  The database design enables rapid,
 incremental updates of new sequences and new features.  Unison includes a
 set of command line and web tools for data loading, manipulation, and
-updating.  All of these are released under the Academic Free License
-v. 2.1 and are available on at http://unison-db.org/ .
+updating.  All of these are released under the Academic Free License and
+are available on at http://unison-db.org/ .
+
+Reece Hart <reece@unison-db.org>
