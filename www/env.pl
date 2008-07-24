@@ -102,7 +102,7 @@ sub _pg_info {
 
 
 
-sub _conn_info_html ($) {
+sub _conn_info_html {
     my $p    = shift;
     my $u    = $p->{unison};
     my $info = 'not connected to the Unison database';
@@ -113,7 +113,7 @@ sub _conn_info_html ($) {
         my $www_rel = (   ( $p->is_public_instance ? $pub_str : '' )
 						. ( $p->is_dev_instance    ? $dev_str : ('('.($Unison::RELEASE || 'no RELEASE tag').')' ) )
 					  );
-        my $api_rel = $Unison::RELEASE || $dev_str;
+        my $api_rel = $Unison::REVISION || $dev_str;
         my $db_rel = ( $u->is_public_instance ? $pub_str : '' ) . ' '
             . ( $u->release_timestamp() || $dev_str );
         my $www_user
@@ -128,12 +128,11 @@ sub _conn_info_html ($) {
 
         $info = <<EOHTML;
 <pre>
-<b>web release:</b> $www_rel
+<b>Unison revision:</b> $Unison::REVISION
+
 <b>web host:</b>    $ENV{SERVER_NAME}
 <b>web client:</b>  $ENV{REMOTE_ADDR}
 <b>web user:</b>    $www_user
-
-<b>API release:</b> $api_rel
 
 <b>db release:</b>  $db_rel
 <b>db host:port:</b> $db_host

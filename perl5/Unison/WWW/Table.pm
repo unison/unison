@@ -81,7 +81,7 @@ sub render_compat {
 
     if ( not defined $opts->{highlight_column} ) {
         $rv =
-"<DIV STYLE=\"overflow: auto; height: 100px; padding:0px; margin: 0px\">"
+"<DIV STYLE=\"height: 100px;\">"
           . $tbl_start
           if ( $opts->{scroll} );
         $rv .= "\n<thead>\n  <tr>\n"

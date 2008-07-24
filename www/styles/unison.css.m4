@@ -143,13 +143,13 @@ div.nav a:hover {
 
 
 /* grouped data */
-fieldset {
+fieldset.group {
  border: medium solid U_FRAME;
  margin: 5px 0px 15px 0px;
  padding: 3px;
 }
 
-legend {
+fieldset.group legend {
  border-color: U_LEGEND_FRAME;
   border-style: solid;
   border-width: 0px medium 0px medium;
@@ -159,11 +159,16 @@ legend {
  padding: 2px 5px 2px 5px;
 }
 
+fieldset.group hr {
+ color: U_LEGEND_FRAME;
+ background: U_LEGEND_FRAME;
+ margin: 2px 50px 2px 50px;
+}
+
 span.group_ctl {
  background: U_BG;
  color: U_FRAME;
 }
-
 
 
 /* Summary table */

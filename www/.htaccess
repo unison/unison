@@ -4,13 +4,13 @@ AddHandler cgi-script .pl
 IndexOptions FancyIndexing VersionSort
 HeaderName HEADER.html
 
-DirectoryIndex index.pl index.html
+DirectoryIndex index.html index.pl
 
 RedirectMatch permanent (.*)/cgi/(.*) $1/$2
 
 # reimplemented static HTML with Unison::WWW::Page
 RedirectMatch permanent (.*)/credits.html		  $1/credits.pl
-RedirectMatch permanent (.*)/index.html 		  $1/index.pl
+RedirectMatch permanent (.*)/(?!tour|dumps)/index.html  $1/$2/index.pl
 RedirectMatch permanent (.*)/license.html 		  $1/license.pl
 RedirectMatch permanent (.*)/more.html 			  $1/about.pl
 RedirectMatch permanent (.*)/shots.html 		  $1/shots.pl

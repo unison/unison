@@ -43,6 +43,11 @@ precommit:
 	make -C build csb-dev.sql
 
 
+install: .svnversion
+.svnversion:
+	svnversion >$@
+
+
 SVN2CL_OPTS=--group-by-day
 ChangeLog:
 	svn2cl -o $@ ${SVN2CL_OPTS}

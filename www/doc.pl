@@ -49,8 +49,11 @@ will eventually reside there.
 href="http://lists.sourceforge.net/lists/listinfo/unison-db-announce">unison-db-announce</a>
 mailing list.  We will likely make a user mailing list as well.  </dd>
 
-<dt>Mail the authors
-<dd>Send email to unison-db at unison.org.</dd>
+<dt><a href="mailto:unison\@unison-db.org?Subject=Unison">Mail the authors</a>
+<dd>Send email to unison at unison-db.org.</dd>
+
+<dt><a href="http://sourceforge.net/tracker/?group_id=140591">Bugs and Feature Requests</a>
+<dd>Bugs and feature requests may be browsed or filed. Code submissions are welcome!</dd>
 
 </dl>
 

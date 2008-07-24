@@ -64,7 +64,7 @@ EOHTML
 our @search_info = 
   (
    {
-	name => 'Alias Search',
+	name => 'Aliases',
 	script => 'search_alias.pl',
 	brief => 'Search for proteins by alias',
 	descr => q(Search Unison by protein accession, identifier, or checksum.),
@@ -73,7 +73,7 @@ our @search_info =
    },
 
    {
-	name => 'Feature Search',
+	name => 'Features',
 	script => 'search_features.pl',
 	brief => 'Feature-based mining for protein sequecnes',
 	descr => qq(Search for protein sequence based on a variety of criteria.),
@@ -81,7 +81,7 @@ our @search_info =
    },
 
    {
-	name => 'Property Search',
+	name => 'Properties',
 	script => 'search_properties.pl',
 	brief => 'Property-based sequence searches',
 	descr => qq(Search for sequences based on sequence source, size, age,

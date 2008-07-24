@@ -14,28 +14,18 @@ use Unison::WWW::Page qw(skip_db_connect);
 my $p = new Unison::WWW::Page();
 
 print $p->render('Download', <<EOBODY);
-<h1>Unison In a Nutshell</h1>
-
-<fieldset class="group" style="width: 40%; float: right;">
-<legend>
-Results Sliced to Order
-</legend>
-
-<a class="nofeedback" href="av/results-cube.jpg">
-<img style="width: 100%;" src="av/results-cube-med.jpg" alt="[Results Cube]">
+<fieldset class="group" style="width: 300px; float: right; clear: right;">
+<legend>Unison Overview</legend>
+<a class="nofeedback" href="av/concept-graphic.jpg">
+<img width="100%" src="av/concept-graphic-med.jpg" alt="[Concept]">
 </a>
-
-<br>Results in Unison are stored in a sparse cube. The axes of the cube
-are 1) distinct sequences, 2) feature types/models, and 3) parameters.
-The elements of the cube store structured data appropriate for the
-prediction.
-
 </fieldset>
 
+<h1>Unison In a Nutshell</h1>
 
 <h2>Goals</h2>
 
-Unison's primary goal is to decrease the challenges associated with asking
+Unison's primary goal is to decrease the barriers associated with answering
 both simple and complex questions about protein function and structure.
 Unison was designed with three key functional goals in mind:
 
@@ -63,6 +53,19 @@ Unison was designed with three key functional goals in mind:
   </dd>
 </dl>
 
+<br style="clear: both;">
+
+<fieldset class="group" style="width: 300px; float: right;">
+<legend>Results Sliced to Order</legend>
+<a class="nofeedback" href="av/results-cube.jpg">
+<img style="width: 100%;" src="av/results-cube-med.jpg" alt="[Results Cube]">
+</a>
+<hr>
+Conceptually, prediction results are stored in a sparse cube. The axes
+of the cube are 1) distinct sequences, 2) feature types/models, and 3)
+parameters.  The elements of the cube store structured data appropriate
+for the prediction. [Click for a larger image.]
+</fieldset>
 
 <h2>Unique Features</h2>
 
@@ -107,10 +110,11 @@ A few of Unison's distinguishing features are:
 </dl>
 
 <div style="padding: 5px; margin-left: 20px; margin-right: 20px; border: thin solid
-red;"><span style="color: red;">*</span> The public version of Unison
+red; clear: both;"><span style="color: red;">*</span> The public version of Unison
 contains only public sequences and results of non-proprietary methods.
 The entire schema and loading tools are included with the public release;
 institutions may load these proprietary data if they wish.</div>
+
 
 <h2>Take the Tour</h2>
 Much more sophisticated queries are possible using the Perl API
