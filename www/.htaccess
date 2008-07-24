@@ -4,7 +4,7 @@ AddHandler cgi-script .pl
 IndexOptions FancyIndexing VersionSort
 HeaderName HEADER.html
 
-DirectoryIndex index.html index.pl
+DirectoryIndex index.pl index.html
 
 RedirectMatch permanent (.*)/cgi/(.*) $1/$2
 

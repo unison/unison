@@ -44,7 +44,7 @@ precommit:
 
 
 install: .svnversion
-.svnversion:
+.svnversion: FORCE
 	svnversion >$@
 
 
