@@ -34,6 +34,8 @@ submodules in the Unison:: API.  The following are currently loaded:
 
 =item use Unison::run_history;
 
+=item use Unison::version;
+
 
 Please see these submodules for documention.
 
@@ -46,9 +48,6 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-our $RELEASE = '';
-if (q$HeadURL: https://unison-db.svn.sourceforge.net/svnroot/unison-db/trunk/perl5/Unison/common.pm $ =~ m/tags\/rel_(\S*?)\//) { ($RELEASE = $1) =~ s/-/./g; }
-
 use Unison::DBI;
 use Unison::Exceptions;
 use Unison::pannotation;
@@ -56,6 +55,7 @@ use Unison::params;
 use Unison::origin;
 use Unison::pseq;
 use Unison::run_history;
+use Unison::version;
 
 =pod
 

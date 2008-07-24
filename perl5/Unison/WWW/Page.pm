@@ -103,7 +103,7 @@ sub new {
 	my @st = grep { exists $v->{$_} } qw(q pseq_id seq md5 alias);
 	if ( @st > 1 ) {
 	  $self->die(
-				 "please don't provide more than one search parameter",
+				 "More than one search parameter provided",
 				 sprintf(
 						 'You provided criteria for %d terms (%s)',
 						 $#st + 1, join( ',', @st )
@@ -346,7 +346,8 @@ sub start_page() {
   my $p = shift;
   my $v = $p->Vars();
   my $navbar = Unison::WWW::NavBar::render_navbar($p);
-  my $logo_tooltip = ( '<b>Connection information:</b>'
+  my $logo_tooltip = ( '<b>Unison revision:</b> ' . $Unison::REVISION
+					   . '<br><b>Connection information:</b>'
 					   . ( defined $v->{dbname} 
 						   ? sprintf(
 									 '<br><b>db host:</b> %s'
@@ -451,7 +452,7 @@ sub group {
   }
 
   return <<EOF;
-<fieldset>
+<fieldset class="group">
 <legend>$tag</legend>
 @_
 </fieldset>
@@ -846,7 +847,7 @@ sub debug {
 sub import {
   my $self = shift;
   for (@_) {
-	if    ($_ eq 'infer_pseq_id')   {$infer_pseq_id = 1 }
+	if    ($_ eq 'infer_pseq_id')   { $infer_pseq_id = 1   }
 	elsif ($_ eq 'skip_db_connect') { $skip_db_connect = 1 }
   }
 }
@@ -1090,7 +1091,7 @@ sub _infer_pseq_id ($) {
 	return $v->{pseq_id};
   }
 
-  if ( exists $v->{seq} ) {
+  if ( defined $v->{seq} ) {
 	my $pseq_id = $self->{unison}->pseq_id_by_sequence( $v->{seq} );
 	if ( not defined $pseq_id ) {
 	  $self->die( 'sequence not found',
@@ -1099,14 +1100,13 @@ sub _infer_pseq_id ($) {
 	return $pseq_id;
   }
 
-  if ( exists $v->{md5} ) {
+  if ( defined $v->{md5} ) {
 	my (@ids) = $self->{unison}->pseq_id_by_md5( $v->{md5} );
 	if ( $#ids == -1 ) {
 	  $self->die( 'md5 checksum not found',
 				  'The md5 checksum you provided wasn\'t found in Unison.' );
 	} elsif ( $#ids > 0 ) {
-
-	  # md5 collision! (hasn't happened yet and I don't expect it), but just in case...
+	  # This case is extremely unlikely.
 	  $self->die(
 				 'md5 collision!',
 				 'The md5 checksum you provided corresponds to more than one sequence.'
@@ -1134,7 +1134,6 @@ sub _infer_pseq_id ($) {
   print $self->render(
 					  'Please specify a sequence',
 					  '<p>Please specify a protein sequence by sequence alias/accession, Unison pseq_id, or md5 checksum.',
-					  '<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>',
 
 					  $self->start_form( -method => 'GET' ),
 					  'query: ',
@@ -1144,10 +1143,10 @@ sub _infer_pseq_id ($) {
 									   -maxlength => 32
 									  ),
 					  $self->submit( -value => 'submit' ),
-					  '<p>',
+					  '<br>', $self->note('Examples: <code>TNFA_HUMAN, P01375, ENSP00000229681, NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>'),
 					  $self->end_form(),
 					  "\n",
-					  'You may wish to use the more advanced search abilities under the "Search" tab instead.'
+					  '<p>You may wish to use the more advanced search abilities under the "Search" tab instead.'
 					 );
   exit(0);
 

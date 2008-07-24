@@ -16,10 +16,6 @@ my $p = new Unison::WWW::Page();
 print $p->render('Welcome', <<EOBODY);
 <fieldset class="group" style="width: 40%; float: right;">
 <legend>Unison in a Nutshell</legend>
-Unison integrates many types of protein predictions to enable holistic
-mining of sequences based on protein features, synthesis of these
-predictions for the analysis of individual and sets of sequences, and
-refinement of hypotheses regarding the composition of protein families.
 <div style="text-align:">
 <a class="nofeedback" href="about.pl">
 <img width="100%" src="av/concept-graphic-med.jpg" alt="[Concept]">
@@ -31,8 +27,14 @@ refinement of hypotheses regarding the composition of protein families.
 <span style="font-size: 150%; font-weight: bold;">Welcome to Unison</span>
 <p>
 
+Unison is a compendium of protein sequences and extensive precomputed
+predictions.  Integration of these and other data within Unison enables
+holistic mining of sequences based on protein features, synthesis of these
+predictions for the analysis of individual and sets of sequences, and
+refinement of hypotheses regarding the composition of protein families.
 
-Some Uses of Unison:
+<p>Some uses of Unison:
+
   <dl>
 	<dt>Analysis of an Individual Sequence
 	  <dd>
@@ -43,7 +45,7 @@ Some Uses of Unison:
 		<form method="get" action="pseq_summary.pl" enctype="application/x-www-form-urlencoded">
 		  <p>Enter a sequence, sequence alias, md5 checksum: <input type="text" name="q" size="20" maxlength="2000"/><input type="submit" value="go"/>
 			<br><i>An alias may be an accession or identifer from any database contained in Unison.</i>
-			<br><i>e.g.,</i> <code>TNFA_HUMAN, P01375, <!-- , ENSP00000229681 --> NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code>
+			<br><span class="note"><i>e.g.,</i> <code>TNFA_HUMAN, P01375, <!-- , ENSP00000229681 --> NP_000585.2, IPI00001671.1, 60ada54e69e411bcf6b08e9dacff7a48</code></span>
 		</form>
 	  </dd>
 
