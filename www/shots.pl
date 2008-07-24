@@ -19,12 +19,12 @@ print $p->render('Screenshots', <<EOBODY);
 <table class="shots">
 
 <tr>
-  <th><a class="nofeedback" href="av/ss-summary.png"><img src="av/ss-summary-sm.png"></a></th>
+  <th><a class="nofeedback" href="av/ss-summary.png"><img src="av/ss-summary-sm.jpg"></a></th>
   <td>The Unison summary page for a specified sequence.</td>
 </tr>
 
 <tr>
-  <th><a class="nofeedback" href="av/ss-aliases.png"><img src="av/ss-aliases-sm.png"></a></th>
+  <th><a class="nofeedback" href="av/ss-aliases.png"><img src="av/ss-aliases-sm.jpg"></a></th>
   <td>Aliases are the identifiers and accessions by which a sequence is
   known. Most sequences appear in multiple databases (sometimes multiple
   times), but they're stored non-redundantly in Unison. This page shows
@@ -32,7 +32,7 @@ print $p->render('Screenshots', <<EOBODY);
 </tr>
 
 <tr>
-  <th><a class="nofeedback" href="av/ss-patents.png"><img src="av/ss-patents-sm.png"></a></th>
+  <th><a class="nofeedback" href="av/ss-patents.png"><img src="av/ss-patents-sm.jpg"></a></th>
   <td>Sequences from NCBI's patent database within a user-specifiable
   neighborhood of a query. Derwent Geneseq sequences will also be shown if
   available, but these are not included in the public release.
@@ -40,7 +40,7 @@ print $p->render('Screenshots', <<EOBODY);
 </tr>
 
 <tr>
-  <th><a class="nofeedback" href="av/ss-loci.png"><img src="av/ss-loci-sm.png"></a></th>
+  <th><a class="nofeedback" href="av/ss-loci.png"><img src="av/ss-loci-sm.jpg"></a></th>
   <td>Most human sequences are aligned to the Human Genome
   using <a href="http://share.gene.com">pmap</a> (Tom Wu, Colin Watanabe).
   This page summarizes those alignments.
@@ -48,19 +48,19 @@ print $p->render('Screenshots', <<EOBODY);
 </tr>
 
 <tr>
-  <th><a class="nofeedback" href="av/ss-functions.png"><img src="av/ss-functions-sm.png"></a></th>
+  <th><a class="nofeedback" href="av/ss-functions.png"><img src="av/ss-functions-sm.jpg"></a></th>
   <td>GO and NCBI GeneRIFs (References into Function)</td>
 </tr>
 
 <tr>
-  <th><a class="nofeedback" href="av/ss-features.png"><img src="av/ss-features-sm.png"></a></th>
+  <th><a class="nofeedback" href="av/ss-features.png"><img src="av/ss-features-sm.jpg"></a></th>
   <td>All predicted sequence features on one panel. Mouseovers on features
   provide a digest of the feature, and most features provide links to
   models or source data.</td>
 </tr>
 
 <tr>
-  <th><a class="nofeedback" href="av/ss-structure.png"><img src="av/ss-structure-sm.png"></a></th>
+  <th><a class="nofeedback" href="av/ss-structure.png"><img src="av/ss-structure-sm.jpg"></a></th>
   <td>Structure and domain visualization using JMol. Domains, SNPs, and
   other features stored in Unison may be selected and displayed on
   structure.  This page also supports the display of features that are
