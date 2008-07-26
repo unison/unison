@@ -239,7 +239,6 @@ table.shots th {
 }
 table.shots td {
   vertical-align: middle;
-  /*font-weight: bold; */
  border: thin solid U_FRAME;
 }
 table.shots th img {
@@ -433,13 +432,15 @@ div.top dl {
 }
 div.top dt {
  margin: 0px;
-  border-bottom: thin dotted U_FRAME_BG;
-  font-weight: bold;
+ border-bottom: thin dotted U_FRAME_BG;
+ font-weight: bold;
 }
 div.top dd {
  margin: 0px 0px 10px 0px;
 }
 
+
+/* USED?
 div.top fieldset {
  border: thin dotted U_FRAME;
  margin: 5px;
@@ -455,7 +456,7 @@ div.top legend {
  font-weight: bold;
  padding: 2px 5px 2px 5px;
 }
-
+*/
 
 
 
