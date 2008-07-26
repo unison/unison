@@ -253,7 +253,8 @@ my %ms = map { $_->[0] => "$_->[1] (set $_->[0])" } @ms;
 
 print $p->render(
     "Sequence Mining Summary",
-
+				 
+				 '<h1>OnTarget</h1>',
     '<p>This page allows you assess sensitivity and
 				 specificity of models, methods, and parameters. 1) Select
 				 the Model Set, methods, and thresholds you wish to use to

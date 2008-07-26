@@ -7,7 +7,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../perl5", "$FindBin::RealBin/../perl5-ext";
 
 use Unison::WWW;
-use Unison::WWW::Page;
+use Unison::WWW::Page qw(skip_db_connect);
 use Unison::WWW::utilities qw(render_app_list);
 use Unison::WWW::PageInfo;
 

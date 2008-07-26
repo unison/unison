@@ -29,9 +29,9 @@ print $p->render('Welcome', <<EOBODY);
 
 Unison is a compendium of protein sequences and extensive precomputed
 predictions.  Integration of these and other data within Unison enables
-holistic mining of sequences based on protein features, synthesis of these
-predictions for the analysis of individual and sets of sequences, and
-refinement of hypotheses regarding the composition of protein families.
+holistic mining of sequences based on protein features, analysis of
+individual and sets of sequences, and refinement of hypotheses regarding
+the composition of protein families.
 
 <p>Some uses of Unison:
 
@@ -55,7 +55,7 @@ refinement of hypotheses regarding the composition of protein families.
 	  <dd>Unison excels at mining based on precomputed sequences features.
 		You may search for sequences
 		by <a href="search_properties.pl">specifying
-		features</a>, <a href="search_sets.pl">exploring curated
+		features</a>, <a href="on_target.pl">exploring curated
 		models and sequence sets</a>,
 		or <a href="browse_views.pl">browsing predefined, dynamic
 		queries</a>.
