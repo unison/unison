@@ -113,7 +113,7 @@ sub initialize_structures {
         $self->{'structures'}{ $r->[0] }{descr}  = $r->[1];
         $self->{'structures'}{ $r->[0] }{qstart} = 1;
         $self->{'structures'}{ $r->[0] }{qstop}  = $r->[2];
-        $self->{'structures'}{ $r->[0] }{tstart} = undef;
+        $self->{'structures'}{ $r->[0] }{tstart} = 1;
     }
 }
 
