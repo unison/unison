@@ -1,0 +1,283 @@
+#! /usr/bin/env perl
+# unison-structure-graphic
+# $Id$
+
+=pod
+
+=head1 NAME
+
+B<unison-structure-graphic> -- generate image of ... from Unison
+S<$Id$>
+
+=head1 SYNOPSIS
+
+  unison-structure-graphic 1234
+  unison-structure-graphic -A TNFA_HUMAN
+  unison-structure-graphic -S seqs.fa
+  unison-structure-graphic -G 1956
+
+=head1 OPTIONS
+
+
+unison-structure-graphic [-o image.ext -S|-A|-F|-P|-G|-p -f png|jpeg|gif -v|-h|-V]
+
+               input choices
+               -------------
+    Sequence Selection
+ #1 by sequence as input(protein sequences only)
+ unison-structure-graphic -S <fasta file>
+    or cat <fasta file> | unison-structure-graphic -S
+ #2 by an alias (protein accessions only)
+ unison-structure-graphic -A <alias>
+    or echo <alias> | unison-structure-graphic -A
+ #3 by a fuzzy alias (protein accessions only)
+ unison-structure-graphic -F <fuzzy alias>
+    or echo <fuzzy alias> | unison-structure-graphic -F
+ #4 by sequence id
+ unison-structure-graphic -P <pseq_id>
+    or echo <pseq_id> | unison-structure-graphic -P
+    or unison-structure-graphic pseq_id (default)
+    or echo pseq_id | unison-structure-graphic
+    or unison-structure-graphic <range-of-pseq_ids>
+ #5 by NCBI gene id
+ unison-structure-graphic -G <gi>
+    or echo <gi> | unison-structure-graphic -G
+    or unison-structure-graphic -G <range-of-gis>
+
+
+               output format choices
+               --------------
+ #1
+ unison-structure-graphic -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
+ #2 verbose
+ unison-structure-graphic -v [-S|-A|-F|-P|-G|-p] <input>
+ #3 help and Version
+ perldoc unison-structure-graphic
+ unison-structure-graphic -V
+
+=head1 DESCRIPTION
+
+B<unison-structure-graphic> generates an image of ... 
+
+=cut
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::RealBin/../../perl5";
+
+use File::Temp qw(tempfile);
+
+use Unison;
+
+#module for sequence structure alignments
+use Unison::Utilities::pseq_structure;
+#common module for handling user input for most unison- tools 
+use Unison::Utilities::unison_tools; 
+use Pod::Usage;
+
+#I still don't like hardwiring the path
+my $pdb_path = defined $ENV{PDB_PATH} ? $ENV{PDB_PATH} : "/gne/research/data/public/pdb/all.ent";
+
+my $u = new Unison();
+my $ut = new Unison::Utilities::unison_tools($u);
+$ut->get_user_specs();
+
+#this hash holds all the commandline options
+my %opts = %{$ut->{opts}};
+
+#hmm... really?
+unlink($opts{outfile}) if -e $opts{outfile};
+
+#get pseq_id from user input
+my $pseq_ids = $ut->{pseq_ids};
+die "no pseq_ids\n" if scalar @$pseq_ids < 1;
+if (scalar @$pseq_ids > 1) {
+    warn "Your input corresponds to more than one sequence, will pick one ...\n" ;
+    die "Cannot resolve aminoacid coordinate\n" if defined $opts{features};
+}
+
+#see above
+my $pseq_str = new Unison::Utilities::pseq_structure( $pseq_ids->[0]) || die "for reasons you know\n";
+$pseq_str->unison($u);
+
+#-------------------------------------------
+#find structures/ suitable templates
+my $structures_ar = $pseq_str->find_structures();
+my $templates_ar  = $pseq_str->find_templates();
+
+die("Sorry no structures/templates found\n")
+      if (  $pseq_str->{'num_structures'} == 0
+        and $pseq_str->{'num_templates'} == 0 );
+warn "multiple structures found, picking one...\n" if $pseq_str->{num_structures} + $pseq_str->{num_templates} > 1 and $opts{verbose};
+
+
+$pseq_str->load_first_structure();
+
+my $pdbid = defined $opts{pdbid} ? $opts{pdbid} : $pseq_str->{'loaded_structure'};
+
+#--------------------------------------------
+#start image generation using pymol
+
+#get pymol script
+my $pmlfile = gen_pml($pdbid);
+
+#run pymol
+system("pymol -qck $pmlfile");
+$? && die("FAILED: pymol -qc $pmlfile $!\n");
+die "couldn't create an image\n" if not -e $opts{outfile};
+#---------------------------------------------
+
+#---------------------------------------------
+#scaling if neeed
+if(defined $opts{width} or defined $opts{height} or ($opts{format} ne 'png')) {
+    my $f = $opts{format};
+    my $w = $opts{width} || $opts{init_wigth};
+    my $h = $opts{height} || $opts{init_height};
+    my $scale = $w.'x'.$h;
+    my $scaled_fn = $opts{outfile};
+    $scaled_fn =~ s/\.png/\_scaled.$opts{format}/;
+    system("convert $opts{outfile} -scale $scale $scaled_fn");
+    $? && die("scaling FAILED with imagemagick: $!\n");
+}
+#---------------------------------------------
+
+
+exit(0);
+
+## END OF MAIN
+
+############################################################################
+## INTERNALS
+############################################################################
+
+
+sub gen_pml {
+
+    my $pdbc = shift || die "Structure not loaded, but it should have been :(";
+    my $pdbid= substr($pdbc,0,4);
+    my $chain= substr($pdbc,4,1);
+
+    my ( $fh, $fn ) = File::Temp::tempfile( UNLINK => 1,SUFFIX => '.pml' );
+
+    my $feat_rend_cmds = '';
+    my $feedback_cmd = $opts{verbose} ? '' : 'feedback disable,all,everything';
+
+    my ($start_res_id,$end_res_id) = (-1,0);
+    if(defined $opts{feats}) {
+	foreach my $feat (keys %{$opts{feats}}) {
+	    $opts{feats}{$feat}{end} = $opts{feats}{$feat}{start} if not defined $opts{feats}{$feat}{end};
+	}
+	foreach my $feat (sort {$opts{feats}{$b}{end} - $opts{feats}{$b}{start} <=> $opts{feats}{$a}{end} - $opts{feats}{$a}{start}} keys %{$opts{feats}}) {
+
+	    my ($start_res_id,$end_res_id) = get_res_ids($feat,$pdbc);
+
+	    $feat_rend_cmds .= get_feat_rend_cmds($start_res_id,$end_res_id,$chain,$feat,$opts{feats}{$feat}{color}) 
+		if defined $start_res_id and defined $end_res_id;
+      }
+    }
+    print $fh <<PYM;
+$feedback_cmd
+load $pdb_path/pdb$pdbid.ent
+bg_color $opts{bg_color}
+
+set antialias, 2
+set ray_trace_mode, 1
+set cartoon_fancy_helices, 1
+set cartoon_highlight_color, grey90
+set sphere_scale, 1
+set depth_cue, off
+
+set label_font_id, 7
+set label_size, 12
+set label_shadow_mode, 3
+set antialias, 2
+set ray_trace_mode, 1
+
+hide everything
+color grey90, all
+select $pdbc, pdb$pdbid and chain $chain
+deselect
+show cartoon, $pdbc
+zoom chain $chain
+
+$feat_rend_cmds
+deselect
+
+ray $opts{init_width}, $opts{init_height}
+png $opts{outfile}
+quit
+PYM
+
+return $fn;
+}
+
+############################################################################
+sub get_feat_rend_cmds {
+    my ($res_id,$end_res_id,$chain,$name,$color) = @_;
+    $color = $opts{snp_color} if not defined $color;
+    my $color_cmd="color $color";
+    if ($color =~ /\-/) {
+	$color =~ s/\-/\,/g;
+	$color_cmd = "set_color color_of_$name, [$color]\ncolor color_of_$name" ;
+    }
+    my $res_range = $res_id;
+    $res_range .= defined $end_res_id ? "-$end_res_id" : '';
+    my $rend = $res_id < $end_res_id ? 'cartoon' : 'spheres';
+    my $label_cmd = $res_id < $end_res_id ? "label lab$name and name CA, \"$name\"" : '';
+    my $label_pos = defined $end_res_id ? $res_id + int(($end_res_id-$res_id)/2) : $res_id;
+    my $ret = <<PML;
+select $name, chain $chain and resi $res_range
+$color_cmd, $name
+show $rend, $name
+select lab$name, chain $chain and resi $label_pos 
+$label_cmd
+
+PML
+return $ret;
+}
+
+############################################################################
+sub get_res_ids {
+
+    my ($feat,$pdbc) = @_;
+        #translate query coordinates to structure coordinates ->
+        my $str =
+          (
+            defined $pseq_str->{'templates'}{$pdbc}
+            ? $pseq_str->{'templates'}{$pdbc}
+            : $pseq_str->{'structures'}{$pdbc} );
+
+
+    if ($opts{feats}{$feat}{start} > $str->{'qstop'} or $opts{feats}{$feat}{start} < $str->{'qstart'}) {
+	warn "feature ($feat) falls outside of region covered by structure ($pdbid)\n";
+	return (undef,undef);
+    }
+
+        #distance from query start
+        my $start = $opts{feats}{$feat}{start} - $str->{'qstart'};
+        my $end = $opts{feats}{$feat}{end} - $str->{'qstart'} if defined $opts{feats}{$feat}{end};
+
+	my $stop = defined $end ? $end : $start;
+	foreach my $template_pos($str->{'tstart'} + $start .. $str->{'tstart'} + $stop) {
+	    $opts{feats}{$feat}{start}++ if not defined $pseq_str->{'seq_str_map'}{$pdbc}{$template_pos}{'atom_res'};
+	}
+
+        $start = $opts{feats}{$feat}{start} - $str->{'qstart'};
+
+        #-> equal to distance from template start(only for ungapped alignments)
+        $start += $str->{'tstart'};
+        $stop += $str->{'tstart'};
+
+	my $start_pdb_res = $pseq_str->{'seq_str_map'}{$pdbc}{$start};
+	my $start_res_id     = $start_pdb_res->{'res_id'} || die "start res_id nor defined";
+
+	my $end_pdb_res = $pseq_str->{'seq_str_map'}{$pdbc}{$stop};
+	my $end_res_id     = $end_pdb_res->{'res_id'} || die "end res_id nor defined";
+
+	return ($start_res_id,$end_res_id);
+}
+
+
+
