@@ -45,6 +45,14 @@ unison-structure-graphic [-o image.ext -S|-A|-F|-P|-G|-p -f png|jpeg|gif -v|-h|-
     or unison-structure-graphic -G <range-of-gis>
 
 
+    User Features and Highlights
+ #defining user features
+    unison-structure-graphic --features=feat1@start[-end],feat2...
+ #defining highlights
+    unison-structure-graphic --highlight=user:feat1:color,HMM:dom1:color
+    where color is any color name or [R-G-B] or *hexadecimal or simply R-G-B
+
+
                output format choices
                --------------
  #1
