@@ -6,7 +6,7 @@
 
 =head1 NAME
 
-B<unison-structure-graphic> -- generate image of ... from Unison
+B<unison-structure-graphic>
 S<$Id$>
 
 =head1 SYNOPSIS
@@ -55,17 +55,26 @@ unison-structure-graphic [-o image.ext -S|-A|-F|-P|-G|-p -f png|jpeg|gif -v|-h|-
 
                output format choices
                --------------
- #1
+ #1 image format
  unison-structure-graphic -f png|jpeg|gif [-S|-A|-F|-P|-G|-p] <input>
- #2 verbose
+ #2 resolution, width height 
+ generates high resolution image and then scales back if needed
+ unison-structure-graphic --width 300 --heigth 300 --init_width 1200 --init_heigth 1200
+ #3 verbose
  unison-structure-graphic -v [-S|-A|-F|-P|-G|-p] <input>
- #3 help and Version
+ #4 help and Version
  perldoc unison-structure-graphic
  unison-structure-graphic -V
 
 =head1 DESCRIPTION
 
-B<unison-structure-graphic> generates an image of ... 
+B<unison-structure-graphic> generates an image of a structure for the input sequences(s)
+
+ If multiple sequences correspond to your input, a sequence is automatically picked
+ If multiple structures/templates are available for the picked sequence, a structure is automatically picked
+ The basis for picking the sequence and structure can be improved
+
+ Pfam domains and user input features can be highlighted
 
 =cut
 
