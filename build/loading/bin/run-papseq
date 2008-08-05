@@ -25,6 +25,7 @@ my %opts =
    filter => 'F',
    dblength => undef,
    program => 'blastp',
+   num_alns => 10000,
    query => undef,
    database => undef,
    cpus => 2,
@@ -37,6 +38,7 @@ GetOptions(\%opts,
 	   'expect|e=f',
 	   'filter|F=s',
 	   'dblength|z=i',
+	   'num_alns|b=i',
 	   'query|i=s',
 	   'database=s',
 	   'cpus|a=i',
@@ -76,6 +78,7 @@ my $blast_command = "blastall".
   " -F ".$opts{filter}.
   " -z ".$opts{dblength}.
   " -e ".$opts{expect}.
+  " -b ".$opts{num_alns}.
   " -a ".$opts{cpus};
 
 print "Running $blast_command\n" if $ENV{DEBUG};
