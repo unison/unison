@@ -124,7 +124,7 @@ sub get_netphos_results {
 	  push(@results, \@F);
 	}
   }
-
+  $in->close();
   return @results;
 }
 
