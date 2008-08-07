@@ -133,10 +133,10 @@ my @short_table_defs = (
 my @long_table_defs = (
     [ 'signalp', 'pseq_features_signalpnn_v', [qw(start stop)] ],
     [ 'tm',      'pseq_features_tmhmm_v',     [qw(start stop)] ],
-    [ 'regexp',  'pseq_features_regexp_v',    [qw(start stop feature)] ],
+    [ 'regexp',  'pseq_features_prosite_v',    [qw(start stop feature)] ],
     [ 'bigpi',   'pseq_features_bigpi_v', [qw(start score eval details)] ],
     [ 'patents', 'patent_count_v',        [qw(count)] ],
-    [   'pfam', 'pseq_features_hmm_v',
+    [   'pfam', 'pseq_features_pfam_v',
         [qw(start stop score eval acc feature descr)]
     ],
     [ 'protcomp', 'psprotcomp_reliable_v', [qw(loc)] ],
