@@ -47,8 +47,13 @@ our %opts = (
     host 		=> ( ( ( exists $ENV{PGHOST} )
 					   and ( $ENV{PGHOST} =~ m/\w/ ) )
 					 ? $ENV{PGHOST}
-					 : 'unison-db.org' ),
-    dbname 		=> $ENV{PGDATABASE} || 'unison',
+					 : (`dnsdomainname` =~ m/^gene\.com$/ or `hostname` =~ m/gene\.com$/) # Genentech
+			                 ? 'respgsql' 
+			                 : 'unison-db.org' ),
+    dbname 		=> $ENV{PGDATABASE} 
+	                                 ||(`dnsdomainname` =~ m/^gene\.com$/ or `hostname` =~ m/gene\.com$/) 
+			                 ? 'csb'
+			                 : 'unison',
     username 	=> $ENV{PGUSER}   || eval {my $tmp = `/usr/bin/id -un`;
 										   chomp $tmp;
 										   $tmp;
