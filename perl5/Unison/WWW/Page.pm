@@ -893,6 +893,32 @@ sub is_dev_instance {
   return 0;
 }
 
+
+######################################################################
+## is_tst_instance
+
+=pod
+
+=item B<< ::is_tst_instance() >>
+
+Return true if this is NOT on the production port (80) OR if the page is
+being served by a user development directory
+
+=cut
+
+sub is_tst_instance {
+  # use SERVER_NAME as a proxy for being called in a web environment If
+  # not defined, we're probably being called from a command line for
+  # debugging.
+  return 1 if (not defined $ENV{SERVER_NAME});
+
+  # In web env => SERVER_PORT, SERVER_NAME, REQUEST_URI should be defined
+  return 1 if (    $ENV{SERVER_PORT} == 8040
+				   or $ENV{SERVER_NAME} eq 'restst' );
+
+  return 0;
+}
+
 ######################################################################
 ## is_public_instance
 
@@ -1043,7 +1069,7 @@ sub _genentech_connection_params ($) {
 			  );
   }
 
-  $v->{dbname} = 	$self->is_dev_instance() ? 'csb-dev' : 'csb';
+  $v->{dbname} = 	$self->is_dev_instance() ? 'csb-dev' : $self->is_tst_instance() ? 'csb-stage' : 'csb';
 
   return;
 }
