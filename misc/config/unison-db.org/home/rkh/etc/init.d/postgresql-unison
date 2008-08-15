@@ -1,7 +1,7 @@
 #! /bin/sh
 
 # chkconfig: 2345 98 02
-# description: PostgreSQL RDBMS
+# description: Unison PostgreSQL RDBMS
 
 # This is an example of a start/stop script for SysV-style init, such
 # as is used on Linux systems.  You should edit some of the variables
@@ -32,7 +32,7 @@
 prefix=/gne/home/rkh/opt/postgresql/prd
 
 # Data directory
-PGDATA="/gne/home/rkh/postgresql/8.3"
+PGDATA="/data/postgresql/8.3"
 
 # Who to run the postmaster as, usually "postgres".  (NOT "root")
 PGUSER=rkh
