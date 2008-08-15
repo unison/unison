@@ -51,9 +51,9 @@ our %opts = (
 			                 ? 'respgsql' 
 			                 : 'unison-db.org' ),
     dbname 		=> $ENV{PGDATABASE} 
-	                                 ||(`dnsdomainname` =~ m/^gene\.com$/ or `hostname` =~ m/gene\.com$/) 
+	                                 ||((`dnsdomainname` =~ m/^gene\.com$/ or `hostname` =~ m/gene\.com$/) 
 			                 ? 'csb'
-			                 : 'unison',
+			                 : 'unison'),
     username 	=> $ENV{PGUSER}   || eval {my $tmp = `/usr/bin/id -un`;
 										   chomp $tmp;
 										   $tmp;
