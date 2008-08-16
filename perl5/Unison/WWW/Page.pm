@@ -1247,6 +1247,11 @@ sub _make_temp_dir () {
 
 	$self->{tmp_root_path} = dirname($ENV{SCRIPT_FILENAME}) . '/tmp/unison-web';
 	$self->{tmp_root_urn}  = dirname($ENV{SCRIPT_NAME})     . '/tmp/unison-web';
+
+	# when SCRIPT_NAME is '' (e.g., is the DocumentIndex), dirname('')
+	# returns '/' and t_r_u becomes //tmp/unison-web/. The leading //
+	# causes tmp to be interpreted as a hostname.
+	$self->{tmp_root_urn} =~ s%^//%/%g;
   } else {
 	# command line
 	$self->{tmp_root_path} = '/tmp';
