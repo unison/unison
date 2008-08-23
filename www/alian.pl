@@ -21,7 +21,6 @@ use Unison::WWW::utilities qw(
 							);
 use Data::Dumper;
 
-
 my $p = new Unison::WWW::Page;
 my $u = $p->{unison};
 my $v = $p->Vars();
@@ -64,13 +63,23 @@ sub build_form {
   my $u = $p->{unison};
   my $v = $p->Vars();
 
+  my @species = sort qw(HUMAN ECOLX CHICK HORSE PIG RABIT MOUSE RAT PANTR
+  YEAST DANRE CANFA FELCA CAEEL DROEL);
+  my $cmd = sprintf('SELECT gs,latin,common FROM tax.spspec WHERE gs IN (%s)',
+					join(',', (map {"'$_'"} @species) ));
+  my %spinfo = %{ $u->selectall_hashref( $cmd, 'gs' ) };
+  my %labels = map { $_ => sprintf("%s (%s)", $spinfo{$_}->{gs}, $spinfo{$_}->{latin}) }
+	@species;
+  $labels{'none'} = "none (alias much match exactly)";
 
   return $p->group( 'Query',
 					$p->start_form( -method => 'GET' ),
 					'<table border=0 width="100%"><tr>',
 
 					'<td style="vertical-align: top;" width="50%">',
-					'<b>Enter protein accessions or identifiers...</b>',
+					'<b>Enter aliases.</b>',
+					'<br>Alieses are identifiers, accessions, or MD5
+					sequence checksums from any source database.',
 					'<br>',
 					$p->textarea(-name => 'aliases', 
 								 -default => $p->{aliases} || '',
@@ -78,13 +87,21 @@ sub build_form {
 								 -columns => 60),
 					'<br>',
 					$p->note('Whitespace and commas will be
-					removed. Identifiers must match exactly.'),
+					removed.'),
 					'</td>',
 
 					'<td>',
-#					'<td style="vertical-align: top; border-left: thin dotted;">',
-#					'<b>Select optional annotations...</b>',
-#					'<br>(the site of future expansion)',
+					'<td style="vertical-align: top; border-left: thin dotted;">',
+
+					'<b>Append species identifier.</b>',
+					'<br>When the alias does not contain an underscore,
+					append the following species:',
+					'<br>',
+					$p->popup_menu( -name => 'append_species',
+									-values => ['none', @species],
+									-default => 'none',
+									-labels => \%labels,
+									),
 					'</td>',
 					'</tr></table>',
 					$p->submit( -name => 'submit',
@@ -159,6 +176,10 @@ EOSQL
   my %alias_seen;
 
   foreach my $alias (@aliases) {
+	if ( $alias !~ m/_/ and $v->{append_species} ne 'none') {
+	  $alias .= "_$v->{append_species}";
+	}
+
 	my $rv = $sth->execute($alias);
 	while( my $r = $sth->fetchrow_hashref() ) {
 	  $alias_seen{$alias}++;
