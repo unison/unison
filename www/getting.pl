@@ -28,16 +28,19 @@ class="ext_link" target="_blank"
 href="http://sourceforge.net/svn/?group_id=140591">get a local copy</a> of
 the source code via subversion.
 
-<p>SourceForge has temporarily disabled web-based browsing of all
-repositories with viewvc.  The subversion repository remains available for
-local copies.  You can <a
+<p>You may <a class="ext_link" target="_blank"
+href="http://unison-db.svn.sourceforge.net/viewvc/unison-db/">browse the
+subversion repository</a> with viewvc on SourceForge. [NOTE: SourceForge
+is stabilizing the viewvc interface. If the viewvc interface is offline,
+you can probably still <a class="ext_link" target="_blank"
 href="http://unison-db.svn.sourceforge.net/svnroot/unison-db/trunk/">browse
-the raw files (without viewvc)</a>.
+the repository directly</a>.]
 
 
 <dt>Public database dumps
 <dd>Public database dumps are available here:
-<br><iframe frameborder=0 width="100%" src="dumps"></iframe>
+<!-- all instances point to the public database dumps rather than the local dumps dir -->
+<br><iframe frameborder=0 width="100%" src="http://unison-db.org/dumps"></iframe>
 </dd>
 
 </dl>

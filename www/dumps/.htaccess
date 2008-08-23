@@ -2,8 +2,8 @@ Options -ExecCGI Indexes FollowSymLinks
 IndexOptions FancyIndexing VersionSort DescriptionWidth=*
 IndexStyleSheet "../styles/dirindex.css"
 IndexIgnore .svn ..
-AddDescription "md5 checksum for validation"   *.md5
 AddDescription "PostgreSQL dump (pg_dump -Fc)" *.pgdfc
+AddDescription "MD5 checksums"  *.md5
 
 Allow from all
 Satisfy any
