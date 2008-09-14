@@ -14,7 +14,13 @@ use Unison::WWW::Page;
 my $p = new Unison::WWW::Page();
 
 print $p->render('Welcome', <<EOBODY);
-<fieldset class="group" style="width: 40%; float: right;">
+<div class="notice">
+NEWS: Our manuscript on Unison was recently accepted to the 2009 <a
+href="http://psb.stanford.edu/">Pacific Symposium on Biocomputing</a>.
+We'll have details here when the paper appears online.
+</div>
+
+<fieldset class="group" style="width: 50%; float: right;">
 <legend>Unison in a Nutshell</legend>
 <div style="text-align:">
 <a class="nofeedback" href="about.pl">
@@ -64,14 +70,16 @@ the composition of protein families.
 	  <br>
 
 	<dt>Tools
-	  <dd>Unison provides two tools that are intended for users who have
-		protein aliases (accessions, identifiers, or checksums) from
-		high-throughput experimental methods.
-		<a href="babelfish.pl">BabelFish</a> translates a list of
-	  protein aliases into aliases for several target databases based on
-	  sequence identity.  <a href="alian.pl">AliAn</a> provides a
-	  annotations, domains, locus, GO and other annotations for a list of
-	  protein aliases.
+
+	  <dd>Unison provides two web tools that are intended for users with
+		high-throughput experimental data.  <a
+		href="babelfish.pl">BabelFish</a> translates a list of protein
+		aliases protein aliases (accessions, identifiers, or checksums)
+		into aliases for several target databases based on sequence
+		identity.  <a href="alian.pl">AliAn</a> provides a annotations,
+		domains, locus, GO and other annotations for a list of protein
+		aliases.
+
   </dl>
 
 EOBODY
