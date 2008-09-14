@@ -886,9 +886,7 @@ sub is_dev_instance {
   return 1 if (not defined $ENV{SERVER_NAME});
 
   # In web env => SERVER_PORT, SERVER_NAME, REQUEST_URI should be defined
-  return 1 if (    $ENV{SERVER_PORT} == 8080
-				   or $ENV{SERVER_NAME} eq 'resdev'
-				   or $ENV{REQUEST_URI} =~ m%/people/|/~% );
+  return 1 if ( $ENV{REQUEST_URI} =~ m%/dev/|/~% );
 
   return 0;
 }
