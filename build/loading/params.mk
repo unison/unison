@@ -27,7 +27,7 @@ REFSEQ_DIR:=${RESEARCH_PREFIX}/data/public/refseq
 ROUGE_DIR:=${KAZUSA_DIR}/rouge
 STRING_DIR:=${RESEARCH_PREFIX}/data/mirrors/string.embl.de/newstring_download
 UNIPROT_DIR:=${RESEARCH_PREFIX}/data/public/uniprot
-
+GENOMES_BACTERIA_DIR:=${RESEARCH_PREFIX}/data/public/ncbi/genomes/Bacteria
 
 ############################################################################
 #### PAPROSPECT

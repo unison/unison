@@ -11,7 +11,7 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq
+ORIGINS:=ensembl uniprot_sprot uniprot_trembl PDB refseq mrsa
 
 ifeq "${GNE}" "1"
 ORIGINS+=genengenes
@@ -140,7 +140,7 @@ uniprot_sprot.load: ${UNIPROT_DIR}/uniprot_sprot.dat.gz
 	gzip -cdq $< | PERL5LIB=../../../perl5:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/Swiss-Prot -fswiss -V${SPROT_VERSION} - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 uniprot_trembl.load: ${UNIPROT_DIR}/uniprot_trembl.dat.gz
-	gzip -cdq $< |  PERL5LIB=../../../perl5:$$PERL5LIB time -p load-pseq --deprecate -vv -oUniProtKB/TrEMBL -fswiss -V${TrEMBL_VERSION} - >$@.err 2>&1 
+	gzip -cdq $< |  time -p load-pseq --deprecate -vv -oUniProtKB/TrEMBL -fswiss -V${TrEMBL_VERSION} - >$@.err 2>&1 
 	/bin/mv -f $@.err $@
 
 
@@ -190,6 +190,54 @@ cleanest:: cleaner
 	/bin/rm -f *.fa *.proids
 
 
+##########################################################################
+#Baterial Sequences
+
+S_AUREUS_STRAINS:= aureus_MRSA252 aureus_MSSA476 COL JH1 JH9 Mu3 Mu50 MW2 N315 NCTC_8325 Newman RF122 USA300 USA300_TCH1516
+.PHONY: mrsa.load
+mrsa.load: $(foreach S,${S_AUREUS_STRAINS},mrsa_$S.load)
+mrsa_aureus_MRSA252.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_aureus_MRSA252/NC_002952.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 282458 $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_aureus_MSSA476.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_aureus_MSSA476/NC_002953.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_aureus_MSSA476/NC_005951.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 282459 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_COL.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_COL/NC_002951.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_COL/NC_006629.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 93062 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_JH1.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_JH1/NC_009619.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_JH1/NC_009632.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 359787 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_JH9.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_JH9/NC_009477.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_JH9/NC_009487.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 359786 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_Mu3.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_Mu3/NC_009782.faa 
+	time -p load-pseq -vv -oRefSeq -ffasta -t 418127 $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_Mu50.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_Mu50/NC_002758.faa  ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_Mu50/NC_002774.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 158878 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_MW2.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_MW2/NC_003923.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 196620 $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_N315.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_N315/NC_002745.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_N315/NC_003140.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 158879 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_NCTC_8325.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_NCTC_8325/NC_007795.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 93061 $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_Newman.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_Newman/NC_009641.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 426430 $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_RF122.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_RF122/NC_007622.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 273036 $< >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_USA300.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_USA300/NC_007790.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_USA300/NC_007791.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_USA300/NC_007792.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_USA300/NC_007793.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 367830 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+mrsa_USA300_TCH1516.load: ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_USA300_TCH1516/NC_010063.faa ${GENOMES_BACTERIA_DIR}/Staphylococcus_aureus_USA300_TCH1516/NC_010079.faa
+	time -p load-pseq -vv -oRefSeq -ffasta -t 451516 $^ >$@.err 2>&1
+	/bin/mv -f $@.err $@
 
 ########################################################################## 
 ######################## ABANDONED AND INCOMPLETE ######################## 
