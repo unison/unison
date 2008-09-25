@@ -21,8 +21,8 @@ RedirectMatch permanent (.*)/params.pl 		      $1/contents.pl
 RedirectMatch permanent (.*)/about_env.pl 		  $1/env.pl
 
 # moved to ../doc and made symlink to the doc directory
-RedirectMatch permanent (.*)/critical-tables.pdf  $1/doc/critical-tables.pdf
-RedirectMatch permanent (.*)/unison-tutorial.pdf  $1/doc/unison-tutorial.pdf
+#RedirectMatch permanent (.*)/critical-tables.pdf  $1/doc/critical-tables.pdf
+#RedirectMatch permanent (.*)/unison-tutorial.pdf  $1/doc/unison-tutorial.pdf
 
 <IfModule mod_auth_kerb.c>
 	Require valid-user
