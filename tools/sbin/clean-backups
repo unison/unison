@@ -59,12 +59,12 @@ foreach my $fp ( keys %dump_dat ) {
         next;
     }
 
-    if ( ( stat($efp) )[7] >= 40 ) {    # time -p output is ~35 bytes
-        warn("Error file $efp is larger than expected; excluding $fp.\n");
-        delete $dump_dat{$fp};
-        delete $dump_err{$efp};
-        next;
-    }
+#    if ( ( stat($efp) )[7] >= 40 ) {    # time -p output is ~35 bytes
+#        warn("Error file $efp is larger than expected; excluding $fp.\n");
+#        delete $dump_dat{$fp};
+#        delete $dump_err{$efp};
+#        next;
+#    }
 
     delete $dump_err{$efp};
 }
