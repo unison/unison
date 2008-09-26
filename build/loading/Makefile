@@ -38,7 +38,7 @@ pseq.log: aux.log
 # is important.  These should all be moved to the db itself
 # for updating.
 PHASE3_FX:=update_tax_ids update_psets_intrinsic
-PHASE3_MVV:=best_annotation pseq_gene gg_famid_pseq_id ensembl_coordinates ensembl_unambiguous_coordinates ensembl_unambiguous_overlaps
+PHASE3_MVV:=best_annotation pseq_gene gg_famid_pseq_id ensembl_coordinates ensembl_unambiguous_coordinates ensembl_unambiguous_overlaps current_annotations
 PHASE3_MVDV:=pmprospect_scop
 PHASE3_MV:=${PHASE3_MVDV} ${PHASE3_MVV}
 
