@@ -323,7 +323,7 @@ function jmolSelectRegion(posone, postwo, labe, colour, targetSuffix) {
   var start = Number(seq_str[pdbid][posone]);
   var end = Number(seq_str[pdbid][postwo]);
   var chain = pdbid.substr(4,1);
-  
+
   chain = (chain == '' ? '' : ":"+chain);
   colour = (colour == '' ? 'red' : colour);
   
@@ -408,6 +408,62 @@ function jmolMenu(arrayOfMenuItems, size, id, title) {
       alert(t);
     return _jmolDocumentWrite(t);
   }
+}
+#the only difference with jmolMenu is that I call _jmolMenuSelected2 in addition to _jmolMenuSelected
+function jmolChangeStructureMenu(arrayOfMenuItems, size, id, title) {
+  _jmolInitCheck();
+  if (id == undefined || id == null)
+    id = "jmolMenu" + _jmol.menuCount;
+  ++_jmol.menuCount;
+  var type = typeof arrayOfMenuItems;
+  if (type != null && type == "object" && arrayOfMenuItems.length) {
+    var len = arrayOfMenuItems.length;
+    if (typeof size != "number" || size == 1)
+      size = null;
+    else if (size < 0)
+      size = len;
+    var sizeText = size ? " size='" + size + "' " : "";
+    var t = "<span id=\"span_"+id+"\""+(title ? " title =\"" + title + "\"":"")+"><select name='" + id + "' id='" + id +
+            "' onChange='_jmolMenuSelected(this" + _jmol.targetText + "); _jmolMenuSelected2(this.value,\""+arrayOfMenuItems+"\"); '" +
+            sizeText + _jmol.menuCssText + ">";
+    for (var i = 0; i < len; ++i) {
+      var menuItem = arrayOfMenuItems[i];
+      type = typeof menuItem;
+      var script, text;
+      var isSelected = undefined;
+      if (type == "object" && menuItem != null) {
+        script = menuItem[0];
+        text = menuItem[1];
+        isSelected = menuItem[2];
+      } else {
+        script = text = menuItem;
+      }
+      if (text == undefined || text == null)
+        text = script;		
+	  if (script=="#optgroup") {
+        t += "<optgroup label='" + text + "'>";	  
+	  } else if (script=="#optgroupEnd") {
+        t += "</optgroup>";	  
+	  } else {		
+        var scriptIndex = _jmolAddScript(script);
+        var selectedText = isSelected ? "' selected>" : "'>";
+        t += "<option value='" + scriptIndex + selectedText + text + "</option>";
+	  }
+    }
+    t += "</select></span>";
+    if (_jmol.debugAlert)
+      alert(t);
+    return _jmolDocumentWrite(t);
+  }
+}
+
+# I know its pathetic that I have to get pdbid this way
+# but the array I pass to jmol..Menu doesnot 
+# accept more columns (the cols scripts and labels) see above function
+function _jmolMenuSelected2(index,str) {
+	myRe = /\(\d\w\w\w\w/g;
+	myarr = str.match(myRe);
+        pdbid = myarr[index-1].substr(1);
 }
 
 function jmolHtml(html) {
