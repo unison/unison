@@ -5,9 +5,11 @@ include ../local.mk
 include ../params.mk
 
 N:=5
-QNAME=${SUBDIR}p${PFANTIGENIC_PARAMS_ID}
+QNAME:=${SUBDIR}-r${PFANTIGENIC_RUN_ID}
 RUNSET=runC-human
 NPER:=250
+
+PFANTIGENIC_RUN_ID:=`${PSQL_DCMD} "select preferred_run_id_by_pftype('EMBOSS/antigenic')"`
 
 update:
 	make cleanest

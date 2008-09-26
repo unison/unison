@@ -8,8 +8,13 @@ PFTMHMM_RUN_ID:=`${PSQL_DCMD} "select preferred_run_id_by_pftype('TMHMM')"`
 
 N:=5
 QNAME=${SUBDIR}-r${PFTMHMM_RUN_ID}
-RUNSET=runC
+RUNSET1=runC
+RUNSET2=pset1100
+RUNSET=runset
 NPER:=250
+
+${RUNSET}.ids: ${RUNSET1}.ids ${RUNSET2}.ids
+	cat ${RUNSET1}.ids ${RUNSET2}.ids | sort -u -o $@
 
 update:
 	make cleanest
