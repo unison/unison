@@ -5,13 +5,15 @@ include ../local.mk
 include ../params.mk
 
 DB:=uniblast
-RUNSET:=runB
+RUNSET1:=runB
+RUNSET2=O-Sugen
+RUNSET=runset
 N:=10
-QPPN:=8
+QPPN:=16
 
 update:
 	make cleaner
-	make ${RUNSET} done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
+	make ${RUNSET}.ids done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
 	make upd_pmpseq.ids
 	make ${DB}.pal
 	make ${RUNSET}-todo-N${N}-qload
@@ -28,10 +30,13 @@ upd_pmpseq.ids:
 	time -p ${PMPSEQ_UPD_CMD} > $@.tmp 2>&1
 	/bin/mv -f $@.tmp $@
 
-${RUNSET}:
+${RUNSET1}:
 	${PSQL_DCMD} "select pseq_id from pseqset where pset_id=pset_id('$@') intersect select pseq_id from pseqset where pset_id=pset_id('uniblast')" >.$@.ids
 	sort -u -o $@.ids .$@.ids; 
 	wc -l $@.ids
+
+${RUNSET}.ids: ${RUNSET1} ${RUNSET2}.ids
+	cat ${RUNSET1}.ids ${RUNSET2}.ids | sort -u -o $@
 
 # alias .load := -unisondb.load
 .PHONY: %.load
