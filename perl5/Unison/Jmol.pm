@@ -77,7 +77,7 @@ sub initialize {
     #start of control UI below jmol viewer
     $retval .= "<tr><td colspan=3><center>\n";
     $retval .=
-      "<script>jmolMenu([$jmol_menu_arr])</script></center></td></tr>\n";
+      "<script>jmolChangeStructureMenu([$jmol_menu_arr])</script></center></td></tr>\n";
     $retval .=
 "<tr><td width=33%><script>jmolCheckbox(\"select hetero ; wireframe 0.5;\",\"select not hetero; restrict selected;\",\"show hetero atoms\",false)</script></td>\n";
     $retval .=
