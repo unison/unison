@@ -36,7 +36,7 @@ sub do_search {
 
     my $p = shift;
     my $u = $p->{unison};
-    $u->do('set statement_timeout to 270000');    #4.5 minutes in milliseconds
+    $u->do('set statement_timeout to 600000');    #10 minutes in milliseconds
     my $v = $p->Vars();
     $v->{pmap_params_id} = $u->preferred_params_id_by_pftype('PMAP');
     my %coldescr = (
