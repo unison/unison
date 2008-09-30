@@ -1,0 +1,78 @@
+#! /usr/bin/env perl
+
+use strict;
+use warnings;
+
+use Bio::SeqIO;
+
+use Getopt::Long qw(:config gnu_getopt);
+
+my %opts = (
+	    namespace => 'unison_aux',
+		   );
+GetOptions( \%opts,
+	    'namespace|schema|n=s',
+		  )
+  || die("usage\n");
+
+
+my $seqio= new Bio::SeqIO ( -fh => \*STDIN, -format => 'swiss');
+
+print <<EOSQL;
+SET search_path = $opts{namespace};
+BEGIN;
+truncate table ptm cascade;
+EOSQL
+
+while(my $seq = $seqio->next_seq()) {
+    my @feats = $seq->all_SeqFeatures();
+    
+
+    #group features with the same tag in a list
+    my %feats_clas = ();
+    foreach my $feat (@feats) {
+	if ( exists $feats_clas{ $feat->primary_tag() } ) {
+	    my $lref = $feats_clas{ $feat->primary_tag() };
+	    push @$lref, $feat;
+	}
+	else {
+	    $feats_clas{ $feat->primary_tag() } = [ $feat ];
+	}
+    }
+    if (exists $feats_clas{'MOD_RES'}) {
+	foreach my $feat (@{$feats_clas{'MOD_RES'}}) {
+	    my $desc = join(" ", $feat->each_tag_value('description')); 
+	    my ($expt,$ptm_type,$non_expt);
+
+	    if ($desc =~ /;/ and $desc =~ /(.+?);.*\((By similarity|Probable|Potential)\)/) {
+		($ptm_type,$non_expt,$expt) = ($1,$2,'f');
+	    } elsif ($desc =~ /(.+)[;*|\s]*.*\((By similarity|Probable|Potential)\)/) {
+		($ptm_type,$non_expt,$expt) = ($1,$2,'f');
+	    } elsif ($desc =~ /;/ and $desc =~ /(.+?);.*/) {
+		$ptm_type = $1;
+		$expt = 't';
+	    } elsif ($desc =~ /(.+)[;*|\s]*.*/) {
+		$ptm_type = $1;
+		$expt = 't';
+	    } 
+
+	    $ptm_type =~ s/Aspartate 1\-\(chondroitin 4\-sulfate\)\- ester/Aspartate 1\-\(chondroitin 4\-sulfate\)\-ester/g;
+	    $ptm_type =~ s/Aspartic acid 1\-\[\(3\-aminopropyl\)\(5\'\- adenosyl\)phosphono\]amide/Aspartic acid 1\-\[\(3\-aminopropyl\)\(5\'\-adenosyl\)phosphono\]amide/g;
+
+	    $ptm_type =~ s/\s+$//;
+	    $ptm_type =~ s/\'/\\\'/g;
+
+	    $desc =~ s/\'/\\\'/g;
+
+	    my @values = ($seq->accession(),$ptm_type,$desc,$feat->start,$feat->end,$expt);
+	    printf("insert into ptm (alias,ptm_type_id,descr,start,stop,expt) values ('%s',ptm_type_id(E'%s'),E'%s',%d,%d,'%s');\n",@values);
+	}
+    }
+}
+
+print <<EOSQL;
+COMMIT;
+ANALYZE ptm;
+EOSQL
+
+exit(0);
