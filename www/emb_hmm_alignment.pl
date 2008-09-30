@@ -101,8 +101,8 @@ sub _get_model_file {
       if ( !$data_url );
 
 	my $abs_url = $p->url(-absolute=>1);
-	$abs_url =~ s/.*(cgi\/.*)/$1/;
+	$abs_url =~ s/.*(unison\/.*)/$1/;
 	#this is the relative path for unison runtime dir
-	my $return_path='../' x (scalar split /\//, $abs_url);
+	my $return_path='../' x ((scalar split /\//, $abs_url)-1) ;
 	return $return_path.$data_url;
 }
