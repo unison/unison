@@ -69,6 +69,8 @@ my %ignored_scripts = map { $_=> 1 } qw(
 										 ../cgi
 										 ../credits.html
 										 ../critical-tables.pdf
+					                                         ../doc
+					                                         ../dumps
 										 ../hardware-failure.html
 										 ../index.html
 										 ../js
@@ -95,12 +97,17 @@ my @cgi_scripts =
    [ './env.sh' ],
 
    #### About
-   [ '../about_env.pl' ],
-   [ '../about_origins.pl' ],
-   [ '../about_params.pl' ],
-   [ '../about_prefs.pl' ],
-   [ '../about_statistics.pl' ],
-   [ '../about_unison.pl' ],
+   [ '../about.pl' ],
+   [ '../contents.pl' ],
+   [ '../credits.pl' ],
+   [ '../doc.pl' ],
+   [ '../env.pl' ],
+   [ '../getting.pl' ],
+   [ '../index.pl' ],
+   [ '../license.pl' ],
+   [ '../prefs.pl' ],
+   [ '../shots.pl' ],
+   [ '../stats.pl' ],
 
    #### Browse
    [ '../browse_top.pl' ],
