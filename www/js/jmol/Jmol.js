@@ -409,7 +409,7 @@ function jmolMenu(arrayOfMenuItems, size, id, title) {
     return _jmolDocumentWrite(t);
   }
 }
-#the only difference with jmolMenu is that I call _jmolMenuSelected2 in addition to _jmolMenuSelected
+// the only difference with jmolMenu is that I call _jmolMenuSelected2 in addition to _jmolMenuSelected
 function jmolChangeStructureMenu(arrayOfMenuItems, size, id, title) {
   _jmolInitCheck();
   if (id == undefined || id == null)
@@ -457,9 +457,10 @@ function jmolChangeStructureMenu(arrayOfMenuItems, size, id, title) {
   }
 }
 
-# I know its pathetic that I have to get pdbid this way
-# but the array I pass to jmol..Menu doesnot 
-# accept more columns (the cols scripts and labels) see above function
+/* I know its pathetic that I have to get pdbid this way
+ but the array I pass to jmol..Menu doesnot 
+ accept more columns (the cols scripts and labels) see above function 
+*/
 function _jmolMenuSelected2(index,str) {
 	myRe = /\(\d\w\w\w\w/g;
 	myarr = str.match(myRe);
