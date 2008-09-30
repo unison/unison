@@ -1,0 +1,79 @@
+#! /usr/bin/env perl
+
+use warnings;
+use strict;
+
+use Getopt::Long qw(:config gnu_getopt);
+
+my %opts = (
+	    namespace => 'unison_aux',
+		   );
+GetOptions( \%opts,
+	    'namespace|schema|n=s',
+		  )
+  || die("usage\n");
+
+my $fn = $ARGV[0] || '-';
+
+open(IN,$fn) || die "$0: Cannot open $fn\n";
+
+my %data;
+my $id = '';
+my @codes = qw (AC TG PA PP CF MM MA LC KW);
+while(<IN>) {
+    chomp;
+    if(/^ID/ or /^AC/ or /^TG/ or /^PA/ or /^PP/ or /^CF/ or /^MM/ or /^MA/ or /^LC/ or /^KW/) {
+	my @cols= split(/\s\s/,$_);
+	if(/^ID/) {
+	    $id  = $cols[1];
+	    $id =~ s/^\s//;
+	    $id =~ s/\s$//;
+	    $id =~ s/\'/\'\'/g ;
+	} else {
+	    $data{$id}{$cols[0]} = $cols[1];
+	}
+    }
+}
+
+print <<EOSQL;
+SET search_path = $opts{namespace},unison;
+BEGIN;
+truncate table ptm_type cascade;
+EOSQL
+
+_insert_data();
+print <<EOSQL;
+COMMIT;
+ANALYZE ptm_type;
+EOSQL
+
+exit(0);
+
+#####################################################################################################
+sub _insert_data {
+  foreach my $table ('ptm_type') {
+    print _table_dump();
+  }
+}
+
+sub _table_dump {
+    foreach my $id(sort keys %data) {
+	my @values;
+	foreach my $c(@codes) {
+	    my $v = defined $data{$id}{$c} ? "$data{$id}{$c}" : 'NULL';
+
+	    #cleanup: leading and trailing spaces, trailing dots
+	    $v =~ s/^\s+//;
+	    $v =~ s/\s+$//;
+	    $v =~ s/\.$//;
+
+	    #null if zero length after cleanup
+	    $v = 'NULL' if length($v) < 1;
+
+	    #quote text values except NULL or numbers
+	    $v = "'$v'" if $v ne 'NULL' and $c ne 'MM' and $c ne 'MA';
+	    push @values, $v;
+	}
+	printf("insert into ptm_type (origin_id,ptm_type,acc,target,pos_mod_aa,pos_mod_pp,correction_formula,mass_diff_isotopic,mass_diff_avg,cellular_location,keyword) values (origin_id('UniProtKB/Swiss-Prot'),'%s',%s,%s,%s,%s,%s,%s,%s,%s,%s);\n",$id,@values);
+    }	
+}	
