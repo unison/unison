@@ -8,7 +8,7 @@
 
 ############################################################################
 ### CONFIGURATION
-PFAM_VERSION:=22.0
+PFAM_VERSION:=23.0
 HOMOLOGENE_VERSION:=56
 SCOP_VERSION:=1.73
 ENSEMBL_VERSION:=48
@@ -319,11 +319,7 @@ logs/wwpdb.log: FORCE
 		${PDB_URL}/pub/pdb/derived_data \
 		http://remediation.wwpdb.org/downloads/Components-rel-alt.xml.gz
 	/bin/mv -f $@.err $@
-	#
-	find /gne/research/data/public/pdb /gne/research/data/mirrors/ftp.wwpdb.org \
-		\( -type f \! -perm -444 \) -o \( -type d \! -perm -111 \) \
-	| xargs /bin/ls -ld >/tmp/pdb-perm-faults.ls
-	wc -l /tmp/pdb-perm-faults.ls >>$@
+	chmod -cR a+rX ftp.wwpdb.org
 
 
 ############################################################################
@@ -347,6 +343,15 @@ logs/scop.log: FORCE
 CURRENCY_TARGETS+=string
 logs/string.log: FORCE
 	${WGET}	http://string.embl.de/newstring_download/protein.sequences.v${STRING_VERSION}.fa.gz
+	/bin/mv -f $@.err $@
+
+
+############################################################################
+### TIGRFAM
+CURRENCY_TARGETS+=tigrfam
+OLD_RELEASES:=$(addsuffix _Release,1.0 1.1 1.2 2.0 2.1 3.0 4.0 4.1 5.0 6.0)
+logs/tigrfam.log: FORCE
+	${WGET} $(addprefix -X ,${OLD_RELEASES}) ftp://ftp.jcvi.org/pub/data/TIGRFAMs
 	/bin/mv -f $@.err $@
 
 
@@ -375,16 +380,28 @@ logs/unigene-%.log: FORCE
 
 
 ############################################################################
-### UNIPROT
-CURRENCY_TARGETS+=uniprot
+### UNIPROT et al
+CURRENCY_TARGETS+=uniprot uniref
 logs/uniprot.log: FORCE
 	${WGET} ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete
 	/bin/mv -f $@.err $@
+logs/uniref.log: FORCE
+	${WGET} ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/uniref
+	/bin/mv -f $@.err $@
 
 
+############################################################################
+### PIR
+CURRENCY_TARGETS+=pirsf iproclass
+logs/pirsf.log: FORCE
+	${WGET} ftp://ftp.pir.georgetown.edu/databases/pirsf/pirsfinfo.dat
+	/bin/mv -f $@.err $@
 
+logs/iproclass.log: FORCE
+	${WGET} ftp://ftp.pir.georgetown.edu/databases/iproclass/iproclass.tb.gz
+	/bin/mv -f $@.err $@
 
-
+logs/pir.log: logs/pirsf.log logs/iproclass.log
 
 ############################################################################
 #########################	 PROPRIETARY STUFF   ###########################
