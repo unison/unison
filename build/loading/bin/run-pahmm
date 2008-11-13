@@ -33,7 +33,6 @@ use Error qw(:try);
 use File::Temp qw(tempfile tempdir);
 use Getopt::Long qw(:config gnu_getopt);
 use IO::File;
-use IO::Pipe;
 use Unison::Exceptions;
 use Unison::SQL;
 use Unison::pmodelset;
@@ -90,8 +89,8 @@ $opts{modelfile} = "$ENV{UNISON_HOME}/".$u->selectrow_array("select data_url fro
 my $nmodels = preload_pmodel_id_cache($u,$opts{pmodelset_id});
 
 my $clo = $u->run_commandline_by_params_id($opts{params_id});
-my @cl = (split(' ',$clo), $opts{modelfile}, $seqfn);
 
+my $cl = "$clo $opts{modelfile} $seqfn | grep -v \"Genentech\\|Logical Depth\\|^\$\"";
 
 printf(STDERR "# loading params '%s' (params_id=%d) pmodelset '%s' (pmodelset_id='%d') \n",
 	   $u->get_params_name_by_params_id($opts{params_id}),
@@ -100,7 +99,7 @@ printf(STDERR "# %d models from pmodelset_id=%d\n",
 	   $nmodels,$opts{pmodelset_id});
 
 printf(STDERR "# models in file `%s'\n", $opts{modelfile});
-printf(STDERR "# commandline: %s\n", join(' ',@cl));
+printf(STDERR "# commandline: %s\n", $cl);
 
 my @fields = qw(params_id pseq_id start stop pmodel_id mstart mstop gaps qgaps tgaps score eval);
 my $pahmm_sth = $u->prepare_cached(sprintf("insert into pahmm (%s) values (%s)",
@@ -183,9 +182,7 @@ sub run_and_load ($$) {
   my $rl_errs = 0;
   my $rl_dlock = 0;
 
-  my $hmmerpipe = new IO::Pipe;
-  $hmmerpipe->reader( @cl )
-	|| die("couldn't do @cl\n");
+  my $hmmerpipe = new IO::File("$cl |");
   my $in = new Bio::SearchIO(-format => 'hmmer',
 							 -fh => $hmmerpipe);
 
