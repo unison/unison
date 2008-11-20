@@ -24,7 +24,7 @@ S<$Id$>
 =head1 OPTIONS
 
 
-unison-annotation [-S|-A|-F|-P|-G|-p  -v|-f summary  |--pfam|--signalp|--tm|--protcomp|--regexp|--bigpi|--patents|--alias  -h|-V]
+unison-annotation [-S|-A|-F|-P|-G|-p  -v|-f summary  |--pfam|--signalp|--tm|--protcomp|--regexp|--bigpi|--patents|--alias|--user-ann  -h|-V]
 
                input choices
                -------------
@@ -147,7 +147,7 @@ my @long_table_defs = (
 
 # args from command line or stdin, but not both
 my (@args) = @ARGV ? @ARGV : map { chomp; $_ } <>;
-my @pseq_ids = map_args_to_pseq_ids( \%opts, @args );
+my ( $pseq_ids, $user_anns ) = map_args_to_pseq_ids( \%opts, @args );
 my @outcols = map { $_->[0] } @long_table_defs;
 my $optsum = eval join( '+', map { $opts{$_} ? 1 : 0 } @outcols );
 
@@ -159,7 +159,7 @@ my $rh_sth
     );
 
 print_headers();
-foreach my $pseq_id (@pseq_ids) {
+foreach my $pseq_id (@$pseq_ids) {
     show_results( get_data($pseq_id), $pseq_id );
 }
 
@@ -174,6 +174,7 @@ sub map_args_to_pseq_ids($@) {
 
     my $or = shift;
     my (@pseq_ids);
+    my %user_anns;
     my $sno = 0;
     my $sth = $u->prepare_cached('select best_annotation(?)');
     if ( $or->{'select-by-unison-id'} ) {
@@ -227,6 +228,7 @@ sub map_args_to_pseq_ids($@) {
                 $u->best_alias($pseq_id) || '<no alias>' )
                 if $opts{verbose};
             push @pseq_ids, $pseq_id;
+            $user_anns{$pseq_id} = $bs->display_id() . " " . $bs->desc();
         }
     }
     elsif ( $or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'} ) {
@@ -257,6 +259,7 @@ sub map_args_to_pseq_ids($@) {
                 }
                 @Q = @ids;
             }
+            $user_anns{$_} = $arg foreach (@Q);
             push( @pseq_ids, @Q );
         }
         printf( STDOUT "# %d sequences selected by alias\n", $#pseq_ids + 1 )
@@ -286,6 +289,7 @@ sub map_args_to_pseq_ids($@) {
             elsif ( $#Q > 0 ) {
                 warn("#$0: multiple sequences found for gi '$gi'\n");
             }
+            $user_anns{$_} = $gi foreach (@Q);
         }
         push( @pseq_ids, map { $_->[0] } @ids );
         printf( STDOUT "# %d sequences specified by Unison id\n",
@@ -307,13 +311,14 @@ sub map_args_to_pseq_ids($@) {
             elsif ( $#Q > 0 ) {
                 warn("#$0: multiple sequences found for probe_id '$pi'\n");
             }
+            map { $user_anns{ $_->[0] } = $pi } @Q;
         }
         push( @pseq_ids, keys %ids );
         printf( STDOUT "# %d sequences specified by Unison id\n",
             $#pseq_ids + 1
         ) if $opts{verbose};
     }
-    return @pseq_ids;
+    return (\@pseq_ids, \%user_anns);
 }
 
 #########################################
@@ -347,10 +352,15 @@ sub get_data($) {
         $r->{$data} = \@results;
 
         #alias will have best_alias and annot will have best_annotation
-        $id_alias->{$pseq_id}{annot}
-            = $u->selectrow_array( $ba_sth, undef, $pseq_id );
-        $id_alias->{$pseq_id}{alias} = $u->best_alias($pseq_id);
 
+	if ($opts{'user-ann'} and defined $user_anns->{$pseq_id}) {
+	    $id_alias->{$pseq_id}{annot} = $user_anns->{$pseq_id};
+	    $id_alias->{$pseq_id}{alias} = $user_anns->{$pseq_id};
+	} else {
+	    $id_alias->{$pseq_id}{annot}
+            = $u->selectrow_array( $ba_sth, undef, $pseq_id );
+	    $id_alias->{$pseq_id}{alias} = $u->best_alias($pseq_id);
+	}
         if ( $data ne 'patents' and $data ne 'alias' ) {
 
 #tie annotation choice to pftype to get the latest params/run(->preferred_run_id_by_pftype)
@@ -497,6 +507,8 @@ sub parse_options() {
 
         #output options
         'format' => undef,
+        'user-ann'    => 0,
+
 
         #filtering options
         'human' => 0,
@@ -526,6 +538,7 @@ sub parse_options() {
         'alias',
 
         'human',
+        'user-ann|user_ann',
 
         'format|f=s',
         'verbose|v+',
