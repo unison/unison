@@ -228,7 +228,7 @@ sub map_args_to_pseq_ids($@) {
                 $u->best_alias($pseq_id) || '<no alias>' )
                 if $opts{verbose};
             push @pseq_ids, $pseq_id;
-            $user_anns{$pseq_id} = $bs->display_id() . " " . $bs->desc();
+            $user_anns{$pseq_id} .= $bs->display_id() . " " . $bs->desc(). " ";
         }
     }
     elsif ( $or->{'select-by-alias'} or $or->{'select-by-alias-fuzzy'} ) {
@@ -259,7 +259,7 @@ sub map_args_to_pseq_ids($@) {
                 }
                 @Q = @ids;
             }
-            $user_anns{$_} = $arg foreach (@Q);
+            $user_anns{$_} .= "$arg," foreach (@Q);
             push( @pseq_ids, @Q );
         }
         printf( STDOUT "# %d sequences selected by alias\n", $#pseq_ids + 1 )
@@ -289,7 +289,7 @@ sub map_args_to_pseq_ids($@) {
             elsif ( $#Q > 0 ) {
                 warn("#$0: multiple sequences found for gi '$gi'\n");
             }
-            $user_anns{$_} = $gi foreach (@Q);
+            $user_anns{$_} .= "$gi, " foreach (@Q);
         }
         push( @pseq_ids, map { $_->[0] } @ids );
         printf( STDOUT "# %d sequences specified by Unison id\n",
@@ -311,7 +311,7 @@ sub map_args_to_pseq_ids($@) {
             elsif ( $#Q > 0 ) {
                 warn("#$0: multiple sequences found for probe_id '$pi'\n");
             }
-            map { $user_anns{ $_->[0] } = $pi } @Q;
+            map { $user_anns{ $_->[0] } .= "$pi, " } @Q;
         }
         push( @pseq_ids, keys %ids );
         printf( STDOUT "# %d sequences specified by Unison id\n",
@@ -467,7 +467,7 @@ sub show_results($$) {
         }
     }
     if ( $opts{summary} ) {
-        $fmt = "@<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ";
+        $fmt = "@<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ";
         push @data, $data_str;
         $fmt .= "@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" if ($protcomp);
         $fmt
@@ -587,9 +587,9 @@ sub parse_options() {
 #########################################
 sub print_headers {
 
-    $fmt = "@<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ";
+    $fmt = "@<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ";
     my @fmt_each
-        = qw(@<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<);
+        = qw(@<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<);
 
     my @table_defs
         = ( $opts{'summary'} ? @short_table_defs : @long_table_defs );
@@ -607,7 +607,7 @@ sub print_headers {
                 if ( !( grep {/protcomp/} @outcols and $#outcols == 0 ) );
         }
         else {
-            $fmt .= "@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<< ";
+            $fmt .= "@<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ";
         }
         $header = "$fmt\n";
         $header .= 'pseq_id,alias,';
