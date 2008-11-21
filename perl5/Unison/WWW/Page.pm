@@ -367,7 +367,7 @@ sub start_page() {
 <!-- ========== begin logo ========== -->
   <td class="left">
     <a tooltip="$logo_tooltip" class="nofeedback" href="./">
-      <img width=120 height=34 src="av/unison.gif">
+      <img width=120 height=34 src="av/unison.png">
     </a>
   </td>
 <!-- ========== end logo ========== -->

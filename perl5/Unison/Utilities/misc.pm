@@ -189,7 +189,7 @@ returns a Unison logo as a GD::Image;
 
 sub unison_logo () {
     my ($unison_fn) = __FILE__ =~ m%^(.+)/[^/]+%;
-    $unison_fn .= '/../data/unison.gif';
+    $unison_fn .= '/../data/unison.png';
     return GD::Image->new($unison_fn) if ( -f $unison_fn );
     return undef;
 }

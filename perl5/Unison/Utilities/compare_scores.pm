@@ -323,7 +323,7 @@ sub _print_graph {
     $mygraph->set(
         axislabelclr => 'red',
         labelclr     => 'dgreen',
-        logo         => '../av/logo-50.gif',
+        logo         => '../av/unison-50.gif',
         logo_resize  => 0.25
     );
 

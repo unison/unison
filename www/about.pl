@@ -16,8 +16,8 @@ my $p = new Unison::WWW::Page();
 print $p->render('Download', <<EOBODY);
 <fieldset class="group" style="width: 300px; float: right; clear: right;">
 <legend>Unison Overview</legend>
-<a class="nofeedback" href="av/concept-graphic.jpg">
-<img width="100%" src="av/concept-graphic-med.jpg" alt="[Concept]">
+<a class="nofeedback" href="av/concept-graphic.gif">
+<img width="100%" src="av/concept-graphic-med.gif" alt="[Concept]">
 </a>
 </fieldset>
 
@@ -57,8 +57,8 @@ Unison was designed with three key functional goals in mind:
 
 <fieldset class="group" style="width: 300px; float: right;">
 <legend>Results Sliced to Order</legend>
-<a class="nofeedback" href="av/results-cube.jpg">
-<img style="width: 100%;" src="av/results-cube-med.jpg" alt="[Results Cube]">
+<a class="nofeedback" href="av/results-cube.gif">
+<img style="width: 100%;" src="av/results-cube-med.gif" alt="[Results Cube]">
 </a>
 <hr>
 Conceptually, prediction results are stored in a sparse cube. The axes

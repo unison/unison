@@ -9,7 +9,13 @@ default:
 
 SS:=ss-aliases.png ss-features.png ss-functions.png ss-loci.png ss-patents.png ss-structure.png ss-summary.png
 
-update: $(SS:.png=-sm.jpg) concept-graphic-med.jpg results-cube-med.jpg
+update: $(SS:.png=-sm.jpg) concept-graphic-med.gif results-cube-med.gif
+
+
+%.gif: %.jpg
+	convert $< $@
+%.gif: %.png
+	convert $< $@
 
 
 # "small" images intended as icons/thumbnails
@@ -25,8 +31,33 @@ CONVERT_SM_OPTS:= -geometry 100x100 -quality 40
 # "medium" images intended for legible inset graphics
 # aim for 500x500 w/moderate quality and sizes
 # in practice, this results in images 20-40KB
-CONVERT_MED_OPTS:=-antialias -geometry 500x500 -quality 60
+MED_GEOMETRY:=-geometry 500x500
+CONVERT_MED_OPTS:=-antialias -quality 60
 %-med.jpg %-med.png: %.jpg
-	convert ${CONVERT_MED_OPTS} $< $@
-%-med.jpg %-med.png: %.png
-	convert ${CONVERT_MED_OPTS} $< $@
+	convert ${MED_GEOMETRY} ${CONVERT_MED_OPTS} $< $@
+%-med.gif %-med.jpg %-med.png: %.png
+	convert ${MED_GEOMETRY} ${CONVERT_MED_OPTS} $< $@
+%-med.gif %-med.jpg %-med.png: %.gif
+	convert ${MED_GEOMETRY} ${CONVERT_MED_OPTS} $< $@
+%-med.gif: %.jpg
+	convert ${MED_GEOMETRY} $< $@
+%-med.gif: %.png
+	convert ${MED_GEOMETRY} $< $@
+
+
+
+# find files that use each of the graphics in av
+# The intent is to find unused or redundant (modulo format) graphics
+# grep -v www/av/$$g -- some graphics have filename embedded!
+/tmp/av-uses: FORCE
+	/bin/ls -1 *.gif *.jpg *.png *.xpm | sort \
+	| ( cd ../../; \
+	while read g; do \
+		echo "# $$g"; \
+		find doc misc perl5 tools www \( -name tmp -o -name .svn \) -prune -o -type f \! -name \*~ -print0 \
+		| xargs -0r /bin/grep -rls "$$g" \
+		| grep -v "www/av/$$g" \
+		| sed -e "s/^/$$g:/"; \
+	done ) >$@
+/tmp/av-use-summary: /tmp/av-uses
+	perl -ne 'if (m/^# (.+)/) { $$c{$$1}=0; } elsif (m/^([^:]+):/) { $$c{$$1}++ }  END { printf("%3d $$_\n",$$c{$$_}) for sort keys %c}' <$< >$@ 
