@@ -50,7 +50,7 @@ __DATA__
   <tr>
 	<td valign="top">
 	  <span style="font-size: 150%; font-weight: bold;">Welcome to</span>
-	  <br><a class="nofeedback" href="index.html"><img src="av/logo5.png" alt="[Unison Logo]"></a>
+	  <br><a class="nofeedback" href="index.html"><img src="av/unison-50.png" alt="[Unison Logo]"></a>
 	  <br><i>integrated, precomputed proteomic predictions for rapid
 	  feature-based mining, sequence analysis, and hypothesis generation</i>
 	</td>

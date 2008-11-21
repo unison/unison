@@ -24,7 +24,7 @@ We'll have details here when the paper appears online.
 <legend>Unison in a Nutshell</legend>
 <div style="text-align:">
 <a class="nofeedback" href="about.pl">
-<img width="100%" src="av/concept-graphic-med.jpg" alt="[Concept]">
+<img width="100%" src="av/concept-graphic-med.gif" alt="[Concept]">
 </a>
 <br><a href="about.html">Learn more about Unison.</a>
 </div>
