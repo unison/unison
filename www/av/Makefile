@@ -42,13 +42,14 @@ CONVERT_MED_OPTS:=-antialias -quality 60
 %-med.gif: %.jpg
 	convert ${MED_GEOMETRY} $< $@
 %-med.gif: %.png
-	convert ${MED_GEOMETRY} $< $@
+	convert ${MED_GEOMETRY} -antialias $< $@
 
 
 
 # find files that use each of the graphics in av
-# The intent is to find unused or redundant (modulo format) graphics
-# grep -v www/av/$$g -- some graphics have filename embedded!
+# The intent is to help find unused or redundant (same image, different
+# format) graphics
+# grep -v www/av/$$g -- because some graphics have filename embedded!
 /tmp/av-uses: FORCE
 	/bin/ls -1 *.gif *.jpg *.png *.xpm | sort \
 	| ( cd ../../; \
