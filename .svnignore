@@ -16,3 +16,4 @@ logs
 qsub
 run[ABC]-*
 tmp
+svn-ignored
