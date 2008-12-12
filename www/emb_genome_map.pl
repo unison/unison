@@ -65,7 +65,9 @@ try {
 	  my ( $chip, $probe ) = split( /:/, $fname );
 	  $imagemap .= qq(<AREA SHAPE="RECT" COORDS="$x1,$y1,$x2,$y2");
 	  $imagemap .= qq( TOOLTIP="$chip:$probe") if defined $chip and defined $probe;
-	  $imagemap .= qq( HREF="http://research/maprofile/cgi-bin/maprofile.cgi?probeid=$probe">\n);
+	  if ( $p->is_genentech_instance() ) {
+		$imagemap .= qq( HREF="http://research/maprofile/cgi-bin/maprofile.cgi?probeid=$probe">\n);
+	  }
 	}
   }
 }
