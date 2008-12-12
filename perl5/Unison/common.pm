@@ -48,6 +48,11 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
+BEGIN {
+  our $UNISON_TOP = __FILE__;
+  $UNISON_TOP =~ s%/[^/]+/[^/]+/[^/]+$%%;
+}
+
 use Unison::DBI;
 use Unison::Exceptions;
 use Unison::pannotation;
