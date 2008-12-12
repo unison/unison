@@ -118,8 +118,7 @@ sub do_search {
         for ( my $i = 0 ; $i <= $#cols ; $i++ ) {
             if ( $cols[$i] eq 'pseq_id' ) {
                 foreach my $row (@$ar) {
-                    $row->[$i] =
-"<a href=\"pseq_summary.pl?pseq_id=$row->[$i]\">$row->[$i]</a>";
+                    $row->[$i] = "<a href=\"pseq_summary.pl?pseq_id=$row->[$i]\">$row->[$i]</a>";
                 }
             }
             elsif ( $cols[$i] =~ /^pat/ ) {
@@ -130,8 +129,11 @@ sub do_search {
             elsif ( $cols[$i] =~ /^probes/ ) {
                 foreach my $row (@$ar) {
                     next unless defined $row->[$i];
-                    my @links = map { maprofile_link($_) } split( /,/, $row->[$i] );
-                    $row->[$i] = join( '<br>', sort @links );
+					my @probes = sort split( /,/, $row->[$i] );
+					if ( $p->is_genentech_instance() ) {
+					  @probes = map { maprofile_link($_) } @probes;
+					}
+                    $row->[$i] = join( '<br>', @probes );
                 }
             }
             elsif ( $cols[$i] =~ /unqs/ ) {

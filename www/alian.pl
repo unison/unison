@@ -193,18 +193,22 @@ EOSQL
 					$p->tooltip(pseq_summary_link($r->{pseq_id},"Unison:$r->{pseq_id}"),
 								$r->{best_annotation},
 								),
+
 					join('<br>',
 						 ncbi_gene_link($r->{pg_gene_id},"GeneID:$r->{pg_gene_id}"),
 						 ncbi_refseq_link($r->{pg_alias},"RefSeq:$r->{pg_alias}")
 						),
+
 					join(', ', map( {genengenes_link($_)}
 									split(/,/,$r->{unqs}),
 									split(/,/,$r->{pros}))
 						),
+
 					$r->{cytoband} || 'N/A',
-					($r->{probes}
-					 ? join('<br>', map {maprofile_link($_)} split(/,/,$r->{probes}))
-					 : ''
+
+					( ($r->{probes} and $p->is_genentech_instance() )
+					 ? join('<br>', map { maprofile_link($_) } split(/,/,$r->{probes}))
+					 : $r->{probes}
 					),
 
 					go_annotations($u,$r->{pseq_id}),

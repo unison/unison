@@ -867,6 +867,7 @@ sub is_prd_instance {
   return not is_dev_instance();
 }
 
+
 ######################################################################
 ## is_dev_instance
 
@@ -917,6 +918,7 @@ sub is_tst_instance {
   return 0;
 }
 
+
 ######################################################################
 ## is_public_instance
 
@@ -930,6 +932,9 @@ they depend on data that are not released with Unison.
 
 =cut
 
+## TODO: *where* pages are served != *what* is being served.
+## We should distinguish these more carefully.
+
 sub is_public_instance {
   if (defined $ENV{SERVER_ADDR}
 	  and $ENV{SERVER_ADDR} !~ m/^(?:128\.137|10\.246)\./) {
@@ -937,6 +942,31 @@ sub is_public_instance {
   }
   return 0;
 }
+
+
+######################################################################
+## is_genentech_instance
+
+=pod
+
+=item B<< ::is_genentech_instance() >>
+
+Return true if these pages are being served at Genentech.  This method is
+intended to facilitate hiding features which will fail because they depend
+on data that are not released with Unison.
+
+=cut
+
+sub is_genentech_instance {
+  if (defined $ENV{SERVER_ADDR}
+	  and $ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)' ) {
+    return 1;
+  }
+  return 0;
+}
+
+
+
 
 ######################################################################
 
@@ -1044,8 +1074,9 @@ sub _set_connection_params ($) {
 
   # $v->{host}, $v->{password}->{host} may be undef
 
-  $p->_genentech_connection_params()
-	if ( $ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)' );
+  if ( $p->is_genentech_instance() ) {
+	$p->_genentech_connection_params()
+  }
 }
 
 ######################################################################
