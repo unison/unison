@@ -32,24 +32,27 @@ Unison was designed with three key functional goals in mind:
 <dl>
   <dt>Sequence analysis
 	<dd>Given a sequence, provide a reliable, up-to-date source of
-	features.</dd>
+	features.
+  </dd>
 
   <dt>Feature-based mining
 	<dd>Given a set of protein characteristics, identify matching
 	proteins. This is the inverse of sequence analysis.
 
-	<br>Example: <i>Identify Human proteins that contain an immunoglobulin
-	(ig) domain by Pfam HMM or structure prediction, a transmembrane (TM)
-	domain, and an intracellular immunotyrosine inhibitory motif (ITIM),
-	in that order, and that have a mouse ortholog with similar feature
-	composition.</i>
+	<br>Example: <i>Identify Human proteins that contain 1) an
+	immunoglobulin (ig) domain by Pfam HMM or structure prediction, 2) a
+	transmembrane (TM) domain, and 3) an intracellular immunotyrosine
+	inhibitory motif (ITIM), in that order, and  4) that have a mouse
+	ortholog with similar feature composition.</i>
   </dd>
 
   <dt>Hypothesis generation
 	<dd>Analyze the function of a set of proteins in terms of their
 	constituent features.
-	<br>Example: <i>In a set of putative immune signaling proteins, do
-	  ITIMs occur in the context of other extracellular domains?</i>
+
+	<br>Example: <i>In a set of known or putative ITIM-containing
+	proteins, which extracellular domains occur and how frequently? Again,
+	with orthologs?</i>
   </dd>
 </dl>
 
