@@ -43,10 +43,20 @@ precommit:
 	make -C build csb-dev.sql
 
 
-install: .svnversion
+install: .svnversion make-perl5-ext make-dumps
 .svnversion: FORCE
 	svnversion >$@
-
+# TODO: The location of extra/external perl5 libs will become a runtime
+# configuration with the overhaul of the configuration scheme.
+make-perl5-ext: FORCE
+	@if [ -d /gne/home/rkh/perl/lib/perl5 ]; then \
+		ln -fnsv /gne/home/rkh/perl/lib/perl5 perl5-ext; \
+	fi
+make-dumps: FORCE
+	@if [ -d /data/www/htdocs/unison/dumps ]; then \
+		mkdir -p www/dumps; \
+		/bin/cp -lrv /data/www/htdocs/unison/dumps www/; \
+	fi
 
 SVN2CL_OPTS=--group-by-day
 ChangeLog:
