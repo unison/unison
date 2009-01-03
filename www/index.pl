@@ -15,9 +15,9 @@ my $p = new Unison::WWW::Page();
 
 print $p->render('Welcome', <<EOBODY);
 <div class="notice">
-NEWS: Our manuscript on Unison was recently accepted to the 2009 <a
-href="http://psb.stanford.edu/">Pacific Symposium on Biocomputing</a>.
-We'll have details here when the paper appears online.
+NEWS: <a href="http://harts.net/reece/pubs/">Our manuscript on Unison</a>
+was accepted to the 2009 <a href="http://psb.stanford.edu/">Pacific
+Symposium on Biocomputing</a>.  The slides will appear there soon.
 </div>
 
 <fieldset class="group" style="width: 50%; float: right;">

@@ -43,7 +43,7 @@ Unison.</dd>
 
   <dt>Unison: An Integrated Platform for Computational Biology Discovery
   <dd>Hart RK, Mukhyala K
-  <br>Biocomputing 2009, to appear.
+  <br><a href="http://psb.stanford.edu/">Pacific Symposium on Biocomputing</a> <a href="http://harts.net/reece/pubs/2009/unison-psb-2009.pdf">PDF</a>
   </dd>
 
   <dt>Natural selection of protein structural and functional properties: a single nucleotide polymorphism perspective.

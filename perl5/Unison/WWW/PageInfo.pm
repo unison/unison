@@ -98,8 +98,8 @@ our @browse_info =
 	script => 'browse_sets.pl',
 	brief => 'Precomputed sequence sets',
 	descr => qq(Browse curated sets of sequences culled from literature or mining.),
-	prd => 1,
-	pub => 1,
+	prd => 0,
+	pub => 0,
    },
 
    {
