@@ -19,6 +19,8 @@ RedirectMatch permanent (.*)/shots.html 		  $1/shots.pl
 RedirectMatch permanent (.*)/origins.pl 		  $1/contents.pl
 RedirectMatch permanent (.*)/params.pl 		      $1/contents.pl
 RedirectMatch permanent (.*)/about_env.pl 		  $1/env.pl
+RedirectMatch permanent (.*)/getting.pl 		  $1/download.pl
+
 
 # moved to ../doc and made symlink to the doc directory
 #RedirectMatch permanent (.*)/critical-tables.pdf  $1/doc/critical-tables.pdf
