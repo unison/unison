@@ -405,8 +405,8 @@ our @unison_info =
    },
 
    {
-	name => 'Getting It',
-	script => 'getting.pl',
+	name => 'Download',
+	script => 'download.pl',
 	brief => '',
 	pub => 1,
 	prd => 1,

@@ -42,7 +42,9 @@ default all:
 
 .PRECIOUS: %-pub.sql.gz
 %-pub.sql.gz:
-	(time ${PG_SUDO} ../../tools/sbin/publicize $* | gzip -c >$@ ) >$@.err 2>&1
+	(time ${PG_SUDO} ../../tools/sbin/publicize $* \
+	| grep -v 'CONSTRAINT sty_residue CHECK' \
+	| gzip -c >$@ ) >$@.err 2>&1
 	/bin/mv -f "$@.err" "$@.log"
 
 
