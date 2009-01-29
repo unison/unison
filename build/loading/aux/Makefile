@@ -4,7 +4,7 @@ include ../common.mk
 include ../local.mk
 include ../params.mk
 
-DIRS:=ncbi pdb scop tax hugo marray
+DIRS:=ncbi pdb scop tax hugo marray ptm
 
 CLEANUP_DIRS=${DIRS}
 ifeq "${GNE}" "1"
