@@ -10,8 +10,8 @@ QPPN:=8
 RUNSET=runC
 NPER:=500
 
-PFAM_FS_RUN_ID:=34
-PFAM_LS_RUN_ID:=37
+PFAM_FS_RUN_ID:=45
+PFAM_LS_RUN_ID:=46
 
 update: cleanest update-r${PFAM_FS_RUN_ID} update-r${PFAM_LS_RUN_ID}
 
