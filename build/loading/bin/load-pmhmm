@@ -122,6 +122,7 @@ while(my $blk = <$in>) {
 	= map {my ($r) = $blk =~ m/^$_\s+(.+)/m; $r||undef}  @F;
   $acc = $name unless defined $acc;
   $descr = $name unless defined $descr;
+  $_ =~ s/\;//g foreach ($ga,$tc,$nc);
 
   my ($gas,$gad) = defined $ga ? split(' ',$ga) : (undef,undef);
   my ($tcs,$tcd) = defined $tc ? split(' ',$tc) : (undef,undef);
