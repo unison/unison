@@ -44,46 +44,46 @@ ccds-mouse.load: $(wildcard ${CCDS_DIR}/current_mouse/CCDS_protein.*.faa.gz)
 ENSEMBL_SPECIES:=chimp cow fly human mouse rat zebrafish
 .PHONY: ensembl.load
 ensembl.load: $(foreach S,${ENSEMBL_SPECIES},ensembl-$S.load) $(foreach S,${ENSEMBL_SPECIES},ensembl-$S-ai.load)
-ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_pan_troglodytes/data/fasta/pep/*.pep.fa.gz) 
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Chimp -ffasta -t9598 -V$(<F:Pan_troglodytes.%.pep.fa.gz=%) - >$@.err 2>&1
+ensembl-chimp.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/pan_troglodytes/pep/*.pep.all.fa.gz) 
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Chimp -ffasta -t9598 -V$(<F:Pan_troglodytes.%.pep.all.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-chimp-ai.load: $(wildcard ${ENSEMBL_DIR}/current_pan_troglodytes/data/fasta/pep/*.pep.abinitio.fa.gz)
+ensembl-chimp-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/pan_troglodytes/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Chimp (ab initio)' -ffasta -t9598 -V$(<F:Pan_troglodytes.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-cow.load: $(wildcard ${ENSEMBL_DIR}/current_bos_taurus/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Cow -ffasta -t9913 -V$(<F:Bos_taurus.%.pep.fa.gz=%) - >$@.err 2>&1
+ensembl-cow.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/bos_taurus/pep/*.pep.all.fa.gz)
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Cow -ffasta -t9913 -V$(<F:Bos_taurus.%.pep.all.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-cow-ai.load: $(wildcard ${ENSEMBL_DIR}/current_bos_taurus/data/fasta/pep/*.pep.abinitio.fa.gz)
+ensembl-cow-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/bos_taurus/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Cow (ab initio)' -ffasta -t9913 -V$(<F:Bos_taurus.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_drosophila_melanogaster/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Fly -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.fa.gz=%) - >$@.err 2>&1
+ensembl-fly.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/drosophila_melanogaster/pep/*.pep.all.fa.gz)
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Fly -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.all.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-fly-ai.load: $(wildcard ${ENSEMBL_DIR}/current_drosophila_melanogaster/data/fasta/pep/*.pep.abinitio.fa.gz)
+ensembl-fly-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/drosophila_melanogaster/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Fly (ab initio)' -ffasta -t7227 -V$(<F:Drosophila_melanogaster.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_homo_sapiens/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Human -ffasta -t9606 -V$(<F:Homo_sapiens.%.pep.fa.gz=%) - >$@.err 2>&1
+ensembl-human.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/homo_sapiens/pep/*.pep.all.fa.gz)
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Human -ffasta -t9606 -V$(<F:Homo_sapiens.%.pep.all.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-human-ai.load: $(wildcard ${ENSEMBL_DIR}/current_homo_sapiens/data/fasta/pep/*.pep.abinitio.fa.gz)
+ensembl-human-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/homo_sapiens/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Human (ab initio)' -ffasta -t9606 -V$(<F:Homo_sapiens.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-mouse.load: $(wildcard ${ENSEMBL_DIR}/current_mus_musculus/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Mouse -ffasta -t10090 -V$(<F:Mus_musculus.%.pep.fa.gz=%) - >$@.err 2>&1
+ensembl-mouse.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/mus_musculus/pep/*.pep.all.fa.gz)
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Mouse -ffasta -t10090 -V$(<F:Mus_musculus.%.pep.all.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-mouse-ai.load: $(wildcard ${ENSEMBL_DIR}/current_mus_musculus/data/fasta/pep/*.pep.abinitio.fa.gz)
+ensembl-mouse-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/mus_musculus/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Mouse (ab initio)' -ffasta -t10090 -V$(<F:Mus_musculus.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-rat.load: $(wildcard ${ENSEMBL_DIR}/current_rattus_norvegicus/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Rat -ffasta -t10116 -V$(<F:Rattus_norvegicus.%.pep.fa.gz=%) - >$@.err 2>&1
+ensembl-rat.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/rattus_norvegicus/pep/*.pep.all.fa.gz)
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Rat -ffasta -t10116 -V$(<F:Rattus_norvegicus.%.pep.all.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-rat-ai.load: $(wildcard ${ENSEMBL_DIR}/current_rattus_norvegicus/data/fasta/pep/*.pep.abinitio.fa.gz)
+ensembl-rat-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/rattus_norvegicus/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Rat (ab initio)' -ffasta -t10116 -V$(<F:Rattus_norvegicus.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-zebrafish.load: $(wildcard ${ENSEMBL_DIR}/current_danio_rerio/data/fasta/pep/*.pep.fa.gz)
-	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Zebrafish -ffasta -t7955 -V$(<F:Danio_rerio.%.pep.fa.gz=%) - >$@.err 2>&1
+ensembl-zebrafish.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/danio_rerio/pep/*.pep.all.fa.gz)
+	gzip -cdq $< | time -p load-pseq --deprecate -vv -oEnsembl/Zebrafish -ffasta -t7955 -V$(<F:Danio_rerio.%.pep.all.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
-ensembl-zebrafish-ai.load: $(wildcard ${ENSEMBL_DIR}/current_danio_rerio/data/fasta/pep/*.pep.abinitio.fa.gz)
+ensembl-zebrafish-ai.load: $(wildcard ${ENSEMBL_DIR}/current_fasta/danio_rerio/pep/*.pep.abinitio.fa.gz)
 	gzip -cdq $< | time -p load-pseq --deprecate -vv -o'Ensembl/Zebrafish (ab initio)' -ffasta -t7955 -V$(<F:Danio_rerio.%.pep.abinitio.fa.gz=%) - >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
