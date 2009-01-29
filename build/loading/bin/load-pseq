@@ -110,8 +110,9 @@ my %known_tax_ids = map {$_ => 1} values %latin_to_tax_id;
 (defined $opts{tax_id} and not exists $known_tax_ids{$opts{tax_id}})
   && die("$0: you specified an invalid tax_id\n");
 
-($opts{origin} =~ m/^RefSeq/ and $opts{format} !~ m/genbank/i)
-  && die("$0: $opts{origin} sequences should be loaded from genbank format files\n");
+# mukhyala : RefSeq files need not be genbank format only but can be fasta also
+#($opts{origin} =~ m/^RefSeq/ and $opts{format} !~ m/genbank/i)
+#  && die("$0: $opts{origin} sequences should be loaded from genbank format files\n");
 
 ($opts{origin} =~ m/^UniProt/ and $opts{format} !~ m/swiss/i)
   && die("$0: $opts{origin} sequences should be loaded from swiss format files\n");
