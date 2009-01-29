@@ -9,11 +9,11 @@ RUNSET1:=runB
 RUNSET2=O-Sugen
 RUNSET=runset
 N:=10
-QPPN:=16
+QPPN:=8
 
 update:
 	make cleaner
-	make ${RUNSET}.ids done.ids ${RUNSET}-todo.ids ${RUNSET}-todo-N${N}
+	make ${RUNSET}.ids done.ids ${RUNSET}-todo.ids
 	make upd_pmpseq.ids
 	make ${DB}.pal
 	make ${RUNSET}-todo-N${N}-qload
