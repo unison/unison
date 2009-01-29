@@ -20,7 +20,7 @@ ligands.sql: ${LIGAND_DATA}
 	/bin/mv -f $@.err $@
 
 %.load: %.ids
-	(time -p ./load-pdblite < $<) >$@.err 2>&1;
+	(time -p ./load-pdblite --update < $<) >$@.err 2>&1;
 	/bin/mv -f $@.err $@.log; touch $@
 
 allxml.ids: exclude.list FORCE
