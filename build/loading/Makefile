@@ -7,9 +7,9 @@ include common.mk
 include local.mk
 include params.mk
 
-update: phase1 phase2 phase3 phase4 phase5 phase6
+update: phase1 phase2 phase3 phase4 
 
-
+stage2: phase5 phase6
 CLEANUP_DIRS=
 
 
