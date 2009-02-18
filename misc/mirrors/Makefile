@@ -11,7 +11,6 @@
 PFAM_VERSION:=23.0
 HOMOLOGENE_VERSION:=56
 SCOP_VERSION:=1.73
-ENSEMBL_VERSION:=48
 ENSEMBL_BASE_URL:=ftp://ftp.ensembl.org/pub
 ENSEMBL_SPECIES:=				\
 	bos_taurus					\
@@ -158,13 +157,13 @@ logs/dali.log:
 ############################################################################
 ### ENSEMBL
 CURRENCY_TARGETS+=ensembl
-logs/ensembl.log: $(foreach s,${ENSEMBL_SPECIES},logs/ensembl-${ENSEMBL_VERSION}-${s}.log)
+logs/ensembl.log: $(foreach s,${ENSEMBL_SPECIES},logs/ensembl-${s}.log)
 	/bin/ls -1 $^ >$@.err
 	/bin/mv -f $@.err $@
-logs/ensembl-${ENSEMBL_VERSION}-%.log: FORCE
+logs/ensembl-%.log: FORCE
 	${WGET} \
-		${ENSEMBL_BASE_URL}/release-${ENSEMBL_VERSION}/fasta/$*/pep \
-		${ENSEMBL_BASE_URL}/release-${ENSEMBL_VERSION}/genbank/$*
+		${ENSEMBL_BASE_URL}/current_fasta/$*/pep \
+		${ENSEMBL_BASE_URL}/current_genbank/$*
 	/bin/mv -f $@.err $@
 
 
