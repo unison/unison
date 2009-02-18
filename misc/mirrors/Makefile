@@ -11,6 +11,7 @@
 PFAM_VERSION:=23.0
 HOMOLOGENE_VERSION:=56
 SCOP_VERSION:=1.73
+MINT_VERSION:=2008-10-01
 ENSEMBL_BASE_URL:=ftp://ftp.ensembl.org/pub
 ENSEMBL_SPECIES:=				\
 	bos_taurus					\
@@ -234,11 +235,20 @@ logs/mgc.log: FORCE
 
 
 ############################################################################
+### MINT (Molecular INTeractions)
+CURRENCY_TARGETS+=mint
+logs/mint.log: FORCE
+	${WGET} ftp://mint.bio.uniroma2.it/pub/release/psi/${MINT_VERSION}/psi25
+	/bin/mv -f $@.err $@
+
+
+############################################################################
 ### NCBI ENTREZ GENE
 CURRENCY_TARGETS+=ncbi-gene
 logs/ncbi-gene.log: FORCE
 	${WGET} -l1 ftp://ftp.ncbi.nih.gov/gene/{GeneRIF,DATA}/ ftp://ftp.ncbi.nih.gov/gene/DATA/{gene2unigene,mim2gene}
 	/bin/mv -f $@.err $@
+
 
 ############################################################################
 ### NCBI HUMAN GENOME
@@ -254,6 +264,7 @@ logs/ncbi-genomes-%.log:
 	${WGET} -Afaa ftp://ftp.ncbi.nih.gov/genomes/$*
 	/bin/mv -f $@.err $@
 
+
 ############################################################################
 ### NCBI REFSEQ
 CURRENCY_TARGETS+=ncbi-refseq
@@ -262,6 +273,7 @@ logs/ncbi-refseq.log: FORCE
 	${WGET} -Aprotein.faa.gz -Aprotein.gpff.gz ftp://ftp.ncbi.nih.gov/refseq/release/complete/
 	/bin/mv -f $@.err $@
 
+
 ############################################################################
 ### NCBI TAXONOMY
 CURRENCY_TARGETS+=ncbi-tax
@@ -269,11 +281,20 @@ logs/ncbi-tax.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
 	/bin/mv -f $@.err $@
 
+
 ############################################################################
 ### OMIM (NCBI)
 CURRENCY_TARGETS+=omim
 logs/omim.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/repository/OMIM
+	/bin/mv -f $@.err $@
+
+
+############################################################################
+### PhosphoELM
+CURRENCY_TARGETS+=phosphoelm
+logs/phosphoelm.log: FORCE
+	${WGET} http://phospho.elm.eu.org/phosphoELM_1208.tar.gz
 	/bin/mv -f $@.err $@
 
 
