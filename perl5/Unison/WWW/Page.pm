@@ -887,7 +887,8 @@ sub is_dev_instance {
   return 1 if (not defined $ENV{SERVER_NAME});
 
   # In web env => SERVER_PORT, SERVER_NAME, REQUEST_URI should be defined
-  return 1 if ( $ENV{REQUEST_URI} =~ m%/dev/|/~% );
+  return 1 if ( $ENV{SERVER_NAME} =~ /dev/
+		or $ENV{REQUEST_URI} =~ m%/dev/|/~% );
 
   return 0;
 }
