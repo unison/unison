@@ -8,10 +8,17 @@
 
 ############################################################################
 ### CONFIGURATION
-PFAM_VERSION:=23.0
-HOMOLOGENE_VERSION:=56
-SCOP_VERSION:=1.73
+
+# versions -- check these frequently and manually
+HOMOLOGENE_VERSION:=63
 MINT_VERSION:=2008-10-01
+PFAM_VERSION:=23.0
+SCOP_VERSION:=1.73
+STRING_VERSION:=7.1
+
+ASTRAL_VERSION:=${SCOP_VERSION}
+
+# other config that doesn't change often
 ENSEMBL_BASE_URL:=ftp://ftp.ensembl.org/pub
 ENSEMBL_SPECIES:=				\
 	bos_taurus					\
@@ -64,7 +71,6 @@ NCBI_SPECIES:=					\
 	Bacteria/Staphylococcus_aureus_USA300			\
 	Bacteria/Staphylococcus_aureus_USA300_TCH1516	\
 	Bacteria/Staphylococcus_aureus_USA300_TCH1516
-STRING_VERSION:=7.1
 
 
 WGET=wget -o$@.err -m -np
@@ -81,14 +87,14 @@ default: update
 ############################################################################
 ### ASTRAL
 ### http://astral.berkeley.edu/
-CURRENCY_TARGETS+=astral
+UPDATE_TARGETS+=astral
 logs/astral.log: FORCE
-	${WGET} http://astral.berkeley.edu/scopseq-${SCOP_VERSION}
+	${WGET} http://astral.berkeley.edu/scopseq-${ASTRAL_VERSION}
 
 
 ############################################################################
 ### BLAST STUFF (NBCI)
-CURRENCY_TARGETS+=nr pataa blast-matrices blast
+UPDATE_TARGETS+=nr pataa blast-matrices blast
 logs/nr.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/blast/db/nr*
 	/bin/mv -f $@.err $@
@@ -106,7 +112,7 @@ logs/blast.log: logs/nr.log logs/pataa.log logs/blast-matrices.log
 
 ############################################################################
 ### CCDS
-CURRENCY_TARGETS+=ccds
+UPDATE_TARGETS+=ccds
 logs/ccds.log:
 	${WGET} -R archive ftp://ftp.ncbi.nih.gov/pub/CCDS
 	/bin/mv -f $@.err $@
@@ -114,7 +120,7 @@ logs/ccds.log:
 
 ############################################################################
 ### CDD
-CURRENCY_TARGETS+=cdd
+UPDATE_TARGETS+=cdd
 logs/cdd.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/pub/mmdb/cdd/
 	/bin/mv -f $@.err $@
@@ -122,7 +128,7 @@ logs/cdd.log: FORCE
 
 ############################################################################
 ### CHEBI
-CURRENCY_TARGETS+=chebi
+UPDATE_TARGETS+=chebi
 logs/chebi.log: FORCE
 	${WGET} ftp://ftp.ebi.ac.uk/pub/databases/chebi/README.txt \
 			ftp://ftp.ebi.ac.uk/pub/databases/chebi/generic_dumps \
@@ -134,7 +140,7 @@ logs/chebi.log: FORCE
 
 ############################################################################
 ### COSMIC
-CURRENCY_TARGETS+=cosmic
+UPDATE_TARGETS+=cosmic
 logs/cosmic.log: FORCE
 	${WGET} ftp://ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files/*_protein.txt -O - >> cosmic.fa
 	/bin/mv -f cosmic.fa ftp.sanger.ac.uk/pub/CGP/cosmic/fasta_files
@@ -143,7 +149,7 @@ logs/cosmic.log: FORCE
 
 ############################################################################
 ### DALI
-CURRENCY_TARGETS+=dali
+UPDATE_TARGETS+=dali
 logs/dali.log:
 	# DALI
 	# older version (prod?)
@@ -157,7 +163,7 @@ logs/dali.log:
 
 ############################################################################
 ### ENSEMBL
-CURRENCY_TARGETS+=ensembl
+UPDATE_TARGETS+=ensembl
 logs/ensembl.log: $(foreach s,${ENSEMBL_SPECIES},logs/ensembl-${s}.log)
 	/bin/ls -1 $^ >$@.err
 	/bin/mv -f $@.err $@
@@ -170,7 +176,7 @@ logs/ensembl-%.log: FORCE
 
 ############################################################################
 ### GENE ONTOLOGY
-CURRENCY_TARGETS+=go
+UPDATE_TARGETS+=go
 logs/go.log: FORCE
 	${WGET} \
 		ftp://ftp.geneontology.org/pub/go/doc/ \
@@ -183,7 +189,7 @@ logs/go.log: FORCE
 
 ############################################################################
 ### HOMOLOGENE (NCBI)
-CURRENCY_TARGETS+=homologene
+UPDATE_TARGETS+=homologene
 logs/homologene.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/pub/HomoloGene/build${HOMOLOGENE_VERSION}/
 	/bin/mv -f $@.err $@
@@ -191,7 +197,7 @@ logs/homologene.log: FORCE
 
 ############################################################################
 ### HUGE
-CURRENCY_TARGETS+=huge
+UPDATE_TARGETS+=huge
 logs/huge.log: FORCE
 	${WGET} ftp://ftp.kazusa.or.jp/pub/huge/peplib.kiaa2038.tfa
 	/bin/mv -f $@.err $@
@@ -200,11 +206,11 @@ logs/huge.log: FORCE
 ############################################################################
 ### InterPro & iprscan
 ## logs/interpro.log: FORCE
-CURRENCY_TARGETS+=interpro
+UPDATE_TARGETS+=interpro
 logs/interpro.log: FORCE
 	${WGET} -R old_releases,database/mysql,potm,user_data ftp://ftp.ebi.ac.uk/pub/databases/interpro/
 	/bin/mv -f $@.err $@
-CURRENCY_TARGETS+=iprscan
+UPDATE_TARGETS+=iprscan
 logs/iprscan.log: FORCE
 	${WGET} ftp://ftp.ebi.ac.uk/pub/software/unix/iprscan/
 	/bin/mv -f $@.err $@
@@ -212,7 +218,7 @@ logs/iprscan.log: FORCE
 
 ############################################################################
 ### IPI
-CURRENCY_TARGETS+=ipi
+UPDATE_TARGETS+=ipi
 logs/ipi.log: FORCE
 	${WGET} -Adat.gz --retr-symlinks ftp://ftp.ebi.ac.uk/pub/databases/IPI/current/
 	/bin/mv -f $@.err $@
@@ -220,7 +226,7 @@ logs/ipi.log: FORCE
 
 ############################################################################
 ### IMGT
-CURRENCY_TARGETS+=imgt
+UPDATE_TARGETS+=imgt
 logs/imgt.log: FORCE
 	${WGET} ftp://ftp.ebi.ac.uk/pub/databases/imgt
 	/bin/mv -f $@.err $@
@@ -228,7 +234,7 @@ logs/imgt.log: FORCE
 
 ############################################################################
 ### MGC
-CURRENCY_TARGETS+=mgc
+UPDATE_TARGETS+=mgc
 logs/mgc.log: FORCE
 	${WGET} ftp://ftp1.nci.nih.gov/pub/MGC/fasta/
 	/bin/mv -f $@.err $@
@@ -236,7 +242,7 @@ logs/mgc.log: FORCE
 
 ############################################################################
 ### MINT (Molecular INTeractions)
-CURRENCY_TARGETS+=mint
+UPDATE_TARGETS+=mint
 logs/mint.log: FORCE
 	${WGET} ftp://mint.bio.uniroma2.it/pub/release/psi/${MINT_VERSION}/psi25
 	/bin/mv -f $@.err $@
@@ -244,7 +250,7 @@ logs/mint.log: FORCE
 
 ############################################################################
 ### NCBI ENTREZ GENE
-CURRENCY_TARGETS+=ncbi-gene
+UPDATE_TARGETS+=ncbi-gene
 logs/ncbi-gene.log: FORCE
 	${WGET} -l1 ftp://ftp.ncbi.nih.gov/gene/{GeneRIF,DATA}/ ftp://ftp.ncbi.nih.gov/gene/DATA/{gene2unigene,mim2gene}
 	/bin/mv -f $@.err $@
@@ -252,7 +258,7 @@ logs/ncbi-gene.log: FORCE
 
 ############################################################################
 ### NCBI HUMAN GENOME
-CURRENCY_TARGETS+=ncbi-genomes
+UPDATE_TARGETS+=ncbi-genomes
 logs/ncbi-genomes.log: $(foreach s,${NCBI_SPECIES},logs/ncbi-genomes-${s}.log)
 	/bin/ls -1 $^ >$@.err
 	/bin/mv -f $@.err $@
@@ -267,7 +273,7 @@ logs/ncbi-genomes-%.log:
 
 ############################################################################
 ### NCBI REFSEQ
-CURRENCY_TARGETS+=ncbi-refseq
+UPDATE_TARGETS+=ncbi-refseq
 logs/ncbi-refseq.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/refseq/release/release-notes
 	${WGET} -Aprotein.faa.gz -Aprotein.gpff.gz ftp://ftp.ncbi.nih.gov/refseq/release/complete/
@@ -276,7 +282,7 @@ logs/ncbi-refseq.log: FORCE
 
 ############################################################################
 ### NCBI TAXONOMY
-CURRENCY_TARGETS+=ncbi-tax
+UPDATE_TARGETS+=ncbi-tax
 logs/ncbi-tax.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
 	/bin/mv -f $@.err $@
@@ -284,7 +290,7 @@ logs/ncbi-tax.log: FORCE
 
 ############################################################################
 ### OMIM (NCBI)
-CURRENCY_TARGETS+=omim
+UPDATE_TARGETS+=omim
 logs/omim.log: FORCE
 	${WGET} ftp://ftp.ncbi.nih.gov/repository/OMIM
 	/bin/mv -f $@.err $@
@@ -292,7 +298,7 @@ logs/omim.log: FORCE
 
 ############################################################################
 ### PhosphoELM
-CURRENCY_TARGETS+=phosphoelm
+UPDATE_TARGETS+=phosphoelm
 logs/phosphoelm.log: FORCE
 	${WGET} http://phospho.elm.eu.org/phosphoELM_1208.tar.gz
 	/bin/mv -f $@.err $@
@@ -300,7 +306,7 @@ logs/phosphoelm.log: FORCE
 
 ############################################################################
 ### PROSITE
-CURRENCY_TARGETS+=prosite
+UPDATE_TARGETS+=prosite
 logs/prosite.log: FORCE
 	${WGET} ftp://ftp.expasy.org/databases/prosite/release_with_updates/
 	/bin/mv -f $@.err $@
@@ -308,7 +314,7 @@ logs/prosite.log: FORCE
 
 ############################################################################
 ### PFAM
-CURRENCY_TARGETS+=pfam-${PFAM_VERSION}
+UPDATE_TARGETS+=pfam-${PFAM_VERSION}
 .PHONY: pfam
 pfam: pfam-${PFAM_VERSION}
 logs/pfam-%.log: FORCE
@@ -318,7 +324,7 @@ logs/pfam-%.log: FORCE
 
 ############################################################################
 ### REACTOME
-CURRENCY_TARGETS+=reactome
+UPDATE_TARGETS+=reactome
 .PHONY: reactome
 logs/reactome.log: FORCE
 	${WGET} http://reactome.org/download/current/uniprot_2_pathways.stid.txt
@@ -328,7 +334,7 @@ logs/reactome.log: FORCE
 ############################################################################
 ### WWPDB
 # WARNING: --retr-symlinks doesn't set timestamps correctly
-CURRENCY_TARGETS+=wwpdb
+UPDATE_TARGETS+=wwpdb
 PDB_URL:=ftp://ftp.wwpdb.org
 .PRECIOUS: logs/wwpdb.log
 logs/wwpdb.log: FORCE
@@ -344,7 +350,7 @@ logs/wwpdb.log: FORCE
 
 ############################################################################
 ### ROUGE
-CURRENCY_TARGETS+=rouge
+UPDATE_TARGETS+=rouge
 logs/rouge.log: FORCE
 	${WGET} ftp://ftp.kazusa.or.jp/pub/rouge/peplib_060330
 	/bin/mv -f $@.err $@
@@ -352,7 +358,7 @@ logs/rouge.log: FORCE
 
 ############################################################################
 ### SCOP
-CURRENCY_TARGETS+=scop
+UPDATE_TARGETS+=scop
 logs/scop.log: FORCE
 	${WGET} http://scop.mrc-lmb.cam.ac.uk/scop/parse/dir.{cla,com,des,hie}.scop.txt_${SCOP_VERSION}
 	/bin/mv -f $@.err $@
@@ -360,7 +366,7 @@ logs/scop.log: FORCE
 
 ############################################################################
 ### STRING
-CURRENCY_TARGETS+=string
+UPDATE_TARGETS+=string
 logs/string.log: FORCE
 	${WGET}	http://string.embl.de/newstring_download/protein.sequences.v${STRING_VERSION}.fa.gz
 	/bin/mv -f $@.err $@
@@ -368,7 +374,7 @@ logs/string.log: FORCE
 
 ############################################################################
 ### TIGRFAM
-CURRENCY_TARGETS+=tigrfam
+UPDATE_TARGETS+=tigrfam
 OLD_RELEASES:=$(addsuffix _Release,1.0 1.1 1.2 2.0 2.1 3.0 4.0 4.1 5.0 6.0)
 logs/tigrfam.log: FORCE
 	${WGET} $(addprefix -X ,${OLD_RELEASES}) ftp://ftp.jcvi.org/pub/data/TIGRFAMs
@@ -377,7 +383,7 @@ logs/tigrfam.log: FORCE
 
 ############################################################################
 ### UC SANTA CRUZ ASSEMBLY
-# CURRENCY_TARGETS+=ucsc
+# UPDATE_TARGETS+=ucsc
 logs/hg18.log:
 	( \
 	set -e; \
@@ -390,7 +396,7 @@ logs/hg18.log:
 
 ############################################################################
 ### UNIGENE
-CURRENCY_TARGETS+=unigene
+UPDATE_TARGETS+=unigene
 logs/unigene.log: $(foreach s,${UNIGENE_SPECIES},logs/unigene-${s}.log)
 	/bin/ls -1 $^ >$@.err
 	/bin/mv -f $@.err $@
@@ -401,7 +407,7 @@ logs/unigene-%.log: FORCE
 
 ############################################################################
 ### UNIPROT et al
-CURRENCY_TARGETS+=uniprot uniref
+UPDATE_TARGETS+=uniprot uniref
 logs/uniprot.log: FORCE
 	${WGET} ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete
 	/bin/mv -f $@.err $@
@@ -412,7 +418,7 @@ logs/uniref.log: FORCE
 
 ############################################################################
 ### PIR
-CURRENCY_TARGETS+=pirsf iproclass
+UPDATE_TARGETS+=pirsf iproclass
 logs/pirsf.log: FORCE
 	${WGET} ftp://ftp.pir.georgetown.edu/databases/pirsf/pirsfinfo.dat
 	/bin/mv -f $@.err $@
@@ -429,7 +435,7 @@ logs/pir.log: logs/pirsf.log logs/iproclass.log
 
 ############################################################################
 ### DERWENT
-CURRENCY_TARGETS+=geneseq
+UPDATE_TARGETS+=geneseq
 logs/geneseq.log: FORCE
 	${WGET} --user=genentech --password=genentech ftp://ftp.derwent.co.uk/
 	/bin/mv -f $@.err $@
@@ -447,12 +453,12 @@ ftu.log: FORCE
 
 
 .PHONY: update
-update: ${CURRENCY_TARGETS}
+update: ${UPDATE_TARGETS}
 
 ############################################################################
 ### shorthands (e.g., rcsb : logs/rcsb.log)
-.PHONY: ${CURRENCY_TARGETS}
-${CURRENCY_TARGETS} : % : logs/%.log;
+.PHONY: ${UPDATE_TARGETS}
+${UPDATE_TARGETS} : % : logs/%.log;
 
 
 dusk:
