@@ -4,56 +4,20 @@ use strict;
 use warnings;
 use Data::Dumper;
 
-use Tie::DNS;
-tie( my %dns, 'Tie::DNS', { cache => 100 } );
-
-#use Net::DNS;
-#my $res   = Net::DNS::Resolver->new;
-
-my $ip4re = qr/^\d+\.\d+\.\d+\.\d+$/;
-
-
 while( my $line = <> ) {
   # crawl-66-249-70-134.googlebot.com - - [21/Feb/2009:18:32:09 -0800] "GET /pseq_features.pl?pseq_id=2280938 HTTP/1.1" 200 14778 "-" "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
   # c-24-5-82-206.hsd1.ca.comcast.net - - [21/Feb/2009:18:33:13 -0800] "GET / HTTP/1.1" 200 5640 "-" "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.6) Gecko/2009020911 Ubuntu/8.10 (intrepid) Firefox/3.0.6"
   # c-24-5-82-206.hsd1.ca.comcast.net - - [21/Feb/2009:18:33:14 -0800] "GET /av/favicon.png HTTP/1.1" 200 751 "-" "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.6) Gecko/2009020911 Ubuntu/8.10 (intrepid) Firefox/3.0.6"
 
-  my ($src,$auth,$ts,$req,$st,$sz,$ref,$agent) = $line =~ m/^(\S+) \S+ (\S+) \[([^\]]+)\] "([^"]+)" (\d+) (\S+) "([^"]+)" "([^"]+)"/;
+  my ($src,$auth,$ts,$req,$st,$sz,$ref,$agent) = $line =~ m/^\s*(\S+) \S+ (\S+) \[([^\]]+)\] "(.+?)" (\d+) (\S+) "([^"]*)" "([^"]*)"/;
   if (not defined $src) {
 	die("$.: missed this line:\n  $line\n");
   }
 
   $sz = 0 if $sz eq '-';
+  $ref ||= 'NULL';
+  $agent ||= 'NULL';
 
-  my ($host,$ip);
-  if ($src =~ m/$ip4re/) {
-	# reverse lookup
-	$ip = $src;
-	$host = $dns{$ip} || 'NULL';
-  } else {
-	$host = $src;
-	$ip = $dns{$host} || '0.0.0.0';
-  }
-
-  printf( '%s,%s,%s,%s,"%s",%d,%d,"%s","%s"'."\n",
-		  $host,$ip,$auth,$ts,
-		  $req,$st,$sz,$ref,$agent );
+  printf( '%s,%s,%s,"%s",%d,%d,"%s","%s"'."\n",
+		  $src,$auth,$ts,$req,$st,$sz,$ref,$agent );
 }
-
-
-
-
-# sub getIPs ($) {
-#   my ($hn) = @_;
-#   my $query = $res->search($hn);
-#   if ($query) {
-# 	my @IPs = map { $_->address } grep { $_->type eq 'A' } $query->answer;
-# 	if (not @IPs) {
-# 	  warn("No A records for $hn\n");
-# 	  return ();
-# 	}
-# 	return @IPs;
-#   }
-#   warn "query failed: ", $res->errorstring, "\n";
-#   return undef;
-# }

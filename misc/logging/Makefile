@@ -2,30 +2,37 @@
 .DELETE_ON_ERROR:
 .PHONY: FORCE
 
+export PATH=/gne/research/apps/postgresql/prd/x86_64-linux-2.6/bin:/usr/bin:/bin
 export PGHOST:=respgsql
 export PGDATABASE:=logs
-
-export PATH=/gne/research/apps/postgresql/prd/x86_64-linux-2.6/bin:/usr/bin:/bin
 
 INSTANCE:=respub
 
 
-%-build: rebuild.sql.m4
-	psql -c
+SHELL:=/bin/bash
+
+
+%-build: src/apache-rebuild.sql.m4
+	m4 -D__SCHEMA=$* $< | psql -Xa
+
 
 
 load-%:
 	find logs/$*/ -name access_log\*.gz | perl -pe 's/^logs/loadlog/; s/\.gz$$/.log/' | tr \\012 \\0 | xargs -0r make
 
-logs/${INSTANCE}/apache/%.csv.gz: logs/${INSTANCE}/apache/%.gz
-	gzip -cd <$< | ./bin/accesslog2csv | gzip -c >$@
-
-load/${INSTANCE}/apache/%.log: logs/${INSTANCE}/apache/%.csv.gz
+load/${INSTANCE}/apache/%.log: logs/${INSTANCE}/apache/%.gz
 	mkdir -p ${@D}
-	S=`expr "$@" : 'load/\([^/]*\)'`; \
-	gzip -cd <$< \
-	| psql -h respgsql -d logs -c "set search_path = $$S; COPY apache_log FROM STDIN WITH csv" <$< >$@.err 2>&1
+	@S=`expr "$@" : 'load/\([^/]*\)'`; set -o pipefail; \
+	echo "# loading $< into $$S" 1>&2; \
+	gzip -cd <$< | ./bin/accesslog2csv \
+	| psql -h respgsql -d logs -c "set search_path = $$S; COPY apache_log FROM STDIN WITH csv NULL as 'NULL'" >$@.err 2>&1
 	/bin/mv -f "$@.err" "$@"
+
+# depends on PGHOST=respgsql PGDATABASE=logs
+%-update
+	./bin/update-src_host_ip $*
+
+
 
 
 # NOTE: Beware of loading 
@@ -53,6 +60,6 @@ get-logs-respub:
 clean:
 	/bin/rm -f *~
 cleaner: clean
-	find logs/*/ \( -name \*.csv* \) -print0 | xargs rm -fv
+	find logs/*/apache/ \( -name access_log\*.csv\* \) -print0 | xargs -0r rm -fv
 cleanest: cleaner
-	find loadlog/*/ \( -name \*.log -o -name \*.err \) -print0 | xargs rm -fv
+	find load/*/ \( -name \*.log -o -name \*.err \) -print0 | xargs -0r rm -fv
