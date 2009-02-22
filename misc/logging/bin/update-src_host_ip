@@ -1,0 +1,75 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use DBI;
+use Net::DNS;
+
+select STDERR; $|++;
+select STDOUT; $|++;
+
+my $schema = shift @ARGV;
+die 'schema not defined' if not defined $schema;
+die 'schema may contain only [-\\w]' if $schema =~ m/[^-\w]/;
+
+my $res   = Net::DNS::Resolver->new;
+$res->tcp_timeout(1);
+$res->udp_timeout(1);
+
+my $ip4re = qr/^\d+\.\d+\.\d+\.\d+$/;
+
+my $dbh = DBI->connect('dbi:Pg:', '', '',  # depends on PGHOST, PGDATABASE
+					   { AutoCommit => 0, RaiseError => 1 }
+					  );
+$dbh->do(sprintf('set search_path = %s;', $schema));
+
+my $sel_sth = $dbh->prepare('SELECT src FROM apache_log EXCEPT SELECT src FROM src_host_ip');
+my $ins_sth = $dbh->prepare('INSERT INTO src_host_ip (src,host,ip) VALUES (?,?,?)');
+
+
+$sel_sth->execute();
+while ( my ($src) = $sel_sth->fetchrow_array ) {
+  my ($host,$ip) = get_host_ip($src);
+  $ip ||= ($src =~ m/$ip4re/ ? $src : undef);
+  $ins_sth->execute($src,$host,$ip);
+  printf(STDERR "%s -> (%s,%s)\n", $src, $host||'NULL', $ip||'NULL');
+}
+$dbh->commit();
+$dbh->disconnect();
+
+exit(0);
+
+
+
+sub get_host_ip {
+  my ($q) = @_;
+  return (ip2host($q), $q) if ( $q =~ m/$ip4re/ );
+  return ($q, host2ip($q));
+}
+
+sub host2ip { my $x = (_lookup(@_,'A'  ))[0]; $x->address if $x;  }
+sub ip2host { my $x = (_lookup(@_,'PTR'))[0]; $x->ptrdname if $x; }
+
+sub _lookup {
+  my ($q,$type) = @_;
+  my $packet =  $res->query($q,$type);
+  if (not defined $packet) {
+	warn("query for $q: ", $res->errorstring );
+	return ();
+  }
+  my @rr = grep { $_->type eq $type } $packet->answer;
+  if (not @rr) {
+	warn("No $type records for $q\n");
+	return ();
+  }
+  return @rr;
+}
+
+
+#foreach my $q (qw(gwiz harts.net 74.220.202.28 209.82.56.4)) {
+#  printf("$q: %s %s\n", get_host_ip($q));
+#}
+
+
+
+
