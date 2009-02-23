@@ -8,10 +8,3 @@ create table apache_log (
        ref  text,
        agent text
 );
-
-create table src_host_ip (
-	   src  text NOT NULL,
-	   host text NOT NULL,
-	   ip   inet NOT NULL
-)
-
