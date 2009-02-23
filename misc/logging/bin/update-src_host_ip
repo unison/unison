@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use DBI;
 use Net::DNS;
+use Term::ANSIScreen qw(:screen);
+
 
 select STDERR; $|++;
 select STDOUT; $|++;
@@ -18,22 +20,32 @@ $res->udp_timeout(1);
 
 my $ip4re = qr/^\d+\.\d+\.\d+\.\d+$/;
 
+# testing:
+#foreach my $q (qw(gwiz harts.net 74.220.202.28
+#				  0-1b-63-c6-15-2f.dynamic.ucsd.edu
+#				  089-100-220154.ntlworld.ie 209.82.56.4)) {
+#  printf( "$q: %s %s %s\n", map { (defined $_) ? $_ : 'NULL' } get_host_ip($q) );
+#}
+#die;
+
+
 my $dbh = DBI->connect('dbi:Pg:', '', '',  # depends on PGHOST, PGDATABASE
 					   { AutoCommit => 0, RaiseError => 1 }
 					  );
 $dbh->do(sprintf('set search_path = %s;', $schema));
 
 my $sel_sth = $dbh->prepare('SELECT src FROM apache_log EXCEPT SELECT src FROM src_host_ip');
-my $ins_sth = $dbh->prepare('INSERT INTO src_host_ip (src,host,ip) VALUES (?,?,?)');
+my $ins_sth = $dbh->prepare('INSERT INTO src_host_ip (src,host,ip,error) VALUES (?,?,?,?)');
 
 
 $sel_sth->execute();
 while ( my ($src) = $sel_sth->fetchrow_array ) {
-  my ($host,$ip) = get_host_ip($src);
-  $ip ||= ($src =~ m/$ip4re/ ? $src : undef);
-  $ins_sth->execute($src,$host,$ip);
-  printf(STDERR "%s -> (%s,%s)\n", $src, $host||'NULL', $ip||'NULL');
+  my ($host,$ip,$error) = get_host_ip($src);
+  $ins_sth->execute($src,$host,$ip,$error);
+  my $line = sprintf("%s -> (%s,%s,%s)", $src, $host||'NULL', $ip||'NULL', $error||'NULL');
+  print(STDERR clline, $line, ((defined $error)?"\n":"\r"));
 }
+printf(STDERR "\n");
 $dbh->commit();
 $dbh->disconnect();
 
@@ -41,35 +53,44 @@ exit(0);
 
 
 
-sub get_host_ip {
+sub ip2host { 
   my ($q) = @_;
-  return (ip2host($q), $q) if ( $q =~ m/$ip4re/ );
-  return ($q, host2ip($q));
-}
-
-sub host2ip { my $x = (_lookup(@_,'A'  ))[0]; $x->address if $x;  }
-sub ip2host { my $x = (_lookup(@_,'PTR'))[0]; $x->ptrdname if $x; }
-
-sub _lookup {
-  my ($q,$type) = @_;
+  my $type = 'PTR';
   my $packet =  $res->query($q,$type);
   if (not defined $packet) {
-	warn("query for $q: ", $res->errorstring );
-	return ();
+	return (undef,$res->errorstring);
   }
   my @rr = grep { $_->type eq $type } $packet->answer;
   if (not @rr) {
-	warn("No $type records for $q\n");
-	return ();
+	return (undef,"No $type records for $q");
   }
-  return @rr;
+ return ($rr[0]->ptrdname,undef);
 }
 
+sub host2ip { 
+  my ($q) = @_;
+  my $type = 'A';
+  my $packet =  $res->query($q,$type);
+  if (not defined $packet) {
+	return (undef,$res->errorstring);
+  }
+  my @rr = grep { $_->type eq $type } $packet->answer;
+  if (not @rr) {
+	return (undef,"No $type records for $q");
+  }
+ return ($rr[0]->address,undef);
+}
 
-#foreach my $q (qw(gwiz harts.net 74.220.202.28 209.82.56.4)) {
-#  printf("$q: %s %s\n", get_host_ip($q));
-#}
-
-
-
+sub get_host_ip {
+  my ($src) = @_;
+  my ($host,$ip,$error);
+  if ($src =~ m/$ip4re/) {
+	$ip = $src;
+	($host,$error) = ip2host($ip);
+  } else {
+	$host = $src;
+	($ip,$error) = host2ip($host);
+  }
+  return ($host,$ip,$error);
+}
 
