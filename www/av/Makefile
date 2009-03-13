@@ -50,7 +50,7 @@ CONVERT_MED_OPTS:=-antialias -quality 60
 # The intent is to help find unused or redundant (same image, different
 # format) graphics
 # grep -v www/av/$$g -- because some graphics have filename embedded!
-/tmp/av-uses: FORCE
+/tmp/av-uses:
 	/bin/ls -1 *.gif *.jpg *.png *.xpm | sort \
 	| ( cd ../../; \
 	while read g; do \

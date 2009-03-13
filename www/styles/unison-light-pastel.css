@@ -447,7 +447,6 @@ span.button:hover {
 /* tooltip */
 span.has_tooltip {
  color: black;
- background: #FFE6F1;
  cursor:help;
 }
 
