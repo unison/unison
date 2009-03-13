@@ -79,17 +79,19 @@ sub do_search {
 
   return unless defined $v->{submit};
 
-  my $sth_a = $u->prepare_cached(qq(SELECT origin,alias,descr,tax_id,pseq_id,link_url
+  my $sth_a = $u->prepare(qq(SELECT origin,alias,descr,tax_id,pseq_id,link_url
 									FROM current_annotations_v
-									WHERE upper(alias)=upper(?)
+									WHERE lower(alias)=lower(?)
 										  AND ann_pref IS NOT NULL
 									));
-  my $sth_oa = $u->prepare_cached(qq(SELECT origin,alias,descr,tax_id,pseq_id,link_url
+  $sth_a->{pg_server_prepare} = 0;
+  my $sth_oa = $u->prepare(qq(SELECT origin,alias,descr,tax_id,pseq_id,link_url
 									FROM current_annotations_v
-									WHERE origin_id=origin_id(?) 
-										  AND upper(alias)=upper(?)
+									WHERE origin_id=origin_id(?)
+										  AND lower(alias)=lower(?)
 								          AND ann_pref IS NOT NULL
 								  	));
+  $sth_oa->{pg_server_prepare} = 0;
   my $sth_t = $u->prepare_cached(qq(SELECT *
 									FROM current_annotations_v
 									WHERE pseq_id=?

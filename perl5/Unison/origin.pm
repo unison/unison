@@ -98,8 +98,10 @@ sub origin_origin_id_by_origin($) {
       || throw Unison::Exception('Unison connection not established');
     ( defined $origin and $origin =~ m/\w/ )
       || throw Unison::Exception("can't lookup a null origin");
-    my ($rv) = $self->selectrow_array(
-        "select origin_id from origin where upper(origin)=upper('$origin')");
+	# FIXME: should use origin_id() function; change not made now because
+	# it distracts from immediate focus.
+    my ($rv) = $self->selectrow_array( 
+        "select origin_id from origin where lower(origin)=lower('$origin')");
     return $rv;
 }
 

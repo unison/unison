@@ -141,7 +141,7 @@ sub params_id_by_name($$) {
     $self->is_open()
       || croak("Unison connection not established");
     my $id =
-      $self->selectrow_array( 'select params_id(?)', undef, uc($params_name) );
+      $self->selectrow_array( 'select params_id(?)', undef, lc($params_name) );
     return $id;
 }
 

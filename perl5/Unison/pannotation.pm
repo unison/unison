@@ -75,34 +75,33 @@ search is tried.
 =cut
 
 sub get_pseq_id_from_alias {
-    my ( $u, $alias, $ori ) = @_;
+    my ( $u, $query, $ori ) = @_;
     $u->is_open()
       || throw Unison::RuntimeError("Unison connection not established");
-    ( defined $alias )
+    ( defined $query )
       || throw Unison::RuntimeError("alias not defined");
     my @ids;
 
     # Unison pseq_ids, qualified by origin
     # this should be extended to other origins
-    if ( $alias =~ m/Unison:(\d+)/i ) {
+    if ( $query =~ m/Unison:(\d+)/i ) {
         return $1;
     }
 
     # RefSeq
-    if ( $alias =~ s/^RefSeq://i or $alias =~ m/^[NXZAY]P_\d+/ ) {
-
+    if ( $query =~ s/^RefSeq://i or $query =~ m/^[NXZAY]P_\d+/ ) {
        # looks like a RefSeq alias.  This requires special handling because
        # we want to account for versioned identifier
        # official protein sequence prefixes are listed in
        # ftp://ftp.ncbi.nih.gov/refseq/release/release-notes/RefSeq-release4.txt
        # and http://www.ncbi.nih.gov/RefSeq/key.html#accessions
-        (@ids) = $u->get_pseq_id_from_alias_regexp( "^$alias", 'RefSeq' );
-        return (@ids);
+	  (@ids) = $u->get_pseq_id_from_alias_regexp( "^$query", 'RefSeq' );
+	  return (@ids);
     }
 
     # Genentech UNQ, DNA, or PRO ids
-    if ( $alias =~ m%^(?:GenenGenes:)?(UNQ|DNA|PRO|FAM)(\d+)$%i ) {
-        my ( $type, $id ) = ( uc($1), $2 );
+    if ( $query =~ m%^(?:GenenGenes:)?(UNQ|DNA|PRO|FAM)(\d+)$%i ) {
+        my ( $type, $id ) = ( lc($1), $2 );
         my $sql;
 
         # Genengenes occasionally has sequences which aren't in Unison,
@@ -122,10 +121,10 @@ sub get_pseq_id_from_alias {
         }
 
         (@ids) = map { @$_ } @{ $u->selectall_arrayref($sql) };
-        return (@ids)
-          if @ids;    # some ids might have been removed from sst; in that
-                      # case, @ids will be empty and we'll continue with an
-                      # alias lookup below
+
+		# some ids might have been removed from sst; in that case, @ids
+		# will be empty and we'll continue with an alias lookup below
+        return (@ids) if @ids;
     }
 
 
@@ -134,15 +133,15 @@ sub get_pseq_id_from_alias {
 	# who searchs for that probably wants MCL1_HUMAN. They're the same
 	# gene but have different pseq_ids.
 
-    if ( not $alias =~ m%^[~/^]% ) {
-        # doesn't smell like a regexp
-        (@ids) = $u->get_pseq_id_from_alias_casefolded( $alias, $ori );
-        return (@ids) if @ids;
+    if ( not $query =~ m%^[~/^]% ) {
+	  # doesn't smell like a regexp
+	  (@ids) = $u->get_pseq_id_from_alias_casefolded( $query, $ori );
+	  return (@ids) if @ids;
     }
 
-    if ( $alias =~ /^[~^]/ ) {
+    if ( $query =~ /^[~^]/ ) {
         # looks like a regexp OR exact match above failed
-        (@ids) = $u->get_pseq_id_from_alias_regexp( $alias, $ori );
+        (@ids) = $u->get_pseq_id_from_alias_regexp( $query, $ori );
         return (@ids);
     }
 
@@ -162,14 +161,14 @@ the given alias
 =cut
 
 sub get_pseq_id_from_alias_exact {
-    my ( $u, $alias, $ori ) = @_;
+    my ( $u, $query, $ori ) = @_;
     $u->is_open()
       || throw Unison::RuntimeError("Unison connection not established");
-    ( defined $alias )
+    ( defined $query )
       || throw Unison::RuntimeError("alias not defined");
     my $sql = 'select distinct pseq_id from palias where alias = ?';
     $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
-    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $alias ) } );
+    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $query ) } );
 }
 
 ######################################################################
@@ -185,15 +184,15 @@ to the given alias
 =cut
 
 sub get_pseq_id_from_alias_casefolded {
-    my ( $u, $alias, $ori ) = @_;
+    my ( $u, $query, $ori ) = @_;
     $u->is_open()
       || throw Unison::RuntimeError("Unison connection not established");
-    ( defined $alias )
+    ( defined $query )
       || throw Unison::RuntimeError("alias not defined");
-    my $sql = 'select distinct pseq_id from palias where upper(alias) = ?';
+    my $sql = 'select distinct pseq_id from palias where lower(alias) = ?';
     $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
     return ( map { @$_ }
-          @{ $u->selectall_arrayref( $sql, undef, uc($alias) ) } );
+          @{ $u->selectall_arrayref( $sql, undef, lc($query) ) } );
 }
 
 ######################################################################
@@ -204,33 +203,23 @@ sub get_pseq_id_from_alias_casefolded {
 =item B<< $u->get_pseq_id_from_alias_regexp(C<regexp>) >>
 
 returns an array of distinct pseq_ids by searching for the given alias as
-a regular expression.
-
-Regular expression matching may be case sensitive or insensitive, and are
-explicitly specified by preceeding the regexp with ~ or ~* respectively.
-~ is the default and is optional.
+a regular expression.  Regular expression matching by this function is
+always case-folded.
 
 =cut
 
 sub get_pseq_id_from_alias_regexp {
-    my ( $u, $alias, $ori ) = @_;
+    my ( $u, $query, $ori ) = @_;
     $u->is_open()
       || throw Unison::RuntimeError("Unison connection not established");
-    ( defined $alias )
+    ( defined $query )
       || throw Unison::RuntimeError("alias not defined");
-    my $op = $alias =~ s/^(~\*?)//g ? $1 : '~';
 
-    #$alias =~ s%^/(.+)/$%$1%;          # remove // from /<regexp>/
-    my $sql = 'select distinct pseq_id from palias where ';
-    if ( $op eq '~' ) {
-        $sql .= 'alias ~ ?';
-    }
-    else {
-        $sql .= 'upper(alias) ~ ?';
-        $alias = uc($alias);
-    }
+    my $sql = "SELECT DISTINCT pseq_id FROM palias WHERE lower(alias) ~ lower(?)";
     $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
-    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $alias ) } );
+	my $sth = $u->prepare( $sql );
+	$sth->{pg_server_prepare} = 0;
+    return ( map { @$_ } @{ $u->selectall_arrayref( $sth, undef, $query ) } );
 }
 
 ######################################################################
@@ -246,14 +235,14 @@ expression with ilike.
 =cut
 
 sub get_pseq_id_from_alias_fuzzy {
-    my ( $u, $alias, $ori ) = @_;
+    my ( $u, $query, $ori ) = @_;
     $u->is_open()
       || throw Unison::RuntimeError("Unison connection not established");
-    ( defined $alias )
+    ( defined $query )
       || throw Unison::RuntimeError("alias not defined");
     my $sql = 'select distinct pseq_id from palias where alias ilike ?';
     $sql .= " AND origin_id=origin_id('$ori')" if defined $ori;
-    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $alias ) } );
+    return ( map { @$_ } @{ $u->selectall_arrayref( $sql, undef, $query ) } );
 }
 
 #### DEPRECATED FUNCTIONS
@@ -266,13 +255,14 @@ sub get_pseq_id_from_alias_fuzzy {
 =item B<< $u->add_palias( C<pseq_id>,C<origin_id>,C<alias>,C<descr> ) >>
 
 DEPRECATED 2006-09-27 Reece Hart <reece@harts.net>
+OBSOLETED 2009-03-12 Reece Hart <reece@harts.net>
 
 adds an alias and description record in the pannotation and pseq_pannotation
 tables for the existing origin_id and pseq_id.
 
 =cut
 
-sub add_palias {
+sub __OBSOLETE__add_palias {
     warn_deprecated();
 
     my ( $self, $pseq_id, $origin_id, $alias, $descr, $tax_id ) = @_;

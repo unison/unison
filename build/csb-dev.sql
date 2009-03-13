@@ -138,6 +138,4861 @@ ALTER SCHEMA unison_aux OWNER TO unison;
 
 SET search_path = unison, pg_catalog;
 
+--
+-- Name: blast_result; Type: TYPE; Schema: unison; Owner: unison
+--
+
+CREATE TYPE blast_result AS (
+	pfeature_id integer,
+	query integer,
+	qstart integer,
+	qstop integer,
+	target integer,
+	tstart smallint,
+	tstop smallint,
+	ident smallint,
+	sim smallint,
+	gaps smallint,
+	qgaps smallint,
+	tgaps smallint,
+	score integer,
+	eval double precision,
+	len smallint,
+	pct_ident real,
+	pct_hsp_coverage real,
+	pct_coverage real
+);
+
+
+ALTER TYPE unison.blast_result OWNER TO unison;
+
+SET search_path = gong, pg_catalog;
+
+--
+-- Name: acc2id(text); Type: FUNCTION; Schema: gong; Owner: unison
+--
+
+CREATE FUNCTION acc2id(text) RETURNS integer
+    AS $_$
+DECLARE
+	acc alias for $1;
+	pos integer;
+BEGIN
+	pos := strpos($1,':');
+	if pos is null then
+		raise exception 'oops.. doesn''t look like a GO Accession (GO:12345)';
+		return null;
+	end if;
+	return substr(acc,pos+1)::integer;
+END$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION gong.acc2id(text) OWNER TO unison;
+
+--
+-- Name: id2acc(integer); Type: FUNCTION; Schema: gong; Owner: unison
+--
+
+CREATE FUNCTION id2acc(integer) RETURNS text
+    AS $_X$return sprintf("GO:%06d",$_[0])$_X$
+    LANGUAGE plperl;
+
+
+ALTER FUNCTION gong.id2acc(integer) OWNER TO unison;
+
+SET search_path = marray, pg_catalog;
+
+--
+-- Name: chip_id(text); Type: FUNCTION; Schema: marray; Owner: unison
+--
+
+CREATE FUNCTION chip_id(text) RETURNS integer
+    AS $_$
+DECLARE V_id integer; 
+BEGIN 
+select into V_id chip_id from marray.chip where upper(name)=upper($1); 
+IF NOT FOUND THEN 
+    RAISE WARNING 'chip ''%'' NOT FOUND', $1; 
+    RETURN NULL;
+END IF; 
+return V_id; 
+END$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION marray.chip_id(text) OWNER TO unison;
+
+SET search_path = pdb, pg_catalog;
+
+--
+-- Name: descriptor_origin_id(text, text, text); Type: FUNCTION; Schema: pdb; Owner: unison
+--
+
+CREATE FUNCTION descriptor_origin_id(text, text, text) RETURNS integer
+    AS $_$
+DECLARE V_id integer; 
+BEGIN 
+	IF $3 is NULL THEN
+		select into V_id descriptor_origin_id from descriptor_origin where type = $1 and upper(origin) = upper($2) and version is NULL;
+	
+	ELSE
+		select into V_id descriptor_origin_id from descriptor_origin where type = $1 and upper(origin) = upper($2) and version = $3; 
+	END IF; 
+		IF NOT FOUND THEN 
+			RAISE WARNING 'descriptor type ''%'' from origin ''%'' version ''%'' not found', $1,$2,$3; 
+		RETURN NULL; 
+	END IF;
+	return V_id; 
+END;
+$_$
+    LANGUAGE plpgsql IMMUTABLE;
+
+
+ALTER FUNCTION pdb.descriptor_origin_id(text, text, text) OWNER TO unison;
+
+--
+-- Name: descriptor_origin_id(text, text); Type: FUNCTION; Schema: pdb; Owner: unison
+--
+
+CREATE FUNCTION descriptor_origin_id(text, text) RETURNS SETOF integer
+    AS $_$
+ DECLARE 
+	V_id integer;
+ BEGIN 
+	FOR V_id IN select descriptor_origin_id from descriptor_origin where type = $1 and upper(origin) = upper($2) LOOP 
+		return NEXT V_id; 
+	END LOOP;
+ 	RETURN; 
+ END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION pdb.descriptor_origin_id(text, text) OWNER TO unison;
+
+--
+-- Name: descriptor_origin_id(text); Type: FUNCTION; Schema: pdb; Owner: unison
+--
+
+CREATE FUNCTION descriptor_origin_id(text) RETURNS SETOF integer
+    AS $_$
+ DECLARE 
+	V_id integer;
+ BEGIN 
+	FOR V_id IN select descriptor_origin_id from descriptor_origin where type = $1 LOOP 
+		return NEXT V_id; 
+	END LOOP;
+ 	RETURN; 
+ END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION pdb.descriptor_origin_id(text) OWNER TO unison;
+
+--
+-- Name: descriptor_origin_si_descriptor_origin_id(text, text, text); Type: FUNCTION; Schema: pdb; Owner: unison
+--
+
+CREATE FUNCTION descriptor_origin_si_descriptor_origin_id(text, text, text) RETURNS integer
+    AS $_$
+DECLARE
+	t alias for $1;
+        o alias for $2;                         -- origin
+	v alias for $3;
+        rv integer;
+BEGIN
+	if v is null then
+		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version is NULL;
+	else
+		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version = v;
+	end if;
+        if found then 
+		return rv; 
+	end if;
+        insert into descriptor_origin(type,origin,version) values (t,o,v);
+	if v is null then
+		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version is NULL;
+	else
+		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version = v;
+	end if;
+        return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION pdb.descriptor_origin_si_descriptor_origin_id(text, text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION descriptor_origin_si_descriptor_origin_id(text, text, text); Type: COMMENT; Schema: pdb; Owner: unison
+--
+
+COMMENT ON FUNCTION descriptor_origin_si_descriptor_origin_id(text, text, text) IS 'select/insert a descriptor_origin_id from descriptor_origin, returns decsriptor_origin_id';
+
+
+--
+-- Name: residue_atomres_trigger(); Type: FUNCTION; Schema: pdb; Owner: unison
+--
+
+CREATE FUNCTION residue_atomres_trigger() RETURNS trigger
+    AS $$
+  DECLARE
+  BEGIN
+
+	IF new.atom_res IS null or new.atom_res = '' THEN
+		IF new.res_id IS not null or new.res_id != '' THEN
+			RAISE EXCEPTION 'res_id is not null when atom_res is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
+			RETURN NULL;
+		END IF;
+	END IF;
+	IF new.res_id IS null or new.res_id = '' THEN
+		IF new.atom_res IS not null or new.atom_res != '' THEN
+			RAISE EXCEPTION 'atom_res is not null when res_id is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
+			RETURN NULL;
+		END IF;
+	END IF;
+	RETURN new;
+
+  END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION pdb.residue_atomres_trigger() OWNER TO unison;
+
+SET search_path = pgutils, pg_catalog;
+
+--
+-- Name: pk_references(text, text, text, text); Type: FUNCTION; Schema: pgutils; Owner: rkh
+--
+
+CREATE FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) RETURNS SETOF record
+    AS $$
+DECLARE
+	v_fkinfo record;
+	v_sql text;
+	v_countrow record;
+	v_total integer = 0;
+	v_rc integer;
+BEGIN
+	-- for...in...execute is the only way to get the results of a dynamic query
+	-- This construct is used several times below
+
+	-- check pgtools.foreign_keys to see whether n.r.c is really a PK at all
+	-- twould be better to chech pg_constraint for contype=p
+	SELECT into v_sql 'SELECT count(*) from pgtools.foreign_keys'
+		||' WHERE pk_namespace='''||nsp||''' AND pk_relation='''||rel||''' AND pk_column='''||col||'''';
+	FOR v_countrow IN EXECUTE v_sql LOOP
+		v_rc = v_countrow.count;
+	END LOOP;
+	IF v_rc = 0 THEN
+		RAISE EXCEPTION '%.%.% is not a primary key or has no foreign key references',nsp,rel,col;
+	END IF;
+
+	-- ensure that expr matches anything in the PK column
+	v_rc = 0;
+	SELECT INTO v_sql 'SELECT count(*) FROM '||nsp||'.'||rel||' WHERE '||col||' '||expr;
+	FOR v_countrow IN EXECUTE v_sql LOOP
+		v_rc = v_countrow.count;
+	END LOOP;
+	IF v_rc = 0 THEN
+		RAISE WARNING '`% %'' doesn''t match any rows in %.%',col,expr,nsp,rel;
+	END IF;
+
+	-- loop over all nsp.rel.col referents to this PK, counting the number of hits per expr
+	FOR v_fkinfo IN
+		SELECT * from pgtools.foreign_keys
+		WHERE pk_namespace=nsp AND pk_relation=rel AND pk_column=col
+	LOOP
+		SELECT INTO v_sql 
+			'SELECT count(*) as n,'''
+			||v_fkinfo.fk_namespace||'.'||v_fkinfo.fk_relation||'.'||v_fkinfo.fk_column||''' as fk_referent'
+			||' from '||v_fkinfo.fk_namespace||'.'||v_fkinfo.fk_relation
+			||' where '||v_fkinfo.fk_column||' '||expr||';';
+		FOR v_countrow IN EXECUTE v_sql LOOP
+			n = v_countrow.n;
+			fk_referent = v_countrow.fk_referent;
+			v_total = v_total+n;
+			RETURN NEXT;
+		END LOOP;
+
+	END LOOP;
+
+	-- return total too
+	n = v_total;
+	fk_referent = 'total';
+	RETURN NEXT;
+END;
+$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION pgutils.pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) OWNER TO rkh;
+
+--
+-- Name: FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text); Type: COMMENT; Schema: pgutils; Owner: rkh
+--
+
+COMMENT ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) IS 'count number of rows in all tables which reference the column specified by nsp($1),rel($2),col($3) and match expr($4)';
+
+
+--
+-- Name: pk_references(text, text); Type: FUNCTION; Schema: pgutils; Owner: rkh
+--
+
+CREATE FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) RETURNS SETOF record
+    AS $$
+DECLARE
+	v_nsp text;
+	v_rel text;
+	v_col text;
+	v_row record;
+BEGIN
+	v_nsp = split_part(nrc,'.',1);
+	v_rel = split_part(nrc,'.',2);
+	v_col = split_part(nrc,'.',3);
+	FOR v_row IN SELECT * FROM pgtools.pk_references(v_nsp,v_rel,v_col,expr) LOOP
+		n=v_row.n;
+		fk_referent=v_row.fk_referent;
+		RETURN NEXT;
+	END LOOP;
+END;
+$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION pgutils.pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) OWNER TO rkh;
+
+--
+-- Name: FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text); Type: COMMENT; Schema: pgutils; Owner: rkh
+--
+
+COMMENT ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) IS 'count number of rows in all tables which reference the nsp.rel.col($1) and match expr($4)';
+
+
+--
+-- Name: sprintf(text, text, text); Type: FUNCTION; Schema: pgutils; Owner: rkh
+--
+
+CREATE FUNCTION sprintf(text, text, text) RETURNS text
+    AS $_$
+  my ($string, $args, $delim) = @_;
+  my $delsplit = defined $delim ? qr{\Q$delim} : qr{\s+};
+  return sprintf($string, (split $delsplit, $args));
+$_$
+    LANGUAGE plperl;
+
+
+ALTER FUNCTION pgutils.sprintf(text, text, text) OWNER TO rkh;
+
+--
+-- Name: FUNCTION sprintf(text, text, text); Type: COMMENT; Schema: pgutils; Owner: rkh
+--
+
+COMMENT ON FUNCTION sprintf(text, text, text) IS 'sprintf(fmt,argstring,dlm): format dlm-delimited argstring using fmt';
+
+
+--
+-- Name: sprintf(text, text); Type: FUNCTION; Schema: pgutils; Owner: rkh
+--
+
+CREATE FUNCTION sprintf(text, text) RETURNS text
+    AS $_$
+  SELECT sprintf($1,$2,null);
+$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION pgutils.sprintf(text, text) OWNER TO rkh;
+
+--
+-- Name: FUNCTION sprintf(text, text); Type: COMMENT; Schema: pgutils; Owner: rkh
+--
+
+COMMENT ON FUNCTION sprintf(text, text) IS 'sprintf(fmt,argstring): format whitespace-delimited  argstring using fmt';
+
+
+SET search_path = tax, pg_catalog;
+
+--
+-- Name: gs2tax_id(text); Type: FUNCTION; Schema: tax; Owner: unison
+--
+
+CREATE FUNCTION gs2tax_id(text) RETURNS integer
+    AS $_$select tax_id from tax.spspec where upper(gs)=upper($1)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION tax.gs2tax_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION gs2tax_id(text); Type: COMMENT; Schema: tax; Owner: unison
+--
+
+COMMENT ON FUNCTION gs2tax_id(text) IS 'convert gs (genus species) to NCBI tax_id';
+
+
+--
+-- Name: spspec_name(integer); Type: FUNCTION; Schema: tax; Owner: unison
+--
+
+CREATE FUNCTION spspec_name(integer) RETURNS text
+    AS $_$
+DECLARE
+	v_id alias for $1;
+	rv text;
+BEGIN
+	select into rv name from tax.spspec where id=v_id;
+	return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION tax.spspec_name(integer) OWNER TO unison;
+
+--
+-- Name: tax_id2gs(integer); Type: FUNCTION; Schema: tax; Owner: unison
+--
+
+CREATE FUNCTION tax_id2gs(integer) RETURNS text
+    AS $_$
+DECLARE
+	v_id alias for $1;
+	rv text;
+BEGIN
+	select into rv gs from tax.spspec where tax_id=v_id;
+	return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION tax.tax_id2gs(integer) OWNER TO unison;
+
+SET search_path = unison, pg_catalog;
+
+--
+-- Name: _agg_as_set_finalfunc(anyarray); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _agg_as_set_finalfunc(anyarray) RETURNS text
+    AS $_$select array_to_string($1,',')$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._agg_as_set_finalfunc(anyarray) OWNER TO unison;
+
+--
+-- Name: FUNCTION _agg_as_set_finalfunc(anyarray); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION _agg_as_set_finalfunc(anyarray) IS '''final'' function for as_set aggregate';
+
+
+--
+-- Name: _clean_regexp(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _clean_regexp(text) RETURNS text
+    AS $_X$
+$_ = shift;
+
+my $NOT_RT_BRACKET = qr([^\]]);
+
+# flatten nested [] e.g., [A[BC]D[EF]FG] -> ABCDEFFG
+while (s/\[($NOT_RT_BRACKET*)\[($NOT_RT_BRACKET*)\]/[\1\2/) {
+	die("complement operator ('^') is not allowed inside nested regexps
+") if $2 =~ m/\^/;
+};
+
+# eliminate redundancies in [] sets e.g., A[BBC]D -> A[BC]D
+# postgresql 7.x requires plperlu, 8.x may use plperl
+# WARNING: - is intepreted literally, i.e., ranges aren't supported
+s&
+  \[($NOT_RT_BRACKET+)\]
+&
+  my %aa = map {$_=>1} split(//,$1);
+  my @aa = sort keys %aa;
+  my $comp = 0;
+  if ($aa[$#aa] eq '^') { $comp++; pop(@aa); }  # pop '^'
+  '[' . ($comp?'^':'') . join("",@aa) . ']';
+&egx;
+
+return $_;
+$_X$
+    LANGUAGE plperlu IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._clean_regexp(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION _clean_regexp(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION _clean_regexp(text) IS 'reformat regular expression';
+
+
+--
+-- Name: _dblast_species(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _dblast_species(text) RETURNS text
+    AS $_$select postgres.plregex($1,E'/^.* - (.+?)\\.?\$/$1/'::TEXT)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._dblast_species(text) OWNER TO unison;
+
+--
+-- Name: _defline_agg_finalfunc(anyarray); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _defline_agg_finalfunc(anyarray) RETURNS text
+    AS $_$select array_to_string($1,'')$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison._defline_agg_finalfunc(anyarray) OWNER TO unison;
+
+--
+-- Name: _expand_aa_sets(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _expand_aa_sets(text) RETURNS text
+    AS $_X$
+# http://www.dur.ac.uk/biological.sciences/Bioinformatics/aminoacids.htm
+# http://www.ncbi.nlm.nih.gov/Class/MLACourse/Modules/MolBioReview/iupac_aa_abbreviations.html
+# http://www.ncbi.nlm.nih.gov/projects/collab/FT/index.html#7.5.3
+# Expasy References:
+# 1) Thomas E. Creighton (1993) "Proteins." W.H. Freeman and Company, New York. 2nd Edition.
+# 2) Richards, F.M. (1974) J. Mol.Biol. 82:1-14. [Van-der-Waals radii of amino acids]
+
+$_ = shift;
+
+# IUPAC ambiguities
+## Ambiguity codes are included in their own expansions so that
+## they match themselves in sequences which contain ambiguities.
+s/B/[BDN]/g;
+s/Z/[ZEQ]/g;
+s/X/[ACDEFGHIKLMNPQRSTVWYUBZX]/g;
+
+# amino acid sets
+s/<(?:basic|\+)>/[HKR]/g;
+s/<(?:acidic|-)>/[DE]/g;
+s/<(?:neutral|0)>/[ACFGILMNPQSTUVWY]/g;
+s/<(?:polar|p)>/[NQST]/g;
+s/<(?:hphobic|o)>/[AIFLMVWY]/g;
+s/<(?:aromatic|r)>/[FWY]/g;
+s/<(?:small|s)>/[AGS]/g;
+s/<(?:medium|m)>/[CDEHILMNPQTUV]/g;	 # U~C
+s/<(?:large|l)>/[FKRWY]/g;
+
+s/<(.*)>/!!$1!!/g;				# unrecognized sets
+
+return $_;
+$_X$
+    LANGUAGE plperl IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._expand_aa_sets(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION _expand_aa_sets(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION _expand_aa_sets(text) IS 'INTERNAL; see expand_aa_sets(text)';
+
+
+--
+-- Name: _geneseq_species(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _geneseq_species(text) RETURNS text
+    AS $_$select postgres.plregex($1,E'/^.*\\[OS: ([^\\]+]+)\\]/$1/'::TEXT)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._geneseq_species(text) OWNER TO unison;
+
+--
+-- Name: _legacy_best_alias(integer, boolean); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _legacy_best_alias(integer, boolean) RETURNS text
+    AS $_$
+BEGIN
+	perform warn('best_alias(integer,boolean) is deprecated; use best_alias(integer) instead.');
+	return best_alias($1);
+END;
+$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._legacy_best_alias(integer, boolean) OWNER TO unison;
+
+--
+-- Name: FUNCTION _legacy_best_alias(integer, boolean); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION _legacy_best_alias(integer, boolean) IS 'same as best_OA';
+
+
+--
+-- Name: _nr_species(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _nr_species(text) RETURNS text
+    AS $_$select postgres.plregex($1,E'/^.+\\[(.+)\\].*/$1/'::TEXT)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._nr_species(text) OWNER TO unison;
+
+--
+-- Name: _pseq_md5len_lookup(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _pseq_md5len_lookup(text, integer) RETURNS integer
+    AS $_$
+DECLARE
+	c refcursor;
+	rv integer;
+BEGIN
+	open c for execute 'select pseq_id from pseq where '
+		|| ' md5=' || quote_literal($1) || ' and '
+		|| ' len=' || quote_literal($2) ;
+	fetch c into rv;
+	close c;
+	return rv;
+end;$_$
+    LANGUAGE plpgsql STABLE STRICT;
+
+
+ALTER FUNCTION unison._pseq_md5len_lookup(text, integer) OWNER TO unison;
+
+--
+-- Name: _pseq_seq_lookup(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _pseq_seq_lookup(text) RETURNS integer
+    AS $_$
+BEGIN
+	return _pseq_md5len_lookup(md5($1),length($1));
+END;$_$
+    LANGUAGE plpgsql STABLE STRICT;
+
+
+ALTER FUNCTION unison._pseq_seq_lookup(text) OWNER TO unison;
+
+--
+-- Name: _publicize(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _publicize() RETURNS void
+    AS $_$
+DECLARE
+	v_row record;
+BEGIN
+	IF current_database() !~ '-public$' THEN
+		RAISE EXCEPTION 'publicize(): database must be named "csb-public"';
+	END IF;
+
+	RAISE WARNING '%: BEGINNING MASSIVE DELETE OF PROPRIETARY DATA.', timeofday();
+
+	FOR v_row IN SELECT origin,origin_id FROM origin WHERE is_public=FALSE ORDER BY origin_id LOOP
+		RAISE NOTICE '%: deleting results for ''%'' (origin_id=%)', timeofday(), v_row.origin, v_row.origin_id;
+		DELETE FROM pannotation WHERE origin_id=v_row.origin_id;
+		DELETE FROM origin WHERE origin_id=v_row.origin_id;
+	END LOOP;
+
+	FOR v_row IN SELECT name,params_id FROM params WHERE is_public=FALSE ORDER BY params_id LOOP   
+		RAISE NOTICE '%: deleting results for ''%'' (params_id=%)', timeofday(), v_row.name, v_row.params_id;
+		DELETE FROM pahmm WHERE params_id=v_row.params_id;
+		DELETE FROM paprospect WHERE params_id=v_row.params_id;
+		DELETE FROM params WHERE params_id=v_row.params_id;
+	END LOOP;
+
+	RAISE NOTICE 'deleting sequences NOT in pset_id=150';
+	DELETE FROM pseq WHERE pseq_id NOT IN (SELECT pseq_id FROM pseqset WHERE pset_id=150);
+
+	SELECT meta_update_kv('publicized at',NOW());
+
+	RAISE NOTICE '%: Done. You should VACUUM ANALYZE VERBOSE.', timeofday();
+	RETURN;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison._publicize() OWNER TO unison;
+
+--
+-- Name: FUNCTION _publicize(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION _publicize() IS 'DANGER: This function deletes all proprietary data. It may only be run in a database named csb-public.';
+
+
+--
+-- Name: _refseq_species(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _refseq_species(text) RETURNS text
+    AS $_$select postgres.plregex($1,E'/^.+\\[(.+)\\]/$1/'::TEXT)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._refseq_species(text) OWNER TO unison;
+
+--
+-- Name: _seqhash_no_cleaning(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION _seqhash_no_cleaning(text) RETURNS text
+    AS $_$DECLARE S text; BEGIN return ( md5($1) || length($1) ); END$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison._seqhash_no_cleaning(text) OWNER TO unison;
+
+--
+-- Name: a280(text, text, boolean); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION a280(text, text, boolean) RETURNS real
+    AS $_X$
+
+my %ec_params;
+#EMBOSS/share/EMBOSS/data/Eamino.dat
+$ec_params{emboss} = {
+	eY => 1280,
+	eW => 5690,
+	eC => 60
+	}; 
+ 
+#Pace et al
+$ec_params{pace} = {
+	eY => 1490,
+	eW => 5500,
+	eC => 125
+	};
+
+my $seq = shift;
+if(length($seq) <= 0) {
+	elog(WARNING, "sequence length <= 0") ;
+	return -1;
+}
+
+my $params = shift;
+elog(ERROR, "extinction coefficents set $params does not exist options are 'emboss' (Gill and von Hippel (1989) _Anal_Biochem_ 182 319-326) and 'Pace' (Pace et. al. Protein Science 1995)\n") if(not defined $ec_params{$params});
+
+my $all_cystines = shift;
+my $count = count_TyrTrp_residues($seq);
+
+my $ans= (($count->{Y} * $ec_params{$params}{eY}) + ($count->{W} * $ec_params{$params}{eW}) );
+$ans +=  int($count->{C}/2) * $ec_params{$params}{eC} if($all_cystines eq 't');
+
+return $ans;
+
+sub count_TyrTrp_residues {
+   my $seq = shift;
+   my $count;
+   for ( qw( Y W C) ){ # Tyrosine and Trptophan AAs
+      $count->{$_}++ while $seq =~ /$_/ig;
+   }
+   return $count;
+}	
+
+$_X$
+    LANGUAGE plperl IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.a280(text, text, boolean) OWNER TO unison;
+
+--
+-- Name: FUNCTION a280(text, text, boolean); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION a280(text, text, boolean) IS 'returns the molar Extinction Coefficient of a protein in ';
+
+
+--
+-- Name: a280(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION a280(text) RETURNS real
+    AS $_$
+DECLARE 
+	ans float;
+BEGIN 
+	select INTO ans A280($1,'emboss','f');
+	return ans;
+END$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.a280(text) OWNER TO unison;
+
+--
+-- Name: a280(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION a280(text, text) RETURNS real
+    AS $_$
+DECLARE 
+	ans float;
+BEGIN 
+	select INTO ans A280($1,$2,'f');
+	return ans;
+END$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.a280(text, text) OWNER TO unison;
+
+--
+-- Name: aa_1_to_3(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION aa_1_to_3(text) RETURNS text
+    AS $_$
+select case $1
+	when 'A' then 'Ala'
+	when 'B' then 'Bas'
+	when 'C' then 'Cys'
+	when 'D' then 'Asp'
+	when 'E' then 'Glu'
+	when 'F' then 'Phe'
+	when 'G' then 'Gly'
+	when 'H' then 'His'
+	when 'I' then 'Iso'
+	when 'K' then 'Lys'
+	when 'L' then 'Leu'
+	when 'M' then 'Met'
+	when 'N' then 'Asn'
+	when 'P' then 'Pro'
+	when 'Q' then 'Gln'
+	when 'R' then 'Arg'
+	when 'S' then 'Ser'
+	when 'T' then 'Thr'
+	when 'V' then 'Val'
+	when 'W' then 'Trp'
+	when 'X' then 'Any'
+	when 'Y' then 'Tyr'
+	when 'Z' then 'Aci'
+--	when '*' then 'Stp'
+	else '???'
+	end;
+$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.aa_1_to_3(text) OWNER TO unison;
+
+--
+-- Name: aa_3_to_1(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION aa_3_to_1(text) RETURNS text
+    AS $_$
+select case $1
+	when 'Ala' then 'A'
+	when 'Bas' then 'B'
+	when 'Cys' then 'C'
+	when 'Asp' then 'D'
+	when 'Glu' then 'E'
+	when 'Phe' then 'F'
+	when 'Gly' then 'G'
+	when 'His' then 'H'
+	when 'Iso' then 'I'
+	when 'Lys' then 'K'
+	when 'Leu' then 'L'
+	when 'Met' then 'M'
+	when 'Asn' then 'N'
+	when 'Pro' then 'P'
+	when 'Gln' then 'Q'
+	when 'Arg' then 'R'
+	when 'Ser' then 'S'
+	when 'Thr' then 'T'
+	when 'Val' then 'V'
+	when 'Trp' then 'W'
+	when 'Any' then 'X'
+	when 'Tyr' then 'Y'
+	when 'Aci' then 'Z'
+	else '?'
+	end;
+$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.aa_3_to_1(text) OWNER TO unison;
+
+--
+-- Name: add_soa(text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION add_soa(text, text, text) RETURNS integer
+    AS $_$
+DECLARE
+	S alias for $1;				-- sequence
+	O alias for $2;				-- origin
+	A alias for $3;				-- alias
+	si	integer;				-- pseq_id
+	oi	integer;				-- origin_id
+BEGIN
+	si := si_pseq_id(S);
+	oi := si_origin_id(O);
+	insert into palias (pseq_id,origin_id,alias) values (si,oi,A);
+	return si;
+END;$_$
+    LANGUAGE plpgsql STRICT;
+
+
+ALTER FUNCTION unison.add_soa(text, text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION add_soa(text, text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION add_soa(text, text, text) IS 'add <sequnce,origin,alias> tuple, using existing ids when available, returns pseq_id';
+
+
+--
+-- Name: assign_annotation(integer, integer, text, text, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) RETURNS integer
+    AS $$
+DECLARE
+	rv integer;
+	rec record;
+BEGIN
+	-- insert/fetch the origin/alias/descr/tax_id annotation
+	SELECT INTO v_pannotation_id ins_pannotation( v_origin_id, v_alias, v_descr, v_tax_id );
+	-- fetch the most recent pseq_pannotation entry for this pannotation_id, if any
+	SELECT INTO rec * FROM pseq_pannotation WHERE pannotation_id=v_pannotation_id ORDER BY version DESC LIMIT 1;
+	IF NOT FOUND THEN
+		-- No pseq_pannotation entry exists for this pannotation_id.
+		-- The pannotation row was probably just created above.
+		RAISE DEBUG 'assigning new pannotation_id % to pseq_id %, version %',
+			 v_pannotation_id, v_pseq_id, 1;
+		INSERT INTO pseq_pannotation ( pannotation_id, pseq_id )
+			VALUES ( v_pannotation_id, v_pseq_id );
+		RETURN;
+	END IF;
+	-- pannotation_id is currently assigned to some sequence
+	RAISE DEBUG 'pannotation_id %: pseq_id=%, version=%, is_current=%, added=%',
+		rec.pannotation_id, rec.pseq_id, rec.version, rec.is_current, rec.added;
+	IF v_pseq_id != rec.pseq_id THEN
+		RAISE DEBUG '  reassigning pannotation_id to pseq_id=%', v_pseq_id;
+		UPDATE pseq_pannotation SET is_current = FALSE
+			WHERE pannotation_id = v_pannotation_id;
+		INSERT INTO pseq_pannotation ( pannotation_id, pseq_id, version ) 
+			VALUES ( v_pannotation_id, v_pseq_id, rec.version+1 );
+	ELSEIF rec.is_current = FALSE THEN
+		-- rec.pseq_id = v_pseq_id, but the assignment's been deprecated.
+		-- Instead of making a new row, revive this deprecated assignment.
+		-- WARNING: added=rec.added practically ensures that the row is unique
+		RAISE DEBUG '  pseq_id unchanged; resuscitating pannotation_id';
+		UPDATE pseq_pannotation SET is_current = TRUE
+			WHERE pannotation_id = v_pannotation_id AND pseq_id = v_pseq_id AND added = rec.added;
+	ELSEIF v_pseq_id=rec.pseq_id AND rec.is_current=TRUE THEN
+		-- do nothing
+		RAISE DEBUG '  no pseq_pannotation change required.';
+	ELSE
+		RAISE EXCEPTION 'Logic error -- contact Reece';
+	END IF;
+	RETURN;
+END;
+$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) IS '<pseq_id,origin_id,alias,descr,tax_id>: create/fetch <origin_id,alias,descr,tax_id> row in paliasorigin, and then create/fetch <pannotation_id,pseq_id> in pseqalias, deprecating an existing assignment if necessary';
+
+
+--
+-- Name: assign_p2gblataln(text, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION assign_p2gblataln(text, integer, integer, integer, integer, integer) RETURNS integer
+    AS $_$
+DECLARE
+  v_hsp_str ALIAS FOR $1;
+  v_ident ALIAS FOR $2;
+  v_pgap_cnt ALIAS FOR $3;
+  v_pgap_bases ALIAS FOR $4;
+  v_ggap_cnt ALIAS FOR $5;
+  v_ggap_bases ALIAS FOR $6;
+  v_p2gblataln_id integer;
+  v_p2gblataln_ids integer[];
+  low integer;
+  high integer;
+  rec RECORD;
+BEGIN
+  -- check whether hsp_str is already in the database
+  SELECT INTO v_p2gblataln_id p2gblataln_id FROM p2gblataln WHERE hsp_str=v_hsp_str;
+  IF v_p2gblataln_id is null THEN
+    SELECT INTO v_p2gblataln_id nextval('unison.p2gblataln_p2gblataln_id_seq'::text);
+    INSERT INTO p2gblataln (p2gblataln_id, hsp_str, ident, pgap_cnt, pgap_bases, ggap_cnt, ggap_bases) VALUES
+      (v_p2gblataln_id, v_hsp_str, v_ident, v_pgap_cnt, v_pgap_bases, v_ggap_cnt, v_ggap_bases);
+  END IF;
+
+  -- insert into p2gblatalnhsp table (let the unique indices deal with redudancies
+  SELECT INTO v_p2gblataln_ids hsp_str_to_hsp_ids( v_hsp_str );
+  low  := replace(split_part(array_dims(v_p2gblataln_ids),':',1),'[','')::int;
+  high := replace(split_part(array_dims(v_p2gblataln_ids),':',2),']','')::int;
+  FOR i IN low..high LOOP
+    INSERT INTO p2gblatalnhsp (p2gblataln_id, p2gblathsp_id) VALUES
+      (v_p2gblataln_id, v_p2gblataln_ids[i]);
+  END LOOP;
+
+  return v_p2gblataln_id;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.assign_p2gblataln(text, integer, integer, integer, integer, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION assign_p2gblataln(text, integer, integer, integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION assign_p2gblataln(text, integer, integer, integer, integer, integer) IS 'insert protein-to-genome BLAT alignments';
+
+
+--
+-- Name: best_alias(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION best_alias(integer) RETURNS text
+    AS $_$select origin_alias_fmt(origin,alias) from best_annotation_mv where pseq_id=$1 ORDER BY tax_id <> 9606;$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.best_alias(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION best_alias(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION best_alias(integer) IS '"best" alias for given pseq_id. NOTE: from materialized view, which may be stale.';
+
+
+--
+-- Name: best_alias(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION best_alias(integer, integer) RETURNS text
+    AS $_$select origin_alias_fmt(origin,alias) from best_annotation_mv where pseq_id=$1 and tax_id=$2$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.best_alias(integer, integer) OWNER TO unison;
+
+--
+-- Name: best_alias(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION best_alias(integer, text) RETURNS text
+    AS $_$select origin_alias_fmt(origin,alias) from best_annotation_mv where pseq_id=$1 and tax_id=gs2tax_id($2)$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.best_alias(integer, text) OWNER TO unison;
+
+--
+-- Name: best_annotation(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION best_annotation(integer) RETURNS text
+    AS $_$select origin_alias_descr_fmt(origin,alias,descr) from best_annotation_mv where pseq_id=$1 ORDER BY tax_id <> 9606$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.best_annotation(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION best_annotation(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION best_annotation(integer) IS '"best" annotation for given pseq_id. NOTE: from materialized view, which may be stale.';
+
+
+--
+-- Name: best_annotation(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION best_annotation(integer, integer) RETURNS text
+    AS $_$select origin_alias_descr_fmt(origin,alias,descr) from best_annotation_mv where pseq_id=$1 and tax_id=$2;$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.best_annotation(integer, integer) OWNER TO unison;
+
+--
+-- Name: best_annotation(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION best_annotation(integer, text) RETURNS text
+    AS $_$select origin_alias_descr_fmt(origin,alias,descr) from best_annotation_mv where pseq_id=$1 and tax_id=gs2tax_id($2);$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.best_annotation(integer, text) OWNER TO unison;
+
+--
+-- Name: check_public_acl(name, name, character); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION check_public_acl(name, name, character) RETURNS boolean
+    AS $_$
+DECLARE
+  acl text;
+  rec record;
+BEGIN
+  IF ( $3 NOT IN ( 'w','r','a','R','x','t' ) ) THEN
+    RAISE EXCEPTION 'mode flags must use single letter from "arwRxt"';
+  END IF;
+  SELECT INTO rec perms 
+  FROM table_perms_v WHERE schemaname = $1 AND tablename = $2;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Did not find any schema name "%", relation named "%".', $1, $2;
+  END IF;
+  acl := rec.perms;
+  IF acl IS NULL THEN
+    RETURN 'f';
+  END IF;
+  IF acl ~ ( ',=[rwaRxt]*' || $3 ) /* public */
+  THEN
+    RETURN 't';
+  END IF;
+  RETURN 'f';
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.check_public_acl(name, name, character) OWNER TO unison;
+
+--
+-- Name: check_public_perms(name, name, character[]); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION check_public_perms(name, name, character[]) RETURNS boolean
+    AS $_$
+DECLARE
+  schema alias for $1;
+  table alias for $2;
+  privs alias for $3;
+  acl text;
+  rec record;
+  i integer;
+BEGIN
+  -- check if the input array has the right permission letters
+  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
+  IF ( privs[i] NOT IN ( 'w','r','a','d','R','x','t' ) ) THEN
+    RAISE EXCEPTION 'mode flags must use single letter from "arwdRxt"';
+  END IF;
+  END LOOP;
+  SELECT INTO rec perms 
+  FROM table_perms_v WHERE schemaname = schema AND tablename = table;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Did not find any schema name "%", relation named "%".', schema, table;
+  END IF;
+  acl := rec.perms;
+  IF acl IS NULL THEN
+    RETURN false;
+  END IF;
+  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
+	  IF acl ~ ( ',=[rwadRxt]*' || privs[i] ) /* public */
+	  THEN
+	    RETURN true;
+	  END IF;
+  END LOOP;
+  RETURN false;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.check_public_perms(name, name, character[]) OWNER TO unison;
+
+--
+-- Name: FUNCTION check_public_perms(name, name, character[]); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION check_public_perms(name, name, character[]) IS 'check_public_perms ( <schema::name>, <table::name>, <char[]> ) returns true if public has any of the permissions listed in the char[] array';
+
+
+--
+-- Name: check_user_acl(name, name, name, character); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION check_user_acl(name, name, name, character) RETURNS boolean
+    AS $_$
+DECLARE
+  user alias for $1;
+  schema alias for $2;
+  table alias for $3;
+  perm alias for $4;
+  acl text;
+  rec record;
+BEGIN
+  IF ( perm NOT IN ( 'w','r','a','R','x','t','d' ) ) THEN
+    RAISE EXCEPTION 'mode flags must use single letter from "rwadRxt"';
+  END IF;
+  SELECT INTO rec tableowner, tablename, schemaname, perms,  usesuper 
+  FROM table_perms_v, pg_user 
+  WHERE schemaname = schema AND tablename = table;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Did not find any user named "%" or  schema named "%" or relation named "%".', user,schema,table;
+  END IF;
+  IF rec.tableowner = user OR rec.usesuper THEN
+    RETURN 't';
+  END IF;
+  acl := rec.perms;
+  IF acl IS NULL THEN
+    RETURN 'f';
+  END IF;
+  IF acl ~ ( user || '=[rwadRxt]*' || perm) /* user */
+  THEN
+    RETURN 't';
+  END IF;
+  RETURN 'f';
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.check_user_acl(name, name, name, character) OWNER TO unison;
+
+--
+-- Name: check_user_perms(name, name, name, character[]); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION check_user_perms(name, name, name, character[]) RETURNS boolean
+    AS $_$
+DECLARE
+  user alias for $1;
+  schema alias for $2;
+  table alias for $3;
+  privs alias for $4;
+  acl text;
+  rec record;
+  i integer;
+BEGIN
+  -- check if the input array has the right permission letters
+  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
+  IF ( privs[i] NOT IN ( 'w','r','a','R','x','t','d' ) ) THEN
+    RAISE EXCEPTION 'mode flags must use single letter from "rwadRxt"';
+  END IF;
+  END LOOP;
+  SELECT INTO rec tableowner, tablename, schemaname, perms,  usesuper 
+  FROM table_perms_v, pg_user 
+  WHERE schemaname = schema AND tablename = table;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Did not find either a schema named "%" or a table named "%".', schema,table;
+  END IF;
+  IF rec.tableowner = user OR rec.usesuper THEN
+    RETURN true;
+  END IF;
+  acl := rec.perms;
+  IF acl IS NULL THEN
+    RETURN false;
+  END IF;
+  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
+  	IF acl ~ ( user || '=[rwadRxt]*' || privs[i]) /* user */
+  	THEN
+    	RETURN true;
+  	END IF;
+  END LOOP;
+  RETURN false;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.check_user_perms(name, name, name, character[]) OWNER TO unison;
+
+--
+-- Name: FUNCTION check_user_perms(name, name, name, character[]); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION check_user_perms(name, name, name, character[]) IS 'check_user_perms ( <user::name>, <schema::name>, <table::name>, <char[]> ) returns true if the user has any of the permissions listed in the char[] array';
+
+
+--
+-- Name: chr2locus(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION chr2locus(text) RETURNS real
+    AS $_X$$_[0] =~ m/^([XYME])$/ ? return 100+ord($1) : $_[0];$_X$
+    LANGUAGE plperl IMMUTABLE;
+
+
+ALTER FUNCTION unison.chr2locus(text) OWNER TO unison;
+
+--
+-- Name: chr2locus(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION chr2locus(text, integer) RETURNS real
+    AS $_X$return ($_[0] =~ m/^([XYME])$/ ? 100+ord($1) : $_[0]) . "." . $_[1];$_X$
+    LANGUAGE plperl IMMUTABLE;
+
+
+ALTER FUNCTION unison.chr2locus(text, integer) OWNER TO unison;
+
+--
+-- Name: clean_sequence(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION clean_sequence(text) RETURNS text
+    AS $_$
+  my $x = shift;
+  $x =~ s/[^-\*ABCDEFGHIKLMNPQRSTUVWXYZ]//g;
+  $x =~ s/\*+$//;
+  return $x;
+$_$
+    LANGUAGE plperl IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.clean_sequence(text) OWNER TO unison;
+
+--
+-- Name: current_params_id_by_pftype_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION current_params_id_by_pftype_id(integer) RETURNS integer
+    AS $_$BEGIN RAISE EXCEPTION 'current_params_id_by_pftype_id was deprecated on 2006-01-31; use preferred_params_id_by_pftype(text) or preferred_params_id_by_pftype_id(integer) instead'; return preferred_params_id_by_pftype_id($1); END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.current_params_id_by_pftype_id(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION current_params_id_by_pftype_id(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION current_params_id_by_pftype_id(integer) IS 'returns current/preferred params_id for a given feature type';
+
+
+--
+-- Name: current_usesysid(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION current_usesysid() RETURNS integer
+    AS $$select usesysid from pg_user where usename=current_user;$$
+    LANGUAGE sql STABLE STRICT;
+
+
+ALTER FUNCTION unison.current_usesysid() OWNER TO unison;
+
+--
+-- Name: domain_digest(integer, integer, text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) RETURNS text
+    AS $$BEGIN SELECT INTO digest name || '(' || pstart || '-' || pstop || COALESCE(';'||NULLIF(note,''),'') || ')'; END;$$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) OWNER TO unison;
+
+--
+-- Name: FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) IS 'formatted domain summary, like start-stop:domain(note)';
+
+
+--
+-- Name: domain_digest(integer, integer, text, integer, double precision); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) RETURNS text
+    AS $$BEGIN SELECT INTO digest domain_digest(pstart,pstop,name,score||';'||eval); END;$$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) OWNER TO unison;
+
+--
+-- Name: FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) IS 'formatted domain summary, like start-stop:domain(score,eval)';
+
+
+--
+-- Name: domain_digest(integer, text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) RETURNS text
+    AS $$BEGIN SELECT INTO digest name || '(' || pstart || COALESCE(';'||NULLIF(note,''),'') || ')'; END;$$
+    LANGUAGE plpgsql IMMUTABLE;
+
+
+ALTER FUNCTION unison.domain_digest(pstart integer, name text, note text, OUT digest text) OWNER TO unison;
+
+--
+-- Name: FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) IS 'formatted domain summary, like start:domain(note)';
+
+
+--
+-- Name: domain_digests(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION domain_digests(integer) RETURNS text
+    AS $_$ select as_set(digest) as domain_digests from (select * from pseq_features_v where pseq_id=$1 order by start,stop) X $_$
+    LANGUAGE sql STRICT COST 20000;
+
+
+ALTER FUNCTION unison.domain_digests(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION domain_digests(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION domain_digests(integer) IS 'domain digests in N-to-C terminus order';
+
+
+--
+-- Name: expand_aa_sets(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION expand_aa_sets(text) RETURNS text
+    AS $_$select _clean_regexp(_expand_aa_sets($1))$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.expand_aa_sets(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION expand_aa_sets(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION expand_aa_sets(text) IS 'expand sets of amino acids represented in the given string';
+
+
+--
+-- Name: genasm_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION genasm_id(text) RETURNS integer
+    AS $_$
+DECLARE V_id integer; 
+BEGIN 
+	select into V_id genasm_id from genasm where upper(name)=upper($1); 
+	IF NOT FOUND THEN 
+		RAISE WARNING 'genasm % not found', $1; 
+		RETURN NULL; 
+	END IF; 
+	return V_id; 
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.genasm_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION genasm_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION genasm_id(text) IS 'returns genasm_id for a given genasm name';
+
+
+--
+-- Name: get_current_users(name, name); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION get_current_users(name, name) RETURNS name[]
+    AS $_$
+declare
+  schema alias for $1;
+  table alias for $2;
+  current_users name[] = '{}';
+  pguser record;
+  acl text;
+  user text;
+  rec record;
+begin
+  for pguser in select usename from pg_user LOOP
+	for rec in select perms FROM table_perms_v WHERE schemaname = schema AND tablename = table LOOP
+		acl := rec.perms;
+		user := pguser.usename||'=';
+	  	IF acl ~ user THEN
+			current_users = array_append(current_users,pguser.usename);
+			EXIT;
+	  	END IF;
+	END LOOP;
+  END LOOP;
+  RETURN current_users;
+end;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.get_current_users(name, name) OWNER TO unison;
+
+--
+-- Name: FUNCTION get_current_users(name, name); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION get_current_users(name, name) IS 'get_current_users(<schema_name>, <table_name>) returns a name[] array of current users of the input schema,table';
+
+
+--
+-- Name: get_pannotation_pannotation_id(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION get_pannotation_pannotation_id(integer, text) RETURNS integer
+    AS $_$
+DECLARE
+    v_origin_id ALIAS FOR $1;
+    v_alias ALIAS FOR $2;
+    rec record;
+    v_pannotation_id integer;
+BEGIN
+    -- check whether pannotation exists: if yes, then return pannotation_id, otherwise return null
+    RAISE DEBUG 'select * from pseq_pannotationorigin where origin_id=% and alias=%',v_origin_id,v_alias;
+    select into rec * from pannotation where origin_id=v_origin_id and alias=v_alias;
+    IF found THEN
+        RAISE DEBUG 'record exists for this alias and origin: %', rec.pannotation_id;
+        v_pannotation_id := rec.pannotation_id;
+    END IF;
+    return v_pannotation_id;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.get_pannotation_pannotation_id(integer, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION get_pannotation_pannotation_id(integer, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION get_pannotation_pannotation_id(integer, text) IS 'retrieve the palias_id for a given origin_id and alias';
+
+
+--
+-- Name: get_run_timestamp(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION get_run_timestamp(integer, integer) RETURNS timestamp with time zone
+    AS $_$
+DECLARE
+    q alias for $1;
+    r alias for $2;
+    z timestamp;
+BEGIN
+    select into z ran_on from run_history
+        where pseq_id=q
+        and run_id=r;
+    return z;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.get_run_timestamp(integer, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION get_run_timestamp(integer, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION get_run_timestamp(integer, integer) IS 'for the given pseq_id and run_id, returns the ran_on timestamp from run_history';
+
+
+--
+-- Name: get_scopid(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION get_scopid(text) RETURNS text
+    AS $_$
+
+DECLARE
+        arg alias for $1;
+	ret text;
+	pos text;
+BEGIN
+	ret=arg;
+
+	--add d at the beginning if it doesnt exist already
+	IF substring(ret from 1 for 1) != 'd' THEN
+		ret := 'd'||ret;
+	END IF;
+
+	IF ret ~ '_[A-Z]$' THEN
+		ret := overlay(ret placing '' from length(ret)-1 for 1);
+	END IF;
+
+	ret := rpad(ret, 7, '_');
+
+        return lower(ret);
+END;
+$_$
+    LANGUAGE plpgsql IMMUTABLE;
+
+
+ALTER FUNCTION unison.get_scopid(text) OWNER TO unison;
+
+--
+-- Name: gseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION gseq_iu_trigger() RETURNS trigger
+    AS $$
+DECLARE
+    oldmd5 text;
+BEGIN
+    oldmd5 := md5(new.seq);
+    new.seq := clean_sequence(new.seq);
+    new.md5 := md5(new.seq);
+    if oldmd5 != new.md5 then
+        raise notice 'gseq_id % modified during insert.',new.gseq_id;
+    end if;
+    new.len := length(new.seq);
+    return new;
+END; $$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.gseq_iu_trigger() OWNER TO unison;
+
+--
+-- Name: has_iupac_ambiguity_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION has_iupac_ambiguity_aa(text) RETURNS boolean
+    AS $_$select $1 ~ '[BXZ]'$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.has_iupac_ambiguity_aa(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION has_iupac_ambiguity_aa(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION has_iupac_ambiguity_aa(text) IS 'sequence contains IUPAC ambiguity (B=[DE], Z=[NQ], X=any)';
+
+
+--
+-- Name: has_iupac_gap_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION has_iupac_gap_aa(text) RETURNS boolean
+    AS $_$select $1 ~ '-'$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.has_iupac_gap_aa(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION has_iupac_gap_aa(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION has_iupac_gap_aa(text) IS 'sequence contains an IUPAC gap';
+
+
+--
+-- Name: has_iupac_stop_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION has_iupac_stop_aa(text) RETURNS boolean
+    AS $_$select $1 ~ '\\*'$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.has_iupac_stop_aa(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION has_iupac_stop_aa(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION has_iupac_stop_aa(text) IS 'sequence contains an IUPAC stop';
+
+
+--
+-- Name: has_non_iupac_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION has_non_iupac_aa(text) RETURNS boolean
+    AS $_$select $1 ~ '[^-*ACDEFGHIKLMNPQRSTVWYUBZX]'$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.has_non_iupac_aa(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION has_non_iupac_aa(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION has_non_iupac_aa(text) IS 'sequence has non-IUPAC symbols (selenocysteine, gaps, stops, and ambiguities okay)';
+
+
+--
+-- Name: has_only_iupac_aa_ungapped(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION has_only_iupac_aa_ungapped(text) RETURNS boolean
+    AS $_$select $1 !~ '[^ACDEFGHIKLMNPQRSTVWYUBZX]'$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.has_only_iupac_aa_ungapped(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION has_only_iupac_aa_ungapped(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION has_only_iupac_aa_ungapped(text) IS 'ungapped sequence contains only IUPAC amino acids or ambiguities';
+
+
+--
+-- Name: has_only_iupac_std_aa_ungapped(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION has_only_iupac_std_aa_ungapped(text) RETURNS boolean
+    AS $_$select $1 !~ '[^ACDEFGHIKLMNPQRSTVWY]'$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.has_only_iupac_std_aa_ungapped(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION has_only_iupac_std_aa_ungapped(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION has_only_iupac_std_aa_ungapped(text) IS 'ungapped sequence contains only the standard 20 IUPAC amino acids';
+
+
+--
+-- Name: hmm_pmodel_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION hmm_pmodel_id(text) RETURNS SETOF integer
+    AS $_$select pmodel_id from pmhmm where acc=$1 or name=$1 order by added desc;$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.hmm_pmodel_id(text) OWNER TO unison;
+
+--
+-- Name: hmm_pmodel_id(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION hmm_pmodel_id(text, integer) RETURNS integer
+    AS $_$DECLARE V_id integer; BEGIN  perform * from origin where origin_id=$2; IF NOT FOUND THEN RAISE EXCEPTION 'origin_id ''%'' not found', $2; END IF; select into V_id pmodel_id from pmhmm where upper(acc)=upper($1) and origin_id=$2; IF NOT FOUND THEN RAISE WARNING 'model ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.hmm_pmodel_id(text, integer) OWNER TO unison;
+
+--
+-- Name: hsp_coverage(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION hsp_coverage(integer) RETURNS double precision
+    AS $_$
+  declare
+    v_pfeature_id alias for $1;
+    v_pct_hsp_coverage float;
+		v_pseq_id integer;
+		v_t_pseq_id integer;
+		q_seq_len integer;
+		t_seq_len integer;
+		shorter_len integer;
+		longer_len integer;
+		rec record;
+  begin
+
+    -- get the papseq record for this pfeature_id
+    select into rec * from papseq where pfeature_id=v_pfeature_id;
+    IF not found THEN
+      RAISE EXCEPTION 'no record pfeature_id=%',v_pfeature_id;
+    END IF;
+
+    -- get the pseq_id for the target
+    select into v_t_pseq_id pseq_id from pmpseq where pmodel_id=rec.pmodel_id;
+    IF v_t_pseq_id is null THEN
+      RAISE EXCEPTION 'no pseq_id for pmodel_id=%',rec.pmodel_id;
+    END IF;
+
+    -- get sequence lengths for derived values
+    select into q_seq_len len from pseq where pseq_id=rec.pseq_id;
+    select into t_seq_len len from pseq where pseq_id=v_t_pseq_id;
+    IF    q_seq_len is null or q_seq_len = 0 THEN
+      RAISE EXCEPTION 'length for pseq_id=% is null or zero',rec.pseq_id;
+    ELSIF t_seq_len is null or t_seq_len = 0 THEN
+      RAISE EXCEPTION 'length for pseq_id=% is null or zero',v_t_pseq_id;
+    END IF;
+
+    -- calculate derived values
+    IF q_seq_len > t_seq_len THEN
+      shorter_len := t_seq_len;
+      longer_len := q_seq_len;
+    ELSE
+      shorter_len := q_seq_len;
+      longer_len := t_seq_len;
+    END IF;
+    v_pct_hsp_coverage := ( rec.len::real / shorter_len::real ) * 100.0;
+
+    return v_pct_hsp_coverage;
+  end; $_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.hsp_coverage(integer) OWNER TO unison;
+
+--
+-- Name: hsp_ids_to_hsp_str(integer[]); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION hsp_ids_to_hsp_str(integer[]) RETURNS text
+    AS $_$
+DECLARE
+  hsp_ids ALIAS FOR $1;
+  hsp_str text;
+  low integer;
+  high integer;
+BEGIN
+  -- get bounds of hsp_ids array for looping
+  low  := replace(split_part(array_dims(hsp_ids),':',1),'[','')::int;
+  high := replace(split_part(array_dims(hsp_ids),':',2),']','')::int;
+
+  hsp_str := hsp_ids[1];
+  FOR i IN low+1..high LOOP
+    hsp_str := hsp_str || ':' || hsp_ids[i];
+  END LOOP;
+
+  return hsp_str;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.hsp_ids_to_hsp_str(integer[]) OWNER TO unison;
+
+--
+-- Name: FUNCTION hsp_ids_to_hsp_str(integer[]); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION hsp_ids_to_hsp_str(integer[]) IS 'serialize an array of p2gblathsp_ids';
+
+
+--
+-- Name: hsp_str_to_hsp_ids(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION hsp_str_to_hsp_ids(text) RETURNS integer[]
+    AS $_$
+DECLARE
+  hsp_str ALIAS FOR $1;
+  hsp_ids int[];
+BEGIN
+  SELECT INTO hsp_ids split(hsp_str,':');
+  RETURN hsp_ids;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.hsp_str_to_hsp_ids(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION hsp_str_to_hsp_ids(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION hsp_str_to_hsp_ids(text) IS 'deserialize a hsp_str into an array of p2gblathsp_ids';
+
+
+--
+-- Name: init_db(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION init_db() RETURNS void
+    AS $_$
+DECLARE
+	v_db text;
+	cmd text;
+BEGIN
+	SELECT INTO v_db current_database();
+
+	SELECT INTO cmd 'ALTER DATABASE "' || v_db || '" SET search_path="$user", unison, pdb, gong, scop, tax, public';
+	RAISE NOTICE '%', cmd;
+	EXECUTE cmd;
+
+	SELECT INTO cmd 'ALTER DATABASE "' || v_db || '" SET statement_timeout=1800000';
+	RAISE NOTICE '%', cmd;
+	EXECUTE cmd;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.init_db() OWNER TO unison;
+
+--
+-- Name: ins_last_run(integer, integer, integer, timestamp with time zone); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION ins_last_run(integer, integer, integer, timestamp with time zone) RETURNS void
+    AS $_$
+DECLARE
+	v_pseq_id ALIAS FOR $1;
+	v_pftype_id ALIAS FOR $2;
+	v_params_id ALIAS FOR $3;
+	v_last_run ALIAS FOR $4;
+	rec record;
+BEGIN
+	-- check whether last_run exists for this pseq_id, pftype_id, params_id tuple
+	-- RAISE INFO 'select * into rec from last_run where pseq_id=% and pftype_id=% and params_id=%', v_pseq_id, v_pftype_id, v_params_id;
+	select into rec * from last_run where pseq_id=v_pseq_id and pftype_id=v_pftype_id and params_id=v_params_id;
+
+	IF found THEN
+		 -- RAISE INFO 'update set last_run=% where pseq_id=% and pftype_id=% and params_id=%', v_last_run, v_pseq_id, v_pftype_id, v_params_id;
+		update last_run set last_run=v_last_run where pseq_id=v_pseq_id and pftype_id=v_pftype_id and params_id=v_params_id;
+	ELSE 
+		-- RAISE INFO 'insert into last_run (pseq_id, pftype_id, params_id, last_run) values (%,%,%,%)',v_pseq_id, v_pftype_id, v_params_id, v_last_run;
+		insert into last_run (pseq_id, pftype_id, params_id, last_run) values (v_pseq_id, v_pftype_id, v_params_id, v_last_run);
+	END IF;
+	return;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.ins_last_run(integer, integer, integer, timestamp with time zone) OWNER TO unison;
+
+--
+-- Name: FUNCTION ins_last_run(integer, integer, integer, timestamp with time zone); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION ins_last_run(integer, integer, integer, timestamp with time zone) IS 'create/update last_run record';
+
+
+--
+-- Name: ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer) RETURNS integer
+    AS $_$
+DECLARE
+  v_genasm_id ALIAS FOR $1;
+  v_chr ALIAS FOR $2;
+  v_plus_strand ALIAS FOR $3;
+  v_gstart ALIAS FOR $4;
+  v_gstop ALIAS FOR $5;
+  v_pseq_id ALIAS FOR $6;
+  v_pstart ALIAS FOR $7;
+  v_pstop ALIAS FOR $8;
+  v_p2gblathsp_id integer;
+  rec RECORD;
+BEGIN
+  -- check whether HSP already loaded
+  SELECT INTO v_p2gblathsp_id p2gblathsp_id FROM p2gblathsp WHERE 
+    genasm_id=v_genasm_id AND
+    chr=v_chr AND
+    plus_strand=v_plus_strand AND
+    gstart=v_gstart AND
+    gstop=v_gstop AND
+    pseq_id=v_pseq_id AND
+    pstart=v_pstart AND
+    pstop=v_pstop;
+  IF v_p2gblathsp_id is null THEN
+    SELECT INTO v_p2gblathsp_id nextval('unison.p2gblathsp_p2gblathsp_id_seq'::text);
+    INSERT INTO p2gblathsp (p2gblathsp_id,genasm_id,chr,plus_strand,gstart,gstop,pseq_id,pstart,pstop) VALUES
+      (v_p2gblathsp_id,v_genasm_id,v_chr,v_plus_strand,v_gstart,v_gstop,v_pseq_id,v_pstart,v_pstop);
+  END IF;
+  return v_p2gblathsp_id;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer) IS 'insert protein-to-genome BLAT HSPs';
+
+
+--
+-- Name: ins_pannotation(integer, text, text, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION ins_pannotation(integer, text, text, integer) RETURNS integer
+    AS $_$
+DECLARE
+        v_origin_id ALIAS FOR $1;
+        v_alias ALIAS FOR $2;
+        v_descr ALIAS FOR $3;
+        v_tax_id ALIAS FOR $4;
+        v_pannotation_id integer;
+BEGIN
+        -- check whether pannotation exists: if yes, then return pannotation_id, otherwise enter a new record
+        RAISE DEBUG 'select into v_pannotation_id get_pannotation_pannotation_id( %, % )', v_origin_id, v_alias;
+        select into v_pannotation_id get_pannotation_pannotation_id( v_origin_id, v_alias );
+        IF v_pannotation_id is null THEN
+                select into v_pannotation_id nextval('pannotation_pannotation_id_seq');
+                RAISE DEBUG 'executing insert into pannotation (pannotation_id, origin_id, alias, descr, tax_id) values (%, %, %, %, %)',v_pannotation_id, v_origin_id, v_alias, v_descr, v_tax_id;
+                insert into pannotation (pannotation_id, origin_id, alias, descr, tax_id) values (v_pannotation_id, v_origin_id, v_alias, v_descr, v_tax_id);
+        ELSE
+                RAISE DEBUG 'record exists for this alias and origin: pannotation_id %', v_pannotation_id;
+                UPDATE pannotation SET descr=v_descr,tax_id=v_tax_id WHERE pannotation_id=v_pannotation_id
+                        AND (    (descr !=v_descr  OR (descr  IS NULL AND v_descr  IS NOT NULL) OR (descr  IS NOT NULL AND v_descr  IS NULL))
+                                  OR (tax_id!=v_tax_id OR (tax_id IS NULL AND v_tax_id IS NOT NULL) OR (tax_id IS NOT NULL AND v_tax_id IS NULL)) );
+                IF FOUND THEN
+                        RAISE DEBUG 'ins_pannotation: description, tax_id, or both differ from existing entry and were updated for pannotation_id %', v_pannotation_id;
+                END IF;
+        END IF;
+        return v_pannotation_id;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.ins_pannotation(integer, text, text, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION ins_pannotation(integer, text, text, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION ins_pannotation(integer, text, text, integer) IS 'create a new paliasorigin record or return known palias_id';
+
+
+--
+-- Name: ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer) RETURNS integer
+    AS $_$
+DECLARE
+  v_hsp_str ALIAS FOR $1;
+  v_pseq_id ALIAS FOR $2;
+  v_ident ALIAS FOR $3;
+  v_pgap_cnt ALIAS FOR $4;
+  v_pgap_bases ALIAS FOR $5;
+  v_ggap_cnt ALIAS FOR $6;
+  v_ggap_bases ALIAS FOR $7;
+  v_params_id ALIAS FOR $8;
+  v_genasm_id ALIAS FOR $9;
+  v_aln_id integer;
+  v_hsp_ids integer[];
+  low integer;
+  high integer;
+  rec RECORD;
+BEGIN
+
+  IF length(v_hsp_str) = 0 THEN
+	RAISE EXCEPTION 'Length hsp_str cannot be 0';
+  END IF;
+  -- check whether hsp_str is already in the database
+  SELECT INTO v_aln_id aln_id FROM pmap_aln WHERE hsp_str=v_hsp_str;
+  IF v_aln_id is null THEN
+
+    SELECT INTO v_aln_id nextval('pmap_aln_aln_id_seq'::text);
+ 
+   -- insert into pmap_alnhsp table (let the unique indices deal with redudancies
+    SELECT INTO v_hsp_ids hsp_str_to_hsp_ids( v_hsp_str );
+    low  := replace(split_part(array_dims(v_hsp_ids),':',1),'[','')::int;
+    high := replace(split_part(array_dims(v_hsp_ids),':',2),']','')::int;
+    FOR i IN low..high LOOP
+     INSERT INTO pmap_alnhsp (aln_id, hsp_id) VALUES
+    	(v_aln_id, v_hsp_ids[i]);
+    END LOOP;
+
+    INSERT INTO pmap_aln (aln_id, ident, pgap_cnt, pgap_bases, ggap_cnt, ggap_bases, params_id, genasm_id, pseq_id) VALUES
+      (v_aln_id, v_ident, v_pgap_cnt, v_pgap_bases, v_ggap_cnt, v_ggap_bases, v_params_id, v_genasm_id, v_pseq_id);
+  ELSE
+	RAISE EXCEPTION 'the hsps already exists, aln_id is %',v_aln_id;
+  END IF;
+
+  RETURN v_aln_id;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer) IS 'insert protein-to-genome PMAP alignments';
+
+
+--
+-- Name: ins_pmap_hsp(integer, text, character, integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION ins_pmap_hsp(integer, text, character, integer, integer, integer, integer, integer, integer) RETURNS integer
+    AS $_$
+DECLARE
+  v_genasm_id ALIAS FOR $1;	
+  v_chr ALIAS FOR $2;
+  v_strand ALIAS FOR $3;
+  v_gstart ALIAS FOR $4;
+  v_gstop ALIAS FOR $5;
+  v_pseq_id ALIAS FOR $6;
+  v_pstart ALIAS FOR $7;
+  v_pstop ALIAS FOR $8;
+  v_params_id ALIAS FOR $9;
+  v_hsp_id integer;
+  rec RECORD;
+BEGIN
+  -- check whether HSP already loaded
+  SELECT INTO v_hsp_id hsp_id FROM pmap_hsp WHERE 
+    chr=v_chr AND
+    strand=v_strand AND
+    gstart=v_gstart AND
+    gstop=v_gstop AND
+    pseq_id=v_pseq_id AND
+    pstart=v_pstart AND
+    pstop=v_pstop AND
+    genasm_id=v_genasm_id AND
+    params_id=v_params_id;
+  IF v_hsp_id is null THEN
+    SELECT INTO v_hsp_id nextval('pmap_hsp_hsp_id_seq'::text);
+    INSERT INTO pmap_hsp (hsp_id,genasm_id,chr,strand,gstart,gstop,pseq_id,pstart,pstop,params_id) VALUES
+      (v_hsp_id,v_genasm_id,v_chr,v_strand,v_gstart,v_gstop,v_pseq_id,v_pstart,v_pstop,v_params_id);	
+  END IF;
+  RETURN v_hsp_id;
+END;
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.ins_pmap_hsp(integer, text, character, integer, integer, integer, integer, integer, integer) OWNER TO unison;
+
+--
+-- Name: link_url(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION link_url(integer, text) RETURNS text
+    AS $_$
+DECLARE
+	row record;
+	_o alias for $1;
+	_a text = $2;
+BEGIN
+	SELECT INTO row origin,link_url FROM origin WHERE origin_id=_o;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION 'origin_id=% does not exist', _o;
+	END IF;
+	IF row.link_url IS NULL THEN
+		RAISE DEBUG 'link_url for origin_id=% is null', _o;
+	END IF;
+
+	IF row.origin ~ '^Pfam' THEN
+		-- Pfam links against only the unversioned accession
+		_a = split_part(_a,'.',1);
+	END IF;
+
+	-- %a -- alias
+	-- %s -- alias, deprecated
+	return replace(replace(row.link_url,'%a',_a),'%s',_a);
+END;
+$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.link_url(integer, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION link_url(integer, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION link_url(integer, text) IS 'create URL to the origin_id $1 for alias/query $2';
+
+
+--
+-- Name: link_url(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION link_url(text, text) RETURNS text
+    AS $_$select link_url(origin_id($1),$2)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.link_url(text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION link_url(text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION link_url(text, text) IS 'create URL to the origin $1 for alias/query $2';
+
+
+--
+-- Name: locus_fmt(text, text, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) RETURNS text
+    AS $$BEGIN return coalesce(chr::text,'?')||coalesce(str::text,'?')||':'||coalesce(gstart::text,'?')||'-'||coalesce(gstop::text,'?'); END;$$
+    LANGUAGE plpgsql IMMUTABLE;
+
+
+ALTER FUNCTION unison.locus_fmt(chr text, str text, gstart integer, gstop integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) IS 'standard format for genomic locus information, i.e., <chr><strand>:<gstart>-<gstop>';
+
+
+--
+-- Name: make_csb_read_only(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION make_csb_read_only() RETURNS boolean
+    AS $$
+declare
+	schemas name[] := '{unison,scop,gong,tax}';
+	dbname name;
+	i integer := 0;
+	n integer := 0;
+	ret bool := false;
+begin
+	select into dbname current_database();
+
+	IF dbname != 'csb' THEN
+	RAISE EXCEPTION 'This operation is restricted for the CSB database';
+	END IF;
+
+	FOR i IN array_lower(schemas, 1)..array_upper(schemas, 1) LOOP	
+		select into ret make_schema_read_only(schemas[i]);
+
+		IF ret = true THEN
+		n := n + 1;
+		END IF;
+
+	END LOOP;
+
+	IF n = array_upper(schemas, 1) THEN
+	return true;
+	END IF;
+
+return false;
+end;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.make_csb_read_only() OWNER TO unison;
+
+--
+-- Name: FUNCTION make_csb_read_only(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION make_csb_read_only() IS 'make_csb_read_only() runs make_schema_read_only for each schema in the current database and returns true if make_schema_read_only is successful for all schemas';
+
+
+--
+-- Name: make_schema_read_only(name); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION make_schema_read_only(name) RETURNS boolean
+    AS $_$
+declare
+	schema alias for $1;
+	table_schema record;
+	num_tables integer;
+	ret bool;
+	n integer := 0;
+begin
+	select into num_tables COUNT(*) from table_perms_v where schemaname = schema;
+	IF num_tables = 0 THEN
+	RAISE EXCEPTION '% tables found in % schema',num_tables,schema;
+	END IF;
+	FOR table_schema in select tablename from table_perms_v where schemaname = schema LOOP
+		select into ret make_table_read_only(schema,table_schema.tablename);
+		IF ret = true THEN
+		n := n + 1;
+		END IF;
+	END LOOP;
+	IF n = num_tables THEN
+	return true;
+	END IF;
+return false;
+end;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.make_schema_read_only(name) OWNER TO unison;
+
+--
+-- Name: FUNCTION make_schema_read_only(name); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION make_schema_read_only(name) IS 'make_schema_read_only(<schema_name>) runs make_table_read_only for each table in the input schema and returns true if make_table_read_only is successful for all tables';
+
+
+--
+-- Name: make_table_read_only(name, name); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION make_table_read_only(name, name) RETURNS boolean
+    AS $_$
+declare
+	schema alias for $1;
+	table alias for $2;
+	perm_letter char[] := '{w,a,d,x,t,R}';
+	var boolean;
+	users name[];
+	i integer;
+begin
+	-- all users
+	select into users get_current_users(schema,table);
+	FOR i IN array_lower(users, 1)..array_upper(users, 1) LOOP
+		IF check_user_perms(users[i],schema,table,perm_letter) THEN
+			EXECUTE 'REVOKE UPDATE, INSERT, DELETE, REFERENCES, TRIGGER, RULE ON '|| schema||'.'||table ||' FROM ' || users[i];
+		END IF;
+
+	END LOOP;
+
+	-- public
+	IF check_public_perms(schema,table,perm_letter) THEN
+		EXECUTE 'REVOKE UPDATE, INSERT, DELETE, REFERENCES, TRIGGER, RULE ON '|| schema||'.'||table ||' FROM PUBLIC';
+	END IF;
+
+return true;
+end;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.make_table_read_only(name, name) OWNER TO unison;
+
+--
+-- Name: FUNCTION make_table_read_only(name, name); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION make_table_read_only(name, name) IS 'make_table_read_only(<schema_name>,<table_name>) checks and revokes wadxRt permissions for each user and public';
+
+
+--
+-- Name: md5_to_pseq_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION md5_to_pseq_id(md5 text, OUT pseq_id integer) RETURNS integer
+    AS $_$SELECT pseq_id FROM pseq WHERE md5=$1$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.md5_to_pseq_id(md5 text, OUT pseq_id integer) OWNER TO unison;
+
+--
+-- Name: meta_stats_distinct(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION meta_stats_distinct() RETURNS void
+    AS $$
+DECLARE
+	n integer;
+	r record;
+BEGIN
+	return;
+END;$$
+    LANGUAGE plpgsql STABLE;
+
+
+ALTER FUNCTION unison.meta_stats_distinct() OWNER TO unison;
+
+--
+-- Name: FUNCTION meta_stats_distinct(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION meta_stats_distinct() IS 'count number of sequences unique to an origin';
+
+
+--
+-- Name: meta_stats_unique(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION meta_stats_unique() RETURNS void
+    AS $$
+DECLARE
+	n integer;
+	r record;
+BEGIN
+	return;
+END;$$
+    LANGUAGE plpgsql STABLE;
+
+
+ALTER FUNCTION unison.meta_stats_unique() OWNER TO unison;
+
+--
+-- Name: meta_stats_update(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION meta_stats_update() RETURNS void
+    AS $$
+DECLARE
+	n integer;
+	r record;
+	ts timestamp with time zone;
+BEGIN
+	ts:=now(); raise notice 'meta_stats_update: started %',ts;
+
+	-- sequence stats
+--	select into n count(*) from pseq;
+--	perform meta_update_kv('unique sequences',n);
+--	select into n count(*) from pseq where added>=now()-'30 days'::interval;
+--	perform meta_update_kv('new sequences in last 30 days',n);
+--	select into n count(*) from pseq where added>=now()-'60 days'::interval;
+--	perform meta_update_kv('new sequences in last 60 days',n);
+--	select into n count(*) from pseq where added>=now()-'180 days'::interval;
+--	perform meta_update_kv('new sequences in last 180 days',n);
+--
+--	-- alias and origin stats
+--	select into n count(*) from palias;
+--	perform meta_update_kv('aliases',n);
+--	select into n count(distinct tax_id) from palias;
+--	perform meta_update_kv('species',n);
+
+	-- number of distinct sequences in an origin and 
+	-- number of distinct sequences unique to an origin
+	FOR r IN select origin_id,origin from origin where ann_pref is not null LOOP
+		create temp table in_r as select distinct pseq_id from palias
+			where origin_id=r.origin_id limit 10000;
+		select into n count(*) from in_r;
+		perform meta_update_kv('distinct sequences in '||r.origin ,n);
+
+		create temp table not_in_r as select pseq_id from in_r
+			except select pseq_id from palias where origin_id!=r.origin_id limit 1000;
+		select into n count(*) from not_in_r;
+		-- this is faster (I think):
+--		select into n count(distinct pseq_id) from palias a1 where a1.origin_id=r.origin_id
+-- 			and	not exists (select * from palias a2 where a2.pseq_id=a1.pseq_id and a2.origin_id!=a1.origin_id);
+--		perform meta_update_kv('distinct sequences unique to '||r.origin ,n);
+
+		drop table in_r;
+		drop table not_in_r;
+	END LOOP;
+
+	-- pfeatures
+	select into n count(*) from pfeature;
+	perform meta_update_kv('protein features',n);
+
+	-- prospect features
+	drop table counts;
+	create temp table counts as select pseq_id,count(pfeature_id) from paprospect2 where params_id=1 group by pseq_id;
+	select into n sum(count) from counts;
+	perform meta_update_kv('threading alignments',n);
+	select into n count(distinct pseq_id) from counts;
+	perform meta_update_kv('threaded sequences',n);
+	select count(pseq_id) from counts where count!=(select max(count) from counts);
+	perform meta_update_kv('incompletely threaded sequences',n);
+
+	-- hmm features
+	drop table counts;
+	create temp table counts as select pseq_id,count(pfeature_id) from pahmm group by pseq_id;
+	select into n sum(count) from counts;
+	perform meta_update_kv('HMM alignments',n);
+	select into n count(distinct pseq_id) from counts;
+	perform meta_update_kv('HMM-aligned sequences',n);
+
+	-- pssm features
+	drop table counts;
+	create temp table counts as select pseq_id,count(pfeature_id) from papssm group by pseq_id;
+	select into n sum(count) from counts;
+	perform meta_update_kv('PSSM alignments',n);
+	select into n count(distinct pseq_id) from counts;
+	perform meta_update_kv('PSSM-aligned sequences',n);
+
+	-- papseq features
+	drop table counts;
+	create temp table counts as select pseq_id,count(pfeature_id) from papseq group by pseq_id;
+	select into n sum(count) from counts;
+	perform meta_update_kv('BLAST alignments',n);
+	select into n count(distinct pseq_id) from counts;
+	perform meta_update_kv('BLAST-aligned sequences',n);
+
+	perform meta_update_kv('stats timestamp',now());
+
+	ts:=now(); raise notice 'meta_stats_update: finished %',ts;
+
+	return;
+END;$$
+    LANGUAGE plpgsql STABLE;
+
+
+ALTER FUNCTION unison.meta_stats_update() OWNER TO unison;
+
+--
+-- Name: FUNCTION meta_stats_update(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION meta_stats_update() IS 'update database statistics in meta';
+
+
+--
+-- Name: meta_update_kv(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION meta_update_kv(text, text) RETURNS void
+    AS $_$
+BEGIN
+	delete from meta where key=$1;
+	insert into meta (key,value) values ($1,$2);
+	raise notice 'meta_update_kv: % = %',$1,$2;
+	return;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.meta_update_kv(text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION meta_update_kv(text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION meta_update_kv(text, text) IS 'replacement insert into meta table';
+
+
+--
+-- Name: mol_wt(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION mol_wt(text) RETURNS real
+    AS $_X$
+#$Id$
+# http://www.expasy.org/tools/pi_tool-doc.html
+# Protein Mw can be calculated by 
+# the addition of average isotopic masses of amino acids (zwitter ion) in the protein 
+# and the average isotopic mass of one water molecule.
+
+#from EMBOSS/share/EMBOSS/data/Eamino.dat
+my %weights = (
+A => 71.0786,
+B => 114.5960,
+# They are for proteins with full reduced cysteine residues.  If all
+# cysteines are oxidized to cystine, use
+# a value of 60 for C
+C => 103.1386,
+D => 115.0884,
+E => 129.1152,
+F => 147.1762,
+G => 57.0518,
+H => 137.1408,
+I => 113.1590,
+K => 128.1736,
+L => 113.1590,
+# If met gets oxidised to the sulphoxide replace by 147.1926
+M => 131.1926,
+N => 114.1036,
+P => 97.1164,
+Q => 128.1304,
+R => 156.1870,
+S => 87.0780,
+T => 101.1048,
+U => 150.038, #not in EMBOSS
+V => 99.1322,
+W => 186.2128,
+X => 144.0000,
+Y => 163.1756,
+Z => 128.6228
+);
+
+$_ = shift;
+if(length($_) <= 0) {
+	elog(WARNING, "sequence length <= 0 ") ;
+	return 0;
+}
+
+
+my $mol_wt =18.015; #mass of one water molecule
+
+foreach my $aa(split //, $_) {
+	if(not defined $weights{uc($aa)}) {
+		elog(WARNING, "Unexpedted amino acid ".$aa) ;
+		next;
+	}	
+	$mol_wt += $weights{uc($aa)};
+}	
+return $mol_wt;
+$_X$
+    LANGUAGE plperl IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.mol_wt(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION mol_wt(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION mol_wt(text) IS 'returns the molecular weight of the protein in daltons';
+
+
+--
+-- Name: notice(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION notice(text) RETURNS void
+    AS $_$
+DECLARE
+	msg text;
+BEGIN
+	msg:=$1;
+	RAISE notice '%', msg;
+	return;
+END;$_$
+    LANGUAGE plpgsql STRICT;
+
+
+ALTER FUNCTION unison.notice(text) OWNER TO unison;
+
+--
+-- Name: origin_alias_descr_fmt(text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION origin_alias_descr_fmt(text, text, text) RETURNS text
+    AS $_$select $1 || ':' || $2 || ' (' || coalesce($3, 'No description available') || ')' ;$_$
+    LANGUAGE sql IMMUTABLE;
+
+
+ALTER FUNCTION unison.origin_alias_descr_fmt(text, text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION origin_alias_descr_fmt(text, text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION origin_alias_descr_fmt(text, text, text) IS 'canonical format for origin, alias, and description, like this: <origin>:<alias> (<descr>)';
+
+
+--
+-- Name: origin_alias_fmt(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION origin_alias_fmt(text, text) RETURNS text
+    AS $_$select $1 || ':' || $2;$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.origin_alias_fmt(text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION origin_alias_fmt(text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION origin_alias_fmt(text, text) IS 'canonical format for origin and alias, like this: <origin>:<alias>';
+
+
+--
+-- Name: origin_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION origin_id(text) RETURNS integer
+    AS $_$DECLARE V_id integer; BEGIN select into V_id origin_id from origin where upper(origin)=upper($1); IF NOT FOUND THEN RAISE WARNING 'origin ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.origin_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION origin_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION origin_id(text) IS 'return origin_id for given origin (case insensitive)';
+
+
+--
+-- Name: origin_si_origin_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION origin_si_origin_id(text) RETURNS integer
+    AS $_$
+DECLARE
+	O alias for $1;				-- origin
+	rv integer;
+BEGIN
+	select into rv origin_id from origin where upper(origin) = upper(O);
+	if found then return rv; end if;
+	insert into origin (origin) values (O);
+	select into rv origin_id from origin where origin = O;
+	return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.origin_si_origin_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION origin_si_origin_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION origin_si_origin_id(text) IS 'select/insert a origin_id from origin text, returns origin_id';
+
+
+--
+-- Name: ortholog(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION ortholog(integer, integer, integer) RETURNS integer
+    AS $_$
+DECLARE
+  v_pseq_id ALIAS FOR $1;
+  v_tax_id_from ALIAS FOR $2;
+  v_tax_id_to ALIAS FOR $3;
+  rv integer;
+BEGIN
+  SELECT b.pseq_id INTO rv FROM homologene a, homologene b WHERE
+    a.pseq_id=v_pseq_id AND a.tax_id=v_tax_id_from AND b.hid=a.hid AND
+    b.pseq_id!=a.pseq_id AND b.tax_id=v_tax_id_to;
+  return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.ortholog(integer, integer, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION ortholog(integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION ortholog(integer, integer, integer) IS 'returns ortholog pseq_id given pseq_id, tax_id of the given pseq_id, and tax_id of the desired pseq_id';
+
+
+--
+-- Name: palias_oa_fmt(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION palias_oa_fmt(integer) RETURNS text
+    AS $_$select origin_alias_fmt(O.origin,AO.alias) from pannotation AO join origin O on O.origin_id=AO.origin_id where AO.pannotation_id=$1$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.palias_oa_fmt(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION palias_oa_fmt(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION palias_oa_fmt(integer) IS 'origin_alias_fmt() for given palias_id';
+
+
+--
+-- Name: palias_oad_fmt(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION palias_oad_fmt(integer) RETURNS text
+    AS $_$select origin_alias_descr_fmt(O.origin,AO.alias,AO.descr) from pannotation AO join origin O on O.origin_id=AO.origin_id where AO.pannotation_id=$1$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.palias_oad_fmt(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION palias_oad_fmt(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION palias_oad_fmt(integer) IS 'origin_alias_descr_fmt() for given palias_id';
+
+
+--
+-- Name: pannotation_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pannotation_iu_trigger() RETURNS trigger
+    AS $$BEGIN new.descr_tsv = to_tsvector(new.descr); END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pannotation_iu_trigger() OWNER TO unison;
+
+--
+-- Name: paprospect_create_indices(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION paprospect_create_indices() RETURNS void
+    AS $$
+BEGIN
+	create index paprospect_gap_idx on paprospect (gap);
+	raise notice 'created paprospect_gap_idx';
+	create index paprospect_mutation_idx on paprospect (mutation);
+	raise notice 'created paprospect_mutation_idx';
+	create index paprospect_nalign_idx on paprospect (nalign);
+	raise notice 'created paprospect_nalign_idx';
+	create index paprospect_nident_idx on paprospect (nident);
+	raise notice 'created paprospect_nident_idx';
+	create index paprospect_pairwise_idx on paprospect (pairwise);
+	raise notice 'created paprospect_pairwise_idx';
+	create index paprospect_quality_idx on paprospect (quality);
+	raise notice 'created paprospect_quality_idx';
+	create index paprospect_raw_idx on paprospect (raw);
+	raise notice 'created paprospect_raw_idx';
+	create index paprospect_rgyr_idx on paprospect (rgyr);
+	raise notice 'created paprospect_rgyr_idx';
+	create index paprospect_singleton_idx on paprospect (singleton);
+	raise notice 'created paprospect_singleton_idx';
+	create index paprospect_ssfit_idx on paprospect (ssfit);
+	raise notice 'created paprospect_ssfit_idx';
+	create index paprospect_start_idx on paprospect (start);
+	raise notice 'created paprospect_start_idx';
+	create index paprospect_stop_idx on paprospect (stop);
+	raise notice 'created paprospect_stop_idx';
+	create index paprospect_svm_idx on paprospect (svm);
+	raise notice 'created paprospect_svm_idx';
+	create index paprospect_zscore_idx on paprospect (zscore);
+	raise notice 'created paprospect_zscore_idx';
+	return;
+END;$$
+    LANGUAGE plpgsql STABLE;
+
+
+ALTER FUNCTION unison.paprospect_create_indices() OWNER TO unison;
+
+--
+-- Name: FUNCTION paprospect_create_indices(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION paprospect_create_indices() IS 'create non-integrity indicies on paprospect; WARNING: takes hours';
+
+
+--
+-- Name: paprospect_drop_indices(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION paprospect_drop_indices() RETURNS void
+    AS $$
+BEGIN
+	drop index paprospect_gap_idx;
+	drop index paprospect_mutation_idx;
+	drop index paprospect_nalign_idx;
+	drop index paprospect_nident_idx;
+	drop index paprospect_pairwise_idx;
+	drop index paprospect_quality_idx;
+	drop index paprospect_raw_idx;
+	drop index paprospect_rgyr_idx;
+	drop index paprospect_singleton_idx;
+	drop index paprospect_ssfit_idx;
+	drop index paprospect_start_idx;
+	drop index paprospect_stop_idx;
+	drop index paprospect_svm_idx;
+	drop index paprospect_zscore_idx;
+	return;
+END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.paprospect_drop_indices() OWNER TO unison;
+
+--
+-- Name: FUNCTION paprospect_drop_indices(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION paprospect_drop_indices() IS 'drops non-integrity indicies from paprospect';
+
+
+--
+-- Name: paprospect_i_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION paprospect_i_trigger() RETURNS trigger
+    AS $$BEGIN NEW.pftype_id=pftype_id('Prospect'); return new; END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.paprospect_i_trigger() OWNER TO unison;
+
+--
+-- Name: papseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION papseq_iu_trigger() RETURNS trigger
+    AS $$
+declare
+  t_pseq_id integer;
+  q_seq_len integer;
+  t_seq_len integer;
+  shorter_len integer;
+  longer_len integer;
+begin
+  -- get the pftype_id
+  NEW.pftype_id=pftype_id('blast');
+  IF NEW.pftype_id is null THEN
+    RAISE EXCEPTION 'no pftype_id for name="blast"';
+  END IF;
+
+  -- get the t_pseq_id given the pmodel_id
+  select into t_pseq_id pseq_id from pmpseq where pmodel_id=new.pmodel_id;
+  IF t_pseq_id is null THEN
+    RAISE EXCEPTION 'no pseq_id for pmodel_id=%',new.pmodel_id;
+  END IF;
+
+  -- get sequence lengths for derived values
+  select into q_seq_len len from pseq where pseq_id=new.pseq_id;
+  IF q_seq_len is null or q_seq_len = 0 THEN
+    RAISE EXCEPTION 'length for pseq_id=% is null or zero',new.pseq_id;
+	END IF;
+  select into t_seq_len len from pseq where pseq_id=t_pseq_id;
+  IF t_seq_len is null or t_seq_len = 0 THEN
+    RAISE EXCEPTION 'length for pseq_id=% is null or zero',t_pseq_id;
+  END IF;
+
+  -- calculate derived values
+  IF q_seq_len > t_seq_len THEN
+    shorter_len := t_seq_len;
+    longer_len := q_seq_len;
+  ELSE
+    shorter_len := q_seq_len;
+    longer_len := t_seq_len;
+  END IF;
+  new.pct_hsp_coverage := ( new.len::real / shorter_len::real ) * 100.0;
+  new.pct_coverage := ( shorter_len::real / longer_len::real )  * 100.0;
+
+  return new;
+end; $$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.papseq_iu_trigger() OWNER TO unison;
+
+--
+-- Name: FUNCTION papseq_iu_trigger(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION papseq_iu_trigger() IS 'calculate derived values for inserting into papseq';
+
+
+--
+-- Name: papssm_create_indices(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION papssm_create_indices() RETURNS void
+    AS $$
+BEGIN
+	create index papssm_eval_idx on papssm(eval);
+	raise notice 'created papssm_eval_idx';
+	create index papssm_len_idx on papssm(len);
+	raise notice 'created papssm_len_idx';
+	create index papssm_score_idx on papssm(score);
+	raise notice 'created papssm_score_idx';
+	create index papssm_ident_idx on papssm(ident);
+	raise notice 'created papssm_ident_idx';
+	create index papssm_pos_idx on papssm(pos);
+	raise notice 'created papssm_pos_idx';
+	create index papssm_gap_idx on papssm(gap);
+	raise notice 'created papssm_gap_idx';
+	return;
+END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.papssm_create_indices() OWNER TO unison;
+
+--
+-- Name: papssm_drop_indices(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION papssm_drop_indices() RETURNS void
+    AS $$
+BEGIN
+	drop index papssm_eval_idx;
+	drop index papssm_len_idx;
+	drop index papssm_score_idx;
+	drop index papssm_ident_idx;
+	drop index papssm_pos_idx;
+	drop index papssm_gap_idx;
+	return;
+END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.papssm_drop_indices() OWNER TO unison;
+
+--
+-- Name: papssm_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION papssm_iu_trigger() RETURNS trigger
+    AS $$BEGIN new.pftype_id = pftype_id( 'PSSM' ); return new; END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.papssm_iu_trigger() OWNER TO unison;
+
+--
+-- Name: params_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION params_id(text) RETURNS integer
+    AS $_$DECLARE V_id integer; BEGIN select into V_id params_id from params where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'params ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.params_id(text) OWNER TO unison;
+
+--
+-- Name: params_id_exists(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION params_id_exists(integer) RETURNS boolean
+    AS $_$
+BEGIN
+	perform * from params where params_id=$1;
+	return FOUND;
+END;
+$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.params_id_exists(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION params_id_exists(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION params_id_exists(integer) IS 'return true if params_id exists';
+
+
+--
+-- Name: pdb_seq_pos(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pdb_seq_pos(text, text) RETURNS integer
+    AS $_$DECLARE V_id text; BEGIN select into V_id seq_pos from pdb.residue where pdbc=$1 and res_id=$2; IF NOT FOUND THEN RAISE WARNING 'pdbc ''%'' res_id ''%''  not found', $1,$2; RETURN NULL; END IF; return V_id; END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pdb_seq_pos(text, text) OWNER TO unison;
+
+--
+-- Name: perftest_iu_trigger_fx(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION perftest_iu_trigger_fx() RETURNS trigger
+    AS $$
+BEGIN
+	NEW.pg_version = substring(NEW.pg_version_str from E'^PostgreSQL (\\S+) ');
+	RETURN NEW;
+END;
+$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.perftest_iu_trigger_fx() OWNER TO unison;
+
+--
+-- Name: pfbigpi_site_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pfbigpi_site_trigger() RETURNS trigger
+    AS $$
+  begin
+    new.stop := new.start;
+    return new;
+  end; $$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pfbigpi_site_trigger() OWNER TO unison;
+
+--
+-- Name: FUNCTION pfbigpi_site_trigger(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pfbigpi_site_trigger() IS 'sets stop equal to start';
+
+
+--
+-- Name: pfsignalphmm_pred(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pfsignalphmm_pred(text) RETURNS integer
+    AS $_$
+
+DECLARE V_id integer; 
+BEGIN
+
+select into V_id pfsignalphmm_pred_id from pfsignalphmm_pred where upper(prediction)=upper($1); 
+IF NOT FOUND THEN 
+RAISE WARNING 'prediction % not found', $1; 
+RETURN NULL; 
+END IF; 
+return V_id; 
+END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pfsignalphmm_pred(text) OWNER TO unison;
+
+--
+-- Name: pftype_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pftype_id(text) RETURNS integer
+    AS $_$DECLARE V_id integer; BEGIN select into V_id pftype_id from pftype where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'pftype ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pftype_id(text) OWNER TO unison;
+
+--
+-- Name: pi(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pi(text) RETURNS real
+    AS $_$
+DECLARE 
+	ans float;
+BEGIN 
+	select INTO ans pI($1,'emboss');
+	return ans;
+END$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pi(text) OWNER TO unison;
+
+--
+-- Name: pi(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pi(text, text) RETURNS real
+    AS $_X$
+# pK values from the DTASelect program from Scripps
+# http://fields.scripps.edu/DTASelect
+my %pK_params;
+$pK_params{dtaselect} = {  
+		      N_term   =>  8.0,
+                      K        => 10.0, # Lys
+                      R        => 12.0, # Arg
+                      H        =>  6.5, # His
+                      D        =>  4.4, # Asp
+                      E        =>  4.4, # Glu
+                      C        =>  8.5, # Cys
+                      Y        => 10.0, # Tyr
+                      C_term   =>  3.1
+                    };
+
+# pK values from the iep program from EMBOSS
+# http://www.hgmp.mrc.ac.uk/Software/EMBOSS/
+$pK_params{emboss}  = { 
+		   N_term   =>  8.6,
+                   K        => 10.8, # Lys
+                   R        => 12.5, # Arg
+                   H        =>  6.5, # His
+                   D        =>  3.9, # Asp
+                   E        =>  4.1, # Glu
+                   C        =>  8.5, # Cys
+                   Y        => 10.1, # Tyr
+                   C_term   =>  3.6
+                 };
+my $seq = shift;
+if(length($seq) <= 0) {
+	elog(WARNING, "sequence length <= 0") ;
+	return -1;
+}	
+
+my $params = shift;
+elog(ERROR, "pK params $params does not exist options are 'emboss' and 'dtaselect'\n") if(not defined $pK_params{$params});
+my $pKset = $pK_params{$params};
+
+my $places = 2; #decimal places
+my $count = _count_charged_residues( $seq );
+
+return _calculate_iep($pKset,$places,$seq,$count);	
+
+sub _calculate_iep {
+    my( $pK, $places, $seq, $count ) = @_;
+    my $pH = 7.0;
+    my $step = 3.5;
+    my $last_charge = 0.0;
+    my $format = "%.${places}f";
+    my $count = _count_charged_residues($seq);
+
+    while(1){
+       my $charge = _calculate_charge_at_pH( $pH, $pK, $count );
+       last if sprintf($format,$charge) == 
+	 sprintf($format,$last_charge);
+       $charge > 0 ? ( $pH += $step ) : ( $pH -= $step );
+       $step /= 2.0;
+       $last_charge = $charge;
+    }
+    return sprintf( $format, $pH );
+}
+
+sub _count_charged_residues {
+   my $seq = shift;
+   my $count;
+   for ( qw( K R H D E C Y ) ){ # charged AAs
+      $count->{$_}++ while $seq =~ /$_/ig;
+   }
+   return $count;
+}
+
+# its the sum of all the partial charges for the
+# termini and all of the charged aa s!
+sub _calculate_charge_at_pH {
+
+   my( $pH, $pK, $count ) = @_;
+   my $charge =    _partial_charge( $pK->{N_term}, $pH )
+   + $count->{K} * _partial_charge( $pK->{K},      $pH )
+   + $count->{R} * _partial_charge( $pK->{R},      $pH )
+   + $count->{H} * _partial_charge( $pK->{H},      $pH )
+   - $count->{D} * _partial_charge( $pH,      $pK->{D} )
+   - $count->{E} * _partial_charge( $pH,      $pK->{E} )
+   - $count->{C} * _partial_charge( $pH,      $pK->{C} )
+   - $count->{Y} * _partial_charge( $pH,      $pK->{Y} )
+   -               _partial_charge( $pH, $pK->{C_term} );
+   return $charge;
+}
+
+# Concentration Ratio is 10**(pK - pH) for positive groups
+# and 10**(pH - pK) for negative groups
+sub _partial_charge {
+   my $cr = 10 ** ( $_[0] - $_[1] );
+   return $cr / ( $cr + 1 );
+}
+
+$_X$
+    LANGUAGE plperl IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pi(text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION pi(text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pi(text, text) IS 'returns the theoretical isoelectric point of a protein, try pI(seq,''emboss'')';
+
+
+--
+-- Name: pmap_hsp_str_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmap_hsp_str_trigger() RETURNS trigger
+    AS $$
+  declare
+hsp RECORD;
+v_hsp_str text := '';
+  begin
+    select into v_hsp_str as_set(hsp_id) from (select hsp_id from pmap_alnhsp where aln_id=new.aln_id order by hsp_id) X;
+
+    IF length(v_hsp_str) = 0 THEN
+RAISE EXCEPTION 'Could not construct hsp_str for %',new.aln_id;
+    END IF;
+
+    new.hsp_str=v_hsp_str;
+    return new;
+  end; $$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pmap_hsp_str_trigger() OWNER TO unison;
+
+--
+-- Name: FUNCTION pmap_hsp_str_trigger(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pmap_hsp_str_trigger() IS 'calculate hsp_str before inserting into pmap_aln';
+
+
+--
+-- Name: pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real) RETURNS integer
+    AS $_$
+DECLARE
+        rv integer;
+        hmm_origin_id alias for $1;
+        hmm_name alias for $2;
+        hmm_acc alias for $3;
+        hmm_descr alias for $4;
+        hmm_len alias for $5;
+        hmm_nseq alias for $6;
+        hmm_cksum alias for $7;
+        hmm_ga_seq alias for $8;
+        hmm_ga_dom alias for $9;
+        hmm_tc_seq alias for $10;
+        hmm_tc_dom alias for $11;
+        hmm_nc_seq alias for $12;
+        hmm_nc_dom alias for $13;
+BEGIN
+        rv := hmm_pmodel_id(hmm_acc,hmm_origin_id);
+        if rv is NULL then
+                select into rv nextval('pmodel_pmodel_id_seq');
+                insert into pmhmm (pmodel_id,origin_id,name,acc,descr,len,nseq,cksum,ga_seq,ga_dom,tc_seq,tc_dom,nc_seq,nc_dom) values ( rv,hmm_origin_id,hmm_name,hmm_acc,hmm_descr,hmm_len,hmm_nseq,hmm_cksum,hmm_ga_seq,hmm_ga_dom,hmm_tc_seq,hmm_tc_dom,hmm_nc_seq,hmm_nc_dom);
+	else
+		update pmhmm set name=hmm_name,descr=hmm_descr,len=hmm_len,nseq=hmm_nseq,cksum=hmm_cksum,ga_seq=hmm_ga_seq,ga_dom=hmm_ga_dom,tc_seq=hmm_tc_seq,tc_dom=hmm_tc_dom,nc_seq=hmm_nc_seq,nc_dom=hmm_nc_dom where pmodel_id=rv;
+        end if;
+        return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real) OWNER TO unison;
+
+--
+-- Name: FUNCTION pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real) IS 'select/insert a pmodel_id from pmhmm, returns pmodel_id';
+
+
+--
+-- Name: pmodel_id_exists(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmodel_id_exists(integer) RETURNS boolean
+    AS $_$
+BEGIN
+	perform * from pmodel where pmodel_id=$1;
+	return FOUND;
+END;
+$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pmodel_id_exists(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION pmodel_id_exists(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pmodel_id_exists(integer) IS 'return true if pmodel_id exists pmodel or subclass thereof';
+
+
+--
+-- Name: pmodelset_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmodelset_id(text) RETURNS integer
+    AS $_$DECLARE V_id integer; BEGIN select into V_id pmodelset_id from pmodelset where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'pmodelset ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pmodelset_id(text) OWNER TO unison;
+
+--
+-- Name: pmodelset_id_exists(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmodelset_id_exists(integer) RETURNS boolean
+    AS $_$
+BEGIN
+	perform * from pmodelset where pmodelset_id=$1;
+	return FOUND;
+END;
+$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pmodelset_id_exists(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION pmodelset_id_exists(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pmodelset_id_exists(integer) IS 'return true if pmodelset_id exists';
+
+
+--
+-- Name: pmodelset_immutable_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmodelset_immutable_trigger() RETURNS trigger
+    AS $$
+ declare
+ v_locked boolean;
+v_pmodelset_id integer; 
+ begin
+ --check if this set is locked
+ IF (TG_OP = 'DELETE') THEN
+ select into v_locked locked from pmodelset where pmodelset_id=old.pmodelset_id;
+ IF v_locked is TRUE THEN
+ RAISE EXCEPTION 'pmodelset_id % is locked for deletes',old.pmodelset_id;
+ END IF;
+ return old;
+ ELSIF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
+ select into v_locked locked from pmodelset where pmodelset_id=new.pmodelset_id;
+ IF v_locked is TRUE THEN
+ RAISE EXCEPTION 'pmodelset_id % is locked for inserts/updates',new.pmodelset_id;
+ END IF;
+ return new;
+ END IF;
+ end;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pmodelset_immutable_trigger() OWNER TO unison;
+
+--
+-- Name: pmodelset_si_pmodelset_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmodelset_si_pmodelset_id(text) RETURNS integer
+    AS $_$
+DECLARE
+        M alias for $1;                         -- pmodelset
+        rv integer;
+BEGIN
+        select into rv pmodelset_id from pmodelset where upper(name) = upper(M);
+        if found then return rv; end if;
+        insert into pmodelset (name) values (M);
+        select into rv pmodelset_id from pmodelset where name = M;
+        return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pmodelset_si_pmodelset_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION pmodelset_si_pmodelset_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pmodelset_si_pmodelset_id(text) IS 'select/insert a pmodelset_id from pmodelset, returns pmodelset_id';
+
+
+--
+-- Name: pmpseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmpseq_iu_trigger() RETURNS trigger
+    AS $$
+  declare
+		v_best_pannotation_id integer;
+  begin
+
+		-- get the best pannotation_id for this pseq_id
+    select into v_best_pannotation_id best_pannotation_id(new.pseq_id,true);
+    IF v_best_pannotation_id is null THEN
+      RAISE EXCEPTION 'no best_pannotation_id for pseq_id=%',new.pseq_id;
+    END IF;
+
+		select into new.origin_id,new.name origin_id,alias from palias where pannotation_id=v_best_pannotation_id;
+
+    return new;
+  end; $$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pmpseq_iu_trigger() OWNER TO unison;
+
+--
+-- Name: FUNCTION pmpseq_iu_trigger(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pmpseq_iu_trigger() IS 'calculate derived values for inserting into pmpseq';
+
+
+--
+-- Name: pmregexp_si_pmodel_id(integer, text, text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmregexp_si_pmodel_id(integer, text, text, text, text) RETURNS integer
+    AS $_$
+DECLARE
+        rv integer;
+BEGIN
+	select into rv pmodel_id from pmregexp where regexp=$5 and origin_id=$1;
+	if rv is NULL then
+		select into rv nextval('pmodel_pmodel_id_seq');
+		insert into pmregexp (pmodel_id,origin_id,acc,name,descr,regexp) values ( rv,$1,$2,$3,$4,$5);
+	end if;
+        return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pmregexp_si_pmodel_id(integer, text, text, text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION pmregexp_si_pmodel_id(integer, text, text, text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pmregexp_si_pmodel_id(integer, text, text, text, text) IS 'select/insert a pmodel_id from pmregexp, returns pmodel_id';
+
+
+--
+-- Name: pmregexp_u_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pmregexp_u_trigger() RETURNS trigger
+    AS $$BEGIN IF OLD.regexp!=NEW.regexp THEN RAISE EXCEPTION 'pmodel_id % (%): regular expressions are immutable', OLD.pmodel_id,OLD.acc; END IF; return NEW; END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pmregexp_u_trigger() OWNER TO unison;
+
+--
+-- Name: pnote_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pnote_iu_trigger() RETURNS trigger
+    AS $$BEGIN new.login := current_user; new.added = now(); return new; END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pnote_iu_trigger() OWNER TO unison;
+
+--
+-- Name: porigin_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION porigin_id(text) RETURNS integer
+    AS $_$
+BEGIN
+raise warning 'porigin_id() deprecated on 2006-06-26; use origin_id() instead';
+return origin_id($1);
+END;
+$_$
+    LANGUAGE plpgsql STRICT;
+
+
+ALTER FUNCTION unison.porigin_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION porigin_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION porigin_id(text) IS 'DEPRECATED; use origin_id()';
+
+
+--
+-- Name: preferred_run_id_by_pftype(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION preferred_run_id_by_pftype(text) RETURNS integer
+    AS $_$select preferred_run_id from pftype where pftype_id=pftype_id($1)$_$
+    LANGUAGE sql STABLE;
+
+
+ALTER FUNCTION unison.preferred_run_id_by_pftype(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION preferred_run_id_by_pftype(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION preferred_run_id_by_pftype(text) IS 'return preferred run_id for a given pftype';
+
+
+--
+-- Name: pseq_after_i_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_after_i_trigger() RETURNS trigger
+    AS $$ BEGIN PERFORM assign_annotation(NEW.pseq_id, origin_id('MD5'), md5(NEW.seq), NULL, NULL); RETURN NEW; END; $$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pseq_after_i_trigger() OWNER TO unison;
+
+--
+-- Name: pseq_genasm_params_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_genasm_params_trigger() RETURNS trigger
+    AS $$
+  declare
+	hsp RECORD;
+  begin
+    -- get pseq,genasm,params from hps for this alignment
+    FOR hsp IN
+	select h.genasm_id,h.pseq_id,h.params_id from pmap_hsp h join pmap_alnhsp a on a.hsp_id=h.hsp_id and a.aln_id=new.aln_id
+    LOOP
+	IF hsp.genasm_id != new.genasm_id OR hsp.pseq_id != new.pseq_id OR hsp.params_id != new.params_id THEN
+		RAISE NOTICE '% % %',hsp.genasm_id,hsp.pseq_id,hsp.params_id;
+		RAISE EXCEPTION 'genasm, pseq params mismatch for aln %',new.aln_id;
+	END IF;
+    END LOOP;  
+    return new;
+  end; $$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pseq_genasm_params_trigger() OWNER TO unison;
+
+--
+-- Name: FUNCTION pseq_genasm_params_trigger(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pseq_genasm_params_trigger() IS 'makes sure pseq_id, genasm_id and params_id are consistant between aln and hsp';
+
+
+--
+-- Name: pseq_i_pseq_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_i_pseq_id(text) RETURNS integer
+    AS $_$
+DECLARE
+	S alias for $1;
+	rv integer;
+BEGIN
+	select into rv nextval('pseq_pseq_id_seq');
+	insert into pseq (pseq_id,seq) values (rv,S);
+	return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pseq_i_pseq_id(text) OWNER TO unison;
+
+--
+-- Name: pseq_id_from_sequence(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_id_from_sequence(text) RETURNS integer
+    AS $_$select _pseq_seq_lookup(clean_sequence($1))$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pseq_id_from_sequence(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION pseq_id_from_sequence(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pseq_id_from_sequence(text) IS 'return pseq_id for sequence; sequence is made canonical by clean_sequence';
+
+
+--
+-- Name: pseq_id_sequence(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) RETURNS text
+    AS $_$select seq from pseq where pseq_id=$1$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pseq_id_sequence(pseq_id integer, OUT sequence text) OWNER TO unison;
+
+--
+-- Name: FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) IS 'returns sequence for given pseq_id';
+
+
+--
+-- Name: pseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_iu_trigger() RETURNS trigger
+    AS $$
+declare
+    orig_md5 text;
+begin
+	-- compute the incoming sequence's md5 so that we can warn about changes
+    orig_md5 := md5(new.seq);
+
+	-- remove whitespace and bogus chars, and upcase sequence
+    new.seq := clean_sequence(new.seq);
+
+	-- modifying sequences is prohibited
+	-- if tg_op = 'UPDATE' and old.seq != new.seq then
+	if tg_op = 'UPDATE' then
+	if old.seq != new.seq then
+		raise exception 'pseq sequences may not be altered';
+	end if;
+	end if;
+
+	-- compute the md5 and length of the "cleaned" sequence
+    new.md5 := md5(new.seq);
+    new.len := length(new.seq);
+
+	-- warn (and proceed) if the sequence was modified by clean_sequence
+    if orig_md5 != new.md5 then
+        raise notice 'pseq_id % modified during insert.',new.pseq_id;
+    end if;
+
+	-- fatal if sequences have non-IUPAC chars
+	IF has_non_iupac_aa(new.seq) THEN
+        raise exception 'pseq_id % contains non standard amino acids.',new.pseq_id;
+	END IF;
+
+	-- warn if sequence contains gaps or ambiguities
+	IF has_iupac_gap_aa(new.seq) THEN
+        raise notice 'pseq_id % contains gaps.',new.pseq_id;
+	END IF;
+	IF has_iupac_ambiguity_aa(new.seq) THEN
+        raise notice 'pseq_id % contains ambiguity amino acids.',new.pseq_id;
+	END IF;
+
+    RETURN new;
+end;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pseq_iu_trigger() OWNER TO unison;
+
+--
+-- Name: pseq_locus(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_locus(integer, integer, integer) RETURNS text
+    AS $_$select locus_fmt(chr,strand,gstart,gstop) from pmap_unambiguous_mv where pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pseq_locus(integer, integer, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION pseq_locus(integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pseq_locus(integer, integer, integer) IS 'unambiguous genomic location of pseq_id on given genome with given params; NULL if alignment is ambiguous or not available';
+
+
+--
+-- Name: pseq_locus_human(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_locus_human(integer) RETURNS text
+    AS $_$select * from pseq_locus($1,3,48)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pseq_locus_human(integer) OWNER TO unison;
+
+--
+-- Name: pseq_locus_rep(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_locus_rep(integer, integer, integer) RETURNS integer
+    AS $_$select t_pseq_id from pmap_locus_representative_mv where q_pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pseq_locus_rep(integer, integer, integer) OWNER TO unison;
+
+--
+-- Name: pseq_si_pseq_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_si_pseq_id(text) RETURNS integer
+    AS $_$
+DECLARE
+        S text;
+        rv integer;
+        Smd5 text;
+BEGIN
+        S := clean_sequence($1);
+        Smd5 := md5(S);
+        rv := _pseq_seq_lookup( S );
+        if rv is NULL then
+                select into rv pseq_i_pseq_id( S );
+        end if;
+        return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pseq_si_pseq_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION pseq_si_pseq_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pseq_si_pseq_id(text) IS 'select/insert a pseq_id from sequence, returns pseq_id';
+
+
+--
+-- Name: pseq_species(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pseq_species(integer) RETURNS text
+    AS $_$
+DECLARE
+	v_pseq_id alias for $1;
+	rv text;
+BEGIN
+	select into rv
+		as_set(distinct tax.tax_id2gs(tax_id)) from pseq_pannotation
+		natural join pannotation
+		where pseq_id=v_pseq_id and is_current=TRUE
+		group by pseq_id;
+	return rv;
+END;$_$
+    LANGUAGE plpgsql STABLE STRICT;
+
+
+ALTER FUNCTION unison.pseq_species(integer) OWNER TO unison;
+
+--
+-- Name: pset_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pset_id(text) RETURNS integer
+    AS $_$DECLARE V_id integer; BEGIN select into V_id pset_id from pset where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'pset ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.pset_id(text) OWNER TO unison;
+
+--
+-- Name: psloc_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION psloc_id(text) RETURNS integer
+    AS $_$
+
+DECLARE V_id integer; 
+BEGIN select into V_id psloc_id from psprotcomp_location where upper(location)=upper($1); 
+IF NOT FOUND THEN 
+	RAISE WARNING 'cellular location ''%'' not found', $1; 
+	RETURN NULL; 
+END IF; 
+return V_id; 
+END;$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.psloc_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION psloc_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION psloc_id(text) IS 'returns psloc_id for a given cellular location';
+
+
+--
+-- Name: pstr_get_pstr_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION pstr_get_pstr_id(text) RETURNS integer
+    AS $_$
+DECLARE
+	rv integer;
+BEGIN
+	select into rv pstr_id from pstr where pdbc = upper($1);
+	return rv;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.pstr_get_pstr_id(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION pstr_get_pstr_id(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION pstr_get_pstr_id(text) IS 'return pstr_id for pdbc (pdb + chain)';
+
+
+--
+-- Name: publicize(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION publicize() RETURNS void
+    AS $$
+DECLARE
+	v_row record;
+BEGIN
+	if current_database() != 'csb-public' then
+		RAISE EXCEPTION 'publicize(): database must be named "csb-public"';
+	end if;
+	RAISE WARNING '%: BEGINNING MASSIVE DELETE OF PROPRIETARY DATA.', timeofday();
+
+	FOR v_row IN SELECT origin,origin_id FROM origin WHERE is_public=FALSE ORDER BY origin_id LOOP
+		RAISE NOTICE '%: deleting results for ''%'' (origin_id=%)', timeofday(), v_row.origin, v_row.origin_id;
+		DELETE FROM pannotation WHERE origin_id=v_row.origin_id;
+		DELETE FROM origin WHERE origin_id=v_row.origin_id;
+	END LOOP;
+
+	FOR v_row IN SELECT name,params_id FROM params WHERE is_public=FALSE ORDER BY params_id LOOP   
+		RAISE NOTICE '%: deleting results for ''%'' (params_id=%)', timeofday(), v_row.name, v_row.params_id;
+		DELETE FROM pahmm WHERE params_id=v_row.params_id;
+		DELETE FROM paprospect WHERE params_id=v_row.params_id;
+		DELETE FROM params WHERE params_id=v_row.params_id;
+	END LOOP;
+
+	RAISE NOTICE 'deleting sequences NOT in pset_id=150';
+	DELETE FROM pseq WHERE pseq_id NOT IN (SELECT pseq_id FROM pseqset WHERE pset_id=150);
+
+	select meta_update_kv('publicized at',now());
+	RAISE NOTICE '%: Done. You should VACUUM ANALYZE VERBOSE.', timeofday();
+	RETURN;
+END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.publicize() OWNER TO unison;
+
+--
+-- Name: FUNCTION publicize(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION publicize() IS 'DANGER: This function deletes all proprietary data. It may only be run in a database named csb-public.';
+
+
+--
+-- Name: randseq(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION randseq(integer) RETURNS text
+    AS $_X$my $A="ACDEFGHIKLMNPQRSTVWY"; my $s=""; $s.=substr($A,rand(length($A)),1) for 1..$_[0]; return $s;$_X$
+    LANGUAGE plperl;
+
+
+ALTER FUNCTION unison.randseq(integer) OWNER TO unison;
+
+--
+-- Name: release(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION release() RETURNS void
+    AS $$
+BEGIN
+perform meta_update_kv('release timestamp',now());
+perform meta_update_kv('release',to_char(now(), 'YYYY-MM-DD') );
+return;
+END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.release() OWNER TO unison;
+
+--
+-- Name: FUNCTION release(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION release() IS 'perform final operations for unison release';
+
+
+--
+-- Name: representative_pseq_id(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) RETURNS integer
+    AS $_$select t_pseq_id as pseq_id from pmap_locus_representative_mv where q_pseq_id=$1 and genasm_id=$2 and params_id=$3$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) IS 'return "best" representative pseq_id for given pseq_id, genasm_id, params_id';
+
+
+--
+-- Name: representative_pseq_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) RETURNS integer
+    AS $_$select representative_pseq_id($1,3,48)$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) IS 'return "best" representative pseq_id for given pseq_id using current human genasm_id and params_id';
+
+
+--
+-- Name: residue_atomres_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION residue_atomres_trigger() RETURNS trigger
+    AS $$
+  DECLARE
+  BEGIN
+
+	IF new.atom_res IS null or new.atom_res = '' THEN
+		IF new.res_id IS not null or new.res_id != '' THEN
+			RAISE EXCEPTION 'res_id is not null when atom_res is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
+			RETURN NULL;
+		END IF;
+	END IF;
+	IF new.res_id IS null or new.res_id = '' THEN
+		IF new.atom_res IS not null or new.atom_res != '' THEN
+			RAISE EXCEPTION 'atom_res is not null when res_id is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
+			RETURN NULL;
+		END IF;
+	END IF;
+	RETURN new;
+
+  END;$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.residue_atomres_trigger() OWNER TO unison;
+
+--
+-- Name: run_all_perftests(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION run_all_perftests(pid integer) RETURNS void
+    AS $$
+DECLARE
+	pla perftest_platform%ROWTYPE;
+	def perftest_def%ROWTYPE;
+	res perftest_result%ROWTYPE;
+	i smallint;
+	t0 timestamp;
+	t1 timestamp;
+	td integer;
+	sum_td integer;
+	rows integer;
+	rid integer;
+BEGIN
+	SELECT INTO pla * FROM perftest_platform where platform_id = pid;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION 'platform_id=%: NOT FOUND; aborting', pid;
+	END IF;
+
+	-- sanity checks to ensure that the user doesn't call us with an obviously bogus
+	-- platform_id
+	IF NOT pla.current THEN
+		RAISE EXCEPTION 'platform_id=%: platform is not current; aborting', pid;
+	END IF;
+
+	IF pla.locked THEN
+		RAISE EXCEPTION 'platform_id=%: platform is locked; aborting', pid;
+	END IF;
+
+	IF pla.pg_version_str != version() THEN
+		RAISE EXCEPTION 'platform_id=% pg_version_str=% but version()=%; aborting', pid, pla.pg_version_str, version();
+	END IF;
+
+	IF pla.ip != inet_server_addr() THEN
+		RAISE EXCEPTION 'platform_id=% ip=% but inet_server_addr()=%; aborting', pid, pla.ip, inet_server_addr();
+	END IF;
+
+	insert into perftest_run (platform_id,start_ts) values (pid,clock_timestamp()::timestamp);
+	rid := lastval();			-- run_id from above insertion
+
+	RAISE NOTICE '* running perftest for platform_id=% (%), run_id %', pid, pla.name, rid;
+
+	FOR def IN SELECT * FROM perftest_def WHERE current ORDER BY ordr,def_id LOOP
+		RAISE NOTICE 'def_id=% (%): %', def.def_id, def.name, def.sql;
+		sum_td := 0;
+		FOR i IN 1..def.n_runs LOOP
+			-- run test
+			t0 := clock_timestamp();
+			EXECUTE def.sql;
+			GET DIAGNOSTICS rows = ROW_COUNT;
+			t1 := clock_timestamp();
+			td := extract(milliseconds from t1-t0)::integer;
+
+			IF i = 1 THEN
+				res.n_rows = rows;
+				IF rows < def.min_n_rows THEN
+					RAISE WARNING 'def_id=%, #%: returned % rows; expected >%', def.def_id, i, rows, def.min_n_rows;
+				END IF;
+			ELSE
+				IF rows != res.n_rows THEN
+					RAISE WARNING 'def_id=%, #%: returned % rows; iteration 1 returned % rows', def.def_id, i, rows, res.n_rows;
+				END IF;
+			END IF;
+			
+			IF td > def.max_time THEN
+				RAISE WARNING 'def_id=%, #%: time exceeded max_time (% ms > % ms)', def.def_id, i, td, def.max_time;
+			END IF;
+	
+			res.times[i] = td;
+			sum_td := sum_td + td;
+
+			RAISE NOTICE '  #%: % rows, % ms', i, rows, td;
+		END LOOP;
+
+		res.avg_time = sum_td / def.n_runs;
+		IF res.avg_time > def.max_avg_time THEN
+			RAISE WARNING 'def_id=%: avg_time (% ms) exceeed max_av_time (% ms)', def.def_id, res.avg_time, def.max_time;
+		END IF;
+
+		res.def_id := def.def_id;
+		res.run_id := rid;
+		res.had_error := FALSE;
+
+		INSERT INTO perftest_result(def_id,run_id,had_error,n_rows,times,avg_time)
+			VALUES (res.def_id,res.run_id,res.had_error,res.n_rows,res.times,res.avg_time);
+	END LOOP;
+
+	update perftest_run set stop_ts=clock_timestamp()::timestamp where run_id=rid;
+END;
+$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.run_all_perftests(pid integer) OWNER TO unison;
+
+--
+-- Name: seq_len(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION seq_len(q integer, OUT len integer) RETURNS integer
+    AS $_$select len from unison.pseq where pseq_id=$1$_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.seq_len(q integer, OUT len integer) OWNER TO unison;
+
+--
+-- Name: seqhash(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION seqhash(text) RETURNS text
+    AS $_$DECLARE S text; BEGIN return ( _seqhash_no_cleaning( clean_sequence($1) ) ); END$_$
+    LANGUAGE plpgsql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.seqhash(text) OWNER TO unison;
+
+--
+-- Name: sequence_ends(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION sequence_ends(text, integer) RETURNS text
+    AS $_X$
+my $seq = $_[0];
+my $end_len = $_[1];
+my $elipsis = '..';
+return $seq if ( length($seq) <= $end_len + $end_len + length($elipsis) );
+return substr($seq,0,$end_len) . $elipsis . substr($seq,-$end_len);
+$_X$
+    LANGUAGE plperl IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.sequence_ends(text, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION sequence_ends(text, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION sequence_ends(text, integer) IS 'returns first and last N chars of sequence, e.g., ACDEF..STVWY';
+
+
+--
+-- Name: sequence_ends(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION sequence_ends(text) RETURNS text
+    AS $_$ select sequence_ends($1,5); $_$
+    LANGUAGE sql IMMUTABLE STRICT;
+
+
+ALTER FUNCTION unison.sequence_ends(text) OWNER TO unison;
+
+--
+-- Name: FUNCTION sequence_ends(text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION sequence_ends(text) IS 'equivalent to sequence_ends(seq,5); see sequence_ends(text,integer)';
+
+
+--
+-- Name: spdi_dna_pannotation_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION spdi_dna_pannotation_id(integer) RETURNS integer
+    AS $_$
+DECLARE
+	q_id alias for $1;
+	a_id integer;
+BEGIN
+	select into a_id QA.pannotation_id from pseq_pannotation QA
+		join pannotation OA on OA.pannotation_id=QA.pannotation_id
+		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('SPDI') and alias~'^DNA'
+		limit 1;
+	return a_id;
+END;$_$
+    LANGUAGE plpgsql STABLE STRICT;
+
+
+ALTER FUNCTION unison.spdi_dna_pannotation_id(integer) OWNER TO unison;
+
+--
+-- Name: spdi_pannotation_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION spdi_pannotation_id(integer) RETURNS integer
+    AS $_$
+DECLARE
+	q_id alias for $1;
+	a_id integer;
+BEGIN
+	-- order by alias desc has the effect of preferring UNQ, then PRO, then DNA
+	select into a_id QA.pannotation_id from pseq_pannotation QA
+		join pannotation OA on OA.pannotation_id=QA.pannotation_id
+		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('GenenGenes')
+		order by alias desc
+		limit 1;
+	return a_id;
+END;$_$
+    LANGUAGE plpgsql STABLE STRICT;
+
+
+ALTER FUNCTION unison.spdi_pannotation_id(integer) OWNER TO unison;
+
+--
+-- Name: spdi_pro_pannotation_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION spdi_pro_pannotation_id(integer) RETURNS integer
+    AS $_$
+DECLARE
+	q_id alias for $1;
+	a_id integer;
+BEGIN
+	select into a_id QA.pannotation_id from pseq_pannotation QA
+		join pannotation OA on OA.pannotation_id=QA.pannotation_id
+		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('SPDI') and alias~'^PRO'
+		limit 1;
+	return a_id;
+END;$_$
+    LANGUAGE plpgsql STABLE STRICT;
+
+
+ALTER FUNCTION unison.spdi_pro_pannotation_id(integer) OWNER TO unison;
+
+--
+-- Name: spdi_unq_pannotation_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION spdi_unq_pannotation_id(integer) RETURNS integer
+    AS $_$
+DECLARE
+	q_id alias for $1;
+	a_id integer;
+BEGIN
+	select into a_id QA.pannotation_id from pseq_pannotation QA
+		join pannotation OA on OA.pannotation_id=QA.pannotation_id
+		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('SPDI') and alias~'^UNQ'
+		limit 1;
+	return a_id;
+END;$_$
+    LANGUAGE plpgsql STABLE STRICT;
+
+
+ALTER FUNCTION unison.spdi_unq_pannotation_id(integer) OWNER TO unison;
+
+--
+-- Name: split(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION split(text, text) RETURNS text[]
+    AS $_$
+  DECLARE
+    i int := 0;
+    word text;
+    result text := '{';
+    result_arr text[];
+  BEGIN
+    LOOP
+      i := i + 1;
+      SELECT INTO word split_part($1, $2, i);
+      IF word = '' THEN
+        EXIT;
+      END IF;
+      IF i > 1 THEN
+        result := result || ',"' || word || '"';
+      ELSE
+        result := result || '"' || word || '"';
+      END IF;
+    END LOOP;
+    result := result || '}';
+    result_arr := result;
+    RETURN result_arr;
+  END
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.split(text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION split(text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION split(text, text) IS 'split text into an array - similar to Perl split';
+
+
+--
+-- Name: sprintf(text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION sprintf(text, text, text) RETURNS text
+    AS $_$
+  my ($string, $args, $delim) = @_;
+  my $delsplit = defined $delim ? qr{\Q$delim} : qr{\s+};
+  return sprintf($string, (split $delsplit, $args));
+$_$
+    LANGUAGE plperl;
+
+
+ALTER FUNCTION unison.sprintf(text, text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION sprintf(text, text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION sprintf(text, text, text) IS 'sprintf(fmt,argstring,dlm): format dlm-delimited argstring using fmt';
+
+
+--
+-- Name: sprintf(text, text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION sprintf(text, text) RETURNS text
+    AS $_$
+  SELECT sprintf($1,$2,null);
+$_$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.sprintf(text, text) OWNER TO unison;
+
+--
+-- Name: FUNCTION sprintf(text, text); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION sprintf(text, text) IS 'sprintf(fmt,argstring): format whitespace-delimited  argstring using fmt';
+
+
+--
+-- Name: upd_run_history(integer, integer, boolean); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION upd_run_history(integer, integer, boolean) RETURNS timestamp with time zone
+    AS $_$
+DECLARE
+	q alias for $1;
+	r alias for $2;
+	f alias for $3;
+	z timestamp;
+BEGIN
+	z:=now();
+	update run_history set failed=f,ran_on=z where pseq_id=q and run_id=r;
+	if not FOUND then
+		-- update failed... tuple must not exist
+		insert into run_history (pseq_id,run_id,failed,ran_on) values (q,r,f,z);
+	end if;
+	return z;
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.upd_run_history(integer, integer, boolean) OWNER TO unison;
+
+--
+-- Name: FUNCTION upd_run_history(integer, integer, boolean); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION upd_run_history(integer, integer, boolean) IS 'inserts/updates run_history for the given pseq_id,run_id,failed); returns timestamp';
+
+
+--
+-- Name: upd_run_history(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION upd_run_history(integer, integer) RETURNS timestamp with time zone
+    AS $_$BEGIN return upd_run_history($1,$2,NULL); END$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.upd_run_history(integer, integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION upd_run_history(integer, integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION upd_run_history(integer, integer) IS 'equivalent to upd_run_history(pseq_id,run_id,NULL)';
+
+
+--
+-- Name: update_pmodelset(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION update_pmodelset(integer) RETURNS integer
+    AS $_$
+DECLARE
+	v_pmodelset_id alias for $1;
+
+	v_row record;
+	v_pg_row record;
+	v_cmd text;
+	v_tmptblname text;
+
+	v_nrows_del integer := 0;
+	v_nrows_ins integer := 0;
+	v_nrows_tot integer := 0;
+BEGIN
+	-- ********************************* checklist *****************************************
+	-- check if the requested pmodelset_id exists
+	SELECT INTO v_row pmodelset_id,name,descr,def,locked,pmsm_table FROM pmodelset WHERE pmodelset_id=v_pmodelset_id;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION 'pmodelset_id=% does not exist', v_pmodelset_id;
+		RETURN NULL;
+	END IF;
+
+	-- check if pmodelset is immutable (locked)
+	IF v_row.locked IS TRUE THEN
+		RAISE EXCEPTION '% set (pmodelset_id=%) is locked for updates.', v_row.name,v_pmodelset_id;
+		RETURN NULL;
+	END IF;
+
+	-- check if an sql definition exists
+	IF v_row.def IS NULL THEN
+		RAISE EXCEPTION 'The definition for pmodelset_id=% is null.', v_pmodelset_id;
+		RETURN NULL;
+	END IF;
+
+	-- check if the pmsm_pm* table is set
+	IF v_row.pmsm_table IS NULL THEN
+		RAISE EXCEPTION 'The pmsm_pm* table name for this set (pmodelset_id=%) is null.', v_pmodelset_id;
+		RETURN NULL;
+	END IF;
+
+	-- check if the pmsm_pm* table exists
+	SELECT INTO v_pg_row tablename FROM pg_tables where tablename=v_row.pmsm_table;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION 'table=% does not exist', v_row.pmsm_table;
+		RETURN NULL;
+	END IF;
+	-- **************************************************************************************
+
+	-- warn with name and id
+	RAISE DEBUG '* % (pmodelset_id=%)', v_row.name, v_row.pmodelset_id;
+
+	v_tmptblname := 'update_pmodelset_' || v_pmodelset_id || '_' || md5(now()::text||random());
+
+	-- materialize a temp table of the current set contents
+	v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||' AS SELECT DISTINCT pmodel_id FROM ('||v_row.def||') X';
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+	GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
+	RAISE DEBUG '% rows in temp table', v_nrows_tot;
+
+	-- delete obsolete models using an intermediate, indexed table
+	v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||'_del AS SELECT pmodel_id from '||v_row.pmsm_table||' where pmodelset_id='||v_pmodelset_id||' EXCEPT select pmodel_id from '||v_tmptblname;
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+	v_cmd := 'CREATE INDEX '||v_tmptblname||'_del_m_idx on '||v_tmptblname||'_del(pmodel_id)';
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+	v_cmd := 'ANALYZE '||v_tmptblname||'_del';
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+	v_cmd:='DELETE FROM '||v_row.pmsm_table||' USING '||v_tmptblname||'_del D WHERE pmodelset_id='||v_pmodelset_id||' AND '||v_row.pmsm_table||'.pmodel_id=D.pmodel_id';
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+	GET DIAGNOSTICS v_nrows_del = ROW_COUNT;
+
+	v_cmd:='DROP TABLE ' || v_tmptblname||'_del';
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+	-- add new models
+	v_cmd:='INSERT INTO '||v_row.pmsm_table||' (pmodelset_id,pmodel_id) SELECT '||v_pmodelset_id||',pmodel_id FROM (SELECT pmodel_id FROM '||v_tmptblname||' EXCEPT SELECT pmodel_id FROM '||v_row.pmsm_table||' WHERE pmodelset_id='||v_pmodelset_id||') X';
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+	GET DIAGNOSTICS v_nrows_ins = ROW_COUNT;
+
+	-- drop the temp table
+	v_cmd:='DROP TABLE ' || v_tmptblname;
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+	v_cmd := 'SELECT pmodel_id FROM '||v_row.pmsm_table||' WHERE pmodelset_id = '||v_pmodelset_id;
+	RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+	GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
+
+	RAISE NOTICE '  % (pmodelset_id=%): % model deleted, % models added, % total',
+	v_row.name, v_row.pmodelset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
+	RETURN v_nrows_tot;
+
+END
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.update_pmodelset(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION update_pmodelset(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION update_pmodelset(integer) IS 'update pmodelset for a specified pmodelset_id using the definition in pmodelset.def';
+
+
+--
+-- Name: update_pset(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION update_pset(integer) RETURNS integer
+    AS $_$
+DECLARE
+    v_pset_id alias for $1;
+    v_row record;
+    v_cmd text;
+    v_nrows_del integer;
+    v_nrows_ins integer;
+    v_nrows_tot integer;
+    v_tmptblname text;
+BEGIN
+    SELECT INTO v_row pset_id,name,def FROM pset WHERE pset_id=v_pset_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'pset_id=% does not exist', v_pset_id;
+        RETURN NULL;
+    END IF;
+
+    IF v_row.def IS NULL THEN
+        RAISE EXCEPTION 'The set definition for pset_id=% is null.', v_pset_id;
+        RETURN NULL;
+    END IF;
+    RAISE DEBUG '* % (pset_id=%)', v_row.name, v_row.pset_id;
+
+    v_tmptblname := 'update_pset_' || v_pset_id || '_' || md5(now()::text||random()::text);
+
+	-- materialize a temp table of the current set contents
+    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||' AS SELECT DISTINCT pseq_id FROM ('||v_row.def||') X';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
+	RAISE DEBUG '% rows in temp table', v_nrows_tot;
+
+	-- delete obsolete seqs using an intermediate, indexed table
+    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||'_del AS SELECT pseq_id from pseqset where pset_id='||v_pset_id||' EXCEPT select pseq_id from '||v_tmptblname;
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    v_cmd := 'CREATE INDEX '||v_tmptblname||'_del_q_idx on '||v_tmptblname||'_del(pseq_id)';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    v_cmd := 'ANALYZE '||v_tmptblname||'_del';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    v_cmd:='DELETE FROM pseqset USING '||v_tmptblname||'_del D WHERE pset_id='||v_pset_id||' AND pseqset.pseq_id=D.pseq_id';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    GET DIAGNOSTICS v_nrows_del = ROW_COUNT;
+    v_cmd:='DROP TABLE ' || v_tmptblname||'_del';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+	-- add new seqs
+    v_cmd:='INSERT INTO pseqset (pset_id,pseq_id) SELECT '||v_row.pset_id||',pseq_id FROM (SELECT pseq_id FROM '||v_tmptblname||' EXCEPT SELECT pseq_id FROM pseqset WHERE pset_id='||v_pset_id||') X';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    GET DIAGNOSTICS v_nrows_ins = ROW_COUNT;
+
+	-- drop the temp table
+    v_cmd:='DROP TABLE ' || v_tmptblname;
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+    SELECT INTO v_nrows_tot COUNT(*) FROM pseqset WHERE pset_id = v_pset_id;
+    RAISE NOTICE '  % (pset_id=%): % sequences deleted, % sequences added, % total',
+        v_row.name, v_row.pset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
+    RETURN v_nrows_tot;
+END
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.update_pset(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION update_pset(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION update_pset(integer) IS 'update pmodelset for a specified pmodelset_id using the definition in pmodelset.def';
+
+
+--
+-- Name: update_pset_orig(integer); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION update_pset_orig(integer) RETURNS integer
+    AS $_$
+DECLARE
+    v_pset_id alias for $1;
+    v_row record;
+    v_cmd text;
+    v_nrows_del integer;
+    v_nrows_ins integer;
+    v_nrows_tot integer;
+    v_tmptblname text;
+BEGIN
+    SELECT INTO v_row pset_id,name,def FROM pset WHERE pset_id=v_pset_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'pset_id=% does not exist', v_pset_id;
+        RETURN NULL;
+    END IF;
+
+    IF v_row.def IS NULL THEN
+        RAISE EXCEPTION 'The set definition for pset_id=% is null.', v_pset_id;
+        RETURN NULL;
+    END IF;
+    RAISE DEBUG '* % (pset_id=%)', v_row.name, v_row.pset_id;
+
+	-- populate a temp table of the current set contents
+    v_tmptblname := 'update_pset_' || v_pset_id || '_' || substr(md5(now()||random(),1,10));
+    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||' AS SELECT DISTINCT pseq_id FROM ('||v_row.def||') X';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
+	RAISE DEBUG '% rows in temp table', v_nrows_tot;
+
+    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||'_del AS SELECT pseq_id from pseqset where pset_id='||v_pset_id||' EXCEPT select pseq_id from '||v_tmptblname;
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    v_cmd := 'CREATE INDEX '||v_tmptblname||'_del_q_idx on '||v_tmptblname||'_del(pseq_id)';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    v_cmd := 'ANALYZE '||v_tmptblname||'_del';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+	
+	-- delete obsolete seqs
+    v_cmd:='DELETE FROM pseqset USING '||v_tmptblname||'_del D WHERE pset_id='||v_pset_id||' AND pseqset.pseq_id=D.pseq_id';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    GET DIAGNOSTICS v_nrows_del = ROW_COUNT;
+
+	-- add new seqs
+    v_cmd:='INSERT INTO pseqset (pset_id,pseq_id) SELECT '||v_row.pset_id||',pseq_id FROM (SELECT pseq_id FROM '||v_tmptblname||' EXCEPT SELECT pseq_id FROM pseqset WHERE pset_id='||v_pset_id||') X';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    GET DIAGNOSTICS v_nrows_ins = ROW_COUNT;
+
+	-- drop the temp tables
+    v_cmd:='DROP TABLE ' || v_tmptblname;
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+    v_cmd:='DROP TABLE ' || v_tmptblname||'_del';
+    RAISE DEBUG '%', v_cmd;
+	EXECUTE v_cmd;
+
+    SELECT INTO v_nrows_tot COUNT(*) FROM pseqset WHERE pset_id = v_pset_id;
+    RAISE NOTICE '  % (pset_id=%): % sequences deleted, % sequences added, % total',
+        v_row.name, v_row.pset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
+    RETURN v_nrows_tot;
+END
+$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.update_pset_orig(integer) OWNER TO unison;
+
+--
+-- Name: FUNCTION update_pset_orig(integer); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION update_pset_orig(integer) IS 'update pseqset for a specified pset_id using the definition in pset.def';
+
+
+--
+-- Name: update_psets_extrinsic(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION update_psets_extrinsic() RETURNS void
+    AS $$
+DECLARE
+	v_row record;
+	v_nseqs integer;
+BEGIN
+	FOR v_row IN SELECT pset_id,name FROM pset WHERE pset_id between 100 and 199 order by pset_id LOOP
+		SELECT INTO v_nseqs update_pset( v_row.pset_id );
+		RAISE NOTICE '% (pset_id=%): % sequences', v_row.name, v_row.pset_id, v_nseqs;
+    END LOOP;
+    RETURN;
+END;
+$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.update_psets_extrinsic() OWNER TO unison;
+
+--
+-- Name: FUNCTION update_psets_extrinsic(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION update_psets_extrinsic() IS 'update pseqset for set definitions based on computed features';
+
+
+--
+-- Name: update_psets_intrinsic(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION update_psets_intrinsic() RETURNS void
+    AS $$
+DECLARE
+	v_row record;
+	v_nseqs integer;
+BEGIN
+	FOR v_row IN SELECT pset_id,name FROM pset WHERE pset_id between 1 and 99 order by pset_id LOOP
+		SELECT INTO v_nseqs update_pset( v_row.pset_id );
+		RAISE NOTICE '% (pset_id=%): % sequences', v_row.name, v_row.pset_id, v_nseqs;
+    END LOOP;
+    RETURN;
+END;
+$$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison.update_psets_intrinsic() OWNER TO unison;
+
+--
+-- Name: FUNCTION update_psets_intrinsic(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION update_psets_intrinsic() IS 'update pseqset for set definitions based on origin, alias, description, and tax_id';
+
+
+--
+-- Name: update_tax_ids(); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION update_tax_ids() RETURNS void
+    AS $$update pannotation set tax_id=inferred_tax_id from _infer_tax_id_changed_v where pannotation.pannotation_id=_infer_tax_id_changed_v.pannotation_id;$$
+    LANGUAGE sql;
+
+
+ALTER FUNCTION unison.update_tax_ids() OWNER TO unison;
+
+--
+-- Name: FUNCTION update_tax_ids(); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON FUNCTION update_tax_ids() IS 'update paliasorigin.tax_id as necessary based on tax_ids inferred from origin, alias, and description';
+
+
+--
+-- Name: warn(text); Type: FUNCTION; Schema: unison; Owner: unison
+--
+
+CREATE FUNCTION warn(text) RETURNS void
+    AS $_$
+DECLARE
+	msg text;
+BEGIN
+	msg:=$1;
+	RAISE WARNING '%', msg;
+	return;
+END;$_$
+    LANGUAGE plpgsql STRICT;
+
+
+ALTER FUNCTION unison.warn(text) OWNER TO unison;
+
+SET search_path = unison_aux, pg_catalog;
+
+--
+-- Name: ptm_type_id(text); Type: FUNCTION; Schema: unison_aux; Owner: unison
+--
+
+CREATE FUNCTION ptm_type_id(text) RETURNS integer
+    AS $_$
+DECLARE V_id integer; 
+BEGIN 
+select into V_id ptm_type_id from unison_aux.ptm_type where ptm_type = $1; 
+IF NOT FOUND THEN RAISE WARNING 'ptm type ''%'' not found', $1; 
+RETURN NULL; 
+END IF; 
+return V_id; 
+END;$_$
+    LANGUAGE plpgsql;
+
+
+ALTER FUNCTION unison_aux.ptm_type_id(text) OWNER TO unison;
+
+SET search_path = pgutils, pg_catalog;
+
+--
+-- Name: as_set(anyelement); Type: AGGREGATE; Schema: pgutils; Owner: rkh
+--
+
+CREATE AGGREGATE as_set(anyelement) (
+    SFUNC = array_append,
+    STYPE = anyarray,
+    INITCOND = '{}'
+);
+
+
+ALTER AGGREGATE pgutils.as_set(anyelement) OWNER TO rkh;
+
+SET search_path = unison, pg_catalog;
+
+--
+-- Name: array_accum(anyelement); Type: AGGREGATE; Schema: unison; Owner: unison
+--
+
+CREATE AGGREGATE array_accum(anyelement) (
+    SFUNC = array_append,
+    STYPE = anyarray,
+    INITCOND = '{}'
+);
+
+
+ALTER AGGREGATE unison.array_accum(anyelement) OWNER TO unison;
+
+--
+-- Name: as_set(anyelement); Type: AGGREGATE; Schema: unison; Owner: unison
+--
+
+CREATE AGGREGATE as_set(anyelement) (
+    SFUNC = array_append,
+    STYPE = anyarray,
+    INITCOND = '{}',
+    FINALFUNC = _agg_as_set_finalfunc
+);
+
+
+ALTER AGGREGATE unison.as_set(anyelement) OWNER TO unison;
+
+--
+-- Name: AGGREGATE as_set(anyelement); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON AGGREGATE as_set(anyelement) IS 'build a comma-separated list of arguments';
+
+
+--
+-- Name: defline_agg(anyelement); Type: AGGREGATE; Schema: unison; Owner: unison
+--
+
+CREATE AGGREGATE defline_agg(anyelement) (
+    SFUNC = array_append,
+    STYPE = anyarray,
+    INITCOND = '{}',
+    FINALFUNC = _defline_agg_finalfunc
+);
+
+
+ALTER AGGREGATE unison.defline_agg(anyelement) OWNER TO unison;
+
+--
+-- Name: AGGREGATE defline_agg(anyelement); Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON AGGREGATE defline_agg(anyelement) IS 'Ctrl-A delimited deflines';
+
+
 SET default_tablespace = '';
 
 SET default_with_oids = false;
@@ -318,7 +5173,8 @@ CREATE TABLE pseq (
     seq text NOT NULL,
     len integer NOT NULL,
     md5 character(32) NOT NULL,
-    added timestamp with time zone DEFAULT timenow() NOT NULL
+    added timestamp with time zone DEFAULT timenow() NOT NULL,
+    CONSTRAINT pseq_len_gt_0 CHECK ((len > 0))
 );
 
 
@@ -365,40 +5221,6 @@ COMMENT ON COLUMN pseq.md5 IS 'md5 for sequence, computed automatically';
 
 COMMENT ON COLUMN pseq.added IS 'timestamp at which sequence was added (automatic)';
 
-
---
--- Name: _legacy_best_alias(integer, boolean); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _legacy_best_alias(integer, boolean) RETURNS text
-    AS $_$
-BEGIN
-	perform warn('best_alias(integer,boolean) is deprecated; use best_alias(integer) instead.');
-	return best_alias($1);
-END;
-$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._legacy_best_alias(integer, boolean) OWNER TO unison;
-
---
--- Name: FUNCTION _legacy_best_alias(integer, boolean); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION _legacy_best_alias(integer, boolean) IS 'same as best_OA';
-
-
---
--- Name: pftype_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pftype_id(text) RETURNS integer
-    AS $_$DECLARE V_id integer; BEGIN select into V_id pftype_id from pftype where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'pftype ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pftype_id(text) OWNER TO unison;
 
 --
 -- Name: pfeature; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
@@ -1388,77 +6210,77 @@ COMMENT ON COLUMN pset.descr IS 'freetext description of this set';
 
 
 --
--- Name: paliasorigin; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+-- Name: pannotation; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE TABLE paliasorigin (
-    palias_id integer NOT NULL,
+CREATE TABLE pannotation (
+    pannotation_id integer NOT NULL,
     origin_id integer NOT NULL,
     alias text NOT NULL,
     descr text,
     tax_id integer,
     added timestamp with time zone DEFAULT timenow() NOT NULL
 );
-ALTER TABLE ONLY paliasorigin ALTER COLUMN alias SET STATISTICS 1000;
+ALTER TABLE ONLY pannotation ALTER COLUMN alias SET STATISTICS 1000;
 
 
-ALTER TABLE unison.paliasorigin OWNER TO unison;
-
---
--- Name: TABLE paliasorigin; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON TABLE paliasorigin IS 'alias (names) given by a particular origin';
-
+ALTER TABLE unison.pannotation OWNER TO unison;
 
 --
--- Name: COLUMN paliasorigin.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: TABLE pannotation; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN paliasorigin.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON TABLE pannotation IS 'alias (names) given by a particular origin';
 
 
 --
--- Name: COLUMN paliasorigin.origin_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN pannotation.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN paliasorigin.origin_id IS 'origin.origin_id for this alias';
-
-
---
--- Name: COLUMN paliasorigin.alias; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN paliasorigin.alias IS 'alias text; this should be the unique identifier (may be more than 1) for this sequence from this origin';
+COMMENT ON COLUMN pannotation.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
--- Name: COLUMN paliasorigin.descr; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN pannotation.origin_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN paliasorigin.descr IS 'descriptive text, typically derived from the corresponding origin';
-
-
---
--- Name: COLUMN paliasorigin.tax_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN paliasorigin.tax_id IS 'swissprot species id; see tax.spspec';
+COMMENT ON COLUMN pannotation.origin_id IS 'origin.origin_id for this alias';
 
 
 --
--- Name: COLUMN paliasorigin.added; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN pannotation.alias; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN paliasorigin.added IS 'date that this alias was created';
+COMMENT ON COLUMN pannotation.alias IS 'alias text; this should be the unique identifier (may be more than 1) for this sequence from this origin';
 
 
 --
--- Name: pseqalias; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+-- Name: COLUMN pannotation.descr; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-CREATE TABLE pseqalias (
-    palias_id integer NOT NULL,
+COMMENT ON COLUMN pannotation.descr IS 'descriptive text, typically derived from the corresponding origin';
+
+
+--
+-- Name: COLUMN pannotation.tax_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pannotation.tax_id IS 'swissprot species id; see tax.spspec';
+
+
+--
+-- Name: COLUMN pannotation.added; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pannotation.added IS 'date that this alias was created';
+
+
+--
+-- Name: pseq_pannotation; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE pseq_pannotation (
+    pannotation_id integer NOT NULL,
     pseq_id integer NOT NULL,
     ref_pseq_id integer,
     added timestamp with time zone DEFAULT timenow() NOT NULL,
@@ -1467,55 +6289,55 @@ CREATE TABLE pseqalias (
 );
 
 
-ALTER TABLE unison.pseqalias OWNER TO unison;
+ALTER TABLE unison.pseq_pannotation OWNER TO unison;
 
 --
--- Name: TABLE pseqalias; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: TABLE pseq_pannotation; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON TABLE pseqalias IS 'aliases for a given sequence';
-
-
---
--- Name: COLUMN pseqalias.palias_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pseqalias.palias_id IS 'fk to pseqaliasorigin.palias_id for this alias';
+COMMENT ON TABLE pseq_pannotation IS 'aliases for a given sequence';
 
 
 --
--- Name: COLUMN pseqalias.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN pseq_pannotation.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN pseqalias.pseq_id IS 'pseq.pseq_id for this alias';
-
-
---
--- Name: COLUMN pseqalias.ref_pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pseqalias.ref_pseq_id IS 'reference to pseq_id for this derived sequence';
+COMMENT ON COLUMN pseq_pannotation.pannotation_id IS 'fk to pseqaliasorigin.palias_id for this alias';
 
 
 --
--- Name: COLUMN pseqalias.added; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN pseq_pannotation.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN pseqalias.added IS 'date that this sequence was assigned this alias';
-
-
---
--- Name: COLUMN pseqalias.version; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pseqalias.version IS 'version number of this pseqalias';
+COMMENT ON COLUMN pseq_pannotation.pseq_id IS 'pseq.pseq_id for this alias';
 
 
 --
--- Name: COLUMN pseqalias.is_current; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN pseq_pannotation.ref_pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN pseqalias.is_current IS 'is this pseqalias the current version';
+COMMENT ON COLUMN pseq_pannotation.ref_pseq_id IS 'reference to pseq_id for this derived sequence';
+
+
+--
+-- Name: COLUMN pseq_pannotation.added; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pseq_pannotation.added IS 'date that this sequence was assigned this alias';
+
+
+--
+-- Name: COLUMN pseq_pannotation.version; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pseq_pannotation.version IS 'version number of this pseqalias';
+
+
+--
+-- Name: COLUMN pseq_pannotation.is_current; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pseq_pannotation.is_current IS 'is this pseqalias the current version';
 
 
 --
@@ -1523,7 +6345,7 @@ COMMENT ON COLUMN pseqalias.is_current IS 'is this pseqalias the current version
 --
 
 CREATE VIEW palias AS
-    SELECT pa.palias_id, pv.pseq_id, pa.origin_id, pa.alias, pa.descr, pa.tax_id, pv.ref_pseq_id, pv.added FROM paliasorigin pa, pseqalias pv WHERE ((pv.palias_id = pa.palias_id) AND (pv.is_current = true));
+    SELECT pa.pannotation_id, pv.pseq_id, pa.origin_id, pa.alias, pa.descr, pa.tax_id, pv.ref_pseq_id, pv.added FROM pannotation pa, pseq_pannotation pv WHERE ((pv.pannotation_id = pa.pannotation_id) AND (pv.is_current = true));
 
 
 ALTER TABLE unison.palias OWNER TO unison;
@@ -1536,10 +6358,10 @@ COMMENT ON VIEW palias IS 'backwardly compatible - joins paliasorigin and pseqal
 
 
 --
--- Name: COLUMN palias.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN palias.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN palias.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN palias.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -1604,6 +6426,19 @@ CREATE TABLE association (
 ALTER TABLE go.association OWNER TO unison;
 
 --
+-- Name: association_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE association_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.association_id_seq OWNER TO unison;
+
+--
 -- Name: db; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
 --
 
@@ -1620,6 +6455,19 @@ CREATE TABLE db (
 ALTER TABLE go.db OWNER TO unison;
 
 --
+-- Name: db_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE db_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.db_id_seq OWNER TO unison;
+
+--
 -- Name: dbxref; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
 --
 
@@ -1633,6 +6481,19 @@ CREATE TABLE dbxref (
 
 
 ALTER TABLE go.dbxref OWNER TO unison;
+
+--
+-- Name: dbxref_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE dbxref_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.dbxref_id_seq OWNER TO unison;
 
 --
 -- Name: evidence; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
@@ -1660,6 +6521,19 @@ CREATE TABLE evidence_dbxref (
 
 
 ALTER TABLE go.evidence_dbxref OWNER TO unison;
+
+--
+-- Name: evidence_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE evidence_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.evidence_id_seq OWNER TO unison;
 
 --
 -- Name: gene_product; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
@@ -1690,6 +6564,19 @@ CREATE TABLE gene_product_count (
 
 
 ALTER TABLE go.gene_product_count OWNER TO unison;
+
+--
+-- Name: gene_product_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE gene_product_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.gene_product_id_seq OWNER TO unison;
 
 --
 -- Name: gene_product_property; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
@@ -1757,6 +6644,19 @@ CREATE TABLE graph_path2term (
 ALTER TABLE go.graph_path2term OWNER TO unison;
 
 --
+-- Name: graph_path_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE graph_path_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.graph_path_id_seq OWNER TO unison;
+
+--
 -- Name: instance_data; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
 --
 
@@ -1800,6 +6700,19 @@ CREATE TABLE seq_dbxref (
 ALTER TABLE go.seq_dbxref OWNER TO unison;
 
 --
+-- Name: seq_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE seq_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.seq_id_seq OWNER TO unison;
+
+--
 -- Name: seq_property; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
 --
 
@@ -1812,6 +6725,19 @@ CREATE TABLE seq_property (
 
 
 ALTER TABLE go.seq_property OWNER TO unison;
+
+--
+-- Name: seq_property_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE seq_property_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.seq_property_id_seq OWNER TO unison;
 
 --
 -- Name: source_audit; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
@@ -1843,6 +6769,19 @@ CREATE TABLE species (
 ALTER TABLE go.species OWNER TO unison;
 
 --
+-- Name: species_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE species_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.species_id_seq OWNER TO unison;
+
+--
 -- Name: term; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
 --
 
@@ -1871,6 +6810,19 @@ CREATE TABLE term2term (
 
 
 ALTER TABLE go.term2term OWNER TO unison;
+
+--
+-- Name: term2term_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE term2term_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.term2term_id_seq OWNER TO unison;
 
 --
 -- Name: term_audit; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
@@ -1913,6 +6865,19 @@ CREATE TABLE term_definition (
 ALTER TABLE go.term_definition OWNER TO unison;
 
 --
+-- Name: term_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+--
+
+CREATE SEQUENCE term_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE go.term_id_seq OWNER TO unison;
+
+--
 -- Name: term_synonym; Type: TABLE; Schema: go; Owner: unison; Tablespace: 
 --
 
@@ -1945,6 +6910,26 @@ ALTER TABLE gong.alias OWNER TO unison;
 --
 
 COMMENT ON TABLE alias IS 'GO names and synonyms';
+
+
+--
+-- Name: alias_alias_id_seq; Type: SEQUENCE; Schema: gong; Owner: unison
+--
+
+CREATE SEQUENCE alias_alias_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE gong.alias_alias_id_seq OWNER TO unison;
+
+--
+-- Name: alias_alias_id_seq; Type: SEQUENCE OWNED BY; Schema: gong; Owner: unison
+--
+
+ALTER SEQUENCE alias_alias_id_seq OWNED BY alias.alias_id;
 
 
 --
@@ -2095,6 +7080,26 @@ COMMENT ON COLUMN chip.name IS 'chip name';
 
 
 --
+-- Name: chip_chip_id_seq; Type: SEQUENCE; Schema: marray; Owner: unison
+--
+
+CREATE SEQUENCE chip_chip_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE marray.chip_chip_id_seq OWNER TO unison;
+
+--
+-- Name: chip_chip_id_seq; Type: SEQUENCE OWNED BY; Schema: marray; Owner: unison
+--
+
+ALTER SEQUENCE chip_chip_id_seq OWNED BY chip.chip_id;
+
+
+--
 -- Name: probe; Type: TABLE; Schema: marray; Owner: unison; Tablespace: 
 --
 
@@ -2158,26 +7163,6 @@ CREATE VIEW chip_probe_v AS
 
 ALTER TABLE marray.chip_probe_v OWNER TO unison;
 
-SET search_path = unison, pg_catalog;
-
---
--- Name: origin_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION origin_id(text) RETURNS integer
-    AS $_$DECLARE V_id integer; BEGIN select into V_id origin_id from origin where upper(origin)=upper($1); IF NOT FOUND THEN RAISE WARNING 'origin ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.origin_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION origin_id(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION origin_id(text) IS 'return origin_id for given origin (case insensitive)';
-
-
 SET search_path = ncbi, pg_catalog;
 
 --
@@ -2210,7 +7195,7 @@ SET search_path = unison, pg_catalog;
 --
 
 CREATE VIEW homologene_v AS
-    SELECT h.hid, h.tax_id, h.gene_id, h.gene_symbol, h.gi, h.acc, sa.pseq_id FROM ((ncbi.homologene h JOIN paliasorigin oa ON (((h.acc = oa.alias) AND (oa.origin_id = origin_id('RefSeq'::text))))) JOIN pseqalias sa ON ((oa.palias_id = sa.palias_id)));
+    SELECT h.hid, h.tax_id, h.gene_id, h.gene_symbol, h.gi, h.acc, sa.pseq_id FROM ((ncbi.homologene h JOIN pannotation oa ON (((h.acc = oa.alias) AND (oa.origin_id = origin_id('RefSeq'::text))))) JOIN pseq_pannotation sa ON ((oa.pannotation_id = sa.pannotation_id)));
 
 
 ALTER TABLE unison.homologene_v OWNER TO unison;
@@ -2767,123 +7752,112 @@ COMMENT ON COLUMN spspec.synonyms IS 'synonyms, "; " separated';
 SET search_path = unison, pg_catalog;
 
 --
--- Name: current_annotations_unsorted_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: current_annotations_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE VIEW current_annotations_unsorted_v AS
-    SELECT a.pseq_id, a.origin_id, o.origin, o.ann_pref, a.palias_id, a.tax_id, t.k, t.gs, t.latin, t.common, a.alias, a.descr, a.added, replace(o.link_url, '%s'::text, a.alias) AS link_url FROM ((palias a JOIN origin o ON ((a.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((a.tax_id = t.tax_id)));
+CREATE VIEW current_annotations_v AS
+    SELECT a.pseq_id, a.origin_id, o.origin, o.ann_pref, a.pannotation_id, a.tax_id, t.k, t.gs, t.latin, t.common, a.alias, a.descr, a.added, replace(o.link_url, '%s'::text, a.alias) AS link_url FROM ((palias a JOIN origin o ON ((a.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((a.tax_id = t.tax_id)));
 
 
-ALTER TABLE unison.current_annotations_unsorted_v OWNER TO unison;
-
---
--- Name: COLUMN current_annotations_unsorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_unsorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
+ALTER TABLE unison.current_annotations_v OWNER TO unison;
 
 --
--- Name: COLUMN current_annotations_unsorted_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_unsorted_v.origin_id IS 'origin identifier -- see origin(origin_id)';
+COMMENT ON COLUMN current_annotations_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
 
 
 --
--- Name: COLUMN current_annotations_unsorted_v.origin; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_unsorted_v.origin IS 'origin of sequence -- see origin(origin_id)';
-
-
---
--- Name: COLUMN current_annotations_unsorted_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_unsorted_v.ann_pref IS 'annotation preference for the origin of this alias';
+COMMENT ON COLUMN current_annotations_v.origin_id IS 'origin identifier -- see origin(origin_id)';
 
 
 --
--- Name: COLUMN current_annotations_unsorted_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.origin; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_unsorted_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
-
-
---
--- Name: COLUMN current_annotations_unsorted_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_unsorted_v.tax_id IS 'NCBI taxonomy identifier';
+COMMENT ON COLUMN current_annotations_v.origin IS 'origin of sequence -- see origin(origin_id)';
 
 
 --
--- Name: COLUMN current_annotations_unsorted_v.k; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_unsorted_v.k IS 'Swiss-Prot kingdom code (A=archea; B=bacteria; E=eukaryota; V=viruses)';
-
-
---
--- Name: COLUMN current_annotations_unsorted_v.gs; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_unsorted_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
+COMMENT ON COLUMN current_annotations_v.ann_pref IS 'annotation preference for the origin of this alias';
 
 
 --
--- Name: COLUMN current_annotations_unsorted_v.latin; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_unsorted_v.latin IS 'Latin genus and species';
-
-
---
--- Name: COLUMN current_annotations_unsorted_v.common; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_unsorted_v.common IS 'common taxonomic name';
+COMMENT ON COLUMN current_annotations_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
--- Name: COLUMN current_annotations_unsorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_unsorted_v.alias IS 'alias for the sequence';
-
-
---
--- Name: COLUMN current_annotations_unsorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_unsorted_v.descr IS 'sequence description';
+COMMENT ON COLUMN current_annotations_v.tax_id IS 'NCBI taxonomy identifier';
 
 
 --
--- Name: COLUMN current_annotations_unsorted_v.added; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.k; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_unsorted_v.added IS 'date that this sequence was assigned this alias';
-
-
---
--- Name: COLUMN current_annotations_unsorted_v.link_url; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_unsorted_v.link_url IS 'URL to source data';
+COMMENT ON COLUMN current_annotations_v.k IS 'Swiss-Prot kingdom code (A=archea; B=bacteria; E=eukaryota; V=viruses)';
 
 
 --
--- Name: pset_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_v.gs; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-CREATE FUNCTION pset_id(text) RETURNS integer
-    AS $_$DECLARE V_id integer; BEGIN select into V_id pset_id from pset where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'pset ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
+COMMENT ON COLUMN current_annotations_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
 
 
-ALTER FUNCTION unison.pset_id(text) OWNER TO unison;
+--
+-- Name: COLUMN current_annotations_v.latin; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_v.latin IS 'Latin genus and species';
+
+
+--
+-- Name: COLUMN current_annotations_v.common; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_v.common IS 'common taxonomic name';
+
+
+--
+-- Name: COLUMN current_annotations_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_v.alias IS 'alias for the sequence';
+
+
+--
+-- Name: COLUMN current_annotations_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_v.descr IS 'sequence description';
+
+
+--
+-- Name: COLUMN current_annotations_v.added; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_v.added IS 'date that this sequence was assigned this alias';
+
+
+--
+-- Name: COLUMN current_annotations_v.link_url; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_v.link_url IS 'URL to source data';
+
 
 --
 -- Name: ensembl_unambiguous_overlaps_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
@@ -2974,25 +7948,6 @@ CREATE TABLE ligand_descriptors (
 
 
 ALTER TABLE pdb.ligand_descriptors OWNER TO unison;
-
---
--- Name: descriptor_origin_id(text, text); Type: FUNCTION; Schema: pdb; Owner: unison
---
-
-CREATE FUNCTION descriptor_origin_id(text, text) RETURNS SETOF integer
-    AS $_$
- DECLARE 
-	V_id integer;
- BEGIN 
-	FOR V_id IN select descriptor_origin_id from descriptor_origin where type = $1 and upper(origin) = upper($2) LOOP 
-		return NEXT V_id; 
-	END LOOP;
- 	RETURN; 
- END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION pdb.descriptor_origin_id(text, text) OWNER TO unison;
 
 SET search_path = unison, pg_catalog;
 
@@ -3361,6 +8316,135 @@ CREATE TABLE papseq_pdbcs_mv (
 
 ALTER TABLE unison.papseq_pdbcs_mv OWNER TO unison;
 
+--
+-- Name: pftmhmm; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE pftmhmm (
+    pftype_id integer DEFAULT pftype_id('TMHMM'::text),
+    type character(1) NOT NULL,
+    CONSTRAINT tm_type_ck CHECK (((((type = 'o'::bpchar) OR (type = 'i'::bpchar)) OR (type = 'M'::bpchar)) OR (type = 'N'::bpchar)))
+)
+INHERITS (pfeature);
+
+
+ALTER TABLE unison.pftmhmm OWNER TO unison;
+
+--
+-- Name: TABLE pftmhmm; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON TABLE pftmhmm IS 'TMHMM output';
+
+
+--
+-- Name: COLUMN pftmhmm.pfeature_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm.pfeature_id IS 'unique identifier for this protein feature';
+
+
+--
+-- Name: COLUMN pftmhmm.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN pftmhmm.pftype_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm.pftype_id IS 'protein feature type identifier -- see pftype(pftype_id)';
+
+
+--
+-- Name: COLUMN pftmhmm.start; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm.start IS 'start of prediction in protein sequence';
+
+
+--
+-- Name: COLUMN pftmhmm.stop; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm.stop IS 'stop of prediction in protein sequence';
+
+
+--
+-- Name: COLUMN pftmhmm.params_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm.params_id IS 'parameter set identifier -- see params(params_id)';
+
+
+--
+-- Name: COLUMN pftmhmm.type; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm.type IS 'S=signal; M=in->out TM; N=out->in TM';
+
+
+--
+-- Name: pftmhmm_tms_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pftmhmm_tms_v AS
+    SELECT pftmhmm.pfeature_id, pftmhmm.pseq_id, pftmhmm.pftype_id, pftmhmm.start, pftmhmm.stop, pftmhmm.params_id, pftmhmm.type FROM pftmhmm WHERE ((pftmhmm.type = 'M'::bpchar) OR (pftmhmm.type = 'N'::bpchar));
+
+
+ALTER TABLE unison.pftmhmm_tms_v OWNER TO unison;
+
+--
+-- Name: VIEW pftmhmm_tms_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW pftmhmm_tms_v IS 'TM regions from pftmhmm';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.pfeature_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.pfeature_id IS 'unique identifier for this protein feature';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.pftype_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.pftype_id IS 'protein feature type identifier -- see pftype(pftype_id)';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.start; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.start IS 'start of prediction in protein sequence';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.stop; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.stop IS 'stop of prediction in protein sequence';
+
+
+--
+-- Name: COLUMN pftmhmm_tms_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tms_v.params_id IS 'parameter set identifier -- see params(params_id)';
+
+
 SET search_path = pdb, pg_catalog;
 
 --
@@ -3380,49 +8464,6 @@ CREATE TABLE chain (
 ALTER TABLE pdb.chain OWNER TO unison;
 
 SET search_path = unison, pg_catalog;
-
---
--- Name: domain_digest(integer, integer, text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) RETURNS text
-    AS $$
-BEGIN
-	-- 12-23:Ig(56,1e-5)
-	-- SELECT INTO digest pstart || '-' || pstop || ':' || name || COALESCE('('||NULLIF(note,'')||')','');
-
-	SELECT INTO digest name || '(' || pstart || '-' || pstop || COALESCE(';'||NULLIF(note,''),'') || ')';
-END;
-$$
-    LANGUAGE plpgsql IMMUTABLE;
-
-
-ALTER FUNCTION unison.domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) OWNER TO unison;
-
---
--- Name: FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) IS 'formatted domain summary, like start-stop:domain(note)';
-
-
---
--- Name: preferred_run_id_by_pftype(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION preferred_run_id_by_pftype(text) RETURNS integer
-    AS $_$select preferred_run_id from pftype where pftype_id=pftype_id($1)$_$
-    LANGUAGE sql STABLE;
-
-
-ALTER FUNCTION unison.preferred_run_id_by_pftype(text) OWNER TO unison;
-
---
--- Name: FUNCTION preferred_run_id_by_pftype(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION preferred_run_id_by_pftype(text) IS 'return preferred run_id for a given pftype';
-
 
 --
 -- Name: params; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
@@ -3566,76 +8607,6 @@ COMMENT ON COLUMN pfsignalpnn.params_id IS 'parameter set identifier -- see para
 --
 
 COMMENT ON COLUMN pfsignalpnn.signal_peptide IS 'd_score>0.430';
-
-
---
--- Name: pftmhmm; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE TABLE pftmhmm (
-    pftype_id integer DEFAULT pftype_id('TMHMM'::text),
-    type character(1) NOT NULL,
-    CONSTRAINT tm_type_ck CHECK (((((type = 'o'::bpchar) OR (type = 'i'::bpchar)) OR (type = 'M'::bpchar)) OR (type = 'N'::bpchar)))
-)
-INHERITS (pfeature);
-
-
-ALTER TABLE unison.pftmhmm OWNER TO unison;
-
---
--- Name: TABLE pftmhmm; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON TABLE pftmhmm IS 'TMHMM output';
-
-
---
--- Name: COLUMN pftmhmm.pfeature_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm.pfeature_id IS 'unique identifier for this protein feature';
-
-
---
--- Name: COLUMN pftmhmm.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN pftmhmm.pftype_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm.pftype_id IS 'protein feature type identifier -- see pftype(pftype_id)';
-
-
---
--- Name: COLUMN pftmhmm.start; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm.start IS 'start of prediction in protein sequence';
-
-
---
--- Name: COLUMN pftmhmm.stop; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm.stop IS 'stop of prediction in protein sequence';
-
-
---
--- Name: COLUMN pftmhmm.params_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm.params_id IS 'parameter set identifier -- see params(params_id)';
-
-
---
--- Name: COLUMN pftmhmm.type; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm.type IS 'S=signal; M=in->out TM; N=out->in TM';
 
 
 --
@@ -3961,28 +8932,6 @@ ALTER TABLE unison.pseq_features_tmhmm_excl_signal_v OWNER TO unison;
 COMMENT ON VIEW pseq_features_tmhmm_excl_signal_v IS 'current TMHMM features that do not overlap a SignalP NN prediction';
 
 
-SET search_path = tax, pg_catalog;
-
---
--- Name: tax_id2gs(integer); Type: FUNCTION; Schema: tax; Owner: unison
---
-
-CREATE FUNCTION tax_id2gs(integer) RETURNS text
-    AS $_$
-DECLARE
-	v_id alias for $1;
-	rv text;
-BEGIN
-	select into rv gs from tax.spspec where tax_id=v_id;
-	return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION tax.tax_id2gs(integer) OWNER TO unison;
-
-SET search_path = unison, pg_catalog;
-
 --
 -- Name: blasts_v; Type: VIEW; Schema: unison; Owner: unison
 --
@@ -4242,42 +9191,420 @@ COMMENT ON COLUMN paprospect_scop_v.singleton IS 'Prospect ''singleton'' score '
 
 
 --
--- Name: _agg_as_set_finalfunc(anyarray); Type: FUNCTION; Schema: unison; Owner: unison
+-- Name: run_history; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE FUNCTION _agg_as_set_finalfunc(anyarray) RETURNS text
-    AS $_$select array_to_string($1,',')$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._agg_as_set_finalfunc(anyarray) OWNER TO unison;
-
---
--- Name: FUNCTION _agg_as_set_finalfunc(anyarray); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION _agg_as_set_finalfunc(anyarray) IS '''final'' function for as_set aggregate';
-
-
---
--- Name: as_set(anyelement); Type: AGGREGATE; Schema: unison; Owner: unison
---
-
-CREATE AGGREGATE as_set(anyelement) (
-    SFUNC = array_append,
-    STYPE = anyarray,
-    INITCOND = '{}',
-    FINALFUNC = _agg_as_set_finalfunc
+CREATE TABLE run_history (
+    pseq_id integer NOT NULL,
+    ran_on timestamp with time zone DEFAULT timenow(),
+    failed boolean DEFAULT false NOT NULL,
+    run_id integer NOT NULL
 );
 
 
-ALTER AGGREGATE unison.as_set(anyelement) OWNER TO unison;
+ALTER TABLE unison.run_history OWNER TO unison;
 
 --
--- Name: AGGREGATE as_set(anyelement); Type: COMMENT; Schema: unison; Owner: unison
+-- Name: TABLE run_history; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON AGGREGATE as_set(anyelement) IS 'build a comma-separated list of arguments';
+COMMENT ON TABLE run_history IS 'if/when a query sequence (pseq_id) was run with params_id against targets, perhaps specified by origin_id and/or pmodelset_id';
+
+
+--
+-- Name: COLUMN run_history.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN run_history.pseq_id IS 'pseq_id of query sequence';
+
+
+--
+-- Name: COLUMN run_history.ran_on; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN run_history.ran_on IS 'when this sequence was run with this params against the specified targets';
+
+
+--
+-- Name: COLUMN run_history.failed; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN run_history.failed IS 'True if a program systematically fails with this sequence and parameters. This is useful to prevent repeatedly running problematic <sequence,program,parameter> combinations.';
+
+
+--
+-- Name: COLUMN run_history.run_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN run_history.run_id IS 'identifier for this run (params and modelset), see run(run_id)';
+
+
+--
+-- Name: pftmhmm_tm_count_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pftmhmm_tm_count_v AS
+    SELECT rh.pseq_id, r.params_id, (SELECT count(*) AS count FROM pftmhmm WHERE (((pftmhmm.params_id = r.params_id) AND ((pftmhmm.type = 'M'::bpchar) OR (pftmhmm.type = 'N'::bpchar))) AND (pftmhmm.pseq_id = rh.pseq_id))) AS count FROM (run_history rh JOIN run r ON ((r.run_id = rh.run_id))) WHERE (rh.run_id = preferred_run_id_by_pftype('tmhmm'::text));
+
+
+ALTER TABLE unison.pftmhmm_tm_count_v OWNER TO unison;
+
+--
+-- Name: VIEW pftmhmm_tm_count_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW pftmhmm_tm_count_v IS 'number of TMHMM-predicted transmembrane domains for each sequence';
+
+
+--
+-- Name: COLUMN pftmhmm_tm_count_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tm_count_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN pftmhmm_tm_count_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN pftmhmm_tm_count_v.params_id IS 'parameter set identifier -- see params(params_id)';
+
+
+--
+-- Name: psprotcomp; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE psprotcomp (
+    pseq_id integer NOT NULL,
+    params_id integer NOT NULL,
+    sim_psloc_id integer NOT NULL,
+    sim_score real,
+    sim_db text,
+    sim_target_ac text,
+    nn_psloc_id integer NOT NULL,
+    nn_score real NOT NULL,
+    int_psloc_id integer NOT NULL,
+    int_score real NOT NULL,
+    int_membrane boolean DEFAULT false NOT NULL,
+    int_nuc_score real NOT NULL,
+    int_pm_score real NOT NULL,
+    int_ext_score real NOT NULL,
+    int_cyt_score real NOT NULL,
+    int_mit_score real NOT NULL,
+    int_er_score real NOT NULL,
+    int_per_score real NOT NULL,
+    int_lys_score real NOT NULL,
+    int_gol_score real NOT NULL,
+    features text,
+    result_block text NOT NULL
+);
+
+
+ALTER TABLE unison.psprotcomp OWNER TO unison;
+
+--
+-- Name: TABLE psprotcomp; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON TABLE psprotcomp IS 'Softberry protcomp predictions';
+
+
+--
+-- Name: COLUMN psprotcomp.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN psprotcomp.params_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.params_id IS 'parameter set identifier -- see params(params_id)';
+
+
+--
+-- Name: COLUMN psprotcomp.sim_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.sim_psloc_id IS 'similarity-based localization identifier';
+
+
+--
+-- Name: COLUMN psprotcomp.sim_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.sim_score IS 'similarity-based prediction score';
+
+
+--
+-- Name: COLUMN psprotcomp.sim_db; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.sim_db IS 'source database similarity-based prediction';
+
+
+--
+-- Name: COLUMN psprotcomp.sim_target_ac; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.sim_target_ac IS 'similarity-based prediction target accession (in sim_db)';
+
+
+--
+-- Name: COLUMN psprotcomp.nn_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.nn_psloc_id IS 'neural net localization prediction id';
+
+
+--
+-- Name: COLUMN psprotcomp.nn_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.nn_score IS 'neural net localization score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_psloc_id IS 'localization based on best integral score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_score IS 'best integral score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_membrane; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_membrane IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_nuc_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_nuc_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_pm_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_pm_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_ext_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_ext_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_cyt_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_cyt_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_mit_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_mit_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_er_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_er_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_per_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_per_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_lys_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_lys_score IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp.int_gol_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp.int_gol_score IS 'component ''integral'' score';
+
+
+--
+-- Name: psprotcomp_location; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE psprotcomp_location (
+    psloc_id integer NOT NULL,
+    location text NOT NULL
+);
+
+
+ALTER TABLE unison.psprotcomp_location OWNER TO unison;
+
+--
+-- Name: TABLE psprotcomp_location; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON TABLE psprotcomp_location IS 'lookup table for protcomp cellular locations';
+
+
+--
+-- Name: psprotcomp_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW psprotcomp_v AS
+    SELECT pc.pseq_id, pc.params_id, pc.sim_psloc_id, sl.location AS sim_loc, pc.sim_db, pc.sim_target_ac, pc.sim_score, pc.nn_psloc_id, nl.location AS nn_loc, pc.nn_score, pc.int_psloc_id, il.location AS int_loc, pc.int_score FROM (((psprotcomp pc JOIN psprotcomp_location sl ON ((sl.psloc_id = pc.sim_psloc_id))) JOIN psprotcomp_location nl ON ((nl.psloc_id = pc.nn_psloc_id))) JOIN psprotcomp_location il ON ((il.psloc_id = pc.int_psloc_id)));
+
+
+ALTER TABLE unison.psprotcomp_v OWNER TO unison;
+
+--
+-- Name: VIEW psprotcomp_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW psprotcomp_v IS 'protcomp summary view';
+
+
+--
+-- Name: COLUMN psprotcomp_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN psprotcomp_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.params_id IS 'parameter set identifier -- see params(params_id)';
+
+
+--
+-- Name: COLUMN psprotcomp_v.sim_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.sim_psloc_id IS 'similarity-based localization identifier';
+
+
+--
+-- Name: COLUMN psprotcomp_v.sim_loc; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.sim_loc IS 'similarity-based localization';
+
+
+--
+-- Name: COLUMN psprotcomp_v.sim_db; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.sim_db IS 'source database for similarity-based prediction';
+
+
+--
+-- Name: COLUMN psprotcomp_v.sim_target_ac; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.sim_target_ac IS 'similarity-based prediction target accession (in sim_db)';
+
+
+--
+-- Name: COLUMN psprotcomp_v.sim_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.sim_score IS 'similarity-based prediction score';
+
+
+--
+-- Name: COLUMN psprotcomp_v.nn_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.nn_psloc_id IS 'neural net localization prediction id';
+
+
+--
+-- Name: COLUMN psprotcomp_v.nn_loc; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.nn_loc IS 'neural net localization prediction';
+
+
+--
+-- Name: COLUMN psprotcomp_v.nn_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.nn_score IS 'neural net localization score';
+
+
+--
+-- Name: COLUMN psprotcomp_v.int_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.int_psloc_id IS 'localization based on best integral score';
+
+
+--
+-- Name: COLUMN psprotcomp_v.int_loc; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.int_loc IS 'component ''integral'' score';
+
+
+--
+-- Name: COLUMN psprotcomp_v.int_score; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_v.int_score IS 'best integral score';
+
+
+--
+-- Name: psprotcomp_reliable_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW psprotcomp_reliable_v AS
+    SELECT pc.pseq_id, pc.params_id, pc.sim_psloc_id AS psloc_id, pc.sim_loc AS loc, 'sequence similarity' AS method, pc.sim_target_ac AS details FROM psprotcomp_v pc WHERE (pc.sim_psloc_id <> 0) UNION ALL SELECT pc.pseq_id, pc.params_id, pc.nn_psloc_id AS psloc_id, pc.nn_loc AS loc, 'nn & integral agreement' AS method, NULL::unknown AS details FROM psprotcomp_v pc WHERE ((pc.sim_psloc_id = 0) AND (pc.int_psloc_id = pc.nn_psloc_id));
+
+
+ALTER TABLE unison.psprotcomp_reliable_v OWNER TO unison;
+
+--
+-- Name: VIEW psprotcomp_reliable_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW psprotcomp_reliable_v IS 'reliable protcomp predictions';
+
+
+--
+-- Name: COLUMN psprotcomp_reliable_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_reliable_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN psprotcomp_reliable_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN psprotcomp_reliable_v.params_id IS 'parameter set identifier -- see params(params_id)';
 
 
 --
@@ -4494,133 +9821,111 @@ COMMENT ON COLUMN pmap_hsp.params_id IS 'parameter set identifier -- see params(
 
 
 --
--- Name: params_id(text); Type: FUNCTION; Schema: unison; Owner: unison
+-- Name: current_annotations_sorted_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE FUNCTION params_id(text) RETURNS integer
-    AS $_$DECLARE V_id integer; BEGIN select into V_id params_id from params where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'params ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
+CREATE VIEW current_annotations_sorted_v AS
+    SELECT current_annotations_unsorted_v.pseq_id, current_annotations_unsorted_v.origin_id, current_annotations_unsorted_v.origin, current_annotations_unsorted_v.ann_pref, current_annotations_unsorted_v.pannotation_id, current_annotations_unsorted_v.tax_id, current_annotations_unsorted_v.k, current_annotations_unsorted_v.gs, current_annotations_unsorted_v.latin, current_annotations_unsorted_v.common, current_annotations_unsorted_v.alias, current_annotations_unsorted_v.descr, current_annotations_unsorted_v.added, current_annotations_unsorted_v.link_url FROM current_annotations_v current_annotations_unsorted_v ORDER BY current_annotations_unsorted_v.pseq_id, current_annotations_unsorted_v.ann_pref, (strpos(current_annotations_unsorted_v.alias, '_'::text) = 0), current_annotations_unsorted_v.alias;
 
 
-ALTER FUNCTION unison.params_id(text) OWNER TO unison;
-
---
--- Name: pmodelset_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmodelset_id(text) RETURNS integer
-    AS $_$DECLARE V_id integer; BEGIN select into V_id pmodelset_id from pmodelset where upper(name)=upper($1); IF NOT FOUND THEN RAISE WARNING 'pmodelset ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pmodelset_id(text) OWNER TO unison;
+ALTER TABLE unison.current_annotations_sorted_v OWNER TO unison;
 
 --
--- Name: current_annotations_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-CREATE VIEW current_annotations_v AS
-    SELECT current_annotations_unsorted_v.pseq_id, current_annotations_unsorted_v.origin_id, current_annotations_unsorted_v.origin, current_annotations_unsorted_v.ann_pref, current_annotations_unsorted_v.palias_id, current_annotations_unsorted_v.tax_id, current_annotations_unsorted_v.k, current_annotations_unsorted_v.gs, current_annotations_unsorted_v.latin, current_annotations_unsorted_v.common, current_annotations_unsorted_v.alias, current_annotations_unsorted_v.descr, current_annotations_unsorted_v.added, current_annotations_unsorted_v.link_url FROM current_annotations_unsorted_v ORDER BY current_annotations_unsorted_v.pseq_id, current_annotations_unsorted_v.ann_pref, (strpos(current_annotations_unsorted_v.alias, '_'::text) = 0), current_annotations_unsorted_v.alias;
-
-
-ALTER TABLE unison.current_annotations_v OWNER TO unison;
-
---
--- Name: COLUMN current_annotations_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+COMMENT ON COLUMN current_annotations_sorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
 
 
 --
--- Name: COLUMN current_annotations_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_v.origin_id IS 'origin identifier -- see origin(origin_id)';
-
-
---
--- Name: COLUMN current_annotations_v.origin; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_v.origin IS 'origin of sequence -- see origin(origin_id)';
+COMMENT ON COLUMN current_annotations_sorted_v.origin_id IS 'origin identifier -- see origin(origin_id)';
 
 
 --
--- Name: COLUMN current_annotations_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.origin; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_v.ann_pref IS 'annotation preference for the origin of this alias';
-
-
---
--- Name: COLUMN current_annotations_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN current_annotations_sorted_v.origin IS 'origin of sequence -- see origin(origin_id)';
 
 
 --
--- Name: COLUMN current_annotations_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_v.tax_id IS 'NCBI taxonomy identifier';
-
-
---
--- Name: COLUMN current_annotations_v.k; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_v.k IS 'Swiss-Prot kingdom code (A=archea; B=bacteria; E=eukaryota; V=viruses)';
+COMMENT ON COLUMN current_annotations_sorted_v.ann_pref IS 'annotation preference for the origin of this alias';
 
 
 --
--- Name: COLUMN current_annotations_v.gs; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
-
-
---
--- Name: COLUMN current_annotations_v.latin; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_v.latin IS 'Latin genus and species';
+COMMENT ON COLUMN current_annotations_sorted_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
--- Name: COLUMN current_annotations_v.common; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_v.common IS 'common taxonomic name';
-
-
---
--- Name: COLUMN current_annotations_v.alias; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_v.alias IS 'alias for the sequence';
+COMMENT ON COLUMN current_annotations_sorted_v.tax_id IS 'NCBI taxonomy identifier';
 
 
 --
--- Name: COLUMN current_annotations_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.k; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_v.descr IS 'sequence description';
-
-
---
--- Name: COLUMN current_annotations_v.added; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN current_annotations_v.added IS 'date that this sequence was assigned this alias';
+COMMENT ON COLUMN current_annotations_sorted_v.k IS 'Swiss-Prot kingdom code (A=archea; B=bacteria; E=eukaryota; V=viruses)';
 
 
 --
--- Name: COLUMN current_annotations_v.link_url; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN current_annotations_sorted_v.gs; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN current_annotations_v.link_url IS 'URL to source data';
+COMMENT ON COLUMN current_annotations_sorted_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
+
+
+--
+-- Name: COLUMN current_annotations_sorted_v.latin; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_sorted_v.latin IS 'Latin genus and species';
+
+
+--
+-- Name: COLUMN current_annotations_sorted_v.common; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_sorted_v.common IS 'common taxonomic name';
+
+
+--
+-- Name: COLUMN current_annotations_sorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_sorted_v.alias IS 'alias for the sequence';
+
+
+--
+-- Name: COLUMN current_annotations_sorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_sorted_v.descr IS 'sequence description';
+
+
+--
+-- Name: COLUMN current_annotations_sorted_v.added; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_sorted_v.added IS 'date that this sequence was assigned this alias';
+
+
+--
+-- Name: COLUMN current_annotations_sorted_v.link_url; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN current_annotations_sorted_v.link_url IS 'URL to source data';
 
 
 SET search_path = ncbi, pg_catalog;
@@ -4781,6 +10086,26 @@ COMMENT ON TABLE mim2gene IS 'NCBI Entrez Gene <-> MIM mapping';
 
 
 SET search_path = pdb, pg_catalog;
+
+--
+-- Name: descriptor_origin_descriptor_origin_id_seq; Type: SEQUENCE; Schema: pdb; Owner: unison
+--
+
+CREATE SEQUENCE descriptor_origin_descriptor_origin_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    MINVALUE 0
+    CACHE 1;
+
+
+ALTER TABLE pdb.descriptor_origin_descriptor_origin_id_seq OWNER TO unison;
+
+--
+-- Name: descriptor_origin_descriptor_origin_id_seq; Type: SEQUENCE OWNED BY; Schema: pdb; Owner: unison
+--
+
+ALTER SEQUENCE descriptor_origin_descriptor_origin_id_seq OWNED BY descriptor_origin.descriptor_origin_id;
+
 
 --
 -- Name: ligand; Type: TABLE; Schema: pdb; Owner: unison; Tablespace: 
@@ -5098,17 +10423,10 @@ COMMENT ON VIEW database_sizes IS 'all databases and sizes [in SI MB (10^6 bytes
 --
 
 CREATE VIEW dependencies AS
-    SELECT DISTINCT pc.relkind AS r_relkind, pn.nspname AS p_nspname, pc.relname AS p_relname, cc.relkind AS c_relkind, cn.nspname AS c_namespace, cc.relname AS c_relname FROM ((((pg_depend d JOIN pg_class cc ON ((d.objid = cc.oid))) JOIN pg_class pc ON ((d.refobjid = pc.oid))) JOIN pg_namespace cn ON ((cc.relnamespace = cn.oid))) JOIN pg_namespace pn ON ((pc.relnamespace = pn.oid))) WHERE ((pc.relkind = ANY (ARRAY['i'::"char", 'r'::"char"])) AND (cc.relkind = ANY (ARRAY['i'::"char", 'r'::"char"]))) ORDER BY pn.nspname, pc.relname, pc.relkind, cn.nspname, cc.relname, cc.relkind;
+    SELECT DISTINCT pn.nspname AS parent_nspname, pc.relname AS parent_relname, pc.relkind AS parent_relkind, cn.nspname AS child_nspname, cc.relname AS child_relname, cc.relkind AS child_relkind FROM ((((pg_depend d JOIN pg_class cc ON ((d.objid = cc.oid))) JOIN pg_class pc ON ((d.refobjid = pc.oid))) JOIN pg_namespace cn ON ((cc.relnamespace = cn.oid))) JOIN pg_namespace pn ON ((pc.relnamespace = pn.oid))) WHERE ((pc.relkind = ANY (ARRAY['i'::"char", 'r'::"char"])) AND (cc.relkind = ANY (ARRAY['i'::"char", 'r'::"char"]))) ORDER BY pn.nspname, pc.relname, pc.relkind, cn.nspname, cc.relname, cc.relkind;
 
 
 ALTER TABLE pgutils.dependencies OWNER TO rkh;
-
---
--- Name: VIEW dependencies; Type: COMMENT; Schema: pgutils; Owner: rkh
---
-
-COMMENT ON VIEW dependencies IS 'all table, index dependencies (no views, yet)';
-
 
 --
 -- Name: foreign_keys; Type: VIEW; Schema: pgutils; Owner: rkh
@@ -5292,6 +10610,33 @@ CREATE TABLE readme (
 ALTER TABLE pgutils.readme OWNER TO rkh;
 
 --
+-- Name: role_members_v; Type: VIEW; Schema: pgutils; Owner: postgres
+--
+
+CREATE VIEW role_members_v AS
+    SELECT a1.rolname AS role, a1.rolinherit AS inherit, a1.rolcanlogin AS login, a2.rolname AS member FROM ((pg_auth_members am JOIN pg_authid a1 ON ((am.roleid = a1.oid))) JOIN pg_authid a2 ON ((am.member = a2.oid)));
+
+
+ALTER TABLE pgutils.role_members_v OWNER TO postgres;
+
+--
+-- Name: VIEW role_members_v; Type: COMMENT; Schema: pgutils; Owner: postgres
+--
+
+COMMENT ON VIEW role_members_v IS 'roles and members, 1 row per pair';
+
+
+--
+-- Name: role_membership_v; Type: VIEW; Schema: pgutils; Owner: postgres
+--
+
+CREATE VIEW role_membership_v AS
+    SELECT x.role, x.inherit, x.login, count(x.member) AS count, as_set(x.member) AS as_set FROM (SELECT role_members_v.role, role_members_v.inherit, role_members_v.login, role_members_v.member FROM role_members_v ORDER BY role_members_v.member) x GROUP BY x.role, x.inherit, x.login;
+
+
+ALTER TABLE pgutils.role_membership_v OWNER TO postgres;
+
+--
 -- Name: schema_not_owned_by_user; Type: VIEW; Schema: pgutils; Owner: rkh
 --
 
@@ -5313,7 +10658,7 @@ COMMENT ON VIEW schema_not_owned_by_user IS 'schemas with the same name as a use
 --
 
 CREATE VIEW table_sizes AS
-    SELECT round(((pg_relation_size((((s.nspname)::text || '.'::text) || (c.relname)::text)))::numeric / 1000000.0), 2) AS size_mb, s.nspowner, so.usename AS nspowner_name, s.nspname, c.relowner, co.usename AS relowner_name, c.relname FROM (((pg_namespace s JOIN pg_class c ON ((s.oid = c.relnamespace))) JOIN pg_user so ON ((s.nspowner = so.usesysid))) JOIN pg_user co ON ((c.relowner = co.usesysid))) WHERE (c.relkind = 'r'::"char") ORDER BY s.nspname, c.relkind, c.relname;
+    SELECT round(((pg_total_relation_size(c.oid))::numeric / 1000000.0), 2) AS tot_size_mb, round(((pg_relation_size(c.oid))::numeric / 1000000.0), 2) AS rel_size_mb, s.nspowner, so.usename AS nspowner_name, s.nspname, c.relowner, co.usename AS relowner_name, c.relname FROM (((pg_namespace s JOIN pg_class c ON ((s.oid = c.relnamespace))) JOIN pg_user so ON ((s.nspowner = so.usesysid))) JOIN pg_user co ON ((c.relowner = co.usesysid))) WHERE (c.relkind = 'r'::"char") ORDER BY round(((pg_total_relation_size(c.oid))::numeric / 1000000.0), 2), s.nspname, c.relkind, c.relname;
 
 
 ALTER TABLE pgutils.table_sizes OWNER TO rkh;
@@ -5330,7 +10675,7 @@ COMMENT ON VIEW table_sizes IS 'all tables and sizes [in SI MB (10^6 bytes)]';
 --
 
 CREATE VIEW schema_sizes AS
-    SELECT table_sizes.nspname, table_sizes.nspowner_name, sum(table_sizes.size_mb) AS size_mb FROM table_sizes GROUP BY table_sizes.nspname, table_sizes.nspowner_name ORDER BY table_sizes.nspname;
+    SELECT table_sizes.nspname, table_sizes.nspowner_name, sum(table_sizes.tot_size_mb) AS tot_size_mb, sum(table_sizes.rel_size_mb) AS rel_size_mb FROM table_sizes GROUP BY table_sizes.nspname, table_sizes.nspowner_name ORDER BY table_sizes.nspname;
 
 
 ALTER TABLE pgutils.schema_sizes OWNER TO rkh;
@@ -5393,157 +10738,6 @@ ALTER TABLE pgutils.table_perms OWNER TO rkh;
 COMMENT ON VIEW table_perms IS 'all table permissions; primarily useful for consistency checks';
 
 
-SET search_path = tax, pg_catalog;
-
---
--- Name: gs2tax_id(text); Type: FUNCTION; Schema: tax; Owner: unison
---
-
-CREATE FUNCTION gs2tax_id(text) RETURNS integer
-    AS $_$select tax_id from tax.spspec where upper(gs)=upper($1)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION tax.gs2tax_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION gs2tax_id(text); Type: COMMENT; Schema: tax; Owner: unison
---
-
-COMMENT ON FUNCTION gs2tax_id(text) IS 'convert gs (genus species) to NCBI tax_id';
-
-
-SET search_path = unison, pg_catalog;
-
---
--- Name: best_alias(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION best_alias(integer) RETURNS text
-    AS $_$select origin_alias_fmt(origin,alias) from best_annotation_mv where pseq_id=$1;$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.best_alias(integer) OWNER TO unison;
-
---
--- Name: FUNCTION best_alias(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION best_alias(integer) IS '"best" alias for given pseq_id. NOTE: from materialized view, which may be stale.';
-
-
---
--- Name: best_annotation(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION best_annotation(integer) RETURNS text
-    AS $_$select origin_alias_descr_fmt(origin,alias,descr) from best_annotation_mv where pseq_id=$1 ORDER BY tax_id <> 9606$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.best_annotation(integer) OWNER TO unison;
-
---
--- Name: FUNCTION best_annotation(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION best_annotation(integer) IS '"best" annotation for given pseq_id. NOTE: from materialized view, which may be stale.';
-
-
---
--- Name: domain_digests(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION domain_digests(integer) RETURNS text
-    AS $_$ select as_set(digest) as domain_digests from (select * from pseq_features_v where pseq_id=$1 order by start,stop) X $_$
-    LANGUAGE sql STRICT;
-
-
-ALTER FUNCTION unison.domain_digests(integer) OWNER TO unison;
-
---
--- Name: FUNCTION domain_digests(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION domain_digests(integer) IS 'domain digests in N-to-C terminus order';
-
-
---
--- Name: genasm_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION genasm_id(text) RETURNS integer
-    AS $_$
-DECLARE V_id integer; 
-BEGIN 
-	select into V_id genasm_id from genasm where upper(name)=upper($1); 
-	IF NOT FOUND THEN 
-		RAISE WARNING 'genasm % not found', $1; 
-		RETURN NULL; 
-	END IF; 
-	return V_id; 
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.genasm_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION genasm_id(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION genasm_id(text) IS 'returns genasm_id for a given genasm name';
-
-
---
--- Name: origin_alias_fmt(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION origin_alias_fmt(text, text) RETURNS text
-    AS $_$select $1 || ':' || $2;$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.origin_alias_fmt(text, text) OWNER TO unison;
-
---
--- Name: FUNCTION origin_alias_fmt(text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION origin_alias_fmt(text, text) IS 'canonical format for origin and alias, like this: <origin>:<alias>';
-
-
---
--- Name: pseq_locus_human(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_locus_human(integer) RETURNS text
-    AS $_$select * from pseq_locus($1,3,48)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pseq_locus_human(integer) OWNER TO unison;
-
---
--- Name: representative_pseq_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) RETURNS integer
-    AS $_$select representative_pseq_id($1,3,48)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) OWNER TO unison;
-
---
--- Name: FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) IS 'return "best" representative pseq_id for given pseq_id using current human genasm_id and params_id';
-
-
 SET search_path = sst, pg_catalog;
 
 --
@@ -5580,7 +10774,7 @@ SET search_path = unison, pg_catalog;
 --
 
 CREATE VIEW palias_v AS
-    SELECT sa.pseq_id, ao.palias_id, ao.tax_id, tax.tax_id2gs(ao.tax_id) AS tax_id2gs, ao.origin_id, o.origin, ao.alias, ao.descr, sa.added FROM paliasorigin ao, pseqalias sa, origin o WHERE (((sa.palias_id = ao.palias_id) AND (ao.origin_id = o.origin_id)) AND (sa.is_current = true)) ORDER BY o.ann_pref;
+    SELECT sa.pseq_id, ao.pannotation_id, ao.tax_id, tax.tax_id2gs(ao.tax_id) AS tax_id2gs, ao.origin_id, o.origin, ao.alias, ao.descr, sa.added FROM pannotation ao, pseq_pannotation sa, origin o WHERE (((sa.pannotation_id = ao.pannotation_id) AND (ao.origin_id = o.origin_id)) AND (sa.is_current = true)) ORDER BY o.ann_pref;
 
 
 ALTER TABLE unison.palias_v OWNER TO unison;
@@ -5593,10 +10787,10 @@ COMMENT ON COLUMN palias_v.pseq_id IS 'unique protein sequence identifier -- see
 
 
 --
--- Name: COLUMN palias_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN palias_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN palias_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN palias_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -5837,7 +11031,8 @@ CREATE TABLE pseq_gene_mv (
     alias text,
     descr text,
     tax_id integer,
-    gene_id integer
+    gene_id integer,
+    symbol text
 );
 
 
@@ -5893,7 +11088,7 @@ CREATE TABLE best_annotation_mv (
     origin_id integer,
     origin text,
     ann_pref integer,
-    palias_id integer,
+    pannotation_id integer,
     tax_id integer,
     k character(1),
     gs text,
@@ -5944,10 +11139,10 @@ COMMENT ON COLUMN best_annotation_mv.ann_pref IS 'annotation preference for the 
 
 
 --
--- Name: COLUMN best_annotation_mv.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN best_annotation_mv.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN best_annotation_mv.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN best_annotation_mv.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -6007,24 +11202,6 @@ COMMENT ON COLUMN best_annotation_mv.link_url IS 'URL to source data';
 
 
 --
--- Name: pseq_locus(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_locus(integer, integer, integer) RETURNS text
-    AS $_$select locus_fmt(chr,strand,gstart,gstop) from pmap_unambiguous_mv where pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pseq_locus(integer, integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION pseq_locus(integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pseq_locus(integer, integer, integer) IS 'unambiguous genomic location of pseq_id on given genome with given params; NULL if alignment is ambiguous or not available';
-
-
---
 -- Name: pmap_locus_representative_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -6039,7 +11216,7 @@ CREATE TABLE pmap_locus_representative_mv (
     t_pseq_id integer,
     t_gstart integer,
     t_gstop integer,
-    palias_id integer,
+    pannotation_id integer,
     origin_id integer,
     origin text,
     alias text,
@@ -6099,7 +11276,7 @@ CREATE TABLE pmap_gg_representative_mv (
     t_pseq_id integer,
     t_gstart integer,
     t_gstop integer,
-    palias_id integer,
+    pannotation_id integer,
     origin_id integer,
     origin text,
     alias text,
@@ -6114,83 +11291,100 @@ CREATE TABLE pmap_gg_representative_mv (
 ALTER TABLE unison.pmap_gg_representative_mv OWNER TO unison;
 
 --
--- Name: all_annotations_unsorted_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: all_annotations_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE VIEW all_annotations_unsorted_v AS
-    SELECT sa.pseq_id, sa.is_current, o.ann_pref, ao.origin_id, o.origin, ao.tax_id, t.gs, ao.alias, ao.descr, ao.palias_id, sa.added AS assigned FROM (((paliasorigin ao JOIN pseqalias sa ON ((ao.palias_id = sa.palias_id))) JOIN origin o ON ((o.origin_id = ao.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id)));
+CREATE VIEW all_annotations_v AS
+    SELECT sa.pseq_id, sa.is_current, o.ann_pref, ao.origin_id, o.origin, ao.tax_id, t.gs, ao.alias, ao.descr, ao.pannotation_id, sa.added AS assigned FROM (((pannotation ao JOIN pseq_pannotation sa ON ((ao.pannotation_id = sa.pannotation_id))) JOIN origin o ON ((o.origin_id = ao.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id)));
 
 
-ALTER TABLE unison.all_annotations_unsorted_v OWNER TO unison;
-
---
--- Name: COLUMN all_annotations_unsorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN all_annotations_unsorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
+ALTER TABLE unison.all_annotations_v OWNER TO unison;
 
 --
--- Name: COLUMN all_annotations_unsorted_v.is_current; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_unsorted_v.is_current IS 'true if this annotation is current for the sequence; an alias may refer to only one sequence at any time';
+COMMENT ON COLUMN all_annotations_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
 
 
 --
--- Name: COLUMN all_annotations_unsorted_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_v.is_current; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_unsorted_v.ann_pref IS 'annotation preference for the origin of this alias';
-
-
---
--- Name: COLUMN all_annotations_unsorted_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN all_annotations_unsorted_v.origin_id IS 'origin identifier -- see origin(origin_id)';
+COMMENT ON COLUMN all_annotations_v.is_current IS 'true if this annotation is current for the sequence; an alias may refer to only one sequence at any time';
 
 
 --
--- Name: COLUMN all_annotations_unsorted_v.origin; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_unsorted_v.origin IS 'origin of sequence -- see origin(origin_id)';
-
-
---
--- Name: COLUMN all_annotations_unsorted_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN all_annotations_unsorted_v.tax_id IS 'NCBI taxonomy identifier';
+COMMENT ON COLUMN all_annotations_v.ann_pref IS 'annotation preference for the origin of this alias';
 
 
 --
--- Name: COLUMN all_annotations_unsorted_v.gs; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_unsorted_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
-
-
---
--- Name: COLUMN all_annotations_unsorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN all_annotations_unsorted_v.alias IS 'alias for the sequence';
+COMMENT ON COLUMN all_annotations_v.origin_id IS 'origin identifier -- see origin(origin_id)';
 
 
 --
--- Name: COLUMN all_annotations_unsorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_v.origin; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_unsorted_v.descr IS 'sequence description';
+COMMENT ON COLUMN all_annotations_v.origin IS 'origin of sequence -- see origin(origin_id)';
 
 
 --
--- Name: COLUMN all_annotations_unsorted_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_unsorted_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN all_annotations_v.tax_id IS 'NCBI taxonomy identifier';
+
+
+--
+-- Name: COLUMN all_annotations_v.gs; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
+
+
+--
+-- Name: COLUMN all_annotations_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_v.alias IS 'alias for the sequence';
+
+
+--
+-- Name: COLUMN all_annotations_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_v.descr IS 'sequence description';
+
+
+--
+-- Name: COLUMN all_annotations_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+
+
+--
+-- Name: pahmm_current_pfam_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pahmm_current_pfam_v AS
+    SELECT a.pseq_id, a.params_id, p.name AS params, a.start, a.stop, a.score, a.eval, a.mstart, a.mstop, m.origin_id, o.origin, a.pmodel_id, m.name, m.acc, m.descr FROM (((((pahmm a JOIN pmhmm m ON ((a.pmodel_id = m.pmodel_id))) JOIN pmsm_pmhmm ms ON ((ms.pmodel_id = m.pmodel_id))) JOIN origin o ON ((m.origin_id = o.origin_id))) JOIN params p ON ((a.params_id = p.params_id))) JOIN run r ON (((r.params_id = a.params_id) AND (r.pmodelset_id = ms.pmodelset_id)))) WHERE (r.run_id = preferred_run_id_by_pftype('HMM'::text));
+
+
+ALTER TABLE unison.pahmm_current_pfam_v OWNER TO unison;
+
+--
+-- Name: VIEW pahmm_current_pfam_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW pahmm_current_pfam_v IS 'current pfam results';
 
 
 --
@@ -6208,65 +11402,6 @@ ALTER TABLE unison.pfregexp_v OWNER TO unison;
 --
 
 COMMENT ON VIEW pfregexp_v IS 'regexp features with model origin_id, acc, name, and descr';
-
-
---
--- Name: pftmhmm_tms_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW pftmhmm_tms_v AS
-    SELECT pftmhmm.pfeature_id, pftmhmm.pseq_id, pftmhmm.pftype_id, pftmhmm.start, pftmhmm.stop, pftmhmm.params_id, pftmhmm.type FROM pftmhmm WHERE ((pftmhmm.type = 'M'::bpchar) OR (pftmhmm.type = 'N'::bpchar));
-
-
-ALTER TABLE unison.pftmhmm_tms_v OWNER TO unison;
-
---
--- Name: VIEW pftmhmm_tms_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW pftmhmm_tms_v IS 'TM regions from pftmhmm';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.pfeature_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.pfeature_id IS 'unique identifier for this protein feature';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.pftype_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.pftype_id IS 'protein feature type identifier -- see pftype(pftype_id)';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.start; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.start IS 'start of prediction in protein sequence';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.stop; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.stop IS 'stop of prediction in protein sequence';
-
-
---
--- Name: COLUMN pftmhmm_tms_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tms_v.params_id IS 'parameter set identifier -- see params(params_id)';
 
 
 --
@@ -6378,69 +11513,6 @@ COMMENT ON COLUMN papseq_pdbcs_v.pct_coverage IS 'percent coverage';
 
 
 --
--- Name: domain_digest(integer, integer, text, integer, double precision); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) RETURNS text
-    AS $$
-BEGIN
-	select into digest domain_digest(pstart,pstop,name,score||';'||eval);
-END;
-$$
-    LANGUAGE plpgsql IMMUTABLE;
-
-
-ALTER FUNCTION unison.domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) OWNER TO unison;
-
---
--- Name: FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) IS 'formatted domain summary, like start-stop:domain(score,eval)';
-
-
---
--- Name: link_url(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION link_url(integer, text) RETURNS text
-    AS $_$
-DECLARE
-	row record;
-	_o alias for $1;
-	_a text = $2;
-BEGIN
-	SELECT INTO row origin,link_url FROM origin WHERE origin_id=_o;
-	IF NOT FOUND THEN
-		RAISE EXCEPTION 'origin_id=% does not exist', _o;
-	END IF;
-	IF row.link_url IS NULL THEN
-		RAISE DEBUG 'link_url for origin_id=% is null', _o;
-	END IF;
-
-	IF row.origin ~ '^Pfam' THEN
-		-- Pfam links against only the unversioned accession
-		_a = split_part(_a,'.',1);
-	END IF;
-
-	-- %a -- alias
-	-- %s -- alias, deprecated
-	return replace(replace(row.link_url,'%a',_a),'%s',_a);
-END;
-$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.link_url(integer, text) OWNER TO unison;
-
---
--- Name: FUNCTION link_url(integer, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION link_url(integer, text) IS 'create URL to the origin_id $1 for alias/query $2';
-
-
---
 -- Name: pseq_features_hmm_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -6547,97 +11619,6 @@ COMMENT ON COLUMN pseq_features_hmm_v.details IS 'prediction details';
 
 COMMENT ON COLUMN pseq_features_hmm_v.link_url IS 'URL to source data';
 
-
---
--- Name: run_history; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE TABLE run_history (
-    pseq_id integer NOT NULL,
-    ran_on timestamp with time zone DEFAULT timenow(),
-    failed boolean DEFAULT false NOT NULL,
-    run_id integer NOT NULL
-);
-
-
-ALTER TABLE unison.run_history OWNER TO unison;
-
---
--- Name: TABLE run_history; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON TABLE run_history IS 'if/when a query sequence (pseq_id) was run with params_id against targets, perhaps specified by origin_id and/or pmodelset_id';
-
-
---
--- Name: COLUMN run_history.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN run_history.pseq_id IS 'pseq_id of query sequence';
-
-
---
--- Name: COLUMN run_history.ran_on; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN run_history.ran_on IS 'when this sequence was run with this params against the specified targets';
-
-
---
--- Name: COLUMN run_history.failed; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN run_history.failed IS 'True if a program systematically fails with this sequence and parameters. This is useful to prevent repeatedly running problematic <sequence,program,parameter> combinations.';
-
-
---
--- Name: COLUMN run_history.run_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN run_history.run_id IS 'identifier for this run (params and modelset), see run(run_id)';
-
-
---
--- Name: pftmhmm_tm_count_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW pftmhmm_tm_count_v AS
-    SELECT rh.pseq_id, r.params_id, (SELECT count(*) AS count FROM pftmhmm WHERE (((pftmhmm.params_id = r.params_id) AND ((pftmhmm.type = 'M'::bpchar) OR (pftmhmm.type = 'N'::bpchar))) AND (pftmhmm.pseq_id = rh.pseq_id))) AS count FROM (run_history rh JOIN run r ON ((r.run_id = rh.run_id))) WHERE (rh.run_id = preferred_run_id_by_pftype('tmhmm'::text));
-
-
-ALTER TABLE unison.pftmhmm_tm_count_v OWNER TO unison;
-
---
--- Name: VIEW pftmhmm_tm_count_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW pftmhmm_tm_count_v IS 'number of TMHMM-predicted transmembrane domains for each sequence';
-
-
---
--- Name: COLUMN pftmhmm_tm_count_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tm_count_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN pftmhmm_tm_count_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN pftmhmm_tm_count_v.params_id IS 'parameter set identifier -- see params(params_id)';
-
-
---
--- Name: seq_len(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION seq_len(q integer, OUT len integer) RETURNS integer
-    AS $_$select len from unison.pseq where pseq_id=$1$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.seq_len(q integer, OUT len integer) OWNER TO unison;
 
 --
 -- Name: psdisorder; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
@@ -6854,11 +11835,31 @@ ALTER TABLE taxonomy.node OWNER TO unison;
 SET search_path = unison, pg_catalog;
 
 --
+-- Name: pseq_features_pfam_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pseq_features_pfam_v AS
+    SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f.start, f.stop, f.score, f.eval, m.origin_id, o.origin, f.pmodel_id, m.name AS feature, m.acc, m.descr, NULL::text AS details, domain_digest(f.start, f.stop, m.name, f.score, f.eval) AS digest, link_url(m.origin_id, m.acc) AS link_url FROM ((((((pahmm f JOIN pmhmm m ON ((f.pmodel_id = m.pmodel_id))) JOIN pmsm_pmhmm ms ON ((ms.pmodel_id = m.pmodel_id))) JOIN origin o ON ((m.origin_id = o.origin_id))) JOIN params p ON ((f.params_id = p.params_id))) JOIN pftype ft ON ((p.pftype_id = ft.pftype_id))) JOIN run r ON (((r.params_id = f.params_id) AND (r.pmodelset_id = ms.pmodelset_id)))) WHERE ((r.run_id = preferred_run_id_by_pftype('HMM'::text)) AND (f.eval < (1)::double precision));
+
+
+ALTER TABLE unison.pseq_features_pfam_v OWNER TO unison;
+
+--
+-- Name: __jinfeng_query; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW __jinfeng_query AS
+    SELECT DISTINCT a.alias, m.acc FROM (pseq_features_pfam_v m JOIN current_annotations_v a ON ((m.pseq_id = a.pseq_id))) WHERE (((a.origin_id = origin_id('RefSeq unversioned'::text)) AND (m.eval < (0.1)::double precision)) AND (a.tax_id = 9606)) ORDER BY a.alias, m.acc;
+
+
+ALTER TABLE unison.__jinfeng_query OWNER TO unison;
+
+--
 -- Name: _deprecated_pseq_gene_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW _deprecated_pseq_gene_v AS
-    SELECT DISTINCT sa.pseq_id, ao.tax_id, ga.gene_id, gr.pubmed_ids, gr.generif FROM (((pseqalias sa JOIN paliasorigin ao ON (((sa.palias_id = ao.palias_id) AND (ao.origin_id = origin_id('RefSeq'::text))))) JOIN ncbi.gene2accession ga ON (((ao.alias = ga.pro_acc) AND (ao.tax_id = ga.tax_id)))) LEFT JOIN ncbi.generif gr ON (((ga.gene_id = gr.gene_id) AND (ao.tax_id = gr.tax_id)))) ORDER BY sa.pseq_id, ao.tax_id, ga.gene_id, gr.generif, gr.pubmed_ids;
+    SELECT DISTINCT sa.pseq_id, ao.tax_id, ga.gene_id, gr.pubmed_ids, gr.generif FROM (((pseq_pannotation sa JOIN pannotation ao ON (((sa.pannotation_id = ao.pannotation_id) AND (ao.origin_id = origin_id('RefSeq'::text))))) JOIN ncbi.gene2accession ga ON (((ao.alias = ga.pro_acc) AND (ao.tax_id = ga.tax_id)))) LEFT JOIN ncbi.generif gr ON (((ga.gene_id = gr.gene_id) AND (ao.tax_id = gr.tax_id)))) ORDER BY sa.pseq_id, ao.tax_id, ga.gene_id, gr.generif, gr.pubmed_ids;
 
 
 ALTER TABLE unison._deprecated_pseq_gene_v OWNER TO unison;
@@ -6868,7 +11869,7 @@ ALTER TABLE unison._deprecated_pseq_gene_v OWNER TO unison;
 --
 
 CREATE VIEW _infer_tax_id_ensembl_v AS
-    SELECT paliasorigin.origin_id, paliasorigin.palias_id, paliasorigin.tax_id, CASE WHEN (paliasorigin.origin_id = origin_id('Ensembl/Chimp'::text)) THEN tax.gs2tax_id('PANTR'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Cow'::text)) THEN tax.gs2tax_id('BOVIN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Fly'::text)) THEN tax.gs2tax_id('DROME'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Human'::text)) THEN tax.gs2tax_id('HUMAN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Mouse'::text)) THEN tax.gs2tax_id('MOUSE'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Rat'::text)) THEN tax.gs2tax_id('RAT'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish'::text)) THEN tax.gs2tax_id('BRARE'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Chimp (ab initio)'::text)) THEN tax.gs2tax_id('PANTR'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Cow (ab initio)'::text)) THEN tax.gs2tax_id('BOVIN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Fly (ab initio)'::text)) THEN tax.gs2tax_id('DROME'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Human (ab initio)'::text)) THEN tax.gs2tax_id('HUMAN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Mouse (ab initio)'::text)) THEN tax.gs2tax_id('MOUSE'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Rat (ab initio)'::text)) THEN tax.gs2tax_id('RAT'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish (ab initio)'::text)) THEN tax.gs2tax_id('BRARE'::text) ELSE NULL::integer END AS inferred_tax_id FROM paliasorigin WHERE ((((((((((((((paliasorigin.origin_id = origin_id('Ensembl/Chimp'::text)) OR (paliasorigin.origin_id = origin_id('Ensembl/Cow'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Fly'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Human'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Mouse'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Rat'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Chimp (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Cow (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Fly (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Human (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Mouse (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Rat (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish (ab initio)'::text)));
+    SELECT paliasorigin.origin_id, paliasorigin.pannotation_id, paliasorigin.tax_id, CASE WHEN (paliasorigin.origin_id = origin_id('Ensembl/Chimp'::text)) THEN tax.gs2tax_id('PANTR'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Cow'::text)) THEN tax.gs2tax_id('BOVIN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Fly'::text)) THEN tax.gs2tax_id('DROME'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Human'::text)) THEN tax.gs2tax_id('HUMAN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Mouse'::text)) THEN tax.gs2tax_id('MOUSE'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Rat'::text)) THEN tax.gs2tax_id('RAT'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish'::text)) THEN tax.gs2tax_id('BRARE'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Chimp (ab initio)'::text)) THEN tax.gs2tax_id('PANTR'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Cow (ab initio)'::text)) THEN tax.gs2tax_id('BOVIN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Fly (ab initio)'::text)) THEN tax.gs2tax_id('DROME'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Human (ab initio)'::text)) THEN tax.gs2tax_id('HUMAN'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Mouse (ab initio)'::text)) THEN tax.gs2tax_id('MOUSE'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Rat (ab initio)'::text)) THEN tax.gs2tax_id('RAT'::text) WHEN (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish (ab initio)'::text)) THEN tax.gs2tax_id('BRARE'::text) ELSE NULL::integer END AS inferred_tax_id FROM pannotation paliasorigin WHERE ((((((((((((((paliasorigin.origin_id = origin_id('Ensembl/Chimp'::text)) OR (paliasorigin.origin_id = origin_id('Ensembl/Cow'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Fly'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Human'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Mouse'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Rat'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Chimp (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Cow (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Fly (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Human (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Mouse (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Rat (ab initio)'::text))) OR (paliasorigin.origin_id = origin_id('Ensembl/Zebrafish (ab initio)'::text)));
 
 
 ALTER TABLE unison._infer_tax_id_ensembl_v OWNER TO unison;
@@ -6881,10 +11882,10 @@ COMMENT ON COLUMN _infer_tax_id_ensembl_v.origin_id IS 'origin identifier -- see
 
 
 --
--- Name: COLUMN _infer_tax_id_ensembl_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN _infer_tax_id_ensembl_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN _infer_tax_id_ensembl_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN _infer_tax_id_ensembl_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -6899,7 +11900,7 @@ COMMENT ON COLUMN _infer_tax_id_ensembl_v.tax_id IS 'NCBI taxonomy identifier';
 --
 
 CREATE VIEW _infer_tax_id_genengenes_v AS
-    SELECT a.origin_id, a.palias_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (paliasorigin a JOIN tax.spspec t ON ((upper("substring"(a.descr, '/species=''([^\'']+)'''::text)) = t.gs))) WHERE (a.origin_id = origin_id('GenenGenes'::text));
+    SELECT a.origin_id, a.pannotation_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (pannotation a JOIN tax.spspec t ON ((upper("substring"(a.descr, '/species=''([^\'']+)'''::text)) = t.gs))) WHERE (a.origin_id = origin_id('GenenGenes'::text));
 
 
 ALTER TABLE unison._infer_tax_id_genengenes_v OWNER TO unison;
@@ -6912,10 +11913,10 @@ COMMENT ON COLUMN _infer_tax_id_genengenes_v.origin_id IS 'origin identifier -- 
 
 
 --
--- Name: COLUMN _infer_tax_id_genengenes_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN _infer_tax_id_genengenes_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN _infer_tax_id_genengenes_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN _infer_tax_id_genengenes_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -6930,7 +11931,7 @@ COMMENT ON COLUMN _infer_tax_id_genengenes_v.tax_id IS 'NCBI taxonomy identifier
 --
 
 CREATE VIEW _infer_tax_id_geneseq_v AS
-    SELECT a.origin_id, a.palias_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (paliasorigin a JOIN tax.spspec t ON (("substring"(a.descr, '\[OS: ([^\]]+)'::text) = t.latin))) WHERE (a.origin_id = origin_id('Geneseq'::text));
+    SELECT a.origin_id, a.pannotation_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (pannotation a JOIN tax.spspec t ON (("substring"(a.descr, '\[OS: ([^\]]+)'::text) = t.latin))) WHERE (a.origin_id = origin_id('Geneseq'::text));
 
 
 ALTER TABLE unison._infer_tax_id_geneseq_v OWNER TO unison;
@@ -6943,10 +11944,10 @@ COMMENT ON COLUMN _infer_tax_id_geneseq_v.origin_id IS 'origin identifier -- see
 
 
 --
--- Name: COLUMN _infer_tax_id_geneseq_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN _infer_tax_id_geneseq_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN _infer_tax_id_geneseq_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN _infer_tax_id_geneseq_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -6961,7 +11962,7 @@ COMMENT ON COLUMN _infer_tax_id_geneseq_v.tax_id IS 'NCBI taxonomy identifier';
 --
 
 CREATE VIEW _infer_tax_id_refseq_v AS
-    SELECT a.origin_id, a.palias_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (paliasorigin a LEFT JOIN tax.spspec t ON ((lower("substring"(a.descr, '\[([^\]]+)\].?$'::text)) = lower(t.latin)))) WHERE (((a.origin_id = origin_id('RefSeq'::text)) OR (a.origin_id = origin_id('RefSeq unversioned'::text))) OR (a.origin_id = origin_id('RefSeq gi'::text)));
+    SELECT a.origin_id, a.pannotation_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (pannotation a LEFT JOIN tax.spspec t ON ((lower("substring"(a.descr, '\[([^\]]+)\].?$'::text)) = lower(t.latin)))) WHERE (((a.origin_id = origin_id('RefSeq'::text)) OR (a.origin_id = origin_id('RefSeq unversioned'::text))) OR (a.origin_id = origin_id('RefSeq gi'::text)));
 
 
 ALTER TABLE unison._infer_tax_id_refseq_v OWNER TO unison;
@@ -6974,10 +11975,10 @@ COMMENT ON COLUMN _infer_tax_id_refseq_v.origin_id IS 'origin identifier -- see 
 
 
 --
--- Name: COLUMN _infer_tax_id_refseq_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN _infer_tax_id_refseq_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN _infer_tax_id_refseq_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN _infer_tax_id_refseq_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -6992,7 +11993,7 @@ COMMENT ON COLUMN _infer_tax_id_refseq_v.tax_id IS 'NCBI taxonomy identifier';
 --
 
 CREATE VIEW _infer_tax_id_uniprot_v AS
-    SELECT a.origin_id, a.palias_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (paliasorigin a JOIN tax.spspec t ON ((substr(a.alias, (strpos(a.alias, '_'::text) + 1)) = t.gs))) WHERE (((a.origin_id = origin_id('UniProtKB/Swiss-Prot'::text)) OR (a.origin_id = origin_id('UniProtKB/TrEMBL'::text))) AND (a.alias ~ '_'::text));
+    SELECT a.origin_id, a.pannotation_id, a.tax_id, t.tax_id AS inferred_tax_id FROM (pannotation a JOIN tax.spspec t ON ((substr(a.alias, (strpos(a.alias, '_'::text) + 1)) = t.gs))) WHERE (((a.origin_id = origin_id('UniProtKB/Swiss-Prot'::text)) OR (a.origin_id = origin_id('UniProtKB/TrEMBL'::text))) AND (a.alias ~ '_'::text));
 
 
 ALTER TABLE unison._infer_tax_id_uniprot_v OWNER TO unison;
@@ -7005,10 +12006,10 @@ COMMENT ON COLUMN _infer_tax_id_uniprot_v.origin_id IS 'origin identifier -- see
 
 
 --
--- Name: COLUMN _infer_tax_id_uniprot_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN _infer_tax_id_uniprot_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN _infer_tax_id_uniprot_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN _infer_tax_id_uniprot_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -7023,7 +12024,7 @@ COMMENT ON COLUMN _infer_tax_id_uniprot_v.tax_id IS 'NCBI taxonomy identifier';
 --
 
 CREATE VIEW _infer_tax_id_v AS
-    (((SELECT _v_infer_tax_id_ensembl.origin_id, _v_infer_tax_id_ensembl.palias_id, _v_infer_tax_id_ensembl.tax_id, _v_infer_tax_id_ensembl.inferred_tax_id FROM _infer_tax_id_ensembl_v _v_infer_tax_id_ensembl UNION ALL SELECT _v_infer_tax_id_genengenes.origin_id, _v_infer_tax_id_genengenes.palias_id, _v_infer_tax_id_genengenes.tax_id, _v_infer_tax_id_genengenes.inferred_tax_id FROM _infer_tax_id_genengenes_v _v_infer_tax_id_genengenes) UNION ALL SELECT _v_infer_tax_id_geneseq.origin_id, _v_infer_tax_id_geneseq.palias_id, _v_infer_tax_id_geneseq.tax_id, _v_infer_tax_id_geneseq.inferred_tax_id FROM _infer_tax_id_geneseq_v _v_infer_tax_id_geneseq) UNION ALL SELECT _v_infer_tax_id_refseq.origin_id, _v_infer_tax_id_refseq.palias_id, _v_infer_tax_id_refseq.tax_id, _v_infer_tax_id_refseq.inferred_tax_id FROM _infer_tax_id_refseq_v _v_infer_tax_id_refseq) UNION ALL SELECT _v_infer_tax_id_uniprot.origin_id, _v_infer_tax_id_uniprot.palias_id, _v_infer_tax_id_uniprot.tax_id, _v_infer_tax_id_uniprot.inferred_tax_id FROM _infer_tax_id_uniprot_v _v_infer_tax_id_uniprot;
+    (((SELECT _v_infer_tax_id_ensembl.origin_id, _v_infer_tax_id_ensembl.pannotation_id, _v_infer_tax_id_ensembl.tax_id, _v_infer_tax_id_ensembl.inferred_tax_id FROM _infer_tax_id_ensembl_v _v_infer_tax_id_ensembl UNION ALL SELECT _v_infer_tax_id_genengenes.origin_id, _v_infer_tax_id_genengenes.pannotation_id, _v_infer_tax_id_genengenes.tax_id, _v_infer_tax_id_genengenes.inferred_tax_id FROM _infer_tax_id_genengenes_v _v_infer_tax_id_genengenes) UNION ALL SELECT _v_infer_tax_id_geneseq.origin_id, _v_infer_tax_id_geneseq.pannotation_id, _v_infer_tax_id_geneseq.tax_id, _v_infer_tax_id_geneseq.inferred_tax_id FROM _infer_tax_id_geneseq_v _v_infer_tax_id_geneseq) UNION ALL SELECT _v_infer_tax_id_refseq.origin_id, _v_infer_tax_id_refseq.pannotation_id, _v_infer_tax_id_refseq.tax_id, _v_infer_tax_id_refseq.inferred_tax_id FROM _infer_tax_id_refseq_v _v_infer_tax_id_refseq) UNION ALL SELECT _v_infer_tax_id_uniprot.origin_id, _v_infer_tax_id_uniprot.pannotation_id, _v_infer_tax_id_uniprot.tax_id, _v_infer_tax_id_uniprot.inferred_tax_id FROM _infer_tax_id_uniprot_v _v_infer_tax_id_uniprot;
 
 
 ALTER TABLE unison._infer_tax_id_v OWNER TO unison;
@@ -7036,10 +12037,10 @@ COMMENT ON COLUMN _infer_tax_id_v.origin_id IS 'origin identifier -- see origin(
 
 
 --
--- Name: COLUMN _infer_tax_id_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN _infer_tax_id_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN _infer_tax_id_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN _infer_tax_id_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -7054,7 +12055,7 @@ COMMENT ON COLUMN _infer_tax_id_v.tax_id IS 'NCBI taxonomy identifier';
 --
 
 CREATE VIEW _infer_tax_id_changed_v AS
-    SELECT _v_infer_tax_id.origin_id, _v_infer_tax_id.palias_id, _v_infer_tax_id.tax_id, _v_infer_tax_id.inferred_tax_id FROM _infer_tax_id_v _v_infer_tax_id WHERE ((((_v_infer_tax_id.tax_id IS NULL) AND (_v_infer_tax_id.inferred_tax_id IS NOT NULL)) OR ((_v_infer_tax_id.tax_id IS NOT NULL) AND (_v_infer_tax_id.inferred_tax_id IS NULL))) OR (_v_infer_tax_id.tax_id <> _v_infer_tax_id.inferred_tax_id));
+    SELECT _v_infer_tax_id.origin_id, _v_infer_tax_id.pannotation_id, _v_infer_tax_id.tax_id, _v_infer_tax_id.inferred_tax_id FROM _infer_tax_id_v _v_infer_tax_id WHERE ((((_v_infer_tax_id.tax_id IS NULL) AND (_v_infer_tax_id.inferred_tax_id IS NOT NULL)) OR ((_v_infer_tax_id.tax_id IS NOT NULL) AND (_v_infer_tax_id.inferred_tax_id IS NULL))) OR (_v_infer_tax_id.tax_id <> _v_infer_tax_id.inferred_tax_id));
 
 
 ALTER TABLE unison._infer_tax_id_changed_v OWNER TO unison;
@@ -7067,10 +12068,10 @@ COMMENT ON COLUMN _infer_tax_id_changed_v.origin_id IS 'origin identifier -- see
 
 
 --
--- Name: COLUMN _infer_tax_id_changed_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN _infer_tax_id_changed_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN _infer_tax_id_changed_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN _infer_tax_id_changed_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -7119,7 +12120,7 @@ COMMENT ON VIEW _pmsm_pmhmm_expand_by_pfam_name IS 'identify same-named pfam mod
 --
 
 CREATE VIEW _pmsm_pmhmm_pfam_upgrade AS
-    SELECT _pmsm_pmhmm_expand_by_pfam_name.pmodelset_id, _pmsm_pmhmm_expand_by_pfam_name.pmodel_id2 AS pmodel_id FROM _pmsm_pmhmm_expand_by_pfam_name WHERE (_pmsm_pmhmm_expand_by_pfam_name.pmodelset_id = -500);
+    SELECT _pmsm_pmhmm_expand_by_pfam_name.pmodelset_id, _pmsm_pmhmm_expand_by_pfam_name.pmodel_id2 AS pmodel_id FROM _pmsm_pmhmm_expand_by_pfam_name WHERE (_pmsm_pmhmm_expand_by_pfam_name.pmodelset_id = (-500));
 
 
 ALTER TABLE unison._pmsm_pmhmm_pfam_upgrade OWNER TO unison;
@@ -7204,7 +12205,7 @@ COMMENT ON COLUMN alias_pdbcs_v.pdbc IS 'PDB identifier + chain (''pdbc'')';
 --
 
 CREATE VIEW aliases_v AS
-    SELECT sa.pseq_id, o.ann_pref, o.origin, ao.alias, t.gs, translate(ao.descr, '	'::text, ': '::text) AS descr FROM (((paliasorigin ao JOIN pseqalias sa ON ((ao.palias_id = sa.palias_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id))) WHERE (sa.is_current = true);
+    SELECT sa.pseq_id, o.ann_pref, o.origin, ao.alias, t.gs, translate(ao.descr, '	'::text, ': '::text) AS descr FROM (((pannotation ao JOIN pseq_pannotation sa ON ((ao.pannotation_id = sa.pannotation_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id))) WHERE (sa.is_current = true);
 
 
 ALTER TABLE unison.aliases_v OWNER TO unison;
@@ -7301,91 +12302,136 @@ CREATE VIEW aliasset_alias_v AS
 ALTER TABLE unison.aliasset_alias_v OWNER TO unison;
 
 --
--- Name: all_annotations_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: aliasset_aliasset_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
 --
 
-CREATE VIEW all_annotations_v AS
-    SELECT v_all_annotations_unsorted.pseq_id, v_all_annotations_unsorted.is_current, v_all_annotations_unsorted.ann_pref, v_all_annotations_unsorted.origin_id, v_all_annotations_unsorted.origin, v_all_annotations_unsorted.tax_id, v_all_annotations_unsorted.gs, v_all_annotations_unsorted.alias, v_all_annotations_unsorted.descr, v_all_annotations_unsorted.palias_id, v_all_annotations_unsorted.assigned FROM all_annotations_unsorted_v v_all_annotations_unsorted ORDER BY v_all_annotations_unsorted.pseq_id, v_all_annotations_unsorted.is_current DESC, v_all_annotations_unsorted.ann_pref, (strpos(v_all_annotations_unsorted.alias, '_'::text) = 0), v_all_annotations_unsorted.alias;
+CREATE SEQUENCE aliasset_aliasset_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
 
 
-ALTER TABLE unison.all_annotations_v OWNER TO unison;
-
---
--- Name: VIEW all_annotations_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW all_annotations_v IS 'all annotations by pseq_id';
-
+ALTER TABLE unison.aliasset_aliasset_id_seq OWNER TO unison;
 
 --
--- Name: COLUMN all_annotations_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: aliasset_aliasset_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+ALTER SEQUENCE aliasset_aliasset_id_seq OWNED BY aliasset.aliasset_id;
 
 
 --
--- Name: COLUMN all_annotations_v.is_current; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: all_annotations_sorted_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_v.is_current IS 'true if this annotation is current for the sequence; an alias may refer to only one sequence at any time';
+CREATE VIEW all_annotations_sorted_v AS
+    SELECT v_all_annotations_unsorted.pseq_id, v_all_annotations_unsorted.is_current, v_all_annotations_unsorted.ann_pref, v_all_annotations_unsorted.origin_id, v_all_annotations_unsorted.origin, v_all_annotations_unsorted.tax_id, v_all_annotations_unsorted.gs, v_all_annotations_unsorted.alias, v_all_annotations_unsorted.descr, v_all_annotations_unsorted.pannotation_id, v_all_annotations_unsorted.assigned FROM all_annotations_v v_all_annotations_unsorted ORDER BY v_all_annotations_unsorted.pseq_id, v_all_annotations_unsorted.is_current DESC, v_all_annotations_unsorted.ann_pref, (strpos(v_all_annotations_unsorted.alias, '_'::text) = 0), v_all_annotations_unsorted.alias;
 
 
---
--- Name: COLUMN all_annotations_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN all_annotations_v.ann_pref IS 'annotation preference for the origin of this alias';
-
+ALTER TABLE unison.all_annotations_sorted_v OWNER TO unison;
 
 --
--- Name: COLUMN all_annotations_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: VIEW all_annotations_sorted_v; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_v.origin_id IS 'origin identifier -- see origin(origin_id)';
+COMMENT ON VIEW all_annotations_sorted_v IS 'all annotations by pseq_id';
 
 
 --
--- Name: COLUMN all_annotations_v.origin; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_sorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_v.origin IS 'origin of sequence -- see origin(origin_id)';
-
-
---
--- Name: COLUMN all_annotations_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN all_annotations_v.tax_id IS 'NCBI taxonomy identifier';
+COMMENT ON COLUMN all_annotations_sorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
 
 
 --
--- Name: COLUMN all_annotations_v.gs; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_sorted_v.is_current; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
-
-
---
--- Name: COLUMN all_annotations_v.alias; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN all_annotations_v.alias IS 'alias for the sequence';
+COMMENT ON COLUMN all_annotations_sorted_v.is_current IS 'true if this annotation is current for the sequence; an alias may refer to only one sequence at any time';
 
 
 --
--- Name: COLUMN all_annotations_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_sorted_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_v.descr IS 'sequence description';
+COMMENT ON COLUMN all_annotations_sorted_v.ann_pref IS 'annotation preference for the origin of this alias';
 
 
 --
--- Name: COLUMN all_annotations_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN all_annotations_sorted_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN all_annotations_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN all_annotations_sorted_v.origin_id IS 'origin identifier -- see origin(origin_id)';
 
+
+--
+-- Name: COLUMN all_annotations_sorted_v.origin; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_sorted_v.origin IS 'origin of sequence -- see origin(origin_id)';
+
+
+--
+-- Name: COLUMN all_annotations_sorted_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_sorted_v.tax_id IS 'NCBI taxonomy identifier';
+
+
+--
+-- Name: COLUMN all_annotations_sorted_v.gs; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_sorted_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
+
+
+--
+-- Name: COLUMN all_annotations_sorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_sorted_v.alias IS 'alias for the sequence';
+
+
+--
+-- Name: COLUMN all_annotations_sorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_sorted_v.descr IS 'sequence description';
+
+
+--
+-- Name: COLUMN all_annotations_sorted_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN all_annotations_sorted_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+
+
+--
+-- Name: current_annotations_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE current_annotations_mv (
+    pseq_id integer,
+    origin_id integer,
+    origin text,
+    ann_pref integer,
+    pannotation_id integer,
+    tax_id integer,
+    k character(1),
+    gs text,
+    latin text,
+    common text,
+    alias text,
+    descr text,
+    added timestamp with time zone,
+    link_url text
+);
+
+
+ALTER TABLE unison.current_annotations_mv OWNER TO unison;
 
 --
 -- Name: known_bcl2_overlaps_mv; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
@@ -7452,7 +12498,7 @@ COMMENT ON COLUMN known_bcl2_overlaps_mv.t_gstop IS 'genomic stop of target sequ
 --
 
 CREATE VIEW bcl2_zebrafish_v AS
-    SELECT DISTINCT ON (p.score, p.pseq_id, m.name) (EXISTS (SELECT known_bcl2_overlaps_mv.q_pseq_id FROM known_bcl2_overlaps_mv WHERE ((known_bcl2_overlaps_mv.t_pseq_id = a.pseq_id) OR ((known_bcl2_overlaps_mv.q_pseq_id = a.pseq_id) AND (known_bcl2_overlaps_mv.t_pseq_id IS NULL))))) AS known, a.pseq_id, m.name AS bh_name, p.start AS bh_start, p.stop AS bh_stop, p.mstart AS bh_mstart, p.mstop AS bh_mstop, p.score AS bh_score, p.eval AS bh_eval, t.start AS tm_start, t.stop AS tm_stop, a.alias, a.descr FROM (((pahmm p JOIN pmhmm m ON ((p.pmodel_id = m.pmodel_id))) JOIN palias a ON (((p.pseq_id = a.pseq_id) AND (a.tax_id = tax.gs2tax_id('DANRE'::text))))) LEFT JOIN pftmhmm t ON (((t.pseq_id = a.pseq_id) AND (t.start > p.stop)))) WHERE ((p.params_id = params_id('Bcl-2 ls DEPRECATED'::text)) AND (m.pmodel_id IN (SELECT pmsm_pmhmm.pmodel_id FROM pmsm_pmhmm WHERE (pmsm_pmhmm.pmodelset_id = pmodelset_id('Bcl-2 domains'::text))))) ORDER BY p.score DESC, p.pseq_id, m.name;
+    SELECT DISTINCT ON (p.score, p.pseq_id, m.name) (EXISTS (SELECT known_bcl2_overlaps_mv.q_pseq_id FROM known_bcl2_overlaps_mv WHERE ((known_bcl2_overlaps_mv.t_pseq_id = a.pseq_id) OR ((known_bcl2_overlaps_mv.q_pseq_id = a.pseq_id) AND (known_bcl2_overlaps_mv.t_pseq_id IS NULL))))) AS known, a.pseq_id, m.name AS bh_name, p.start AS bh_start, p.stop AS bh_stop, p.mstart AS bh_mstart, p.mstop AS bh_mstop, p.score AS bh_score, p.eval AS bh_eval, t.start AS tm_start, t.stop AS tm_stop, a.alias, a.descr FROM (((pahmm p JOIN pmhmm m ON ((p.pmodel_id = m.pmodel_id))) JOIN current_annotations_mv a ON (((p.pseq_id = a.pseq_id) AND (a.tax_id = tax.gs2tax_id('DANRE'::text))))) LEFT JOIN pftmhmm t ON (((t.pseq_id = a.pseq_id) AND (t.start > p.stop)))) WHERE ((p.params_id = params_id('Bcl-2 ls DEPRECATED'::text)) AND (m.pmodel_id IN (SELECT pmsm_pmhmm.pmodel_id FROM pmsm_pmhmm WHERE (pmsm_pmhmm.pmodelset_id = pmodelset_id('Bcl-2 domains'::text))))) ORDER BY p.score DESC, p.pseq_id, m.name;
 
 
 ALTER TABLE unison.bcl2_zebrafish_v OWNER TO unison;
@@ -7528,7 +12574,7 @@ COMMENT ON COLUMN bcl2_zebrafish_domains_v.alias IS 'alias for the sequence';
 --
 
 CREATE VIEW best_annotation_v AS
-    SELECT DISTINCT ON (cau.pseq_id, (cau.tax_id <> 9606)) cau.pseq_id, cau.origin_id, cau.origin, cau.ann_pref, cau.palias_id, cau.tax_id, cau.k, cau.gs, cau.latin, cau.common, cau.alias, cau.descr, cau.added, cau.link_url FROM current_annotations_unsorted_v cau ORDER BY cau.pseq_id, (cau.tax_id <> 9606), cau.ann_pref, (strpos(cau.alias, '_'::text) = 0), cau.alias;
+    SELECT DISTINCT ON (cau.pseq_id, (cau.tax_id <> 9606)) cau.pseq_id, cau.origin_id, cau.origin, cau.ann_pref, cau.pannotation_id, cau.tax_id, cau.k, cau.gs, cau.latin, cau.common, cau.alias, cau.descr, cau.added, cau.link_url FROM current_annotations_v cau ORDER BY cau.pseq_id, (cau.tax_id <> 9606), cau.ann_pref, (strpos(cau.alias, '_'::text) = 0), cau.alias;
 
 
 ALTER TABLE unison.best_annotation_v OWNER TO unison;
@@ -7562,10 +12608,10 @@ COMMENT ON COLUMN best_annotation_v.ann_pref IS 'annotation preference for the o
 
 
 --
--- Name: COLUMN best_annotation_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN best_annotation_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN best_annotation_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN best_annotation_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -7632,119 +12678,11 @@ COMMENT ON COLUMN best_annotation_v.link_url IS 'URL to source data';
 
 
 --
--- Name: better_annotations_unsorted_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW better_annotations_unsorted_v AS
-    SELECT current_annotations_unsorted_v.pseq_id, current_annotations_unsorted_v.origin_id, current_annotations_unsorted_v.origin, current_annotations_unsorted_v.ann_pref, current_annotations_unsorted_v.palias_id, current_annotations_unsorted_v.tax_id, current_annotations_unsorted_v.k, current_annotations_unsorted_v.gs, current_annotations_unsorted_v.latin, current_annotations_unsorted_v.common, current_annotations_unsorted_v.alias, current_annotations_unsorted_v.descr, current_annotations_unsorted_v.added, current_annotations_unsorted_v.link_url FROM current_annotations_unsorted_v WHERE (current_annotations_unsorted_v.ann_pref IS NOT NULL);
-
-
-ALTER TABLE unison.better_annotations_unsorted_v OWNER TO unison;
-
---
--- Name: COLUMN better_annotations_unsorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.origin_id IS 'origin identifier -- see origin(origin_id)';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.origin; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.origin IS 'origin of sequence -- see origin(origin_id)';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.ann_pref IS 'annotation preference for the origin of this alias';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.tax_id IS 'NCBI taxonomy identifier';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.k; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.k IS 'Swiss-Prot kingdom code (A=archea; B=bacteria; E=eukaryota; V=viruses)';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.gs; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.latin; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.latin IS 'Latin genus and species';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.common; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.common IS 'common taxonomic name';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.alias IS 'alias for the sequence';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.descr IS 'sequence description';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.added; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.added IS 'date that this sequence was assigned this alias';
-
-
---
--- Name: COLUMN better_annotations_unsorted_v.link_url; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN better_annotations_unsorted_v.link_url IS 'URL to source data';
-
-
---
 -- Name: better_annotations_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW better_annotations_v AS
-    SELECT better_annotations_unsorted_v.pseq_id, better_annotations_unsorted_v.origin_id, better_annotations_unsorted_v.origin, better_annotations_unsorted_v.ann_pref, better_annotations_unsorted_v.palias_id, better_annotations_unsorted_v.tax_id, better_annotations_unsorted_v.k, better_annotations_unsorted_v.gs, better_annotations_unsorted_v.latin, better_annotations_unsorted_v.common, better_annotations_unsorted_v.alias, better_annotations_unsorted_v.descr, better_annotations_unsorted_v.added, better_annotations_unsorted_v.link_url FROM better_annotations_unsorted_v ORDER BY better_annotations_unsorted_v.pseq_id, better_annotations_unsorted_v.ann_pref, (strpos(better_annotations_unsorted_v.alias, '_'::text) = 0), better_annotations_unsorted_v.alias;
+    SELECT current_annotations_unsorted_v.pseq_id, current_annotations_unsorted_v.origin_id, current_annotations_unsorted_v.origin, current_annotations_unsorted_v.ann_pref, current_annotations_unsorted_v.pannotation_id, current_annotations_unsorted_v.tax_id, current_annotations_unsorted_v.k, current_annotations_unsorted_v.gs, current_annotations_unsorted_v.latin, current_annotations_unsorted_v.common, current_annotations_unsorted_v.alias, current_annotations_unsorted_v.descr, current_annotations_unsorted_v.added, current_annotations_unsorted_v.link_url FROM current_annotations_v current_annotations_unsorted_v WHERE (current_annotations_unsorted_v.ann_pref IS NOT NULL);
 
 
 ALTER TABLE unison.better_annotations_v OWNER TO unison;
@@ -7778,10 +12716,10 @@ COMMENT ON COLUMN better_annotations_v.ann_pref IS 'annotation preference for th
 
 
 --
--- Name: COLUMN better_annotations_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN better_annotations_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN better_annotations_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN better_annotations_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -7848,32 +12786,112 @@ COMMENT ON COLUMN better_annotations_v.link_url IS 'URL to source data';
 
 
 --
--- Name: blast_result; Type: TYPE; Schema: unison; Owner: unison
+-- Name: better_annotations_sorted_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE TYPE blast_result AS (
-	pfeature_id integer,
-	query integer,
-	qstart integer,
-	qstop integer,
-	target integer,
-	tstart smallint,
-	tstop smallint,
-	ident smallint,
-	sim smallint,
-	gaps smallint,
-	qgaps smallint,
-	tgaps smallint,
-	score integer,
-	eval double precision,
-	len smallint,
-	pct_ident real,
-	pct_hsp_coverage real,
-	pct_coverage real
-);
+CREATE VIEW better_annotations_sorted_v AS
+    SELECT better_annotations_unsorted_v.pseq_id, better_annotations_unsorted_v.origin_id, better_annotations_unsorted_v.origin, better_annotations_unsorted_v.ann_pref, better_annotations_unsorted_v.pannotation_id, better_annotations_unsorted_v.tax_id, better_annotations_unsorted_v.k, better_annotations_unsorted_v.gs, better_annotations_unsorted_v.latin, better_annotations_unsorted_v.common, better_annotations_unsorted_v.alias, better_annotations_unsorted_v.descr, better_annotations_unsorted_v.added, better_annotations_unsorted_v.link_url FROM better_annotations_v better_annotations_unsorted_v ORDER BY better_annotations_unsorted_v.pseq_id, better_annotations_unsorted_v.ann_pref, (strpos(better_annotations_unsorted_v.alias, '_'::text) = 0), better_annotations_unsorted_v.alias;
 
 
-ALTER TYPE unison.blast_result OWNER TO unison;
+ALTER TABLE unison.better_annotations_sorted_v OWNER TO unison;
+
+--
+-- Name: COLUMN better_annotations_sorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.origin_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.origin_id IS 'origin identifier -- see origin(origin_id)';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.origin; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.origin IS 'origin of sequence -- see origin(origin_id)';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.ann_pref; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.ann_pref IS 'annotation preference for the origin of this alias';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.tax_id; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.tax_id IS 'NCBI taxonomy identifier';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.k; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.k IS 'Swiss-Prot kingdom code (A=archea; B=bacteria; E=eukaryota; V=viruses)';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.gs; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.gs IS 'Swiss-Prot genus-species code (e.g., ''HUMAN'', ''BRARE'', ''BOVIN'')';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.latin; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.latin IS 'Latin genus and species';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.common; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.common IS 'common taxonomic name';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.alias IS 'alias for the sequence';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.descr IS 'sequence description';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.added; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.added IS 'date that this sequence was assigned this alias';
+
+
+--
+-- Name: COLUMN better_annotations_sorted_v.link_url; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN better_annotations_sorted_v.link_url IS 'URL to source data';
+
 
 --
 -- Name: blatloci; Type: VIEW; Schema: unison; Owner: unison
@@ -8013,6 +13031,26 @@ COMMENT ON COLUMN canned_views.order_by IS 'optional final order clause for view
 
 
 --
+-- Name: canned_views_cv_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE canned_views_cv_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.canned_views_cv_id_seq OWNER TO unison;
+
+--
+-- Name: canned_views_cv_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE canned_views_cv_id_seq OWNED BY canned_views.cv_id;
+
+
+--
 -- Name: e3_and_bh3_cv; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -8028,7 +13066,7 @@ ALTER TABLE unison.e3_and_bh3_cv OWNER TO unison;
 
 CREATE TABLE ensembl_coordinates_mv (
     pseq_id integer,
-    palias_id integer,
+    pannotation_id integer,
     origin_id integer,
     tax_id integer,
     method text,
@@ -8050,10 +13088,10 @@ COMMENT ON COLUMN ensembl_coordinates_mv.pseq_id IS 'unique protein sequence ide
 
 
 --
--- Name: COLUMN ensembl_coordinates_mv.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN ensembl_coordinates_mv.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN ensembl_coordinates_mv.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN ensembl_coordinates_mv.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -8103,7 +13141,7 @@ COMMENT ON COLUMN ensembl_coordinates_mv.strand IS 'genomic strand (''+'' or ''-
 --
 
 CREATE VIEW ensembl_coordinates_v AS
-    SELECT palias.pseq_id, palias.palias_id, palias.origin_id, palias.tax_id, split_part(split_part(palias.descr, ':'::text, 2), ' '::text, 1) AS method, split_part(palias.descr, ':'::text, 3) AS genome, split_part(palias.descr, ':'::text, 4) AS chr, split_part(palias.descr, ':'::text, 5) AS gstart, split_part(palias.descr, ':'::text, 6) AS gstop, CASE WHEN (split_part(split_part(palias.descr, ':'::text, 7), ' '::text, 1) = (1)::text) THEN '+'::text ELSE '-'::text END AS strand FROM palias WHERE (((palias.origin_id >= 100) AND (palias.origin_id <= 160)) AND (palias.descr ~~ 'pep%'::text));
+    SELECT palias.pseq_id, palias.pannotation_id, palias.origin_id, palias.tax_id, split_part(split_part(palias.descr, ':'::text, 2), ' '::text, 1) AS method, split_part(palias.descr, ':'::text, 3) AS genome, split_part(palias.descr, ':'::text, 4) AS chr, split_part(palias.descr, ':'::text, 5) AS gstart, split_part(palias.descr, ':'::text, 6) AS gstop, CASE WHEN (split_part(split_part(palias.descr, ':'::text, 7), ' '::text, 1) = (1)::text) THEN '+'::text ELSE '-'::text END AS strand FROM palias WHERE (((palias.origin_id >= 100) AND (palias.origin_id <= 160)) AND (palias.descr ~~ 'pep%'::text));
 
 
 ALTER TABLE unison.ensembl_coordinates_v OWNER TO unison;
@@ -8116,10 +13154,10 @@ COMMENT ON COLUMN ensembl_coordinates_v.pseq_id IS 'unique protein sequence iden
 
 
 --
--- Name: COLUMN ensembl_coordinates_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN ensembl_coordinates_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN ensembl_coordinates_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN ensembl_coordinates_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -8170,7 +13208,7 @@ COMMENT ON COLUMN ensembl_coordinates_v.strand IS 'genomic strand (''+'' or ''-'
 
 CREATE TABLE ensembl_unambiguous_coordinates_mv (
     pseq_id integer,
-    palias_id integer,
+    pannotation_id integer,
     origin_id integer,
     tax_id integer,
     method text,
@@ -8192,10 +13230,10 @@ COMMENT ON COLUMN ensembl_unambiguous_coordinates_mv.pseq_id IS 'unique protein 
 
 
 --
--- Name: COLUMN ensembl_unambiguous_coordinates_mv.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN ensembl_unambiguous_coordinates_mv.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN ensembl_unambiguous_coordinates_mv.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN ensembl_unambiguous_coordinates_mv.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -8245,7 +13283,7 @@ COMMENT ON COLUMN ensembl_unambiguous_coordinates_mv.strand IS 'genomic strand (
 --
 
 CREATE VIEW ensembl_unambiguous_coordinates_v AS
-    SELECT e1.pseq_id, e1.palias_id, e1.origin_id, e1.tax_id, e1.method, e1.genome, e1.chr, e1.gstart, e1.gstop, e1.strand FROM (ensembl_coordinates_mv e1 JOIN (SELECT ensembl_coordinates_mv.pseq_id, ensembl_coordinates_mv.genome FROM ensembl_coordinates_mv GROUP BY ensembl_coordinates_mv.pseq_id, ensembl_coordinates_mv.genome HAVING (count(*) = 1)) e2 ON (((e1.pseq_id = e2.pseq_id) AND (e1.genome = e2.genome))));
+    SELECT e1.pseq_id, e1.pannotation_id, e1.origin_id, e1.tax_id, e1.method, e1.genome, e1.chr, e1.gstart, e1.gstop, e1.strand FROM (ensembl_coordinates_mv e1 JOIN (SELECT ensembl_coordinates_mv.pseq_id, ensembl_coordinates_mv.genome FROM ensembl_coordinates_mv GROUP BY ensembl_coordinates_mv.pseq_id, ensembl_coordinates_mv.genome HAVING (count(*) = 1)) e2 ON (((e1.pseq_id = e2.pseq_id) AND (e1.genome = e2.genome))));
 
 
 ALTER TABLE unison.ensembl_unambiguous_coordinates_v OWNER TO unison;
@@ -8258,10 +13296,10 @@ COMMENT ON COLUMN ensembl_unambiguous_coordinates_v.pseq_id IS 'unique protein s
 
 
 --
--- Name: COLUMN ensembl_unambiguous_coordinates_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN ensembl_unambiguous_coordinates_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN ensembl_unambiguous_coordinates_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN ensembl_unambiguous_coordinates_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -8359,29 +13397,11 @@ COMMENT ON COLUMN ensembl_unambiguous_overlaps_v.t_gstop IS 'genomic stop of tar
 
 
 --
--- Name: sequence_ends(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION sequence_ends(text) RETURNS text
-    AS $_$ select sequence_ends($1,5); $_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.sequence_ends(text) OWNER TO unison;
-
---
--- Name: FUNCTION sequence_ends(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION sequence_ends(text) IS 'equivalent to sequence_ends(seq,5); see sequence_ends(text,integer)';
-
-
---
 -- Name: extended_annotation_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW extended_annotation_v AS
-    SELECT ba.pseq_id, sequence_ends(q.seq) AS sequence_ends, ba.origin_id, ba.origin, ba.ann_pref, ba.palias_id, ba.tax_id, ba.k, ba.gs, ba.latin, ba.common, ba.alias, ba.descr, ba.added, ba.link_url, (EXISTS (SELECT pseqset.pset_id, pseqset.pseq_id FROM pseqset WHERE ((pseqset.pset_id = pset_id('patented'::text)) AND (pseqset.pseq_id = q.pseq_id)))) AS patented, (EXISTS (SELECT pseqset.pset_id, pseqset.pseq_id FROM pseqset WHERE ((pseqset.pset_id = pset_id('patented 98%'::text)) AND (pseqset.pseq_id = q.pseq_id)))) AS "patented98%" FROM (pseq q JOIN best_annotation_mv ba ON ((q.pseq_id = ba.pseq_id)));
+    SELECT ba.pseq_id, sequence_ends(q.seq) AS sequence_ends, ba.origin_id, ba.origin, ba.ann_pref, ba.pannotation_id, ba.tax_id, ba.k, ba.gs, ba.latin, ba.common, ba.alias, ba.descr, ba.added, ba.link_url, (EXISTS (SELECT pseqset.pset_id, pseqset.pseq_id FROM pseqset WHERE ((pseqset.pset_id = pset_id('patented'::text)) AND (pseqset.pseq_id = q.pseq_id)))) AS patented, (EXISTS (SELECT pseqset.pset_id, pseqset.pseq_id FROM pseqset WHERE ((pseqset.pset_id = pset_id('patented 98%'::text)) AND (pseqset.pseq_id = q.pseq_id)))) AS "patented98%" FROM (pseq q JOIN best_annotation_mv ba ON ((q.pseq_id = ba.pseq_id)));
 
 
 ALTER TABLE unison.extended_annotation_v OWNER TO unison;
@@ -8457,6 +13477,26 @@ COMMENT ON COLUMN genasm.name IS 'genome assembly name (e.g. NHGD-34)';
 --
 
 COMMENT ON COLUMN genasm.url IS 'URL of genome assembly';
+
+
+--
+-- Name: genasm_genasm_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE genasm_genasm_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.genasm_genasm_id_seq OWNER TO unison;
+
+--
+-- Name: genasm_genasm_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE genasm_genasm_id_seq OWNED BY genasm.genasm_id;
 
 
 --
@@ -8567,17 +13607,6 @@ COMMENT ON COLUMN homologene_paralogs_v.t_tax_id IS 'tax_id of target pseq_id';
 
 COMMENT ON COLUMN homologene_paralogs_v.t_gene_symbol IS 'target sequence Entrez Gene symbol';
 
-
---
--- Name: hmm_pmodel_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION hmm_pmodel_id(text) RETURNS SETOF integer
-    AS $_$select pmodel_id from pmhmm where acc=$1 or name=$1 order by added desc;$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.hmm_pmodel_id(text) OWNER TO unison;
 
 --
 -- Name: ig_tm_itim_cv; Type: VIEW; Schema: unison; Owner: unison
@@ -8964,7 +13993,7 @@ COMMENT ON TABLE mint IS 'Protein-Protein interactions from the MINT database';
 --
 
 CREATE VIEW mint_one_way_v AS
-    SELECT a1.pseq_id AS pseq_id_a, m.sprot_a, a2.pseq_id AS pseq_id_b, m.sprot_b, m.interaction_detection_method, m.pmid FROM ((mint m JOIN all_annotations_unsorted_v a1 ON ((m.sprot_a = a1.alias))) JOIN all_annotations_unsorted_v a2 ON ((m.sprot_b = a2.alias))) WHERE ((a1.origin_id = origin_id('UniProtKB/Swiss-Prot'::text)) AND (a2.origin_id = origin_id('UniProtKB/Swiss-Prot'::text)));
+    SELECT a1.pseq_id AS pseq_id_a, m.sprot_a, a2.pseq_id AS pseq_id_b, m.sprot_b, m.interaction_detection_method, m.pmid FROM ((mint m JOIN all_annotations_v a1 ON ((m.sprot_a = a1.alias))) JOIN all_annotations_v a2 ON ((m.sprot_b = a2.alias))) WHERE ((a1.origin_id = origin_id('UniProtKB/Swiss-Prot'::text)) AND (a2.origin_id = origin_id('UniProtKB/Swiss-Prot'::text)));
 
 
 ALTER TABLE unison.mint_one_way_v OWNER TO unison;
@@ -8998,7 +14027,7 @@ COMMENT ON VIEW mint_v IS 'symmetric view of mint (mint_one_way_v) with pseq_ids
 --
 
 CREATE VIEW ncbi_pseq_v AS
-    SELECT ga.tax_id, ga.gene_id, ga.status, ga.rna_acc, ga.rna_gi, ga.pro_acc, ga.pro_gi, ga.gen_acc, ga.gen_gi, ga.gen_start, ga.gen_end, ga.gen_orient, ga.assembly, split_part(ga.rna_acc, '.'::text, 1) AS rna_acc_trunc, split_part(ga.pro_acc, '.'::text, 1) AS pro_acc_trunc, split_part(ga.gen_acc, '.'::text, 1) AS gen_acc_trunc, ca.pseq_id FROM (ncbi.gene2accession ga JOIN current_annotations_unsorted_v ca ON (((ga.pro_acc = ca.alias) AND (ca.origin_id = origin_id('RefSeq'::text)))));
+    SELECT ga.tax_id, ga.gene_id, ga.status, ga.rna_acc, ga.rna_gi, ga.pro_acc, ga.pro_gi, ga.gen_acc, ga.gen_gi, ga.gen_start, ga.gen_end, ga.gen_orient, ga.assembly, split_part(ga.rna_acc, '.'::text, 1) AS rna_acc_trunc, split_part(ga.pro_acc, '.'::text, 1) AS pro_acc_trunc, split_part(ga.gen_acc, '.'::text, 1) AS gen_acc_trunc, ca.pseq_id FROM (ncbi.gene2accession ga JOIN current_annotations_v ca ON (((ga.pro_acc = ca.alias) AND (ca.origin_id = origin_id('RefSeq'::text)))));
 
 
 ALTER TABLE unison.ncbi_pseq_v OWNER TO unison;
@@ -9011,20 +14040,20 @@ COMMENT ON VIEW ncbi_pseq_v IS 'maps accessions from NCBI''s gene2accession tabl
 
 
 --
--- Name: nearby_sequences_unsorted_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: nearby_sequences_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE VIEW nearby_sequences_unsorted_v AS
+CREATE VIEW nearby_sequences_v AS
     SELECT pseq.pseq_id AS q_pseq_id, pseq.pseq_id AS t_pseq_id, pseq.len, (100)::double precision AS pct_ident, (100)::double precision AS pct_coverage FROM pseq UNION ALL SELECT v_papseq.q_pseq_id, v_papseq.t_pseq_id, v_papseq.len, v_papseq.pct_ident, v_papseq.pct_coverage FROM papseq_v v_papseq WHERE ((v_papseq.pct_ident > (90)::double precision) AND (v_papseq.pct_coverage > (90)::double precision));
 
 
-ALTER TABLE unison.nearby_sequences_unsorted_v OWNER TO unison;
+ALTER TABLE unison.nearby_sequences_v OWNER TO unison;
 
 --
--- Name: VIEW nearby_sequences_unsorted_v; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: VIEW nearby_sequences_v; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON VIEW nearby_sequences_unsorted_v IS 'sequeneces within 90% coverage and 90% identity, unsorted';
+COMMENT ON VIEW nearby_sequences_v IS 'sequeneces within 90% coverage and 90% identity, unsorted';
 
 
 --
@@ -9032,7 +14061,7 @@ COMMENT ON VIEW nearby_sequences_unsorted_v IS 'sequeneces within 90% coverage a
 --
 
 CREATE VIEW patents_geneseq_v AS
-    SELECT sa.pseq_id, o.origin, ao.alias, t.latin AS species, ("substring"(ao.descr, '\[DT: (\S+)'::text))::date AS patent_date, "substring"(ao.descr, '\[PA:\s+\([^\)]+\)\s+([^\]]+)'::text) AS patent_authority, ao.descr FROM (((pseqalias sa JOIN paliasorigin ao ON ((sa.palias_id = ao.palias_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id))) WHERE ((ao.origin_id = origin_id('Geneseq'::text)) AND sa.is_current);
+    SELECT sa.pseq_id, o.origin, ao.alias, t.latin AS species, ("substring"(ao.descr, '\[DT: (\d+\-\w+\-\d+)'::text))::date AS patent_date, "substring"(ao.descr, '\[PA:\s+\([^\)]+\)\s+([^\]]+)'::text) AS patent_authority, ao.descr FROM (((pseq_pannotation sa JOIN pannotation ao ON ((sa.pannotation_id = ao.pannotation_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id))) WHERE ((ao.origin_id = origin_id('Geneseq'::text)) AND sa.is_current);
 
 
 ALTER TABLE unison.patents_geneseq_v OWNER TO unison;
@@ -9091,7 +14120,7 @@ COMMENT ON COLUMN patents_geneseq_v.descr IS 'patent application id, title, and 
 --
 
 CREATE VIEW patents_pataa_v AS
-    SELECT sa.pseq_id, o.origin, ao.alias, NULL::text AS species, NULL::date AS patent_date, NULL::text AS patent_authority, ao.descr FROM ((pseqalias sa JOIN paliasorigin ao ON ((sa.palias_id = ao.palias_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) WHERE ((ao.origin_id = origin_id('pataa'::text)) AND sa.is_current);
+    SELECT sa.pseq_id, o.origin, ao.alias, NULL::text AS species, NULL::date AS patent_date, NULL::text AS patent_authority, ao.descr FROM ((pseq_pannotation sa JOIN pannotation ao ON ((sa.pannotation_id = ao.pannotation_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) WHERE ((ao.origin_id = origin_id('pataa'::text)) AND sa.is_current);
 
 
 ALTER TABLE unison.patents_pataa_v OWNER TO unison;
@@ -9146,99 +14175,119 @@ COMMENT ON COLUMN patents_pataa_v.descr IS 'patent and sequence numbers from pat
 
 
 --
--- Name: patents_unsorted_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: patents_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE VIEW patents_unsorted_v AS
+CREATE VIEW patents_v AS
     SELECT patents_pataa_v.pseq_id, patents_pataa_v.origin, patents_pataa_v.alias, patents_pataa_v.species, patents_pataa_v.patent_date, patents_pataa_v.patent_authority, patents_pataa_v.descr FROM patents_pataa_v UNION ALL SELECT patents_geneseq_v.pseq_id, patents_geneseq_v.origin, patents_geneseq_v.alias, patents_geneseq_v.species, patents_geneseq_v.patent_date, patents_geneseq_v.patent_authority, patents_geneseq_v.descr FROM patents_geneseq_v;
 
 
-ALTER TABLE unison.patents_unsorted_v OWNER TO unison;
+ALTER TABLE unison.patents_v OWNER TO unison;
 
 --
--- Name: VIEW patents_unsorted_v; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: VIEW patents_v; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON VIEW patents_unsorted_v IS 'Patents from pataa database and Geneseq, if available';
-
-
---
--- Name: COLUMN patents_unsorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN patents_unsorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+COMMENT ON VIEW patents_v IS 'Patents from pataa database and Geneseq, if available';
 
 
 --
--- Name: COLUMN patents_unsorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN patents_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_unsorted_v.alias IS 'authority''s alias for the sequence';
-
-
---
--- Name: COLUMN patents_unsorted_v.species; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN patents_unsorted_v.species IS 'patent species (not available in pataa)';
+COMMENT ON COLUMN patents_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
 
 
 --
--- Name: COLUMN patents_unsorted_v.patent_date; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN patents_v.alias; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_unsorted_v.patent_date IS 'patent date (NULL in pataa)';
-
-
---
--- Name: COLUMN patents_unsorted_v.patent_authority; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN patents_unsorted_v.patent_authority IS 'patent authority (NULL in pataa)';
+COMMENT ON COLUMN patents_v.alias IS 'authority''s alias for the sequence';
 
 
 --
--- Name: COLUMN patents_unsorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN patents_v.species; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_unsorted_v.descr IS 'descriptions from patents_pataa_v and patents_genseq_v, which see';
+COMMENT ON COLUMN patents_v.species IS 'patent species (not available in pataa)';
 
 
 --
--- Name: nearby_patents_unsorted_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: COLUMN patents_v.patent_date; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-CREATE VIEW nearby_patents_unsorted_v AS
-    SELECT n.q_pseq_id, n.t_pseq_id, n.len, round((n.pct_coverage)::numeric, 1) AS pct_coverage, round((n.pct_ident)::numeric, 1) AS pct_ident, p.origin, p.alias, p.species, p.patent_date, p.patent_authority, p.descr FROM (nearby_sequences_unsorted_v n JOIN patents_unsorted_v p ON ((n.t_pseq_id = p.pseq_id)));
+COMMENT ON COLUMN patents_v.patent_date IS 'patent date (NULL in pataa)';
 
 
-ALTER TABLE unison.nearby_patents_unsorted_v OWNER TO unison;
+--
+-- Name: COLUMN patents_v.patent_authority; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN patents_v.patent_authority IS 'patent authority (NULL in pataa)';
+
+
+--
+-- Name: COLUMN patents_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN patents_v.descr IS 'descriptions from patents_pataa_v and patents_genseq_v, which see';
+
 
 --
 -- Name: nearby_patents_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW nearby_patents_v AS
-    SELECT nearby_patents_unsorted_v.q_pseq_id, nearby_patents_unsorted_v.t_pseq_id, nearby_patents_unsorted_v.len, nearby_patents_unsorted_v.pct_coverage, nearby_patents_unsorted_v.pct_ident, nearby_patents_unsorted_v.origin, nearby_patents_unsorted_v.alias, nearby_patents_unsorted_v.species, nearby_patents_unsorted_v.patent_date, nearby_patents_unsorted_v.patent_authority, nearby_patents_unsorted_v.descr FROM nearby_patents_unsorted_v ORDER BY nearby_patents_unsorted_v.pct_coverage DESC, nearby_patents_unsorted_v.pct_ident DESC, nearby_patents_unsorted_v.t_pseq_id, nearby_patents_unsorted_v.patent_date, nearby_patents_unsorted_v.patent_authority, (nearby_patents_unsorted_v.origin = 'pataa'::text), nearby_patents_unsorted_v.alias;
+    SELECT n.q_pseq_id, n.t_pseq_id, n.len, round((n.pct_coverage)::numeric, 1) AS pct_coverage, round((n.pct_ident)::numeric, 1) AS pct_ident, p.origin, p.alias, p.species, p.patent_date, p.patent_authority, p.descr FROM (nearby_sequences_v n JOIN patents_v p ON ((n.t_pseq_id = p.pseq_id)));
 
 
 ALTER TABLE unison.nearby_patents_v OWNER TO unison;
 
 --
--- Name: nearby_sequences_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: nearby_patents_sorted_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE VIEW nearby_sequences_v AS
-    SELECT nearby_sequences_unsorted_v.q_pseq_id, nearby_sequences_unsorted_v.t_pseq_id, nearby_sequences_unsorted_v.len, nearby_sequences_unsorted_v.pct_ident, nearby_sequences_unsorted_v.pct_coverage FROM nearby_sequences_unsorted_v ORDER BY nearby_sequences_unsorted_v.pct_coverage DESC, nearby_sequences_unsorted_v.pct_ident DESC, nearby_sequences_unsorted_v.t_pseq_id;
+CREATE VIEW nearby_patents_sorted_v AS
+    SELECT nearby_patents_unsorted_v.q_pseq_id, nearby_patents_unsorted_v.t_pseq_id, nearby_patents_unsorted_v.len, nearby_patents_unsorted_v.pct_coverage, nearby_patents_unsorted_v.pct_ident, nearby_patents_unsorted_v.origin, nearby_patents_unsorted_v.alias, nearby_patents_unsorted_v.species, nearby_patents_unsorted_v.patent_date, nearby_patents_unsorted_v.patent_authority, nearby_patents_unsorted_v.descr FROM nearby_patents_v nearby_patents_unsorted_v ORDER BY nearby_patents_unsorted_v.pct_coverage DESC, nearby_patents_unsorted_v.pct_ident DESC, nearby_patents_unsorted_v.t_pseq_id, nearby_patents_unsorted_v.patent_date, nearby_patents_unsorted_v.patent_authority, (nearby_patents_unsorted_v.origin = 'pataa'::text), nearby_patents_unsorted_v.alias;
 
 
-ALTER TABLE unison.nearby_sequences_v OWNER TO unison;
+ALTER TABLE unison.nearby_patents_sorted_v OWNER TO unison;
 
 --
--- Name: VIEW nearby_sequences_v; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: nearby_sequences_sorted_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-COMMENT ON VIEW nearby_sequences_v IS 'sequeneces within 90% coverage and 90% identity';
+CREATE VIEW nearby_sequences_sorted_v AS
+    SELECT nearby_sequences_unsorted_v.q_pseq_id, nearby_sequences_unsorted_v.t_pseq_id, nearby_sequences_unsorted_v.len, nearby_sequences_unsorted_v.pct_ident, nearby_sequences_unsorted_v.pct_coverage FROM nearby_sequences_v nearby_sequences_unsorted_v ORDER BY nearby_sequences_unsorted_v.pct_coverage DESC, nearby_sequences_unsorted_v.pct_ident DESC, nearby_sequences_unsorted_v.t_pseq_id;
+
+
+ALTER TABLE unison.nearby_sequences_sorted_v OWNER TO unison;
+
+--
+-- Name: VIEW nearby_sequences_sorted_v; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW nearby_sequences_sorted_v IS 'sequeneces within 90% coverage and 90% identity';
+
+
+--
+-- Name: origin_origin_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE origin_origin_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.origin_origin_id_seq OWNER TO unison;
+
+--
+-- Name: origin_origin_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE origin_origin_id_seq OWNED BY origin.origin_id;
 
 
 --
@@ -9246,7 +14295,7 @@ COMMENT ON VIEW nearby_sequences_v IS 'sequeneces within 90% coverage and 90% id
 --
 
 CREATE VIEW orphaned_sequences_v AS
-    SELECT pseq.pseq_id FROM pseq EXCEPT SELECT pseqalias.pseq_id FROM pseqalias;
+    SELECT pseq.pseq_id FROM pseq EXCEPT SELECT pseqalias.pseq_id FROM pseq_pannotation pseqalias;
 
 
 ALTER TABLE unison.orphaned_sequences_v OWNER TO unison;
@@ -9263,6 +14312,26 @@ COMMENT ON VIEW orphaned_sequences_v IS 'sequences which do not have any alias';
 --
 
 COMMENT ON COLUMN orphaned_sequences_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+
+
+--
+-- Name: p2gblataln_p2gblataln_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE p2gblataln_p2gblataln_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.p2gblataln_p2gblataln_id_seq OWNER TO unison;
+
+--
+-- Name: p2gblataln_p2gblataln_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE p2gblataln_p2gblataln_id_seq OWNED BY p2gblataln.p2gblataln_id;
 
 
 --
@@ -9329,6 +14398,63 @@ COMMENT ON COLUMN p2gblataln_v.chr IS 'chromosome';
 --
 
 COMMENT ON COLUMN p2gblataln_v.plus_strand IS 'true = ''+'' strand; false = ''-'' strand';
+
+
+--
+-- Name: p2gblathsp_p2gblathsp_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE p2gblathsp_p2gblathsp_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.p2gblathsp_p2gblathsp_id_seq OWNER TO unison;
+
+--
+-- Name: p2gblathsp_p2gblathsp_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE p2gblathsp_p2gblathsp_id_seq OWNED BY p2gblathsp.p2gblathsp_id;
+
+
+--
+-- Name: paliasorigin; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW paliasorigin AS
+    SELECT pannotation.pannotation_id, pannotation.origin_id, pannotation.alias, pannotation.descr, pannotation.tax_id, pannotation.added FROM pannotation;
+
+
+ALTER TABLE unison.paliasorigin OWNER TO unison;
+
+--
+-- Name: VIEW paliasorigin; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW paliasorigin IS 'DEPRECATED -- use pannotation instead';
+
+
+--
+-- Name: pannotation_pannotation_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pannotation_pannotation_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pannotation_pannotation_id_seq OWNER TO unison;
+
+--
+-- Name: pannotation_pannotation_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pannotation_pannotation_id_seq OWNED BY pannotation.pannotation_id;
 
 
 --
@@ -9559,6 +14685,26 @@ COMMENT ON COLUMN papssm.eval IS 'expectation value';
 
 
 --
+-- Name: params_params_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE params_params_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.params_params_id_seq OWNER TO unison;
+
+--
+-- Name: params_params_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE params_params_id_seq OWNED BY params.params_id;
+
+
+--
 -- Name: params_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -9601,7 +14747,7 @@ COMMENT ON COLUMN params_v.descr IS 'description of parameters';
 --
 
 CREATE VIEW pataa_v AS
-    SELECT sa.pseq_id, origin_alias_fmt(o.origin, ao.alias) AS alias, t.latin AS species, ("substring"(ao.descr, '\[DT: (\S+)'::text))::date AS patent_date, "substring"(ao.descr, '\[PA:\s+\([^\)]+\)\s+([^\s\]]+)'::text) AS patent_authority, ao.descr FROM (((pseqalias sa JOIN paliasorigin ao ON ((sa.palias_id = ao.palias_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id))) WHERE ((ao.origin_id = 10002) AND sa.is_current) ORDER BY ("substring"(ao.descr, '\[DT: (\S+)'::text))::date;
+    SELECT sa.pseq_id, origin_alias_fmt(o.origin, ao.alias) AS alias, t.latin AS species, ("substring"(ao.descr, '\[DT: (\S+)'::text))::date AS patent_date, "substring"(ao.descr, '\[PA:\s+\([^\)]+\)\s+([^\s\]]+)'::text) AS patent_authority, ao.descr FROM (((pseq_pannotation sa JOIN pannotation ao ON ((sa.pannotation_id = ao.pannotation_id))) JOIN origin o ON ((ao.origin_id = o.origin_id))) LEFT JOIN tax.spspec t ON ((ao.tax_id = t.tax_id))) WHERE ((ao.origin_id = 10002) AND sa.is_current) ORDER BY ("substring"(ao.descr, '\[DT: (\S+)'::text))::date;
 
 
 ALTER TABLE unison.pataa_v OWNER TO unison;
@@ -9628,62 +14774,72 @@ COMMENT ON COLUMN pataa_v.species IS 'patent species';
 
 
 --
--- Name: patents_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: patent_count_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE VIEW patents_v AS
-    SELECT patents_unsorted_v.pseq_id, patents_unsorted_v.origin, patents_unsorted_v.alias, patents_unsorted_v.species, patents_unsorted_v.patent_date, patents_unsorted_v.patent_authority, patents_unsorted_v.descr FROM patents_unsorted_v ORDER BY (patents_unsorted_v.origin = 'pataa'::text);
+CREATE VIEW patent_count_v AS
+    SELECT patents_v.pseq_id, count(*) AS count FROM patents_v GROUP BY patents_v.pseq_id;
 
 
-ALTER TABLE unison.patents_v OWNER TO unison;
-
---
--- Name: VIEW patents_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW patents_v IS 'Patents from pataa database and Geneseq, if available';
-
+ALTER TABLE unison.patent_count_v OWNER TO unison;
 
 --
--- Name: COLUMN patents_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: patents_sorted_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
+CREATE VIEW patents_sorted_v AS
+    SELECT patents_unsorted_v.pseq_id, patents_unsorted_v.origin, patents_unsorted_v.alias, patents_unsorted_v.species, patents_unsorted_v.patent_date, patents_unsorted_v.patent_authority, patents_unsorted_v.descr FROM patents_v patents_unsorted_v ORDER BY (patents_unsorted_v.origin = 'pataa'::text);
 
+
+ALTER TABLE unison.patents_sorted_v OWNER TO unison;
 
 --
--- Name: COLUMN patents_v.alias; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: VIEW patents_sorted_v; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_v.alias IS 'authority''s alias for the sequence';
+COMMENT ON VIEW patents_sorted_v IS 'Patents from pataa database and Geneseq, if available';
 
 
 --
--- Name: COLUMN patents_v.species; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN patents_sorted_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_v.species IS 'patent species (not available in pataa)';
-
-
---
--- Name: COLUMN patents_v.patent_date; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN patents_v.patent_date IS 'patent date (NULL in pataa)';
+COMMENT ON COLUMN patents_sorted_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
 
 
 --
--- Name: COLUMN patents_v.patent_authority; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN patents_sorted_v.alias; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_v.patent_authority IS 'patent authority (NULL in pataa)';
+COMMENT ON COLUMN patents_sorted_v.alias IS 'authority''s alias for the sequence';
 
 
 --
--- Name: COLUMN patents_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN patents_sorted_v.species; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN patents_v.descr IS 'descriptions from patents_pataa_v and patents_genseq_v, which see';
+COMMENT ON COLUMN patents_sorted_v.species IS 'patent species (not available in pataa)';
+
+
+--
+-- Name: COLUMN patents_sorted_v.patent_date; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN patents_sorted_v.patent_date IS 'patent date (NULL in pataa)';
+
+
+--
+-- Name: COLUMN patents_sorted_v.patent_authority; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN patents_sorted_v.patent_authority IS 'patent authority (NULL in pataa)';
+
+
+--
+-- Name: COLUMN patents_sorted_v.descr; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON COLUMN patents_sorted_v.descr IS 'descriptions from patents_pataa_v and patents_genseq_v, which see';
 
 
 --
@@ -9788,6 +14944,26 @@ COMMENT ON COLUMN pcluster_member.gstop IS 'genomic stop position on chromosome'
 
 
 --
+-- Name: pcluster_pcluster_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pcluster_pcluster_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pcluster_pcluster_id_seq OWNER TO unison;
+
+--
+-- Name: pcluster_pcluster_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pcluster_pcluster_id_seq OWNED BY pcluster.pcluster_id;
+
+
+--
 -- Name: perftest_def; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -9879,6 +15055,26 @@ COMMENT ON COLUMN perftest_def.max_time IS 'max time expected for a single test 
 --
 
 COMMENT ON COLUMN perftest_def.max_avg_time IS 'max average time for all runs';
+
+
+--
+-- Name: perftest_def_def_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE perftest_def_def_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.perftest_def_def_id_seq OWNER TO unison;
+
+--
+-- Name: perftest_def_def_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE perftest_def_def_id_seq OWNED BY perftest_def.def_id;
 
 
 --
@@ -10012,6 +15208,26 @@ COMMENT ON COLUMN perftest_platform.pg_version IS 'PostgreSQL x.y.z version';
 
 
 --
+-- Name: perftest_platform_platform_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE perftest_platform_platform_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.perftest_platform_platform_id_seq OWNER TO unison;
+
+--
+-- Name: perftest_platform_platform_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE perftest_platform_platform_id_seq OWNED BY perftest_platform.platform_id;
+
+
+--
 -- Name: perftest_result; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
 --
 
@@ -10098,6 +15314,26 @@ ALTER TABLE unison.perftest_run OWNER TO unison;
 --
 
 COMMENT ON TABLE perftest_run IS 'a set of perf results on a specific platform; perhaps >1 run/platform';
+
+
+--
+-- Name: perftest_run_run_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE perftest_run_run_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.perftest_run_run_id_seq OWNER TO unison;
+
+--
+-- Name: perftest_run_run_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE perftest_run_run_id_seq OWNED BY perftest_run.run_id;
 
 
 --
@@ -10367,24 +15603,6 @@ COMMENT ON COLUMN pfbigpi_v.params_id IS 'parameter set identifier -- see params
 --
 
 COMMENT ON COLUMN pfbigpi_v.score IS 'algorithm-specific score';
-
-
---
--- Name: pseq_id_sequence(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) RETURNS text
-    AS $_$select seq from pseq where pseq_id=$1$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pseq_id_sequence(pseq_id integer, OUT sequence text) OWNER TO unison;
-
---
--- Name: FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) IS 'returns sequence for given pseq_id';
 
 
 --
@@ -10797,14 +16015,34 @@ COMMENT ON COLUMN pfsignalphmm_v.stop IS 'stop of prediction in protein sequence
 
 
 --
--- Name: pftmhmm_ecd_length_v; Type: VIEW; Schema: unison; Owner: unison
+-- Name: pftmhmm_ecd_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
-CREATE VIEW pftmhmm_ecd_length_v AS
-    SELECT a.pseq_id, (a.start - b.start) AS ecd_length FROM (pftmhmm a JOIN pftmhmm b ON (((a.pseq_id = b.pseq_id) AND (a.params_id = b.params_id)))) WHERE (((a.start - b.stop) = 1) AND (a.type = 'N'::bpchar));
+CREATE VIEW pftmhmm_ecd_v AS
+    SELECT pftmhmm.pfeature_id, pftmhmm.pseq_id, pftmhmm.pftype_id, pftmhmm.start, pftmhmm.stop, pftmhmm.params_id, pftmhmm.type, ((pftmhmm.stop - pftmhmm.start) + 1) AS length FROM pftmhmm WHERE (pftmhmm.type = 'o'::bpchar);
 
 
-ALTER TABLE unison.pftmhmm_ecd_length_v OWNER TO unison;
+ALTER TABLE unison.pftmhmm_ecd_v OWNER TO unison;
+
+--
+-- Name: pftype_pftype_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pftype_pftype_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pftype_pftype_id_seq OWNER TO unison;
+
+--
+-- Name: pftype_pftype_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pftype_pftype_id_seq OWNED BY pftype.pftype_id;
+
 
 --
 -- Name: pftype_preferred_run_v; Type: VIEW; Schema: unison; Owner: unison
@@ -10821,6 +16059,26 @@ ALTER TABLE unison.pftype_preferred_run_v OWNER TO unison;
 --
 
 COMMENT ON VIEW pftype_preferred_run_v IS 'preferred params and pmodelsets for each feature type';
+
+
+--
+-- Name: pmap_aln_aln_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pmap_aln_aln_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pmap_aln_aln_id_seq OWNER TO unison;
+
+--
+-- Name: pmap_aln_aln_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pmap_aln_aln_id_seq OWNED BY pmap_aln.aln_id;
 
 
 --
@@ -10945,7 +16203,7 @@ COMMENT ON COLUMN pmap_unambiguous_overlaps_mv.t_gstop IS 'genomic stop of targe
 --
 
 CREATE VIEW pmap_gg_representative_v AS
-    SELECT DISTINCT ON (o.genasm_id, o.params_id, o.q_pseq_id) o.genasm_id, o.params_id, o.chr, o.strand, o.q_pseq_id, o.q_gstart, o.q_gstop, o.t_pseq_id, o.t_gstart, o.t_gstop, tca.palias_id, tca.origin_id, tca.origin, tca.alias, tca.descr, gg.unqid, gg.proid, gg.dnaid, tca.link_url FROM ((pmap_unambiguous_overlaps_mv o JOIN current_annotations_v tca ON ((o.t_pseq_id = tca.pseq_id))) JOIN pseq_sst_v gg ON ((o.t_pseq_id = gg.pseq_id))) WHERE (tca.origin_id = origin_id('GenenGenes'::text)) ORDER BY o.genasm_id, o.params_id, o.q_pseq_id;
+    SELECT DISTINCT ON (o.genasm_id, o.params_id, o.q_pseq_id) o.genasm_id, o.params_id, o.chr, o.strand, o.q_pseq_id, o.q_gstart, o.q_gstop, o.t_pseq_id, o.t_gstart, o.t_gstop, tca.pannotation_id, tca.origin_id, tca.origin, tca.alias, tca.descr, gg.unqid, gg.proid, gg.dnaid, tca.link_url FROM ((pmap_unambiguous_overlaps_mv o JOIN current_annotations_sorted_v tca ON ((o.t_pseq_id = tca.pseq_id))) JOIN pseq_sst_v gg ON ((o.t_pseq_id = gg.pseq_id))) WHERE (tca.origin_id = origin_id('GenenGenes'::text)) ORDER BY o.genasm_id, o.params_id, o.q_pseq_id;
 
 
 ALTER TABLE unison.pmap_gg_representative_v OWNER TO unison;
@@ -10958,11 +16216,31 @@ COMMENT ON VIEW pmap_gg_representative_v IS 'GenenGenes identifiers for q_pseq_i
 
 
 --
+-- Name: pmap_hsp_hsp_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pmap_hsp_hsp_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pmap_hsp_hsp_id_seq OWNER TO unison;
+
+--
+-- Name: pmap_hsp_hsp_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pmap_hsp_hsp_id_seq OWNED BY pmap_hsp.hsp_id;
+
+
+--
 -- Name: pmap_locus_representative_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW pmap_locus_representative_v AS
-    SELECT DISTINCT ON (o.genasm_id, o.params_id, o.q_pseq_id) o.genasm_id, o.params_id, o.chr, o.strand, o.q_pseq_id, o.q_gstart, o.q_gstop, o.t_pseq_id, o.t_gstart, o.t_gstop, tba.palias_id, tba.origin_id, tba.origin, tba.alias, tba.descr, tba.link_url FROM ((pmap_unambiguous_overlaps_mv o JOIN best_annotation_mv qba ON ((o.q_pseq_id = qba.pseq_id))) JOIN best_annotation_mv tba ON ((o.t_pseq_id = tba.pseq_id))) WHERE ((tba.ann_pref <= qba.ann_pref) OR (qba.ann_pref IS NULL)) ORDER BY o.genasm_id, o.params_id, o.q_pseq_id, tba.ann_pref, (strpos(tba.alias, '_'::text) = 0), tba.alias;
+    SELECT DISTINCT ON (o.genasm_id, o.params_id, o.q_pseq_id) o.genasm_id, o.params_id, o.chr, o.strand, o.q_pseq_id, o.q_gstart, o.q_gstop, o.t_pseq_id, o.t_gstart, o.t_gstop, tba.pannotation_id, tba.origin_id, tba.origin, tba.alias, tba.descr, tba.link_url FROM ((pmap_unambiguous_overlaps_mv o JOIN best_annotation_mv qba ON ((o.q_pseq_id = qba.pseq_id))) JOIN best_annotation_mv tba ON ((o.t_pseq_id = tba.pseq_id))) WHERE ((tba.ann_pref <= qba.ann_pref) OR (qba.ann_pref IS NULL)) ORDER BY o.genasm_id, o.params_id, o.q_pseq_id, tba.ann_pref, (strpos(tba.alias, '_'::text) = 0), tba.alias;
 
 
 ALTER TABLE unison.pmap_locus_representative_v OWNER TO unison;
@@ -11070,16 +16348,6 @@ COMMENT ON TABLE pmap_unambiguous_mv IS 'matview of pmap_unambiguous_v';
 
 
 --
--- Name: pseq_features_pfam_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW pseq_features_pfam_v AS
-    SELECT ft.name AS feature_type, f.params_id, p.name AS params_name, f.pseq_id, f.start, f.stop, f.score, f.eval, m.origin_id, o.origin, f.pmodel_id, m.name AS feature, m.acc, m.descr, NULL::text AS details, domain_digest(f.start, f.stop, m.name, f.score, f.eval) AS digest, link_url(m.origin_id, m.acc) AS link_url FROM ((((((pahmm f JOIN pmhmm m ON ((f.pmodel_id = m.pmodel_id))) JOIN pmsm_pmhmm ms ON ((ms.pmodel_id = m.pmodel_id))) JOIN origin o ON ((m.origin_id = o.origin_id))) JOIN params p ON ((f.params_id = p.params_id))) JOIN pftype ft ON ((p.pftype_id = ft.pftype_id))) JOIN run r ON (((r.params_id = f.params_id) AND (r.pmodelset_id = ms.pmodelset_id)))) WHERE ((r.run_id = preferred_run_id_by_pftype('HMM'::text)) AND (f.eval < (1)::double precision));
-
-
-ALTER TABLE unison.pseq_features_pfam_v OWNER TO unison;
-
---
 -- Name: pmap_pfam_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -11088,6 +16356,16 @@ CREATE VIEW pmap_pfam_v AS
 
 
 ALTER TABLE unison.pmap_pfam_v OWNER TO unison;
+
+--
+-- Name: pmap_tmhmm_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pmap_tmhmm_v AS
+    SELECT g.params_id AS pmap_params_id, g.genasm_id, g.aln_id, g.pstart, g.pstop, g.chr, g.strand, g.gstart, g.gstop, f.pfeature_id, f.pseq_id, f.pftype_id, f.start, f.stop, f.params_id, f.type, (SELECT ((e.gstart + ((f.start - e.pstart) * 3)) - 1) FROM (pmap_alnhsp ah JOIN pmap_hsp e ON ((e.hsp_id = ah.hsp_id))) WHERE ((g.aln_id = ah.aln_id) AND ((f.start >= e.pstart) AND (f.start <= e.pstop)))) AS region_gstart, (SELECT ((e.gstart + ((f.stop - e.pstart) * 3)) - 1) FROM (pmap_alnhsp ah JOIN pmap_hsp e ON ((e.hsp_id = ah.hsp_id))) WHERE ((g.aln_id = ah.aln_id) AND ((f.stop >= e.pstart) AND (f.stop <= e.pstop)))) AS region_gstop FROM (pftmhmm f JOIN pmap_unambiguous_mv g ON ((g.pseq_id = f.pseq_id))) WHERE ((g.params_id = (SELECT run.params_id FROM run WHERE (run.run_id = preferred_run_id_by_pftype('PMAP'::text)))) AND (g.genasm_id = genasm_id('NHGD-36'::text)));
+
+
+ALTER TABLE unison.pmap_tmhmm_v OWNER TO unison;
 
 --
 -- Name: pmap_unambiguous_overlaps_v; Type: VIEW; Schema: unison; Owner: unison
@@ -11141,6 +16419,26 @@ COMMENT ON TABLE pmodel2go IS 'GO assignments to models; see gong.*';
 --
 
 COMMENT ON COLUMN pmodel2go.pmodel_id IS 'unique protein model identifier';
+
+
+--
+-- Name: pmodelset_pmodelset_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pmodelset_pmodelset_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pmodelset_pmodelset_id_seq OWNER TO unison;
+
+--
+-- Name: pmodelset_pmodelset_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pmodelset_pmodelset_id_seq OWNED BY pmodelset.pmodelset_id;
 
 
 --
@@ -11512,56 +16810,6 @@ COMMENT ON COLUMN pseq_features_bigpi_v.link_url IS 'URL to source data';
 
 
 --
--- Name: aa_1_to_3(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION aa_1_to_3(text) RETURNS text
-    AS $_$
-select case $1
-	when 'A' then 'Ala'
-	when 'B' then 'Bas'
-	when 'C' then 'Cys'
-	when 'D' then 'Asp'
-	when 'E' then 'Glu'
-	when 'F' then 'Phe'
-	when 'G' then 'Gly'
-	when 'H' then 'His'
-	when 'I' then 'Iso'
-	when 'K' then 'Lys'
-	when 'L' then 'Leu'
-	when 'M' then 'Met'
-	when 'N' then 'Asn'
-	when 'P' then 'Pro'
-	when 'Q' then 'Gln'
-	when 'R' then 'Arg'
-	when 'S' then 'Ser'
-	when 'T' then 'Thr'
-	when 'V' then 'Val'
-	when 'W' then 'Trp'
-	when 'X' then 'Any'
-	when 'Y' then 'Tyr'
-	when 'Z' then 'Aci'
---	when '*' then 'Stp'
-	else '???'
-	end;
-$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.aa_1_to_3(text) OWNER TO unison;
-
---
--- Name: domain_digest(integer, text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) RETURNS text
-    AS $$BEGIN SELECT INTO digest name || '(' || pstart || COALESCE(';'||NULLIF(note,''),'') || ')'; END;$$
-    LANGUAGE plpgsql IMMUTABLE;
-
-
-ALTER FUNCTION unison.domain_digest(pstart integer, name text, note text, OUT digest text) OWNER TO unison;
-
---
 -- Name: pseq_features_netphos_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -11688,17 +16936,6 @@ COMMENT ON COLUMN pseq_features_regexp_v.details IS 'prediction details';
 
 COMMENT ON COLUMN pseq_features_regexp_v.link_url IS 'URL to source data';
 
-
---
--- Name: pdb_seq_pos(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pdb_seq_pos(text, text) RETURNS integer
-    AS $_$DECLARE V_id text; BEGIN select into V_id seq_pos from pdb.residue where pdbc=$1 and res_id=$2; IF NOT FOUND THEN RAISE WARNING 'pdbc ''%'' res_id ''%''  not found', $1,$2; RETURN NULL; END IF; return V_id; END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pdb_seq_pos(text, text) OWNER TO unison;
 
 --
 -- Name: scop_v; Type: VIEW; Schema: unison; Owner: unison
@@ -11840,17 +17077,10 @@ COMMENT ON COLUMN pseq_features_v.link_url IS 'link to model in external databas
 --
 
 CREATE VIEW pseq_gene_v AS
-    SELECT DISTINCT sa.pseq_id, ao.alias, ao.descr, ao.tax_id, ga.gene_id FROM ((pseqalias sa JOIN paliasorigin ao ON (((sa.palias_id = ao.palias_id) AND (ao.origin_id = origin_id('RefSeq'::text))))) JOIN ncbi.gene2accession ga ON (((ao.alias = ga.pro_acc) AND (ao.tax_id = ga.tax_id)))) ORDER BY sa.pseq_id, ao.tax_id, ga.gene_id, ao.alias, ao.descr;
+    SELECT DISTINCT sa.pseq_id, ao.alias, ao.descr, ao.tax_id, ga.gene_id, gi.symbol FROM (((pseq_pannotation sa JOIN pannotation ao ON (((sa.pannotation_id = ao.pannotation_id) AND (ao.origin_id = origin_id('RefSeq'::text))))) JOIN ncbi.gene2accession ga ON (((ao.alias = ga.pro_acc) AND (ao.tax_id = ga.tax_id)))) JOIN ncbi.gene_info gi ON ((gi.gene_id = ga.gene_id))) ORDER BY sa.pseq_id, ao.tax_id, ga.gene_id, ao.alias, ao.descr, gi.symbol;
 
 
 ALTER TABLE unison.pseq_gene_v OWNER TO unison;
-
---
--- Name: VIEW pseq_gene_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW pseq_gene_v IS 'map pseq_id to NCBI gene_id via RefSeq alias';
-
 
 --
 -- Name: pseq_generif_v; Type: VIEW; Schema: unison; Owner: unison
@@ -11904,202 +17134,6 @@ COMMENT ON VIEW pseq_probe_v IS 'overlapping pseqs and microarray probes';
 
 
 --
--- Name: a280(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION a280(text, text) RETURNS real
-    AS $_$
-DECLARE 
-	ans float;
-BEGIN 
-	select INTO ans A280($1,$2,'f');
-	return ans;
-END$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.a280(text, text) OWNER TO unison;
-
---
--- Name: mol_wt(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION mol_wt(text) RETURNS real
-    AS $_X$
-
-# http://www.expasy.org/tools/pi_tool-doc.html
-# Protein Mw can be calculated by 
-# the addition of average isotopic masses of amino acids (zwitter ion) in the protein 
-# and the average isotopic mass of one water molecule.
-
-#from EMBOSS/share/EMBOSS/data/Eamino.dat
-my %weights = (
-A => 71.0786,
-B => 114.5960,
-# They are for proteins with full reduced cysteine residues.  If all
-# cysteines are oxidized to cystine, use
-# a value of 60 for C
-C => 103.1386,
-D => 115.0884,
-E => 129.1152,
-F => 147.1762,
-G => 57.0518,
-H => 137.1408,
-I => 113.1590,
-K => 128.1736,
-L => 113.1590,
-# If met gets oxidised to the sulphoxide replace by 147.1926
-M => 131.1926,
-N => 114.1036,
-P => 97.1164,
-Q => 128.1304,
-R => 156.1870,
-S => 87.0780,
-T => 101.1048,
-U => 150.038, #not in EMBOSS
-V => 99.1322,
-W => 186.2128,
-X => 144.0000,
-Y => 163.1756,
-Z => 128.6228
-);
-
-$_ = shift;
-elog(ERROR, "sequence length <= 0") if(length($_) <= 0);
-
-my $mol_wt =18.015; #mass of one water molecule
-
-foreach my $aa(split //, $_) {
-	elog(ERROR, "Unexpected amino acid ".$aa) if(not defined $weights{uc($aa)});
-	$mol_wt += $weights{uc($aa)};
-}	
-return $mol_wt;
-$_X$
-    LANGUAGE plperl IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.mol_wt(text) OWNER TO unison;
-
---
--- Name: FUNCTION mol_wt(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION mol_wt(text) IS 'returns the molecular weight of the protein in daltons';
-
-
---
--- Name: pi(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pi(text, text) RETURNS real
-    AS $_X$
-# pK values from the DTASelect program from Scripps
-# http://fields.scripps.edu/DTASelect
-my %pK_params;
-$pK_params{dtaselect} = {  
-		      N_term   =>  8.0,
-                      K        => 10.0, # Lys
-                      R        => 12.0, # Arg
-                      H        =>  6.5, # His
-                      D        =>  4.4, # Asp
-                      E        =>  4.4, # Glu
-                      C        =>  8.5, # Cys
-                      Y        => 10.0, # Tyr
-                      C_term   =>  3.1
-                    };
-
-# pK values from the iep program from EMBOSS
-# http://www.hgmp.mrc.ac.uk/Software/EMBOSS/
-$pK_params{emboss}  = { 
-		   N_term   =>  8.6,
-                   K        => 10.8, # Lys
-                   R        => 12.5, # Arg
-                   H        =>  6.5, # His
-                   D        =>  3.9, # Asp
-                   E        =>  4.1, # Glu
-                   C        =>  8.5, # Cys
-                   Y        => 10.1, # Tyr
-                   C_term   =>  3.6
-                 };
-my $seq = shift;
-elog(ERROR, "sequence length <= 0") if(length($seq) <= 0);
-
-my $params = shift;
-elog(ERROR, "pK params $params does not exist options are 'emboss' and 'dtaselect'
-") if(not defined $pK_params{$params});
-my $pKset = $pK_params{$params};
-
-my $places = 2; #decimal places
-my $count = _count_charged_residues( $seq );
-
-return _calculate_iep($pKset,$places,$seq,$count);	
-
-sub _calculate_iep {
-    my( $pK, $places, $seq, $count ) = @_;
-    my $pH = 7.0;
-    my $step = 3.5;
-    my $last_charge = 0.0;
-    my $format = "%.${places}f";
-    my $count = _count_charged_residues($seq);
-
-    while(1){
-       my $charge = _calculate_charge_at_pH( $pH, $pK, $count );
-       last if sprintf($format,$charge) == 
-	 sprintf($format,$last_charge);
-       $charge > 0 ? ( $pH += $step ) : ( $pH -= $step );
-       $step /= 2.0;
-       $last_charge = $charge;
-    }
-    return sprintf( $format, $pH );
-}
-
-sub _count_charged_residues {
-   my $seq = shift;
-   my $count;
-   for ( qw( K R H D E C Y ) ){ # charged AAs
-      $count->{$_}++ while $seq =~ /$_/ig;
-   }
-   return $count;
-}
-
-# its the sum of all the partial charges for the
-# termini and all of the charged aa s!
-sub _calculate_charge_at_pH {
-
-   my( $pH, $pK, $count ) = @_;
-   my $charge =    _partial_charge( $pK->{N_term}, $pH )
-   + $count->{K} * _partial_charge( $pK->{K},      $pH )
-   + $count->{R} * _partial_charge( $pK->{R},      $pH )
-   + $count->{H} * _partial_charge( $pK->{H},      $pH )
-   - $count->{D} * _partial_charge( $pH,      $pK->{D} )
-   - $count->{E} * _partial_charge( $pH,      $pK->{E} )
-   - $count->{C} * _partial_charge( $pH,      $pK->{C} )
-   - $count->{Y} * _partial_charge( $pH,      $pK->{Y} )
-   -               _partial_charge( $pH, $pK->{C_term} );
-   return $charge;
-}
-
-# Concentration Ratio is 10**(pK - pH) for positive groups
-# and 10**(pH - pK) for negative groups
-sub _partial_charge {
-   my $cr = 10 ** ( $_[0] - $_[1] );
-   return $cr / ( $cr + 1 );
-}
-
-$_X$
-    LANGUAGE plperl IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pi(text, text) OWNER TO unison;
-
---
--- Name: FUNCTION pi(text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pi(text, text) IS 'returns the theoretical isoelectric point of a protein, try pI(seq,''emboss'')';
-
-
---
 -- Name: pseq_prop_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -12108,6 +17142,56 @@ CREATE VIEW pseq_prop_v AS
 
 
 ALTER TABLE unison.pseq_prop_v OWNER TO unison;
+
+--
+-- Name: pseq_pseq_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pseq_pseq_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pseq_pseq_id_seq OWNER TO unison;
+
+--
+-- Name: pseq_pseq_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pseq_pseq_id_seq OWNED BY pseq.pseq_id;
+
+
+SET search_path = unison_aux, pg_catalog;
+
+--
+-- Name: ptm; Type: TABLE; Schema: unison_aux; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE ptm (
+    ptm_type_id integer NOT NULL,
+    alias text NOT NULL,
+    descr text,
+    start integer NOT NULL,
+    stop integer,
+    expt boolean DEFAULT false NOT NULL
+);
+
+
+ALTER TABLE unison_aux.ptm OWNER TO unison;
+
+SET search_path = unison, pg_catalog;
+
+--
+-- Name: pseq_ptm_v; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pseq_ptm_v AS
+    SELECT a.pseq_id, p.ptm_type_id, p.alias, p.descr, p.start, p.stop, p.expt FROM (current_annotations_mv a JOIN unison_aux.ptm p ON ((a.alias = p.alias))) WHERE (a.origin_id = origin_id('UniProtKB/Swiss-Prot'::text));
+
+
+ALTER TABLE unison.pseq_ptm_v OWNER TO unison;
 
 --
 -- Name: pseq_set_membership; Type: VIEW; Schema: unison; Owner: unison
@@ -12179,7 +17263,7 @@ COMMENT ON COLUMN pseq_sp_var_v.pseq_id IS 'unique protein sequence identifier -
 --
 
 CREATE VIEW pseq_template_v AS
-    SELECT papseq_pdbcs_v.q_pseq_id, papseq_pdbcs_v.t_pseq_id, papseq_pdbcs_v.q_start, papseq_pdbcs_v.q_stop, papseq_pdbcs_v.t_start, papseq_pdbcs_v.t_stop, papseq_pdbcs_v.pct_ident, papseq_pdbcs_v.len, papseq_pdbcs_v.gaps, round((papseq_pdbcs_v.pct_coverage)::double precision) AS pct_coverage, papseq_pdbcs_v.eval, papseq_pdbcs_v.score, 'blast'::text AS method, papseq_pdbcs_v.pdbc AS template, papseq_pdbcs_v.descr FROM papseq_pdbcs_v papseq_pdbcs_v ORDER BY papseq_pdbcs_v.eval, round((papseq_pdbcs_v.pct_coverage)::double precision) DESC;
+    SELECT papseq_pdbcs_mv.q_pseq_id, papseq_pdbcs_mv.t_pseq_id, papseq_pdbcs_mv.q_start, papseq_pdbcs_mv.q_stop, papseq_pdbcs_mv.t_start, papseq_pdbcs_mv.t_stop, papseq_pdbcs_mv.pct_ident, papseq_pdbcs_mv.len, papseq_pdbcs_mv.gaps, round((papseq_pdbcs_mv.pct_coverage)::double precision) AS pct_coverage, papseq_pdbcs_mv.eval, papseq_pdbcs_mv.score, 'blast'::text AS method, papseq_pdbcs_mv.pdbc AS template, papseq_pdbcs_mv.descr FROM papseq_pdbcs_mv papseq_pdbcs_mv ORDER BY papseq_pdbcs_mv.eval, round((papseq_pdbcs_mv.pct_coverage)::double precision) DESC;
 
 
 ALTER TABLE unison.pseq_template_v OWNER TO unison;
@@ -12255,11 +17339,28 @@ COMMENT ON COLUMN pseq_template_v.score IS 'algorithm-specific score';
 
 
 --
+-- Name: pseqalias; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pseqalias AS
+    SELECT pseq_pannotation.pannotation_id, pseq_pannotation.pseq_id, pseq_pannotation.ref_pseq_id, pseq_pannotation.added, pseq_pannotation.version, pseq_pannotation.is_current FROM pseq_pannotation;
+
+
+ALTER TABLE unison.pseqalias OWNER TO unison;
+
+--
+-- Name: VIEW pseqalias; Type: COMMENT; Schema: unison; Owner: unison
+--
+
+COMMENT ON VIEW pseqalias IS 'DEPRECATED -- use pseq_pannotation instead';
+
+
+--
 -- Name: pseqset_patented_dv; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW pseqset_patented_dv AS
-    SELECT DISTINCT patents_v.pseq_id FROM patents_v ORDER BY patents_v.pseq_id;
+    SELECT DISTINCT patents_v.pseq_id FROM patents_sorted_v patents_v ORDER BY patents_v.pseq_id;
 
 
 ALTER TABLE unison.pseqset_patented_dv OWNER TO unison;
@@ -12270,28 +17371,6 @@ ALTER TABLE unison.pseqset_patented_dv OWNER TO unison;
 
 COMMENT ON COLUMN pseqset_patented_dv.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
 
-
---
--- Name: pseq_species(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_species(integer) RETURNS text
-    AS $_$
-DECLARE
-	v_pseq_id alias for $1;
-	rv text;
-BEGIN
-	select into rv
-		as_set(distinct tax.tax_id2gs(tax_id)) from pseqalias
-		natural join paliasorigin
-		where pseq_id=v_pseq_id and is_current=TRUE
-		group by pseq_id;
-	return rv;
-END;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison.pseq_species(integer) OWNER TO unison;
 
 --
 -- Name: pseqsummary_v; Type: VIEW; Schema: unison; Owner: unison
@@ -12332,7 +17411,7 @@ COMMENT ON COLUMN pset_bacterial_dv.pseq_id IS 'unique protein sequence identifi
 --
 
 CREATE VIEW pset_blast_dv AS
-    SELECT current_annotations_unsorted_v.pseq_id FROM current_annotations_unsorted_v WHERE (current_annotations_unsorted_v.ann_pref < 50000);
+    SELECT current_annotations_unsorted_v.pseq_id FROM current_annotations_v current_annotations_unsorted_v WHERE (current_annotations_unsorted_v.ann_pref < 50000);
 
 
 ALTER TABLE unison.pset_blast_dv OWNER TO unison;
@@ -12394,7 +17473,7 @@ COMMENT ON COLUMN pset_counts_v.descr IS 'set description';
 --
 
 CREATE VIEW pset_criteria_v AS
-    SELECT ca.pseq_id, ca.origin_id, ca.origin, ca.ann_pref, ca.palias_id, ca.tax_id, ca.k, ca.gs, ca.latin, ca.common, ca.alias, ca.descr, ca.added, ca.link_url, q.len FROM (current_annotations_unsorted_v ca JOIN pseq q ON ((ca.pseq_id = q.pseq_id)));
+    SELECT ca.pseq_id, ca.origin_id, ca.origin, ca.ann_pref, ca.pannotation_id, ca.tax_id, ca.k, ca.gs, ca.latin, ca.common, ca.alias, ca.descr, ca.added, ca.link_url, q.len FROM (current_annotations_v ca JOIN pseq q ON ((ca.pseq_id = q.pseq_id)));
 
 
 ALTER TABLE unison.pset_criteria_v OWNER TO unison;
@@ -12428,10 +17507,10 @@ COMMENT ON COLUMN pset_criteria_v.ann_pref IS 'annotation preference for the ori
 
 
 --
--- Name: COLUMN pset_criteria_v.palias_id; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: COLUMN pset_criteria_v.pannotation_id; Type: COMMENT; Schema: unison; Owner: unison
 --
 
-COMMENT ON COLUMN pset_criteria_v.palias_id IS 'annotation identifier -- see paliasorigin(palias_id)';
+COMMENT ON COLUMN pset_criteria_v.pannotation_id IS 'annotation identifier -- see paliasorigin(palias_id)';
 
 
 --
@@ -12515,6 +17594,26 @@ COMMENT ON COLUMN pset_patented_98_dv.pseq_id IS 'unique protein sequence identi
 
 
 --
+-- Name: pset_pset_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE pset_pset_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.pset_pset_id_seq OWNER TO unison;
+
+--
+-- Name: pset_pset_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE pset_pset_id_seq OWNED BY pset.pset_id;
+
+
+--
 -- Name: pset_unia_dv; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -12569,11 +17668,21 @@ CREATE VIEW pset_runb_dv AS
 ALTER TABLE unison.pset_runb_dv OWNER TO unison;
 
 --
+-- Name: pset_unic_dv_v2; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pset_unic_dv_v2 AS
+    SELECT DISTINCT pset_criteria_v.pseq_id FROM pset_criteria_v WHERE (((pset_criteria_v.ann_pref <= 50000) AND (pset_criteria_v.tax_id = ANY (ARRAY[tax.gs2tax_id('HUMAN'::text), tax.gs2tax_id('MOUSE'::text), tax.gs2tax_id('PANTR'::text)]))) OR ((pset_criteria_v.ann_pref <= 25000) AND (pset_criteria_v.tax_id = ANY (ARRAY[tax.gs2tax_id('ANOGA'::text), tax.gs2tax_id('BOVIN'::text), tax.gs2tax_id('CAEEL'::text), tax.gs2tax_id('CANFA'::text), tax.gs2tax_id('CHICK'::text), tax.gs2tax_id('DANRE'::text), tax.gs2tax_id('DROME'::text), tax.gs2tax_id('FELCA'::text), tax.gs2tax_id('FUGRU'::text), tax.gs2tax_id('MACFU'::text), tax.gs2tax_id('MACMU'::text), tax.gs2tax_id('PANPA'::text), tax.gs2tax_id('RAT'::text), tax.gs2tax_id('TETFL'::text), tax.gs2tax_id('RABIT'::text), tax.gs2tax_id('YEAST'::text), tax.gs2tax_id('XENTR'::text)])))) ORDER BY pset_criteria_v.pseq_id;
+
+
+ALTER TABLE unison.pset_unic_dv_v2 OWNER TO unison;
+
+--
 -- Name: pset_unic_dv; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW pset_unic_dv AS
-    SELECT DISTINCT pset_criteria_v.pseq_id FROM pset_criteria_v WHERE ((((pset_criteria_v.ann_pref < 50000) AND (pset_criteria_v.tax_id = ANY (ARRAY[tax.gs2tax_id('ANOGA'::text), tax.gs2tax_id('BOVIN'::text), tax.gs2tax_id('CAEEL'::text), tax.gs2tax_id('CANFA'::text), tax.gs2tax_id('CHICK'::text), tax.gs2tax_id('DANRE'::text), tax.gs2tax_id('DROME'::text), tax.gs2tax_id('FELCA'::text), tax.gs2tax_id('FUGRU'::text), tax.gs2tax_id('HUMAN'::text), tax.gs2tax_id('MACFU'::text), tax.gs2tax_id('MACMU'::text), tax.gs2tax_id('MOUSE'::text), tax.gs2tax_id('PANPA'::text), tax.gs2tax_id('PANTR'::text), tax.gs2tax_id('RAT'::text), tax.gs2tax_id('TETFL'::text), tax.gs2tax_id('RABIT'::text), tax.gs2tax_id('YEAST'::text), tax.gs2tax_id('XENTR'::text)]))) AND (pset_criteria_v.len >= 100)) AND (pset_criteria_v.len <= 5000)) ORDER BY pset_criteria_v.pseq_id;
+    SELECT pset_unic_dv_v2.pseq_id FROM pset_unic_dv_v2;
 
 
 ALTER TABLE unison.pset_unic_dv OWNER TO unison;
@@ -12600,7 +17709,7 @@ ALTER TABLE unison.pset_runc_dv OWNER TO unison;
 --
 
 CREATE VIEW pset_rungga_dv AS
-    SELECT current_annotations_v.pseq_id FROM current_annotations_v WHERE (current_annotations_v.origin_id = origin_id('GenenGenes auto'::text));
+    SELECT current_annotations_v.pseq_id FROM current_annotations_sorted_v current_annotations_v WHERE (current_annotations_v.origin_id = origin_id('GenenGenes auto'::text));
 
 
 ALTER TABLE unison.pset_rungga_dv OWNER TO unison;
@@ -12613,11 +17722,41 @@ COMMENT ON COLUMN pset_rungga_dv.pseq_id IS 'unique protein sequence identifier 
 
 
 --
+-- Name: pset_unic_dv_v0; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pset_unic_dv_v0 AS
+    SELECT DISTINCT pset_criteria_v.pseq_id FROM pset_criteria_v WHERE ((((pset_criteria_v.ann_pref < 50000) AND (pset_criteria_v.tax_id = ANY (ARRAY[tax.gs2tax_id('ANOGA'::text), tax.gs2tax_id('BOVIN'::text), tax.gs2tax_id('CAEEL'::text), tax.gs2tax_id('CANFA'::text), tax.gs2tax_id('CHICK'::text), tax.gs2tax_id('DANRE'::text), tax.gs2tax_id('DROME'::text), tax.gs2tax_id('FELCA'::text), tax.gs2tax_id('FUGRU'::text), tax.gs2tax_id('HUMAN'::text), tax.gs2tax_id('MACFU'::text), tax.gs2tax_id('MACMU'::text), tax.gs2tax_id('MOUSE'::text), tax.gs2tax_id('PANPA'::text), tax.gs2tax_id('PANTR'::text), tax.gs2tax_id('RAT'::text), tax.gs2tax_id('TETFL'::text), tax.gs2tax_id('RABIT'::text), tax.gs2tax_id('YEAST'::text), tax.gs2tax_id('XENTR'::text)]))) AND (pset_criteria_v.len >= 100)) AND (pset_criteria_v.len <= 5000)) ORDER BY pset_criteria_v.pseq_id;
+
+
+ALTER TABLE unison.pset_unic_dv_v0 OWNER TO unison;
+
+--
+-- Name: pset_unic_dv_v1; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pset_unic_dv_v1 AS
+    SELECT DISTINCT pset_criteria_v.pseq_id FROM pset_criteria_v WHERE ((pset_criteria_v.ann_pref <= 50000) OR (pset_criteria_v.tax_id = ANY (ARRAY[tax.gs2tax_id('ANOGA'::text), tax.gs2tax_id('BOVIN'::text), tax.gs2tax_id('CAEEL'::text), tax.gs2tax_id('CANFA'::text), tax.gs2tax_id('CHICK'::text), tax.gs2tax_id('DANRE'::text), tax.gs2tax_id('DROME'::text), tax.gs2tax_id('FELCA'::text), tax.gs2tax_id('FUGRU'::text), tax.gs2tax_id('HUMAN'::text), tax.gs2tax_id('MACFU'::text), tax.gs2tax_id('MACMU'::text), tax.gs2tax_id('MOUSE'::text), tax.gs2tax_id('PANPA'::text), tax.gs2tax_id('PANTR'::text), tax.gs2tax_id('RAT'::text), tax.gs2tax_id('TETFL'::text), tax.gs2tax_id('RABIT'::text), tax.gs2tax_id('YEAST'::text), tax.gs2tax_id('XENTR'::text)]))) ORDER BY pset_criteria_v.pseq_id;
+
+
+ALTER TABLE unison.pset_unic_dv_v1 OWNER TO unison;
+
+--
+-- Name: pset_unic_dv_v3; Type: VIEW; Schema: unison; Owner: unison
+--
+
+CREATE VIEW pset_unic_dv_v3 AS
+    SELECT DISTINCT pset_criteria_v.pseq_id FROM pset_criteria_v WHERE (((pset_criteria_v.ann_pref <= 15000) OR ((pset_criteria_v.ann_pref <= 50000) AND (pset_criteria_v.tax_id = ANY (ARRAY[tax.gs2tax_id('HUMAN'::text), tax.gs2tax_id('MOUSE'::text), tax.gs2tax_id('PANTR'::text)])))) OR ((pset_criteria_v.ann_pref <= 25000) AND (pset_criteria_v.tax_id = ANY (ARRAY[tax.gs2tax_id('ANOGA'::text), tax.gs2tax_id('BOVIN'::text), tax.gs2tax_id('CAEEL'::text), tax.gs2tax_id('CANFA'::text), tax.gs2tax_id('CHICK'::text), tax.gs2tax_id('DANRE'::text), tax.gs2tax_id('DROME'::text), tax.gs2tax_id('FELCA'::text), tax.gs2tax_id('FUGRU'::text), tax.gs2tax_id('MACFU'::text), tax.gs2tax_id('MACMU'::text), tax.gs2tax_id('PANPA'::text), tax.gs2tax_id('RAT'::text), tax.gs2tax_id('TETFL'::text), tax.gs2tax_id('RABIT'::text), tax.gs2tax_id('YEAST'::text), tax.gs2tax_id('XENTR'::text)])))) ORDER BY pset_criteria_v.pseq_id;
+
+
+ALTER TABLE unison.pset_unic_dv_v3 OWNER TO unison;
+
+--
 -- Name: pset_uptodate_dv; Type: VIEW; Schema: unison; Owner: unison
 --
 
 CREATE VIEW pset_uptodate_dv AS
-    SELECT current_annotations_v.pseq_id FROM current_annotations_v WHERE (((((current_annotations_v.origin_id = origin_id('UniProt'::text)) OR (current_annotations_v.origin_id = origin_id('Refseq'::text))) OR (current_annotations_v.origin_id = origin_id('Geneseq'::text))) OR (current_annotations_v.origin_id = origin_id('GenenGenes'::text))) AND (((current_annotations_v.tax_id = tax.gs2tax_id('HUMAN'::text)) OR (current_annotations_v.tax_id = tax.gs2tax_id('MOUSE'::text))) OR (current_annotations_v.tax_id = tax.gs2tax_id('RAT'::text))));
+    SELECT current_annotations_v.pseq_id FROM current_annotations_sorted_v current_annotations_v WHERE (((((current_annotations_v.origin_id = origin_id('UniProt'::text)) OR (current_annotations_v.origin_id = origin_id('Refseq'::text))) OR (current_annotations_v.origin_id = origin_id('Geneseq'::text))) OR (current_annotations_v.origin_id = origin_id('GenenGenes'::text))) AND (((current_annotations_v.tax_id = tax.gs2tax_id('HUMAN'::text)) OR (current_annotations_v.tax_id = tax.gs2tax_id('MOUSE'::text))) OR (current_annotations_v.tax_id = tax.gs2tax_id('RAT'::text))));
 
 
 ALTER TABLE unison.pset_uptodate_dv OWNER TO unison;
@@ -12747,340 +17886,23 @@ COMMENT ON COLUMN psipred.params_id IS 'parameter set identifier -- see params(p
 
 
 --
--- Name: psprotcomp; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
+-- Name: psprotcomp_location_psloc_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
 --
 
-CREATE TABLE psprotcomp (
-    pseq_id integer NOT NULL,
-    params_id integer NOT NULL,
-    sim_psloc_id integer NOT NULL,
-    sim_score real,
-    sim_db text,
-    sim_target_ac text,
-    nn_psloc_id integer NOT NULL,
-    nn_score real NOT NULL,
-    int_psloc_id integer NOT NULL,
-    int_score real NOT NULL,
-    int_membrane boolean DEFAULT false NOT NULL,
-    int_nuc_score real NOT NULL,
-    int_pm_score real NOT NULL,
-    int_ext_score real NOT NULL,
-    int_cyt_score real NOT NULL,
-    int_mit_score real NOT NULL,
-    int_er_score real NOT NULL,
-    int_per_score real NOT NULL,
-    int_lys_score real NOT NULL,
-    int_gol_score real NOT NULL,
-    features text,
-    result_block text NOT NULL
-);
+CREATE SEQUENCE psprotcomp_location_psloc_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
 
 
-ALTER TABLE unison.psprotcomp OWNER TO unison;
+ALTER TABLE unison.psprotcomp_location_psloc_id_seq OWNER TO unison;
 
 --
--- Name: TABLE psprotcomp; Type: COMMENT; Schema: unison; Owner: unison
+-- Name: psprotcomp_location_psloc_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
 --
 
-COMMENT ON TABLE psprotcomp IS 'Softberry protcomp predictions';
-
-
---
--- Name: COLUMN psprotcomp.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN psprotcomp.params_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.params_id IS 'parameter set identifier -- see params(params_id)';
-
-
---
--- Name: COLUMN psprotcomp.sim_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.sim_psloc_id IS 'similarity-based localization identifier';
-
-
---
--- Name: COLUMN psprotcomp.sim_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.sim_score IS 'similarity-based prediction score';
-
-
---
--- Name: COLUMN psprotcomp.sim_db; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.sim_db IS 'source database similarity-based prediction';
-
-
---
--- Name: COLUMN psprotcomp.sim_target_ac; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.sim_target_ac IS 'similarity-based prediction target accession (in sim_db)';
-
-
---
--- Name: COLUMN psprotcomp.nn_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.nn_psloc_id IS 'neural net localization prediction id';
-
-
---
--- Name: COLUMN psprotcomp.nn_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.nn_score IS 'neural net localization score';
-
-
---
--- Name: COLUMN psprotcomp.int_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_psloc_id IS 'localization based on best integral score';
-
-
---
--- Name: COLUMN psprotcomp.int_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_score IS 'best integral score';
-
-
---
--- Name: COLUMN psprotcomp.int_membrane; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_membrane IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_nuc_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_nuc_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_pm_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_pm_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_ext_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_ext_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_cyt_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_cyt_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_mit_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_mit_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_er_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_er_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_per_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_per_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_lys_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_lys_score IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp.int_gol_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp.int_gol_score IS 'component ''integral'' score';
-
-
---
--- Name: psprotcomp_location; Type: TABLE; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE TABLE psprotcomp_location (
-    psloc_id integer NOT NULL,
-    location text NOT NULL
-);
-
-
-ALTER TABLE unison.psprotcomp_location OWNER TO unison;
-
---
--- Name: TABLE psprotcomp_location; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON TABLE psprotcomp_location IS 'lookup table for protcomp cellular locations';
-
-
---
--- Name: psprotcomp_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW psprotcomp_v AS
-    SELECT pc.pseq_id, pc.params_id, pc.sim_psloc_id, sl.location AS sim_loc, pc.sim_db, pc.sim_target_ac, pc.sim_score, pc.nn_psloc_id, nl.location AS nn_loc, pc.nn_score, pc.int_psloc_id, il.location AS int_loc, pc.int_score FROM (((psprotcomp pc JOIN psprotcomp_location sl ON ((sl.psloc_id = pc.sim_psloc_id))) JOIN psprotcomp_location nl ON ((nl.psloc_id = pc.nn_psloc_id))) JOIN psprotcomp_location il ON ((il.psloc_id = pc.int_psloc_id)));
-
-
-ALTER TABLE unison.psprotcomp_v OWNER TO unison;
-
---
--- Name: VIEW psprotcomp_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW psprotcomp_v IS 'protcomp summary view';
-
-
---
--- Name: COLUMN psprotcomp_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN psprotcomp_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.params_id IS 'parameter set identifier -- see params(params_id)';
-
-
---
--- Name: COLUMN psprotcomp_v.sim_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.sim_psloc_id IS 'similarity-based localization identifier';
-
-
---
--- Name: COLUMN psprotcomp_v.sim_loc; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.sim_loc IS 'similarity-based localization';
-
-
---
--- Name: COLUMN psprotcomp_v.sim_db; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.sim_db IS 'source database for similarity-based prediction';
-
-
---
--- Name: COLUMN psprotcomp_v.sim_target_ac; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.sim_target_ac IS 'similarity-based prediction target accession (in sim_db)';
-
-
---
--- Name: COLUMN psprotcomp_v.sim_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.sim_score IS 'similarity-based prediction score';
-
-
---
--- Name: COLUMN psprotcomp_v.nn_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.nn_psloc_id IS 'neural net localization prediction id';
-
-
---
--- Name: COLUMN psprotcomp_v.nn_loc; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.nn_loc IS 'neural net localization prediction';
-
-
---
--- Name: COLUMN psprotcomp_v.nn_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.nn_score IS 'neural net localization score';
-
-
---
--- Name: COLUMN psprotcomp_v.int_psloc_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.int_psloc_id IS 'localization based on best integral score';
-
-
---
--- Name: COLUMN psprotcomp_v.int_loc; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.int_loc IS 'component ''integral'' score';
-
-
---
--- Name: COLUMN psprotcomp_v.int_score; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_v.int_score IS 'best integral score';
-
-
---
--- Name: psprotcomp_reliable_v; Type: VIEW; Schema: unison; Owner: unison
---
-
-CREATE VIEW psprotcomp_reliable_v AS
-    SELECT pc.pseq_id, pc.params_id, pc.sim_psloc_id AS psloc_id, pc.sim_loc AS loc, 'sequence similarity' AS method, pc.sim_target_ac AS details FROM psprotcomp_v pc WHERE (pc.sim_psloc_id <> 0) UNION ALL SELECT pc.pseq_id, pc.params_id, pc.nn_psloc_id AS psloc_id, pc.nn_loc AS loc, 'nn & integral agreement' AS method, NULL::unknown AS details FROM psprotcomp_v pc WHERE ((pc.sim_psloc_id = 0) AND (pc.int_psloc_id = pc.nn_psloc_id));
-
-
-ALTER TABLE unison.psprotcomp_reliable_v OWNER TO unison;
-
---
--- Name: VIEW psprotcomp_reliable_v; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON VIEW psprotcomp_reliable_v IS 'reliable protcomp predictions';
-
-
---
--- Name: COLUMN psprotcomp_reliable_v.pseq_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_reliable_v.pseq_id IS 'unique protein sequence identifier -- see pseq(pseq_id)';
-
-
---
--- Name: COLUMN psprotcomp_reliable_v.params_id; Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON COLUMN psprotcomp_reliable_v.params_id IS 'parameter set identifier -- see params(params_id)';
+ALTER SEQUENCE psprotcomp_location_psloc_id_seq OWNED BY psprotcomp_location.psloc_id;
 
 
 --
@@ -13088,7 +17910,7 @@ COMMENT ON COLUMN psprotcomp_reliable_v.params_id IS 'parameter set identifier -
 --
 
 CREATE VIEW public_pseq_ids_dv AS
-    SELECT DISTINCT sa.pseq_id FROM ((origin o JOIN paliasorigin ao ON ((o.origin_id = ao.origin_id))) JOIN pseqalias sa ON ((ao.palias_id = sa.palias_id))) WHERE (o.is_public AND sa.is_current) ORDER BY sa.pseq_id;
+    SELECT DISTINCT sa.pseq_id FROM ((origin o JOIN pannotation ao ON ((o.origin_id = ao.origin_id))) JOIN pseq_pannotation sa ON ((ao.pannotation_id = sa.pannotation_id))) WHERE (o.is_public AND sa.is_current) ORDER BY sa.pseq_id;
 
 
 ALTER TABLE unison.public_pseq_ids_dv OWNER TO unison;
@@ -13125,6 +17947,26 @@ COMMENT ON VIEW run_history_v IS 'history of analyses by sequence and run (=<par
 
 
 --
+-- Name: run_run_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
+--
+
+CREATE SEQUENCE run_run_id_seq
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE unison.run_run_id_seq OWNER TO unison;
+
+--
+-- Name: run_run_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
+--
+
+ALTER SEQUENCE run_run_id_seq OWNED BY run.run_id;
+
+
+--
 -- Name: run_v; Type: VIEW; Schema: unison; Owner: unison
 --
 
@@ -13133,39 +17975,6 @@ CREATE VIEW run_v AS
 
 
 ALTER TABLE unison.run_v OWNER TO unison;
-
---
--- Name: get_scopid(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION get_scopid(text) RETURNS text
-    AS $_$
-
-DECLARE
-        arg alias for $1;
-	ret text;
-	pos text;
-BEGIN
-	ret=arg;
-
-	--add d at the beginning if it doesnt exist already
-	IF substring(ret from 1 for 1) != 'd' THEN
-		ret := 'd'||ret;
-	END IF;
-
-	IF ret ~ '_[A-Z]$' THEN
-		ret := overlay(ret placing '' from length(ret)-1 for 1);
-	END IF;
-
-	ret := rpad(ret, 7, '_');
-
-        return lower(ret);
-END;
-$_$
-    LANGUAGE plpgsql IMMUTABLE;
-
-
-ALTER FUNCTION unison.get_scopid(text) OWNER TO unison;
 
 --
 -- Name: scop_pmodel_v; Type: VIEW; Schema: unison; Owner: unison
@@ -13433,4626 +18242,46 @@ COMMENT ON COLUMN hugo.refseq_md IS 'RefSeq (mapped data)';
 COMMENT ON COLUMN hugo.uniprot_id_md IS 'UniProt ID (mapped data)';
 
 
-SET search_path = gong, pg_catalog;
-
---
--- Name: acc2id(text); Type: FUNCTION; Schema: gong; Owner: unison
---
-
-CREATE FUNCTION acc2id(text) RETURNS integer
-    AS $_$
-DECLARE
-	acc alias for $1;
-	pos integer;
-BEGIN
-	pos := strpos($1,':');
-	if pos is null then
-		raise exception 'oops.. doesn''t look like a GO Accession (GO:12345)';
-		return null;
-	end if;
-	return substr(acc,pos+1)::integer;
-END$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION gong.acc2id(text) OWNER TO unison;
-
---
--- Name: id2acc(integer); Type: FUNCTION; Schema: gong; Owner: unison
---
-
-CREATE FUNCTION id2acc(integer) RETURNS text
-    AS $_X$return sprintf("GO:%06d",$_[0])$_X$
-    LANGUAGE plperl;
-
-
-ALTER FUNCTION gong.id2acc(integer) OWNER TO unison;
-
-SET search_path = pdb, pg_catalog;
-
---
--- Name: descriptor_origin_id(text, text, text); Type: FUNCTION; Schema: pdb; Owner: unison
---
-
-CREATE FUNCTION descriptor_origin_id(text, text, text) RETURNS integer
-    AS $_$
-DECLARE V_id integer; 
-BEGIN 
-	IF $3 is NULL THEN
-		select into V_id descriptor_origin_id from descriptor_origin where type = $1 and upper(origin) = upper($2) and version is NULL;
-	
-	ELSE
-		select into V_id descriptor_origin_id from descriptor_origin where type = $1 and upper(origin) = upper($2) and version = $3; 
-	END IF; 
-		IF NOT FOUND THEN 
-			RAISE WARNING 'descriptor type ''%'' from origin ''%'' version ''%'' not found', $1,$2,$3; 
-		RETURN NULL; 
-	END IF;
-	return V_id; 
-END;
-$_$
-    LANGUAGE plpgsql IMMUTABLE;
-
-
-ALTER FUNCTION pdb.descriptor_origin_id(text, text, text) OWNER TO unison;
-
---
--- Name: descriptor_origin_id(text); Type: FUNCTION; Schema: pdb; Owner: unison
---
-
-CREATE FUNCTION descriptor_origin_id(text) RETURNS SETOF integer
-    AS $_$
- DECLARE 
-	V_id integer;
- BEGIN 
-	FOR V_id IN select descriptor_origin_id from descriptor_origin where type = $1 LOOP 
-		return NEXT V_id; 
-	END LOOP;
- 	RETURN; 
- END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION pdb.descriptor_origin_id(text) OWNER TO unison;
-
---
--- Name: descriptor_origin_si_descriptor_origin_id(text, text, text); Type: FUNCTION; Schema: pdb; Owner: unison
---
-
-CREATE FUNCTION descriptor_origin_si_descriptor_origin_id(text, text, text) RETURNS integer
-    AS $_$
-DECLARE
-	t alias for $1;
-        o alias for $2;                         -- origin
-	v alias for $3;
-        rv integer;
-BEGIN
-	if v is null then
-		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version is NULL;
-	else
-		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version = v;
-	end if;
-        if found then 
-		return rv; 
-	end if;
-        insert into descriptor_origin(type,origin,version) values (t,o,v);
-	if v is null then
-		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version is NULL;
-	else
-		select into rv descriptor_origin_id from descriptor_origin where type = t and upper(origin) = upper(o) and version = v;
-	end if;
-        return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION pdb.descriptor_origin_si_descriptor_origin_id(text, text, text) OWNER TO unison;
-
---
--- Name: FUNCTION descriptor_origin_si_descriptor_origin_id(text, text, text); Type: COMMENT; Schema: pdb; Owner: unison
---
-
-COMMENT ON FUNCTION descriptor_origin_si_descriptor_origin_id(text, text, text) IS 'select/insert a descriptor_origin_id from descriptor_origin, returns decsriptor_origin_id';
-
-
---
--- Name: residue_atomres_trigger(); Type: FUNCTION; Schema: pdb; Owner: unison
---
-
-CREATE FUNCTION residue_atomres_trigger() RETURNS trigger
-    AS $$
-  DECLARE
-  BEGIN
-
-	IF new.atom_res IS null or new.atom_res = '' THEN
-		IF new.res_id IS not null or new.res_id != '' THEN
-			RAISE EXCEPTION 'res_id is not null when atom_res is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
-			RETURN NULL;
-		END IF;
-	END IF;
-	IF new.res_id IS null or new.res_id = '' THEN
-		IF new.atom_res IS not null or new.atom_res != '' THEN
-			RAISE EXCEPTION 'atom_res is not null when res_id is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
-			RETURN NULL;
-		END IF;
-	END IF;
-	RETURN new;
-
-  END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION pdb.residue_atomres_trigger() OWNER TO unison;
-
-SET search_path = pgutils, pg_catalog;
-
---
--- Name: pk_references(text, text, text, text); Type: FUNCTION; Schema: pgutils; Owner: rkh
---
-
-CREATE FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) RETURNS SETOF record
-    AS $$
-DECLARE
-	v_fkinfo record;
-	v_sql text;
-	v_countrow record;
-	v_total integer = 0;
-	v_rc integer;
-BEGIN
-	-- for...in...execute is the only way to get the results of a dynamic query
-	-- This construct is used several times below
-
-	-- check pgtools.foreign_keys to see whether n.r.c is really a PK at all
-	-- twould be better to chech pg_constraint for contype=p
-	SELECT into v_sql 'SELECT count(*) from pgtools.foreign_keys'
-		||' WHERE pk_namespace='''||nsp||''' AND pk_relation='''||rel||''' AND pk_column='''||col||'''';
-	FOR v_countrow IN EXECUTE v_sql LOOP
-		v_rc = v_countrow.count;
-	END LOOP;
-	IF v_rc = 0 THEN
-		RAISE EXCEPTION '%.%.% is not a primary key or has no foreign key references',nsp,rel,col;
-	END IF;
-
-	-- ensure that expr matches anything in the PK column
-	v_rc = 0;
-	SELECT INTO v_sql 'SELECT count(*) FROM '||nsp||'.'||rel||' WHERE '||col||' '||expr;
-	FOR v_countrow IN EXECUTE v_sql LOOP
-		v_rc = v_countrow.count;
-	END LOOP;
-	IF v_rc = 0 THEN
-		RAISE WARNING '`% %'' doesn''t match any rows in %.%',col,expr,nsp,rel;
-	END IF;
-
-	-- loop over all nsp.rel.col referents to this PK, counting the number of hits per expr
-	FOR v_fkinfo IN
-		SELECT * from pgtools.foreign_keys
-		WHERE pk_namespace=nsp AND pk_relation=rel AND pk_column=col
-	LOOP
-		SELECT INTO v_sql 
-			'SELECT count(*) as n,'''
-			||v_fkinfo.fk_namespace||'.'||v_fkinfo.fk_relation||'.'||v_fkinfo.fk_column||''' as fk_referent'
-			||' from '||v_fkinfo.fk_namespace||'.'||v_fkinfo.fk_relation
-			||' where '||v_fkinfo.fk_column||' '||expr||';';
-		FOR v_countrow IN EXECUTE v_sql LOOP
-			n = v_countrow.n;
-			fk_referent = v_countrow.fk_referent;
-			v_total = v_total+n;
-			RETURN NEXT;
-		END LOOP;
-
-	END LOOP;
-
-	-- return total too
-	n = v_total;
-	fk_referent = 'total';
-	RETURN NEXT;
-END;
-$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION pgutils.pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) OWNER TO rkh;
-
---
--- Name: FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text); Type: COMMENT; Schema: pgutils; Owner: rkh
---
-
-COMMENT ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) IS 'count number of rows in all tables which reference the column specified by nsp($1),rel($2),col($3) and match expr($4)';
-
-
---
--- Name: pk_references(text, text); Type: FUNCTION; Schema: pgutils; Owner: rkh
---
-
-CREATE FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) RETURNS SETOF record
-    AS $$
-DECLARE
-	v_nsp text;
-	v_rel text;
-	v_col text;
-	v_row record;
-BEGIN
-	v_nsp = split_part(nrc,'.',1);
-	v_rel = split_part(nrc,'.',2);
-	v_col = split_part(nrc,'.',3);
-	FOR v_row IN SELECT * FROM pgtools.pk_references(v_nsp,v_rel,v_col,expr) LOOP
-		n=v_row.n;
-		fk_referent=v_row.fk_referent;
-		RETURN NEXT;
-	END LOOP;
-END;
-$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION pgutils.pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) OWNER TO rkh;
-
---
--- Name: FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text); Type: COMMENT; Schema: pgutils; Owner: rkh
---
-
-COMMENT ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) IS 'count number of rows in all tables which reference the nsp.rel.col($1) and match expr($4)';
-
-
-SET search_path = tax, pg_catalog;
-
---
--- Name: spspec_name(integer); Type: FUNCTION; Schema: tax; Owner: unison
---
-
-CREATE FUNCTION spspec_name(integer) RETURNS text
-    AS $_$
-DECLARE
-	v_id alias for $1;
-	rv text;
-BEGIN
-	select into rv name from tax.spspec where id=v_id;
-	return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION tax.spspec_name(integer) OWNER TO unison;
-
-SET search_path = unison, pg_catalog;
-
---
--- Name: _clean_regexp(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _clean_regexp(text) RETURNS text
-    AS $_X$
-$_ = shift;
-
-my $NOT_RT_BRACKET = qr([^\]]);
-
-# flatten nested [] e.g., [A[BC]D[EF]FG] -> ABCDEFFG
-while (s/\[($NOT_RT_BRACKET*)\[($NOT_RT_BRACKET*)\]/[\1\2/) {
-	die("complement operator ('^') is not allowed inside nested regexps
-") if $2 =~ m/\^/;
-};
-
-# eliminate redundancies in [] sets e.g., A[BBC]D -> A[BC]D
-# postgresql 7.x requires plperlu, 8.x may use plperl
-# WARNING: - is intepreted literally, i.e., ranges aren't supported
-s&
-  \[($NOT_RT_BRACKET+)\]
-&
-  my %aa = map {$_=>1} split(//,$1);
-  my @aa = sort keys %aa;
-  my $comp = 0;
-  if ($aa[$#aa] eq '^') { $comp++; pop(@aa); }  # pop '^'
-  '[' . ($comp?'^':'') . join("",@aa) . ']';
-&egx;
-
-return $_;
-$_X$
-    LANGUAGE plperlu IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._clean_regexp(text) OWNER TO unison;
-
---
--- Name: FUNCTION _clean_regexp(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION _clean_regexp(text) IS 'reformat regular expression';
-
-
---
--- Name: _dblast_species(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _dblast_species(text) RETURNS text
-    AS $_$select postgres.plregex($1,E'/^.* - (.+?)\\.?\$/$1/'::TEXT)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._dblast_species(text) OWNER TO unison;
-
---
--- Name: _defline_agg_finalfunc(anyarray); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _defline_agg_finalfunc(anyarray) RETURNS text
-    AS $_$select array_to_string($1,'')$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison._defline_agg_finalfunc(anyarray) OWNER TO unison;
-
---
--- Name: _expand_aa_sets(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _expand_aa_sets(text) RETURNS text
-    AS $_X$
-# http://www.dur.ac.uk/biological.sciences/Bioinformatics/aminoacids.htm
-# http://www.ncbi.nlm.nih.gov/Class/MLACourse/Modules/MolBioReview/iupac_aa_abbreviations.html
-# http://www.ncbi.nlm.nih.gov/projects/collab/FT/index.html#7.5.3
-# Expasy References:
-# 1) Thomas E. Creighton (1993) "Proteins." W.H. Freeman and Company, New York. 2nd Edition.
-# 2) Richards, F.M. (1974) J. Mol.Biol. 82:1-14. [Van-der-Waals radii of amino acids]
-
-$_ = shift;
-
-# IUPAC ambiguities
-## Ambiguity codes are included in their own expansions so that
-## they match themselves in sequences which contain ambiguities.
-s/B/[BDN]/g;
-s/Z/[ZEQ]/g;
-s/X/[ACDEFGHIKLMNPQRSTVWYUBZX]/g;
-
-# amino acid sets
-s/<(?:basic|\+)>/[HKR]/g;
-s/<(?:acidic|-)>/[DE]/g;
-s/<(?:neutral|0)>/[ACFGILMNPQSTUVWY]/g;
-s/<(?:polar|p)>/[NQST]/g;
-s/<(?:hphobic|o)>/[AIFLMVWY]/g;
-s/<(?:aromatic|r)>/[FWY]/g;
-s/<(?:small|s)>/[AGS]/g;
-s/<(?:medium|m)>/[CDEHILMNPQTUV]/g;	 # U~C
-s/<(?:large|l)>/[FKRWY]/g;
-
-s/<(.*)>/!!$1!!/g;				# unrecognized sets
-
-return $_;
-$_X$
-    LANGUAGE plperl IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._expand_aa_sets(text) OWNER TO unison;
-
---
--- Name: FUNCTION _expand_aa_sets(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION _expand_aa_sets(text) IS 'INTERNAL; see expand_aa_sets(text)';
-
-
---
--- Name: _geneseq_species(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _geneseq_species(text) RETURNS text
-    AS $_$select postgres.plregex($1,E'/^.*\\[OS: ([^\\]+]+)\\]/$1/'::TEXT)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._geneseq_species(text) OWNER TO unison;
-
---
--- Name: _nr_species(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _nr_species(text) RETURNS text
-    AS $_$select postgres.plregex($1,E'/^.+\\[(.+)\\].*/$1/'::TEXT)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._nr_species(text) OWNER TO unison;
-
---
--- Name: _pseq_md5len_lookup(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _pseq_md5len_lookup(text, integer) RETURNS integer
-    AS $_$
-DECLARE
-	c refcursor;
-	rv integer;
-BEGIN
-	open c for execute 'select pseq_id from pseq where '
-		|| ' md5=' || quote_literal($1) || ' and '
-		|| ' len=' || quote_literal($2) ;
-	fetch c into rv;
-	close c;
-	return rv;
-end;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison._pseq_md5len_lookup(text, integer) OWNER TO unison;
-
---
--- Name: _pseq_seq_lookup(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _pseq_seq_lookup(text) RETURNS integer
-    AS $_$
-BEGIN
-	return _pseq_md5len_lookup(md5($1),length($1));
-END;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison._pseq_seq_lookup(text) OWNER TO unison;
-
---
--- Name: _publicize(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _publicize() RETURNS void
-    AS $_$
-DECLARE
-	v_row record;
-BEGIN
-	IF current_database() !~ '-public$' THEN
-		RAISE EXCEPTION 'publicize(): database must be named "csb-public"';
-	END IF;
-
-	RAISE WARNING '%: BEGINNING MASSIVE DELETE OF PROPRIETARY DATA.', timeofday();
-
-	FOR v_row IN SELECT origin,origin_id FROM origin WHERE is_public=FALSE ORDER BY origin_id LOOP
-		RAISE NOTICE '%: deleting results for ''%'' (origin_id=%)', timeofday(), v_row.origin, v_row.origin_id;
-		DELETE FROM paliasorigin WHERE origin_id=v_row.origin_id;
-		DELETE FROM origin WHERE origin_id=v_row.origin_id;
-	END LOOP;
-
-	FOR v_row IN SELECT name,params_id FROM params WHERE is_public=FALSE ORDER BY params_id LOOP   
-		RAISE NOTICE '%: deleting results for ''%'' (params_id=%)', timeofday(), v_row.name, v_row.params_id;
-		DELETE FROM pahmm WHERE params_id=v_row.params_id;
-		DELETE FROM paprospect WHERE params_id=v_row.params_id;
-		DELETE FROM params WHERE params_id=v_row.params_id;
-	END LOOP;
-
-	RAISE NOTICE 'deleting sequences NOT in pset_id=150';
-	DELETE FROM pseq WHERE pseq_id NOT IN (SELECT pseq_id FROM pseqset WHERE pset_id=150);
-
-	SELECT meta_update_kv('publicized at',NOW());
-
-	RAISE NOTICE '%: Done. You should VACUUM ANALYZE VERBOSE.', timeofday();
-	RETURN;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison._publicize() OWNER TO unison;
-
---
--- Name: FUNCTION _publicize(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION _publicize() IS 'DANGER: This function deletes all proprietary data. It may only be run in a database named csb-public.';
-
-
---
--- Name: _refseq_species(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _refseq_species(text) RETURNS text
-    AS $_$select postgres.plregex($1,E'/^.+\\[(.+)\\]/$1/'::TEXT)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._refseq_species(text) OWNER TO unison;
-
---
--- Name: _seqhash_no_cleaning(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION _seqhash_no_cleaning(text) RETURNS text
-    AS $_$DECLARE S text; BEGIN return ( md5($1) || length($1) ); END$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison._seqhash_no_cleaning(text) OWNER TO unison;
-
---
--- Name: a280(text, text, boolean); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION a280(text, text, boolean) RETURNS real
-    AS $_X$
-
-my %ec_params;
-#EMBOSS/share/EMBOSS/data/Eamino.dat
-$ec_params{emboss} = {
-	eY => 1280,
-	eW => 5690,
-	eC => 60
-	}; 
- 
-#Pace et al
-$ec_params{pace} = {
-	eY => 1490,
-	eW => 5500,
-	eC => 125
-	};
-
-my $seq = shift;
-elog(ERROR, "sequence length <= 0") if(length($seq) <= 0);
-
-my $params = shift;
-elog(ERROR, "extinction coefficents set $params does not exist options are 'emboss' (Gill and von Hippel (1989) _Anal_Biochem_ 182 319-326) and 'Pace' (Pace et. al. Protein Science 1995)
-") if(not defined $ec_params{$params});
-
-my $all_cystines = shift;
-my $count = count_TyrTrp_residues($seq);
-
-my $ans= (($count->{Y} * $ec_params{$params}{eY}) + ($count->{W} * $ec_params{$params}{eW}) );
-$ans +=  int($count->{C}/2) * $ec_params{$params}{eC} if($all_cystines eq 't');
-
-return $ans;
-
-sub count_TyrTrp_residues {
-   my $seq = shift;
-   my $count;
-   for ( qw( Y W C) ){ # Tyrosine and Trptophan AAs
-      $count->{$_}++ while $seq =~ /$_/ig;
-   }
-   return $count;
-}	
-
-$_X$
-    LANGUAGE plperl IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.a280(text, text, boolean) OWNER TO unison;
-
---
--- Name: FUNCTION a280(text, text, boolean); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION a280(text, text, boolean) IS 'returns the molar Extinction Coefficient of a protein in ';
-
-
---
--- Name: a280(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION a280(text) RETURNS real
-    AS $_$
-DECLARE 
-	ans float;
-BEGIN 
-	select INTO ans A280($1,'emboss','f');
-	return ans;
-END$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.a280(text) OWNER TO unison;
-
---
--- Name: aa_3_to_1(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION aa_3_to_1(text) RETURNS text
-    AS $_$
-select case $1
-	when 'Ala' then 'A'
-	when 'Bas' then 'B'
-	when 'Cys' then 'C'
-	when 'Asp' then 'D'
-	when 'Glu' then 'E'
-	when 'Phe' then 'F'
-	when 'Gly' then 'G'
-	when 'His' then 'H'
-	when 'Iso' then 'I'
-	when 'Lys' then 'K'
-	when 'Leu' then 'L'
-	when 'Met' then 'M'
-	when 'Asn' then 'N'
-	when 'Pro' then 'P'
-	when 'Gln' then 'Q'
-	when 'Arg' then 'R'
-	when 'Ser' then 'S'
-	when 'Thr' then 'T'
-	when 'Val' then 'V'
-	when 'Trp' then 'W'
-	when 'Any' then 'X'
-	when 'Tyr' then 'Y'
-	when 'Aci' then 'Z'
-	else '?'
-	end;
-$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.aa_3_to_1(text) OWNER TO unison;
-
---
--- Name: add_soa(text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION add_soa(text, text, text) RETURNS integer
-    AS $_$
-DECLARE
-	S alias for $1;				-- sequence
-	O alias for $2;				-- origin
-	A alias for $3;				-- alias
-	si	integer;				-- pseq_id
-	oi	integer;				-- origin_id
-BEGIN
-	si := si_pseq_id(S);
-	oi := si_origin_id(O);
-	insert into palias (pseq_id,origin_id,alias) values (si,oi,A);
-	return si;
-END;$_$
-    LANGUAGE plpgsql STRICT;
-
-
-ALTER FUNCTION unison.add_soa(text, text, text) OWNER TO unison;
-
---
--- Name: FUNCTION add_soa(text, text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION add_soa(text, text, text) IS 'add <sequnce,origin,alias> tuple, using existing ids when available, returns pseq_id';
-
-
---
--- Name: assign_alias(integer, text, text, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION assign_alias(integer, text, text, integer, integer, integer) RETURNS integer
-    AS $_$
-DECLARE
-	v_origin_id ALIAS FOR $1;
-	v_alias ALIAS FOR $2;
-	v_descr ALIAS FOR $3;
-	v_pseq_id ALIAS FOR $4;
-	v_ref_pseq_id ALIAS FOR $5;
-	v_tax_id ALIAS FOR $6;
-	v_palias_id integer;
-BEGIN
-	RAISE WARNING 'This version of assign_alias is deprecated; ref_pseq_id is being ignored (if provided)';
-	SELECT INTO v_palias_id assign_alias(v_pseq_id,v_origin_id,v_alias,v_descr,v_tax_id);
-	RETURN v_palias_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.assign_alias(integer, text, text, integer, integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION assign_alias(integer, text, text, integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION assign_alias(integer, text, text, integer, integer, integer) IS 'create a pseqalias record for the given paliasorigin and pseq entries';
-
-
---
--- Name: assign_alias(integer, integer, text, text, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION assign_alias(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_palias_id integer) RETURNS integer
-    AS $$
-DECLARE
-	rv integer;
-	rec record;
-BEGIN
-	-- insert/fetch the origin/alias/descr/tax_id annotation
-	SELECT INTO v_palias_id ins_paliasorigin( v_origin_id, v_alias, v_descr, v_tax_id );
-
-	-- fetch the most recent pseqalias entry for this palias_id, if any
-	SELECT INTO rec * FROM pseqalias WHERE palias_id=v_palias_id ORDER BY version DESC LIMIT 1;
-
-	IF NOT FOUND THEN
-		-- No pseqalias entry exists for this palias_id.
-		-- The paliasorigin row was probably just created above.
-		RAISE DEBUG 'assigning new palias_id % to pseq_id %, version %',
-			 v_palias_id, v_pseq_id, 1;
-		INSERT INTO pseqalias ( palias_id, pseq_id )
-			VALUES ( v_palias_id, v_pseq_id );
-		RETURN;
-	END IF;
-
-	-- palias_id is currently assigned to some sequence
-	RAISE DEBUG 'palias_id %: pseq_id=%, version=%, is_current=%, added=%',
-		rec.palias_id, rec.pseq_id, rec.version, rec.is_current, rec.added;
-	
-	IF v_pseq_id != rec.pseq_id THEN
-		RAISE DEBUG '  reassigning palias_id to pseq_id=%', v_pseq_id;
-		UPDATE pseqalias SET is_current = FALSE
-			WHERE palias_id = v_palias_id;
-		INSERT INTO pseqalias ( palias_id, pseq_id, version ) 
-			VALUES ( v_palias_id, v_pseq_id, rec.version+1 );
-
-	ELSEIF rec.is_current = FALSE THEN
-		-- rec.pseq_id = v_pseq_id, but the assignment's been deprecated.
-		-- Instead of making a new row, revive this deprecated assignment.
-		-- WARNING: added=rec.added practically ensures that the row is unique
-		RAISE DEBUG '  pseq_id unchanged; resuscitating palias_id';
-		UPDATE pseqalias SET is_current = TRUE
-			WHERE palias_id = v_palias_id AND pseq_id = v_pseq_id AND added = rec.added;
-
-	ELSEIF v_pseq_id=rec.pseq_id AND rec.is_current=TRUE THEN
-		-- do nothing
-		RAISE DEBUG '  no pseqalias change required.';
-
-	ELSE
-		RAISE EXCEPTION 'Logic error -- contact Reece';
-
-	END IF;
-
-	RETURN;
-END;
-$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.assign_alias(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_palias_id integer) OWNER TO unison;
-
---
--- Name: FUNCTION assign_alias(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_palias_id integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION assign_alias(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_palias_id integer) IS '<pseq_id,origin_id,alias,descr,tax_id>: create/fetch <origin_id,alias,descr,tax_id> row in paliasorigin, and then create/fetch <palias_id,pseq_id> in pseqalias, deprecating an existing assignment if necessary';
-
-
---
--- Name: assign_p2gblataln(text, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION assign_p2gblataln(text, integer, integer, integer, integer, integer) RETURNS integer
-    AS $_$
-DECLARE
-  v_hsp_str ALIAS FOR $1;
-  v_ident ALIAS FOR $2;
-  v_pgap_cnt ALIAS FOR $3;
-  v_pgap_bases ALIAS FOR $4;
-  v_ggap_cnt ALIAS FOR $5;
-  v_ggap_bases ALIAS FOR $6;
-  v_p2gblataln_id integer;
-  v_p2gblataln_ids integer[];
-  low integer;
-  high integer;
-  rec RECORD;
-BEGIN
-  -- check whether hsp_str is already in the database
-  SELECT INTO v_p2gblataln_id p2gblataln_id FROM p2gblataln WHERE hsp_str=v_hsp_str;
-  IF v_p2gblataln_id is null THEN
-    SELECT INTO v_p2gblataln_id nextval('unison.p2gblataln_p2gblataln_id_seq'::text);
-    INSERT INTO p2gblataln (p2gblataln_id, hsp_str, ident, pgap_cnt, pgap_bases, ggap_cnt, ggap_bases) VALUES
-      (v_p2gblataln_id, v_hsp_str, v_ident, v_pgap_cnt, v_pgap_bases, v_ggap_cnt, v_ggap_bases);
-  END IF;
-
-  -- insert into p2gblatalnhsp table (let the unique indices deal with redudancies
-  SELECT INTO v_p2gblataln_ids hsp_str_to_hsp_ids( v_hsp_str );
-  low  := replace(split_part(array_dims(v_p2gblataln_ids),':',1),'[','')::int;
-  high := replace(split_part(array_dims(v_p2gblataln_ids),':',2),']','')::int;
-  FOR i IN low..high LOOP
-    INSERT INTO p2gblatalnhsp (p2gblataln_id, p2gblathsp_id) VALUES
-      (v_p2gblataln_id, v_p2gblataln_ids[i]);
-  END LOOP;
-
-  return v_p2gblataln_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.assign_p2gblataln(text, integer, integer, integer, integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION assign_p2gblataln(text, integer, integer, integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION assign_p2gblataln(text, integer, integer, integer, integer, integer) IS 'insert protein-to-genome BLAT alignments';
-
-
---
--- Name: best_alias(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION best_alias(integer, integer) RETURNS text
-    AS $_$select origin_alias_fmt(origin,alias) from best_annotation_mv where pseq_id=$1 and tax_id=$2$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.best_alias(integer, integer) OWNER TO unison;
-
---
--- Name: best_alias(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION best_alias(integer, text) RETURNS text
-    AS $_$select origin_alias_fmt(origin,alias) from best_annotation_mv where pseq_id=$1 and tax_id=gs2tax_id($2)$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.best_alias(integer, text) OWNER TO unison;
-
---
--- Name: best_annotation(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION best_annotation(integer, integer) RETURNS text
-    AS $_$select origin_alias_descr_fmt(origin,alias,descr) from best_annotation_mv where pseq_id=$1 and tax_id=$2;$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.best_annotation(integer, integer) OWNER TO unison;
-
---
--- Name: best_annotation(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION best_annotation(integer, text) RETURNS text
-    AS $_$select origin_alias_descr_fmt(origin,alias,descr) from best_annotation_mv where pseq_id=$1 and tax_id=gs2tax_id($2);$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.best_annotation(integer, text) OWNER TO unison;
-
---
--- Name: check_public_acl(name, name, character); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION check_public_acl(name, name, character) RETURNS boolean
-    AS $_$
-DECLARE
-  acl text;
-  rec record;
-BEGIN
-  IF ( $3 NOT IN ( 'w','r','a','R','x','t' ) ) THEN
-    RAISE EXCEPTION 'mode flags must use single letter from "arwRxt"';
-  END IF;
-  SELECT INTO rec perms 
-  FROM table_perms_v WHERE schemaname = $1 AND tablename = $2;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Did not find any schema name "%", relation named "%".', $1, $2;
-  END IF;
-  acl := rec.perms;
-  IF acl IS NULL THEN
-    RETURN 'f';
-  END IF;
-  IF acl ~ ( ',=[rwaRxt]*' || $3 ) /* public */
-  THEN
-    RETURN 't';
-  END IF;
-  RETURN 'f';
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.check_public_acl(name, name, character) OWNER TO unison;
-
---
--- Name: check_public_perms(name, name, character[]); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION check_public_perms(name, name, character[]) RETURNS boolean
-    AS $_$
-DECLARE
-  schema alias for $1;
-  table alias for $2;
-  privs alias for $3;
-  acl text;
-  rec record;
-  i integer;
-BEGIN
-  -- check if the input array has the right permission letters
-  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
-  IF ( privs[i] NOT IN ( 'w','r','a','d','R','x','t' ) ) THEN
-    RAISE EXCEPTION 'mode flags must use single letter from "arwdRxt"';
-  END IF;
-  END LOOP;
-  SELECT INTO rec perms 
-  FROM table_perms_v WHERE schemaname = schema AND tablename = table;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Did not find any schema name "%", relation named "%".', schema, table;
-  END IF;
-  acl := rec.perms;
-  IF acl IS NULL THEN
-    RETURN false;
-  END IF;
-  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
-	  IF acl ~ ( ',=[rwadRxt]*' || privs[i] ) /* public */
-	  THEN
-	    RETURN true;
-	  END IF;
-  END LOOP;
-  RETURN false;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.check_public_perms(name, name, character[]) OWNER TO unison;
-
---
--- Name: FUNCTION check_public_perms(name, name, character[]); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION check_public_perms(name, name, character[]) IS 'check_public_perms ( <schema::name>, <table::name>, <char[]> ) returns true if public has any of the permissions listed in the char[] array';
-
-
---
--- Name: check_user_acl(name, name, name, character); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION check_user_acl(name, name, name, character) RETURNS boolean
-    AS $_$
-DECLARE
-  user alias for $1;
-  schema alias for $2;
-  table alias for $3;
-  perm alias for $4;
-  acl text;
-  rec record;
-BEGIN
-  IF ( perm NOT IN ( 'w','r','a','R','x','t','d' ) ) THEN
-    RAISE EXCEPTION 'mode flags must use single letter from "rwadRxt"';
-  END IF;
-  SELECT INTO rec tableowner, tablename, schemaname, perms,  usesuper 
-  FROM table_perms_v, pg_user 
-  WHERE schemaname = schema AND tablename = table;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Did not find any user named "%" or  schema named "%" or relation named "%".', user,schema,table;
-  END IF;
-  IF rec.tableowner = user OR rec.usesuper THEN
-    RETURN 't';
-  END IF;
-  acl := rec.perms;
-  IF acl IS NULL THEN
-    RETURN 'f';
-  END IF;
-  IF acl ~ ( user || '=[rwadRxt]*' || perm) /* user */
-  THEN
-    RETURN 't';
-  END IF;
-  RETURN 'f';
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.check_user_acl(name, name, name, character) OWNER TO unison;
-
---
--- Name: check_user_perms(name, name, name, character[]); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION check_user_perms(name, name, name, character[]) RETURNS boolean
-    AS $_$
-DECLARE
-  user alias for $1;
-  schema alias for $2;
-  table alias for $3;
-  privs alias for $4;
-  acl text;
-  rec record;
-  i integer;
-BEGIN
-  -- check if the input array has the right permission letters
-  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
-  IF ( privs[i] NOT IN ( 'w','r','a','R','x','t','d' ) ) THEN
-    RAISE EXCEPTION 'mode flags must use single letter from "rwadRxt"';
-  END IF;
-  END LOOP;
-  SELECT INTO rec tableowner, tablename, schemaname, perms,  usesuper 
-  FROM table_perms_v, pg_user 
-  WHERE schemaname = schema AND tablename = table;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Did not find either a schema named "%" or a table named "%".', schema,table;
-  END IF;
-  IF rec.tableowner = user OR rec.usesuper THEN
-    RETURN true;
-  END IF;
-  acl := rec.perms;
-  IF acl IS NULL THEN
-    RETURN false;
-  END IF;
-  FOR i IN array_lower(privs, 1)..array_upper(privs, 1) LOOP  
-  	IF acl ~ ( user || '=[rwadRxt]*' || privs[i]) /* user */
-  	THEN
-    	RETURN true;
-  	END IF;
-  END LOOP;
-  RETURN false;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.check_user_perms(name, name, name, character[]) OWNER TO unison;
-
---
--- Name: FUNCTION check_user_perms(name, name, name, character[]); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION check_user_perms(name, name, name, character[]) IS 'check_user_perms ( <user::name>, <schema::name>, <table::name>, <char[]> ) returns true if the user has any of the permissions listed in the char[] array';
-
-
---
--- Name: chr2locus(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION chr2locus(text) RETURNS real
-    AS $_X$$_[0] =~ m/^([XYME])$/ ? return 100+ord($1) : $_[0];$_X$
-    LANGUAGE plperl IMMUTABLE;
-
-
-ALTER FUNCTION unison.chr2locus(text) OWNER TO unison;
-
---
--- Name: chr2locus(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION chr2locus(text, integer) RETURNS real
-    AS $_X$return ($_[0] =~ m/^([XYME])$/ ? 100+ord($1) : $_[0]) . "." . $_[1];$_X$
-    LANGUAGE plperl IMMUTABLE;
-
-
-ALTER FUNCTION unison.chr2locus(text, integer) OWNER TO unison;
-
---
--- Name: clean_sequence(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION clean_sequence(text) RETURNS text
-    AS $_$
-  my $x = shift;
-  $x =~ s/[^-\*ABCDEFGHIKLMNPQRSTUVWXYZ]//g;
-  $x =~ s/\*+$//;
-  return $x;
-$_$
-    LANGUAGE plperl IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.clean_sequence(text) OWNER TO unison;
-
---
--- Name: current_params_id_by_pftype_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION current_params_id_by_pftype_id(integer) RETURNS integer
-    AS $_$BEGIN RAISE EXCEPTION 'current_params_id_by_pftype_id was deprecated on 2006-01-31; use preferred_params_id_by_pftype(text) or preferred_params_id_by_pftype_id(integer) instead'; return preferred_params_id_by_pftype_id($1); END;$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.current_params_id_by_pftype_id(integer) OWNER TO unison;
-
---
--- Name: FUNCTION current_params_id_by_pftype_id(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION current_params_id_by_pftype_id(integer) IS 'returns current/preferred params_id for a given feature type';
-
-
---
--- Name: current_usesysid(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION current_usesysid() RETURNS integer
-    AS $$select usesysid from pg_user where usename=current_user;$$
-    LANGUAGE sql STABLE STRICT;
-
-
-ALTER FUNCTION unison.current_usesysid() OWNER TO unison;
-
---
--- Name: expand_aa_sets(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION expand_aa_sets(text) RETURNS text
-    AS $_$select _clean_regexp(_expand_aa_sets($1))$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.expand_aa_sets(text) OWNER TO unison;
-
---
--- Name: FUNCTION expand_aa_sets(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION expand_aa_sets(text) IS 'expand sets of amino acids represented in the given string';
-
-
---
--- Name: get_current_users(name, name); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION get_current_users(name, name) RETURNS name[]
-    AS $_$
-declare
-  schema alias for $1;
-  table alias for $2;
-  current_users name[] = '{}';
-  pguser record;
-  acl text;
-  user text;
-  rec record;
-begin
-  for pguser in select usename from pg_user LOOP
-	for rec in select perms FROM table_perms_v WHERE schemaname = schema AND tablename = table LOOP
-		acl := rec.perms;
-		user := pguser.usename||'=';
-	  	IF acl ~ user THEN
-			current_users = array_append(current_users,pguser.usename);
-			EXIT;
-	  	END IF;
-	END LOOP;
-  END LOOP;
-  RETURN current_users;
-end;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.get_current_users(name, name) OWNER TO unison;
-
---
--- Name: FUNCTION get_current_users(name, name); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION get_current_users(name, name) IS 'get_current_users(<schema_name>, <table_name>) returns a name[] array of current users of the input schema,table';
-
-
---
--- Name: get_paliasorigin_palias_id(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION get_paliasorigin_palias_id(integer, text) RETURNS integer
-    AS $_$
-DECLARE
-    v_origin_id ALIAS FOR $1;
-    v_alias ALIAS FOR $2;
-    rec record;
-    v_palias_id integer;
-BEGIN
-    -- check whether paliasorigin exists: if yes, then return palias_id, otherwise return null
-    RAISE DEBUG 'select * from pseqaliasorigin where origin_id=% and alias=%',v_origin_id,v_alias;
-    select into rec * from paliasorigin where origin_id=v_origin_id and alias=v_alias;
-    IF found THEN
-        RAISE DEBUG 'record exists for this alias and origin: %', rec.palias_id;
-        v_palias_id := rec.palias_id;
-    END IF;
-    return v_palias_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.get_paliasorigin_palias_id(integer, text) OWNER TO unison;
-
---
--- Name: FUNCTION get_paliasorigin_palias_id(integer, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION get_paliasorigin_palias_id(integer, text) IS 'retrieve the palias_id for a given origin_id and alias';
-
-
---
--- Name: get_run_timestamp(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION get_run_timestamp(integer, integer) RETURNS timestamp with time zone
-    AS $_$
-DECLARE
-    q alias for $1;
-    r alias for $2;
-    z timestamp;
-BEGIN
-    select into z ran_on from run_history
-        where pseq_id=q
-        and run_id=r;
-    return z;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.get_run_timestamp(integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION get_run_timestamp(integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION get_run_timestamp(integer, integer) IS 'for the given pseq_id and run_id, returns the ran_on timestamp from run_history';
-
-
---
--- Name: gseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION gseq_iu_trigger() RETURNS trigger
-    AS $$
-DECLARE
-    oldmd5 text;
-BEGIN
-    oldmd5 := md5(new.seq);
-    new.seq := clean_sequence(new.seq);
-    new.md5 := md5(new.seq);
-    if oldmd5 != new.md5 then
-        raise notice 'gseq_id % modified during insert.',new.gseq_id;
-    end if;
-    new.len := length(new.seq);
-    return new;
-END; $$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.gseq_iu_trigger() OWNER TO unison;
-
---
--- Name: has_iupac_ambiguity_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION has_iupac_ambiguity_aa(text) RETURNS boolean
-    AS $_$select $1 ~ '[BXZ]'$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.has_iupac_ambiguity_aa(text) OWNER TO unison;
-
---
--- Name: FUNCTION has_iupac_ambiguity_aa(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION has_iupac_ambiguity_aa(text) IS 'sequence contains IUPAC ambiguity (B=[DE], Z=[NQ], X=any)';
-
-
---
--- Name: has_iupac_gap_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION has_iupac_gap_aa(text) RETURNS boolean
-    AS $_$select $1 ~ '-'$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.has_iupac_gap_aa(text) OWNER TO unison;
-
---
--- Name: FUNCTION has_iupac_gap_aa(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION has_iupac_gap_aa(text) IS 'sequence contains an IUPAC gap';
-
-
---
--- Name: has_iupac_stop_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION has_iupac_stop_aa(text) RETURNS boolean
-    AS $_$select $1 ~ '\\*'$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.has_iupac_stop_aa(text) OWNER TO unison;
-
---
--- Name: FUNCTION has_iupac_stop_aa(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION has_iupac_stop_aa(text) IS 'sequence contains an IUPAC stop';
-
-
---
--- Name: has_non_iupac_aa(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION has_non_iupac_aa(text) RETURNS boolean
-    AS $_$select $1 ~ '[^-*ACDEFGHIKLMNPQRSTVWYUBZX]'$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.has_non_iupac_aa(text) OWNER TO unison;
-
---
--- Name: FUNCTION has_non_iupac_aa(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION has_non_iupac_aa(text) IS 'sequence has non-IUPAC symbols (selenocysteine, gaps, stops, and ambiguities okay)';
-
-
---
--- Name: has_only_iupac_aa_ungapped(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION has_only_iupac_aa_ungapped(text) RETURNS boolean
-    AS $_$select $1 !~ '[^ACDEFGHIKLMNPQRSTVWYUBZX]'$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.has_only_iupac_aa_ungapped(text) OWNER TO unison;
-
---
--- Name: FUNCTION has_only_iupac_aa_ungapped(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION has_only_iupac_aa_ungapped(text) IS 'ungapped sequence contains only IUPAC amino acids or ambiguities';
-
-
---
--- Name: has_only_iupac_std_aa_ungapped(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION has_only_iupac_std_aa_ungapped(text) RETURNS boolean
-    AS $_$select $1 !~ '[^ACDEFGHIKLMNPQRSTVWY]'$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.has_only_iupac_std_aa_ungapped(text) OWNER TO unison;
-
---
--- Name: FUNCTION has_only_iupac_std_aa_ungapped(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION has_only_iupac_std_aa_ungapped(text) IS 'ungapped sequence contains only the standard 20 IUPAC amino acids';
-
-
---
--- Name: hmm_pmodel_id(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION hmm_pmodel_id(text, integer) RETURNS integer
-    AS $_$DECLARE V_id integer; BEGIN  perform * from origin where origin_id=$2; IF NOT FOUND THEN RAISE EXCEPTION 'origin_id ''%'' not found', $2; END IF; select into V_id pmodel_id from pmhmm where upper(acc)=upper($1) and origin_id=$2; IF NOT FOUND THEN RAISE WARNING 'model ''%'' not found', $1; RETURN NULL; END IF; return V_id; END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.hmm_pmodel_id(text, integer) OWNER TO unison;
-
---
--- Name: hsp_coverage(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION hsp_coverage(integer) RETURNS double precision
-    AS $_$
-  declare
-    v_pfeature_id alias for $1;
-    v_pct_hsp_coverage float;
-		v_pseq_id integer;
-		v_t_pseq_id integer;
-		q_seq_len integer;
-		t_seq_len integer;
-		shorter_len integer;
-		longer_len integer;
-		rec record;
-  begin
-
-    -- get the papseq record for this pfeature_id
-    select into rec * from papseq where pfeature_id=v_pfeature_id;
-    IF not found THEN
-      RAISE EXCEPTION 'no record pfeature_id=%',v_pfeature_id;
-    END IF;
-
-    -- get the pseq_id for the target
-    select into v_t_pseq_id pseq_id from pmpseq where pmodel_id=rec.pmodel_id;
-    IF v_t_pseq_id is null THEN
-      RAISE EXCEPTION 'no pseq_id for pmodel_id=%',rec.pmodel_id;
-    END IF;
-
-    -- get sequence lengths for derived values
-    select into q_seq_len len from pseq where pseq_id=rec.pseq_id;
-    select into t_seq_len len from pseq where pseq_id=v_t_pseq_id;
-    IF    q_seq_len is null or q_seq_len = 0 THEN
-      RAISE EXCEPTION 'length for pseq_id=% is null or zero',rec.pseq_id;
-    ELSIF t_seq_len is null or t_seq_len = 0 THEN
-      RAISE EXCEPTION 'length for pseq_id=% is null or zero',v_t_pseq_id;
-    END IF;
-
-    -- calculate derived values
-    IF q_seq_len > t_seq_len THEN
-      shorter_len := t_seq_len;
-      longer_len := q_seq_len;
-    ELSE
-      shorter_len := q_seq_len;
-      longer_len := t_seq_len;
-    END IF;
-    v_pct_hsp_coverage := ( rec.len::real / shorter_len::real ) * 100.0;
-
-    return v_pct_hsp_coverage;
-  end; $_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.hsp_coverage(integer) OWNER TO unison;
-
---
--- Name: hsp_ids_to_hsp_str(integer[]); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION hsp_ids_to_hsp_str(integer[]) RETURNS text
-    AS $_$
-DECLARE
-  hsp_ids ALIAS FOR $1;
-  hsp_str text;
-  low integer;
-  high integer;
-BEGIN
-  -- get bounds of hsp_ids array for looping
-  low  := replace(split_part(array_dims(hsp_ids),':',1),'[','')::int;
-  high := replace(split_part(array_dims(hsp_ids),':',2),']','')::int;
-
-  hsp_str := hsp_ids[1];
-  FOR i IN low+1..high LOOP
-    hsp_str := hsp_str || ':' || hsp_ids[i];
-  END LOOP;
-
-  return hsp_str;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.hsp_ids_to_hsp_str(integer[]) OWNER TO unison;
-
---
--- Name: FUNCTION hsp_ids_to_hsp_str(integer[]); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION hsp_ids_to_hsp_str(integer[]) IS 'serialize an array of p2gblathsp_ids';
-
-
---
--- Name: hsp_str_to_hsp_ids(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION hsp_str_to_hsp_ids(text) RETURNS integer[]
-    AS $_$
-DECLARE
-  hsp_str ALIAS FOR $1;
-  hsp_ids int[];
-BEGIN
-  SELECT INTO hsp_ids split(hsp_str,':');
-  RETURN hsp_ids;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.hsp_str_to_hsp_ids(text) OWNER TO unison;
-
---
--- Name: FUNCTION hsp_str_to_hsp_ids(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION hsp_str_to_hsp_ids(text) IS 'deserialize a hsp_str into an array of p2gblathsp_ids';
-
-
---
--- Name: init_db(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION init_db() RETURNS void
-    AS $_$
-DECLARE
-	v_db text;
-	cmd text;
-BEGIN
-	SELECT INTO v_db current_database();
-
-	SELECT INTO cmd 'ALTER DATABASE "' || v_db || '" SET search_path="$user", unison, pdb, gong, scop, tax, public';
-	RAISE NOTICE '%', cmd;
-	EXECUTE cmd;
-
-	SELECT INTO cmd 'ALTER DATABASE "' || v_db || '" SET statement_timeout=1800000';
-	RAISE NOTICE '%', cmd;
-	EXECUTE cmd;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.init_db() OWNER TO unison;
-
---
--- Name: ins_last_run(integer, integer, integer, timestamp with time zone); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION ins_last_run(integer, integer, integer, timestamp with time zone) RETURNS void
-    AS $_$
-DECLARE
-	v_pseq_id ALIAS FOR $1;
-	v_pftype_id ALIAS FOR $2;
-	v_params_id ALIAS FOR $3;
-	v_last_run ALIAS FOR $4;
-	rec record;
-BEGIN
-	-- check whether last_run exists for this pseq_id, pftype_id, params_id tuple
-	-- RAISE INFO 'select * into rec from last_run where pseq_id=% and pftype_id=% and params_id=%', v_pseq_id, v_pftype_id, v_params_id;
-	select into rec * from last_run where pseq_id=v_pseq_id and pftype_id=v_pftype_id and params_id=v_params_id;
-
-	IF found THEN
-		 -- RAISE INFO 'update set last_run=% where pseq_id=% and pftype_id=% and params_id=%', v_last_run, v_pseq_id, v_pftype_id, v_params_id;
-		update last_run set last_run=v_last_run where pseq_id=v_pseq_id and pftype_id=v_pftype_id and params_id=v_params_id;
-	ELSE 
-		-- RAISE INFO 'insert into last_run (pseq_id, pftype_id, params_id, last_run) values (%,%,%,%)',v_pseq_id, v_pftype_id, v_params_id, v_last_run;
-		insert into last_run (pseq_id, pftype_id, params_id, last_run) values (v_pseq_id, v_pftype_id, v_params_id, v_last_run);
-	END IF;
-	return;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.ins_last_run(integer, integer, integer, timestamp with time zone) OWNER TO unison;
-
---
--- Name: FUNCTION ins_last_run(integer, integer, integer, timestamp with time zone); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION ins_last_run(integer, integer, integer, timestamp with time zone) IS 'create/update last_run record';
-
-
---
--- Name: ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer) RETURNS integer
-    AS $_$
-DECLARE
-  v_genasm_id ALIAS FOR $1;
-  v_chr ALIAS FOR $2;
-  v_plus_strand ALIAS FOR $3;
-  v_gstart ALIAS FOR $4;
-  v_gstop ALIAS FOR $5;
-  v_pseq_id ALIAS FOR $6;
-  v_pstart ALIAS FOR $7;
-  v_pstop ALIAS FOR $8;
-  v_p2gblathsp_id integer;
-  rec RECORD;
-BEGIN
-  -- check whether HSP already loaded
-  SELECT INTO v_p2gblathsp_id p2gblathsp_id FROM p2gblathsp WHERE 
-    genasm_id=v_genasm_id AND
-    chr=v_chr AND
-    plus_strand=v_plus_strand AND
-    gstart=v_gstart AND
-    gstop=v_gstop AND
-    pseq_id=v_pseq_id AND
-    pstart=v_pstart AND
-    pstop=v_pstop;
-  IF v_p2gblathsp_id is null THEN
-    SELECT INTO v_p2gblathsp_id nextval('unison.p2gblathsp_p2gblathsp_id_seq'::text);
-    INSERT INTO p2gblathsp (p2gblathsp_id,genasm_id,chr,plus_strand,gstart,gstop,pseq_id,pstart,pstop) VALUES
-      (v_p2gblathsp_id,v_genasm_id,v_chr,v_plus_strand,v_gstart,v_gstop,v_pseq_id,v_pstart,v_pstop);
-  END IF;
-  return v_p2gblathsp_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION ins_p2gblathsp(integer, text, boolean, integer, integer, integer, integer, integer) IS 'insert protein-to-genome BLAT HSPs';
-
-
---
--- Name: ins_paliasorigin(integer, text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION ins_paliasorigin(integer, text, text) RETURNS integer
-    AS $_$
-DECLARE
-        v_origin_id ALIAS FOR $1;
-        v_alias ALIAS FOR $2;
-        v_descr ALIAS FOR $3;
-        v_palias_id integer;
-BEGIN
-        -- check whether paliasorigin exists: if yes, then return palias_id, otherwise enter a new record
-        RAISE WARNING 'deprecated method use ins_paliasorigininteger, text, text, integer) instead';
-        select into v_palias_id ins_paliasorigin(v_origin_id, v_alias, v_descr, NULL);
-        return v_palias_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.ins_paliasorigin(integer, text, text) OWNER TO unison;
-
---
--- Name: FUNCTION ins_paliasorigin(integer, text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION ins_paliasorigin(integer, text, text) IS 'backwardly compatible - calls new ins_paliasorigin with NULL tax_id';
-
-
---
--- Name: ins_paliasorigin(integer, text, text, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION ins_paliasorigin(integer, text, text, integer) RETURNS integer
-    AS $_$
-DECLARE
-        v_origin_id ALIAS FOR $1;
-        v_alias ALIAS FOR $2;
-        v_descr ALIAS FOR $3;
-        v_tax_id ALIAS FOR $4;
-        v_palias_id integer;
-BEGIN
-        -- check whether paliasorigin exists: if yes, then return palias_id, otherwise enter a new record
-        RAISE DEBUG 'select into v_palias_id get_paliasorigin_palias_id( %, % )', v_origin_id, v_alias;
-        select into v_palias_id get_paliasorigin_palias_id( v_origin_id, v_alias );
-        IF v_palias_id is null THEN
-                select into v_palias_id nextval('paliasorigin_palias_id_seq');
-                RAISE DEBUG 'executing insert into paliasorigin (palias_id, origin_id, alias, descr, tax_id) values (%, %, %, %, %)',v_palias_id, v_origin_id, v_alias, v_descr, v_tax_id;
-                insert into paliasorigin (palias_id, origin_id, alias, descr, tax_id) values (v_palias_id, v_origin_id, v_alias, v_descr, v_tax_id);
-        ELSE
-                RAISE DEBUG 'record exists for this alias and origin: palias_id %', v_palias_id;
-                UPDATE paliasorigin SET descr=v_descr,tax_id=v_tax_id WHERE palias_id=v_palias_id
-                        AND (    (descr !=v_descr  OR (descr  IS NULL AND v_descr  IS NOT NULL) OR (descr  IS NOT NULL AND v_descr  IS NULL))
-                                  OR (tax_id!=v_tax_id OR (tax_id IS NULL AND v_tax_id IS NOT NULL) OR (tax_id IS NOT NULL AND v_tax_id IS NULL)) );
-                IF FOUND THEN
-                        RAISE DEBUG 'ins_paliasorigin: description, tax_id, or both differ from existing entry and were updated for palias_id %', v_palias_id;
-                END IF;
-        END IF;
-        return v_palias_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.ins_paliasorigin(integer, text, text, integer) OWNER TO unison;
-
---
--- Name: FUNCTION ins_paliasorigin(integer, text, text, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION ins_paliasorigin(integer, text, text, integer) IS 'create a new paliasorigin record or return known palias_id';
-
-
---
--- Name: ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer) RETURNS integer
-    AS $_$
-DECLARE
-  v_hsp_str ALIAS FOR $1;
-  v_pseq_id ALIAS FOR $2;
-  v_ident ALIAS FOR $3;
-  v_pgap_cnt ALIAS FOR $4;
-  v_pgap_bases ALIAS FOR $5;
-  v_ggap_cnt ALIAS FOR $6;
-  v_ggap_bases ALIAS FOR $7;
-  v_params_id ALIAS FOR $8;
-  v_genasm_id ALIAS FOR $9;
-  v_aln_id integer;
-  v_hsp_ids integer[];
-  low integer;
-  high integer;
-  rec RECORD;
-BEGIN
-
-  IF length(v_hsp_str) = 0 THEN
-	RAISE EXCEPTION 'Length hsp_str cannot be 0';
-  END IF;
-  -- check whether hsp_str is already in the database
-  SELECT INTO v_aln_id aln_id FROM pmap_aln WHERE hsp_str=v_hsp_str;
-  IF v_aln_id is null THEN
-
-    SELECT INTO v_aln_id nextval('pmap_aln_aln_id_seq'::text);
- 
-   -- insert into pmap_alnhsp table (let the unique indices deal with redudancies
-    SELECT INTO v_hsp_ids hsp_str_to_hsp_ids( v_hsp_str );
-    low  := replace(split_part(array_dims(v_hsp_ids),':',1),'[','')::int;
-    high := replace(split_part(array_dims(v_hsp_ids),':',2),']','')::int;
-    FOR i IN low..high LOOP
-     INSERT INTO pmap_alnhsp (aln_id, hsp_id) VALUES
-    	(v_aln_id, v_hsp_ids[i]);
-    END LOOP;
-
-    INSERT INTO pmap_aln (aln_id, ident, pgap_cnt, pgap_bases, ggap_cnt, ggap_bases, params_id, genasm_id, pseq_id) VALUES
-      (v_aln_id, v_ident, v_pgap_cnt, v_pgap_bases, v_ggap_cnt, v_ggap_bases, v_params_id, v_genasm_id, v_pseq_id);
-  ELSE
-	RAISE EXCEPTION 'the hsps already exists, aln_id is %',v_aln_id;
-  END IF;
-
-  RETURN v_aln_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION ins_pmap_aln(text, integer, integer, integer, integer, integer, integer, integer, integer) IS 'insert protein-to-genome PMAP alignments';
-
-
---
--- Name: ins_pmap_hsp(integer, text, character, integer, integer, integer, integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION ins_pmap_hsp(integer, text, character, integer, integer, integer, integer, integer, integer) RETURNS integer
-    AS $_$
-DECLARE
-  v_genasm_id ALIAS FOR $1;	
-  v_chr ALIAS FOR $2;
-  v_strand ALIAS FOR $3;
-  v_gstart ALIAS FOR $4;
-  v_gstop ALIAS FOR $5;
-  v_pseq_id ALIAS FOR $6;
-  v_pstart ALIAS FOR $7;
-  v_pstop ALIAS FOR $8;
-  v_params_id ALIAS FOR $9;
-  v_hsp_id integer;
-  rec RECORD;
-BEGIN
-  -- check whether HSP already loaded
-  SELECT INTO v_hsp_id hsp_id FROM pmap_hsp WHERE 
-    chr=v_chr AND
-    strand=v_strand AND
-    gstart=v_gstart AND
-    gstop=v_gstop AND
-    pseq_id=v_pseq_id AND
-    pstart=v_pstart AND
-    pstop=v_pstop AND
-    genasm_id=v_genasm_id AND
-    params_id=v_params_id;
-  IF v_hsp_id is null THEN
-    SELECT INTO v_hsp_id nextval('pmap_hsp_hsp_id_seq'::text);
-    INSERT INTO pmap_hsp (hsp_id,genasm_id,chr,strand,gstart,gstop,pseq_id,pstart,pstop,params_id) VALUES
-      (v_hsp_id,v_genasm_id,v_chr,v_strand,v_gstart,v_gstop,v_pseq_id,v_pstart,v_pstop,v_params_id);	
-  END IF;
-  RETURN v_hsp_id;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.ins_pmap_hsp(integer, text, character, integer, integer, integer, integer, integer, integer) OWNER TO unison;
-
---
--- Name: link_url(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION link_url(text, text) RETURNS text
-    AS $_$select link_url(origin_id($1),$2)$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.link_url(text, text) OWNER TO unison;
-
---
--- Name: FUNCTION link_url(text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION link_url(text, text) IS 'create URL to the origin $1 for alias/query $2';
-
-
---
--- Name: locus_fmt(text, text, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) RETURNS text
-    AS $$BEGIN return coalesce(chr::text,'?')||coalesce(str::text,'?')||':'||coalesce(gstart::text,'?')||'-'||coalesce(gstop::text,'?'); END;$$
-    LANGUAGE plpgsql IMMUTABLE;
-
-
-ALTER FUNCTION unison.locus_fmt(chr text, str text, gstart integer, gstop integer) OWNER TO unison;
-
---
--- Name: FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) IS 'standard format for genomic locus information, i.e., <chr><strand>:<gstart>-<gstop>';
-
-
---
--- Name: make_csb_read_only(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION make_csb_read_only() RETURNS boolean
-    AS $$
-declare
-	schemas name[] := '{unison,scop,gong,tax}';
-	dbname name;
-	i integer := 0;
-	n integer := 0;
-	ret bool := false;
-begin
-	select into dbname current_database();
-
-	IF dbname != 'csb' THEN
-	RAISE EXCEPTION 'This operation is restricted for the CSB database';
-	END IF;
-
-	FOR i IN array_lower(schemas, 1)..array_upper(schemas, 1) LOOP	
-		select into ret make_schema_read_only(schemas[i]);
-
-		IF ret = true THEN
-		n := n + 1;
-		END IF;
-
-	END LOOP;
-
-	IF n = array_upper(schemas, 1) THEN
-	return true;
-	END IF;
-
-return false;
-end;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.make_csb_read_only() OWNER TO unison;
-
---
--- Name: FUNCTION make_csb_read_only(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION make_csb_read_only() IS 'make_csb_read_only() runs make_schema_read_only for each schema in the current database and returns true if make_schema_read_only is successful for all schemas';
-
-
---
--- Name: make_schema_read_only(name); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION make_schema_read_only(name) RETURNS boolean
-    AS $_$
-declare
-	schema alias for $1;
-	table_schema record;
-	num_tables integer;
-	ret bool;
-	n integer := 0;
-begin
-	select into num_tables COUNT(*) from table_perms_v where schemaname = schema;
-	IF num_tables = 0 THEN
-	RAISE EXCEPTION '% tables found in % schema',num_tables,schema;
-	END IF;
-	FOR table_schema in select tablename from table_perms_v where schemaname = schema LOOP
-		select into ret make_table_read_only(schema,table_schema.tablename);
-		IF ret = true THEN
-		n := n + 1;
-		END IF;
-	END LOOP;
-	IF n = num_tables THEN
-	return true;
-	END IF;
-return false;
-end;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.make_schema_read_only(name) OWNER TO unison;
-
---
--- Name: FUNCTION make_schema_read_only(name); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION make_schema_read_only(name) IS 'make_schema_read_only(<schema_name>) runs make_table_read_only for each table in the input schema and returns true if make_table_read_only is successful for all tables';
-
-
---
--- Name: make_table_read_only(name, name); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION make_table_read_only(name, name) RETURNS boolean
-    AS $_$
-declare
-	schema alias for $1;
-	table alias for $2;
-	perm_letter char[] := '{w,a,d,x,t,R}';
-	var boolean;
-	users name[];
-	i integer;
-begin
-	-- all users
-	select into users get_current_users(schema,table);
-	FOR i IN array_lower(users, 1)..array_upper(users, 1) LOOP
-		IF check_user_perms(users[i],schema,table,perm_letter) THEN
-			EXECUTE 'REVOKE UPDATE, INSERT, DELETE, REFERENCES, TRIGGER, RULE ON '|| schema||'.'||table ||' FROM ' || users[i];
-		END IF;
-
-	END LOOP;
-
-	-- public
-	IF check_public_perms(schema,table,perm_letter) THEN
-		EXECUTE 'REVOKE UPDATE, INSERT, DELETE, REFERENCES, TRIGGER, RULE ON '|| schema||'.'||table ||' FROM PUBLIC';
-	END IF;
-
-return true;
-end;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.make_table_read_only(name, name) OWNER TO unison;
-
---
--- Name: FUNCTION make_table_read_only(name, name); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION make_table_read_only(name, name) IS 'make_table_read_only(<schema_name>,<table_name>) checks and revokes wadxRt permissions for each user and public';
-
-
---
--- Name: md5_to_pseq_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION md5_to_pseq_id(md5 text, OUT pseq_id integer) RETURNS integer
-    AS $_$SELECT pseq_id FROM pseq WHERE md5=$1$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.md5_to_pseq_id(md5 text, OUT pseq_id integer) OWNER TO unison;
-
---
--- Name: meta_stats_distinct(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION meta_stats_distinct() RETURNS void
-    AS $$
-DECLARE
-	n integer;
-	r record;
-BEGIN
-	return;
-END;$$
-    LANGUAGE plpgsql STABLE;
-
-
-ALTER FUNCTION unison.meta_stats_distinct() OWNER TO unison;
-
---
--- Name: FUNCTION meta_stats_distinct(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION meta_stats_distinct() IS 'count number of sequences unique to an origin';
-
-
---
--- Name: meta_stats_unique(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION meta_stats_unique() RETURNS void
-    AS $$
-DECLARE
-	n integer;
-	r record;
-BEGIN
-	return;
-END;$$
-    LANGUAGE plpgsql STABLE;
-
-
-ALTER FUNCTION unison.meta_stats_unique() OWNER TO unison;
-
---
--- Name: meta_stats_update(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION meta_stats_update() RETURNS void
-    AS $$
-DECLARE
-	n integer;
-	r record;
-	ts timestamp with time zone;
-BEGIN
-	ts:=now(); raise notice 'meta_stats_update: started %',ts;
-
-	-- sequence stats
---	select into n count(*) from pseq;
---	perform meta_update_kv('unique sequences',n);
---	select into n count(*) from pseq where added>=now()-'30 days'::interval;
---	perform meta_update_kv('new sequences in last 30 days',n);
---	select into n count(*) from pseq where added>=now()-'60 days'::interval;
---	perform meta_update_kv('new sequences in last 60 days',n);
---	select into n count(*) from pseq where added>=now()-'180 days'::interval;
---	perform meta_update_kv('new sequences in last 180 days',n);
---
---	-- alias and origin stats
---	select into n count(*) from palias;
---	perform meta_update_kv('aliases',n);
---	select into n count(distinct tax_id) from palias;
---	perform meta_update_kv('species',n);
-
-	-- number of distinct sequences in an origin and 
-	-- number of distinct sequences unique to an origin
-	FOR r IN select origin_id,origin from origin where ann_pref is not null LOOP
-		create temp table in_r as select distinct pseq_id from palias
-			where origin_id=r.origin_id limit 10000;
-		select into n count(*) from in_r;
-		perform meta_update_kv('distinct sequences in '||r.origin ,n);
-
-		create temp table not_in_r as select pseq_id from in_r
-			except select pseq_id from palias where origin_id!=r.origin_id limit 1000;
-		select into n count(*) from not_in_r;
-		-- this is faster (I think):
---		select into n count(distinct pseq_id) from palias a1 where a1.origin_id=r.origin_id
--- 			and	not exists (select * from palias a2 where a2.pseq_id=a1.pseq_id and a2.origin_id!=a1.origin_id);
---		perform meta_update_kv('distinct sequences unique to '||r.origin ,n);
-
-		drop table in_r;
-		drop table not_in_r;
-	END LOOP;
-
-	-- pfeatures
-	select into n count(*) from pfeature;
-	perform meta_update_kv('protein features',n);
-
-	-- prospect features
-	drop table counts;
-	create temp table counts as select pseq_id,count(pfeature_id) from paprospect2 where params_id=1 group by pseq_id;
-	select into n sum(count) from counts;
-	perform meta_update_kv('threading alignments',n);
-	select into n count(distinct pseq_id) from counts;
-	perform meta_update_kv('threaded sequences',n);
-	select count(pseq_id) from counts where count!=(select max(count) from counts);
-	perform meta_update_kv('incompletely threaded sequences',n);
-
-	-- hmm features
-	drop table counts;
-	create temp table counts as select pseq_id,count(pfeature_id) from pahmm group by pseq_id;
-	select into n sum(count) from counts;
-	perform meta_update_kv('HMM alignments',n);
-	select into n count(distinct pseq_id) from counts;
-	perform meta_update_kv('HMM-aligned sequences',n);
-
-	-- pssm features
-	drop table counts;
-	create temp table counts as select pseq_id,count(pfeature_id) from papssm group by pseq_id;
-	select into n sum(count) from counts;
-	perform meta_update_kv('PSSM alignments',n);
-	select into n count(distinct pseq_id) from counts;
-	perform meta_update_kv('PSSM-aligned sequences',n);
-
-	-- papseq features
-	drop table counts;
-	create temp table counts as select pseq_id,count(pfeature_id) from papseq group by pseq_id;
-	select into n sum(count) from counts;
-	perform meta_update_kv('BLAST alignments',n);
-	select into n count(distinct pseq_id) from counts;
-	perform meta_update_kv('BLAST-aligned sequences',n);
-
-	perform meta_update_kv('stats timestamp',now());
-
-	ts:=now(); raise notice 'meta_stats_update: finished %',ts;
-
-	return;
-END;$$
-    LANGUAGE plpgsql STABLE;
-
-
-ALTER FUNCTION unison.meta_stats_update() OWNER TO unison;
-
---
--- Name: FUNCTION meta_stats_update(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION meta_stats_update() IS 'update database statistics in meta';
-
-
---
--- Name: meta_update_kv(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION meta_update_kv(text, text) RETURNS void
-    AS $_$
-BEGIN
-	delete from meta where key=$1;
-	insert into meta (key,value) values ($1,$2);
-	raise notice 'meta_update_kv: % = %',$1,$2;
-	return;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.meta_update_kv(text, text) OWNER TO unison;
-
---
--- Name: FUNCTION meta_update_kv(text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION meta_update_kv(text, text) IS 'replacement insert into meta table';
-
-
---
--- Name: notice(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION notice(text) RETURNS void
-    AS $_$
-DECLARE
-	msg text;
-BEGIN
-	msg:=$1;
-	RAISE notice '%', msg;
-	return;
-END;$_$
-    LANGUAGE plpgsql STRICT;
-
-
-ALTER FUNCTION unison.notice(text) OWNER TO unison;
-
---
--- Name: origin_alias_descr_fmt(text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION origin_alias_descr_fmt(text, text, text) RETURNS text
-    AS $_$select $1 || ':' || $2 || ' (' || coalesce($3, 'No description available') || ')' ;$_$
-    LANGUAGE sql IMMUTABLE;
-
-
-ALTER FUNCTION unison.origin_alias_descr_fmt(text, text, text) OWNER TO unison;
-
---
--- Name: FUNCTION origin_alias_descr_fmt(text, text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION origin_alias_descr_fmt(text, text, text) IS 'canonical format for origin, alias, and description, like this: <origin>:<alias> (<descr>)';
-
-
---
--- Name: origin_si_origin_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION origin_si_origin_id(text) RETURNS integer
-    AS $_$
-DECLARE
-	O alias for $1;				-- origin
-	rv integer;
-BEGIN
-	select into rv origin_id from origin where upper(origin) = upper(O);
-	if found then return rv; end if;
-	insert into origin (origin) values (O);
-	select into rv origin_id from origin where origin = O;
-	return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.origin_si_origin_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION origin_si_origin_id(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION origin_si_origin_id(text) IS 'select/insert a origin_id from origin text, returns origin_id';
-
-
---
--- Name: ortholog(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION ortholog(integer, integer, integer) RETURNS integer
-    AS $_$
-DECLARE
-  v_pseq_id ALIAS FOR $1;
-  v_tax_id_from ALIAS FOR $2;
-  v_tax_id_to ALIAS FOR $3;
-  rv integer;
-BEGIN
-  SELECT b.pseq_id INTO rv FROM homologene a, homologene b WHERE
-    a.pseq_id=v_pseq_id AND a.tax_id=v_tax_id_from AND b.hid=a.hid AND
-    b.pseq_id!=a.pseq_id AND b.tax_id=v_tax_id_to;
-  return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.ortholog(integer, integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION ortholog(integer, integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION ortholog(integer, integer, integer) IS 'returns ortholog pseq_id given pseq_id, tax_id of the given pseq_id, and tax_id of the desired pseq_id';
-
-
---
--- Name: palias_oa_fmt(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION palias_oa_fmt(integer) RETURNS text
-    AS $_$select origin_alias_fmt(O.origin,AO.alias) from paliasorigin AO join origin O on O.origin_id=AO.origin_id where AO.palias_id=$1$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.palias_oa_fmt(integer) OWNER TO unison;
-
---
--- Name: FUNCTION palias_oa_fmt(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION palias_oa_fmt(integer) IS 'origin_alias_fmt() for given palias_id';
-
-
---
--- Name: palias_oad_fmt(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION palias_oad_fmt(integer) RETURNS text
-    AS $_$select origin_alias_descr_fmt(O.origin,AO.alias,AO.descr) from paliasorigin AO join origin O on O.origin_id=AO.origin_id where AO.palias_id=$1$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.palias_oad_fmt(integer) OWNER TO unison;
-
---
--- Name: FUNCTION palias_oad_fmt(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION palias_oad_fmt(integer) IS 'origin_alias_descr_fmt() for given palias_id';
-
-
---
--- Name: paliasorigin_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION paliasorigin_iu_trigger() RETURNS trigger
-    AS $$BEGIN new.descr_tsv = to_tsvector(new.descr); END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.paliasorigin_iu_trigger() OWNER TO unison;
-
---
--- Name: paprospect_create_indices(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION paprospect_create_indices() RETURNS void
-    AS $$
-BEGIN
-	create index paprospect_gap_idx on paprospect (gap);
-	raise notice 'created paprospect_gap_idx';
-	create index paprospect_mutation_idx on paprospect (mutation);
-	raise notice 'created paprospect_mutation_idx';
-	create index paprospect_nalign_idx on paprospect (nalign);
-	raise notice 'created paprospect_nalign_idx';
-	create index paprospect_nident_idx on paprospect (nident);
-	raise notice 'created paprospect_nident_idx';
-	create index paprospect_pairwise_idx on paprospect (pairwise);
-	raise notice 'created paprospect_pairwise_idx';
-	create index paprospect_quality_idx on paprospect (quality);
-	raise notice 'created paprospect_quality_idx';
-	create index paprospect_raw_idx on paprospect (raw);
-	raise notice 'created paprospect_raw_idx';
-	create index paprospect_rgyr_idx on paprospect (rgyr);
-	raise notice 'created paprospect_rgyr_idx';
-	create index paprospect_singleton_idx on paprospect (singleton);
-	raise notice 'created paprospect_singleton_idx';
-	create index paprospect_ssfit_idx on paprospect (ssfit);
-	raise notice 'created paprospect_ssfit_idx';
-	create index paprospect_start_idx on paprospect (start);
-	raise notice 'created paprospect_start_idx';
-	create index paprospect_stop_idx on paprospect (stop);
-	raise notice 'created paprospect_stop_idx';
-	create index paprospect_svm_idx on paprospect (svm);
-	raise notice 'created paprospect_svm_idx';
-	create index paprospect_zscore_idx on paprospect (zscore);
-	raise notice 'created paprospect_zscore_idx';
-	return;
-END;$$
-    LANGUAGE plpgsql STABLE;
-
-
-ALTER FUNCTION unison.paprospect_create_indices() OWNER TO unison;
-
---
--- Name: FUNCTION paprospect_create_indices(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION paprospect_create_indices() IS 'create non-integrity indicies on paprospect; WARNING: takes hours';
-
-
---
--- Name: paprospect_drop_indices(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION paprospect_drop_indices() RETURNS void
-    AS $$
-BEGIN
-	drop index paprospect_gap_idx;
-	drop index paprospect_mutation_idx;
-	drop index paprospect_nalign_idx;
-	drop index paprospect_nident_idx;
-	drop index paprospect_pairwise_idx;
-	drop index paprospect_quality_idx;
-	drop index paprospect_raw_idx;
-	drop index paprospect_rgyr_idx;
-	drop index paprospect_singleton_idx;
-	drop index paprospect_ssfit_idx;
-	drop index paprospect_start_idx;
-	drop index paprospect_stop_idx;
-	drop index paprospect_svm_idx;
-	drop index paprospect_zscore_idx;
-	return;
-END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.paprospect_drop_indices() OWNER TO unison;
-
---
--- Name: FUNCTION paprospect_drop_indices(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION paprospect_drop_indices() IS 'drops non-integrity indicies from paprospect';
-
-
---
--- Name: paprospect_i_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION paprospect_i_trigger() RETURNS trigger
-    AS $$BEGIN NEW.pftype_id=pftype_id('Prospect'); return new; END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.paprospect_i_trigger() OWNER TO unison;
-
---
--- Name: papseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION papseq_iu_trigger() RETURNS trigger
-    AS $$
-declare
-  t_pseq_id integer;
-  q_seq_len integer;
-  t_seq_len integer;
-  shorter_len integer;
-  longer_len integer;
-begin
-  -- get the pftype_id
-  NEW.pftype_id=pftype_id('blast');
-  IF NEW.pftype_id is null THEN
-    RAISE EXCEPTION 'no pftype_id for name="blast"';
-  END IF;
-
-  -- get the t_pseq_id given the pmodel_id
-  select into t_pseq_id pseq_id from pmpseq where pmodel_id=new.pmodel_id;
-  IF t_pseq_id is null THEN
-    RAISE EXCEPTION 'no pseq_id for pmodel_id=%',new.pmodel_id;
-  END IF;
-
-  -- get sequence lengths for derived values
-  select into q_seq_len len from pseq where pseq_id=new.pseq_id;
-  IF q_seq_len is null or q_seq_len = 0 THEN
-    RAISE EXCEPTION 'length for pseq_id=% is null or zero',new.pseq_id;
-	END IF;
-  select into t_seq_len len from pseq where pseq_id=t_pseq_id;
-  IF t_seq_len is null or t_seq_len = 0 THEN
-    RAISE EXCEPTION 'length for pseq_id=% is null or zero',t_pseq_id;
-  END IF;
-
-  -- calculate derived values
-  IF q_seq_len > t_seq_len THEN
-    shorter_len := t_seq_len;
-    longer_len := q_seq_len;
-  ELSE
-    shorter_len := q_seq_len;
-    longer_len := t_seq_len;
-  END IF;
-  new.pct_hsp_coverage := ( new.len::real / shorter_len::real ) * 100.0;
-  new.pct_coverage := ( shorter_len::real / longer_len::real )  * 100.0;
-
-  return new;
-end; $$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.papseq_iu_trigger() OWNER TO unison;
-
---
--- Name: FUNCTION papseq_iu_trigger(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION papseq_iu_trigger() IS 'calculate derived values for inserting into papseq';
-
-
---
--- Name: papssm_create_indices(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION papssm_create_indices() RETURNS void
-    AS $$
-BEGIN
-	create index papssm_eval_idx on papssm(eval);
-	raise notice 'created papssm_eval_idx';
-	create index papssm_len_idx on papssm(len);
-	raise notice 'created papssm_len_idx';
-	create index papssm_score_idx on papssm(score);
-	raise notice 'created papssm_score_idx';
-	create index papssm_ident_idx on papssm(ident);
-	raise notice 'created papssm_ident_idx';
-	create index papssm_pos_idx on papssm(pos);
-	raise notice 'created papssm_pos_idx';
-	create index papssm_gap_idx on papssm(gap);
-	raise notice 'created papssm_gap_idx';
-	return;
-END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.papssm_create_indices() OWNER TO unison;
-
---
--- Name: papssm_drop_indices(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION papssm_drop_indices() RETURNS void
-    AS $$
-BEGIN
-	drop index papssm_eval_idx;
-	drop index papssm_len_idx;
-	drop index papssm_score_idx;
-	drop index papssm_ident_idx;
-	drop index papssm_pos_idx;
-	drop index papssm_gap_idx;
-	return;
-END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.papssm_drop_indices() OWNER TO unison;
-
---
--- Name: papssm_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION papssm_iu_trigger() RETURNS trigger
-    AS $$BEGIN new.pftype_id = pftype_id( 'PSSM' ); return new; END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.papssm_iu_trigger() OWNER TO unison;
-
---
--- Name: params_id_exists(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION params_id_exists(integer) RETURNS boolean
-    AS $_$
-BEGIN
-	perform * from params where params_id=$1;
-	return FOUND;
-END;
-$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.params_id_exists(integer) OWNER TO unison;
-
---
--- Name: FUNCTION params_id_exists(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION params_id_exists(integer) IS 'return true if params_id exists';
-
-
---
--- Name: perftest_iu_trigger_fx(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION perftest_iu_trigger_fx() RETURNS trigger
-    AS $$
-BEGIN
-	NEW.pg_version = substring(NEW.pg_version_str from E'^PostgreSQL (\\S+) ');
-	RETURN NEW;
-END;
-$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.perftest_iu_trigger_fx() OWNER TO unison;
-
---
--- Name: pfbigpi_site_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pfbigpi_site_trigger() RETURNS trigger
-    AS $$
-  begin
-    new.stop := new.start;
-    return new;
-  end; $$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pfbigpi_site_trigger() OWNER TO unison;
-
---
--- Name: FUNCTION pfbigpi_site_trigger(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pfbigpi_site_trigger() IS 'sets stop equal to start';
-
-
---
--- Name: pfsignalphmm_pred(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pfsignalphmm_pred(text) RETURNS integer
-    AS $_$
-
-DECLARE V_id integer; 
-BEGIN
-
-select into V_id pfsignalphmm_pred_id from pfsignalphmm_pred where upper(prediction)=upper($1); 
-IF NOT FOUND THEN 
-RAISE WARNING 'prediction % not found', $1; 
-RETURN NULL; 
-END IF; 
-return V_id; 
-END;$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pfsignalphmm_pred(text) OWNER TO unison;
-
---
--- Name: pi(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pi(text) RETURNS real
-    AS $_$
-DECLARE 
-	ans float;
-BEGIN 
-	select INTO ans pI($1,'emboss');
-	return ans;
-END$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pi(text) OWNER TO unison;
-
---
--- Name: pmap_hsp_str_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmap_hsp_str_trigger() RETURNS trigger
-    AS $$
-  declare
-hsp RECORD;
-v_hsp_str text := '';
-  begin
-    select into v_hsp_str as_set(hsp_id) from (select hsp_id from pmap_alnhsp where aln_id=new.aln_id order by hsp_id) X;
-
-    IF length(v_hsp_str) = 0 THEN
-RAISE EXCEPTION 'Could not construct hsp_str for %',new.aln_id;
-    END IF;
-
-    new.hsp_str=v_hsp_str;
-    return new;
-  end; $$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pmap_hsp_str_trigger() OWNER TO unison;
-
---
--- Name: FUNCTION pmap_hsp_str_trigger(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pmap_hsp_str_trigger() IS 'calculate hsp_str before inserting into pmap_aln';
-
-
---
--- Name: pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real) RETURNS integer
-    AS $_$
-DECLARE
-        rv integer;
-        hmm_origin_id alias for $1;
-        hmm_name alias for $2;
-        hmm_acc alias for $3;
-        hmm_descr alias for $4;
-        hmm_len alias for $5;
-        hmm_nseq alias for $6;
-        hmm_cksum alias for $7;
-        hmm_ga_seq alias for $8;
-        hmm_ga_dom alias for $9;
-        hmm_tc_seq alias for $10;
-        hmm_tc_dom alias for $11;
-        hmm_nc_seq alias for $12;
-        hmm_nc_dom alias for $13;
-BEGIN
-        rv := hmm_pmodel_id(hmm_acc,hmm_origin_id);
-        if rv is NULL then
-                select into rv nextval('pmodel_pmodel_id_seq');
-                insert into pmhmm (pmodel_id,origin_id,name,acc,descr,len,nseq,cksum,ga_seq,ga_dom,tc_seq,tc_dom,nc_seq,nc_dom) values ( rv,hmm_origin_id,hmm_name,hmm_acc,hmm_descr,hmm_len,hmm_nseq,hmm_cksum,hmm_ga_seq,hmm_ga_dom,hmm_tc_seq,hmm_tc_dom,hmm_nc_seq,hmm_nc_dom);
-	else
-		update pmhmm set name=hmm_name,descr=hmm_descr,len=hmm_len,nseq=hmm_nseq,cksum=hmm_cksum,ga_seq=hmm_ga_seq,ga_dom=hmm_ga_dom,tc_seq=hmm_tc_seq,tc_dom=hmm_tc_dom,nc_seq=hmm_nc_seq,nc_dom=hmm_nc_dom where pmodel_id=rv;
-        end if;
-        return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real) OWNER TO unison;
-
---
--- Name: FUNCTION pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pmhmm_si_pmodel_id(integer, text, text, text, integer, integer, integer, real, real, real, real, real, real) IS 'select/insert a pmodel_id from pmhmm, returns pmodel_id';
-
-
---
--- Name: pmodel_id_exists(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmodel_id_exists(integer) RETURNS boolean
-    AS $_$
-BEGIN
-	perform * from pmodel where pmodel_id=$1;
-	return FOUND;
-END;
-$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pmodel_id_exists(integer) OWNER TO unison;
-
---
--- Name: FUNCTION pmodel_id_exists(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pmodel_id_exists(integer) IS 'return true if pmodel_id exists pmodel or subclass thereof';
-
-
---
--- Name: pmodelset_id_exists(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmodelset_id_exists(integer) RETURNS boolean
-    AS $_$
-BEGIN
-	perform * from pmodelset where pmodelset_id=$1;
-	return FOUND;
-END;
-$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pmodelset_id_exists(integer) OWNER TO unison;
-
---
--- Name: FUNCTION pmodelset_id_exists(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pmodelset_id_exists(integer) IS 'return true if pmodelset_id exists';
-
-
---
--- Name: pmodelset_immutable_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmodelset_immutable_trigger() RETURNS trigger
-    AS $$
- declare
- v_locked boolean;
-v_pmodelset_id integer; 
- begin
- --check if this set is locked
- IF (TG_OP = 'DELETE') THEN
- select into v_locked locked from pmodelset where pmodelset_id=old.pmodelset_id;
- IF v_locked is TRUE THEN
- RAISE EXCEPTION 'pmodelset_id % is locked for deletes',old.pmodelset_id;
- END IF;
- return old;
- ELSIF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
- select into v_locked locked from pmodelset where pmodelset_id=new.pmodelset_id;
- IF v_locked is TRUE THEN
- RAISE EXCEPTION 'pmodelset_id % is locked for inserts/updates',new.pmodelset_id;
- END IF;
- return new;
- END IF;
- end;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pmodelset_immutable_trigger() OWNER TO unison;
-
---
--- Name: pmodelset_si_pmodelset_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmodelset_si_pmodelset_id(text) RETURNS integer
-    AS $_$
-DECLARE
-        M alias for $1;                         -- pmodelset
-        rv integer;
-BEGIN
-        select into rv pmodelset_id from pmodelset where upper(name) = upper(M);
-        if found then return rv; end if;
-        insert into pmodelset (name) values (M);
-        select into rv pmodelset_id from pmodelset where name = M;
-        return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pmodelset_si_pmodelset_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION pmodelset_si_pmodelset_id(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pmodelset_si_pmodelset_id(text) IS 'select/insert a pmodelset_id from pmodelset, returns pmodelset_id';
-
-
---
--- Name: pmpseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmpseq_iu_trigger() RETURNS trigger
-    AS $$
-  declare
-		v_best_palias_id integer;
-  begin
-
-		-- get the best palias_id for this pseq_id
-    select into v_best_palias_id best_palias_id(new.pseq_id,true);
-    IF v_best_palias_id is null THEN
-      RAISE EXCEPTION 'no best_palias_id for pseq_id=%',new.pseq_id;
-    END IF;
-
-		select into new.origin_id,new.name origin_id,alias from palias where palias_id=v_best_palias_id;
-
-    return new;
-  end; $$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pmpseq_iu_trigger() OWNER TO unison;
-
---
--- Name: FUNCTION pmpseq_iu_trigger(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pmpseq_iu_trigger() IS 'calculate derived values for inserting into pmpseq';
-
-
---
--- Name: pmregexp_si_pmodel_id(integer, text, text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmregexp_si_pmodel_id(integer, text, text, text, text) RETURNS integer
-    AS $_$
-DECLARE
-        rv integer;
-BEGIN
-	select into rv pmodel_id from pmregexp where regexp=$5 and origin_id=$1;
-	if rv is NULL then
-		select into rv nextval('pmodel_pmodel_id_seq');
-		insert into pmregexp (pmodel_id,origin_id,acc,name,descr,regexp) values ( rv,$1,$2,$3,$4,$5);
-	end if;
-        return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pmregexp_si_pmodel_id(integer, text, text, text, text) OWNER TO unison;
-
---
--- Name: FUNCTION pmregexp_si_pmodel_id(integer, text, text, text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pmregexp_si_pmodel_id(integer, text, text, text, text) IS 'select/insert a pmodel_id from pmregexp, returns pmodel_id';
-
-
---
--- Name: pmregexp_u_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pmregexp_u_trigger() RETURNS trigger
-    AS $$BEGIN IF OLD.regexp!=NEW.regexp THEN RAISE EXCEPTION 'pmodel_id % (%): regular expressions are immutable', OLD.pmodel_id,OLD.acc; END IF; return NEW; END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pmregexp_u_trigger() OWNER TO unison;
-
---
--- Name: pnote_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pnote_iu_trigger() RETURNS trigger
-    AS $$BEGIN new.login := current_user; new.added = now(); return new; END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pnote_iu_trigger() OWNER TO unison;
-
---
--- Name: porigin_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION porigin_id(text) RETURNS integer
-    AS $_$
-BEGIN
-raise warning 'porigin_id() deprecated on 2006-06-26; use origin_id() instead';
-return origin_id($1);
-END;
-$_$
-    LANGUAGE plpgsql STRICT;
-
-
-ALTER FUNCTION unison.porigin_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION porigin_id(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION porigin_id(text) IS 'DEPRECATED; use origin_id()';
-
-
---
--- Name: pro2descr(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pro2descr(integer) RETURNS text
-    AS $_$
-DECLARE
-	p alias for $1;
-	d text;
-BEGIN
-	select into d descr from palias where pseq_id=p and alias~'^PRO';
-	if found then
-		raise notice 'descr=%',d;
-		update palias set descr=d where origin_id=15 and pseq_id=p and descr is null;
-	end if;
-	return d;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pro2descr(integer) OWNER TO unison;
-
---
--- Name: pseq_genasm_params_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_genasm_params_trigger() RETURNS trigger
-    AS $$
-  declare
-	hsp RECORD;
-  begin
-    -- get pseq,genasm,params from hps for this alignment
-    FOR hsp IN
-	select h.genasm_id,h.pseq_id,h.params_id from pmap_hsp h join pmap_alnhsp a on a.hsp_id=h.hsp_id and a.aln_id=new.aln_id
-    LOOP
-	IF hsp.genasm_id != new.genasm_id OR hsp.pseq_id != new.pseq_id OR hsp.params_id != new.params_id THEN
-		RAISE NOTICE '% % %',hsp.genasm_id,hsp.pseq_id,hsp.params_id;
-		RAISE EXCEPTION 'genasm, pseq params mismatch for aln %',new.aln_id;
-	END IF;
-    END LOOP;  
-    return new;
-  end; $$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pseq_genasm_params_trigger() OWNER TO unison;
-
---
--- Name: FUNCTION pseq_genasm_params_trigger(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pseq_genasm_params_trigger() IS 'makes sure pseq_id, genasm_id and params_id are consistant between aln and hsp';
-
-
---
--- Name: pseq_i_pseq_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_i_pseq_id(text) RETURNS integer
-    AS $_$
-DECLARE
-	S alias for $1;
-	rv integer;
-BEGIN
-	select into rv nextval('pseq_pseq_id_seq');
-	insert into pseq (pseq_id,seq) values (rv,S);
-	return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pseq_i_pseq_id(text) OWNER TO unison;
-
---
--- Name: pseq_id_from_sequence(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_id_from_sequence(text) RETURNS integer
-    AS $_$select _pseq_seq_lookup(clean_sequence($1))$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pseq_id_from_sequence(text) OWNER TO unison;
-
---
--- Name: FUNCTION pseq_id_from_sequence(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pseq_id_from_sequence(text) IS 'return pseq_id for sequence; sequence is made canonical by clean_sequence';
-
-
---
--- Name: pseq_iu_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_iu_trigger() RETURNS trigger
-    AS $$
-declare
-    orig_md5 text;
-begin
-	-- compute the incoming sequence's md5 so that we can warn about changes
-    orig_md5 := md5(new.seq);
-
-	-- remove whitespace and bogus chars, and upcase sequence
-    new.seq := clean_sequence(new.seq);
-
-	-- modifying sequences is prohibited
-	-- if tg_op = 'UPDATE' and old.seq != new.seq then
-	if tg_op = 'UPDATE' then
-	if old.seq != new.seq then
-		raise exception 'pseq sequences may not be altered';
-	end if;
-	end if;
-
-	-- compute the md5 and length of the "cleaned" sequence
-    new.md5 := md5(new.seq);
-    new.len := length(new.seq);
-
-	-- warn (and proceed) if the sequence was modified by clean_sequence
-    if orig_md5 != new.md5 then
-        raise notice 'pseq_id % modified during insert.',new.pseq_id;
-    end if;
-
-	-- fatal if sequences have non-IUPAC chars
-	IF has_non_iupac_aa(new.seq) THEN
-        raise exception 'pseq_id % contains non standard amino acids.',new.pseq_id;
-	END IF;
-
-	-- warn if sequence contains gaps or ambiguities
-	IF has_iupac_gap_aa(new.seq) THEN
-        raise notice 'pseq_id % contains gaps.',new.pseq_id;
-	END IF;
-	IF has_iupac_ambiguity_aa(new.seq) THEN
-        raise notice 'pseq_id % contains ambiguity amino acids.',new.pseq_id;
-	END IF;
-
-    RETURN new;
-end;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pseq_iu_trigger() OWNER TO unison;
-
---
--- Name: pseq_locus_rep(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_locus_rep(integer, integer, integer) RETURNS integer
-    AS $_$select t_pseq_id from pmap_locus_representative_mv where q_pseq_id=$1 and genasm_id=$2 and params_id=$3;$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.pseq_locus_rep(integer, integer, integer) OWNER TO unison;
-
---
--- Name: pseq_si_pseq_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pseq_si_pseq_id(text) RETURNS integer
-    AS $_$
-DECLARE
-        S text;
-        rv integer;
-        Smd5 text;
-BEGIN
-        S := clean_sequence($1);
-        Smd5 := md5(S);
-        rv := _pseq_seq_lookup( S );
-        if rv is NULL then
-                select into rv pseq_i_pseq_id( S );
-        end if;
-        return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pseq_si_pseq_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION pseq_si_pseq_id(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pseq_si_pseq_id(text) IS 'select/insert a pseq_id from sequence, returns pseq_id';
-
-
---
--- Name: pstr_get_pstr_id(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION pstr_get_pstr_id(text) RETURNS integer
-    AS $_$
-DECLARE
-	rv integer;
-BEGIN
-	select into rv pstr_id from pstr where pdbc = upper($1);
-	return rv;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.pstr_get_pstr_id(text) OWNER TO unison;
-
---
--- Name: FUNCTION pstr_get_pstr_id(text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION pstr_get_pstr_id(text) IS 'return pstr_id for pdbc (pdb + chain)';
-
-
---
--- Name: publicize(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION publicize() RETURNS void
-    AS $$
-DECLARE
-	v_row record;
-BEGIN
-	if current_database() != 'csb-public' then
-		RAISE EXCEPTION 'publicize(): database must be named "csb-public"';
-	end if;
-	RAISE WARNING '%: BEGINNING MASSIVE DELETE OF PROPRIETARY DATA.', timeofday();
-
-	FOR v_row IN SELECT origin,origin_id FROM origin WHERE is_public=FALSE ORDER BY origin_id LOOP
-		RAISE NOTICE '%: deleting results for ''%'' (origin_id=%)', timeofday(), v_row.origin, v_row.origin_id;
-		DELETE FROM paliasorigin WHERE origin_id=v_row.origin_id;
-		DELETE FROM origin WHERE origin_id=v_row.origin_id;
-	END LOOP;
-
-	FOR v_row IN SELECT name,params_id FROM params WHERE is_public=FALSE ORDER BY params_id LOOP   
-		RAISE NOTICE '%: deleting results for ''%'' (params_id=%)', timeofday(), v_row.name, v_row.params_id;
-		DELETE FROM pahmm WHERE params_id=v_row.params_id;
-		DELETE FROM paprospect WHERE params_id=v_row.params_id;
-		DELETE FROM params WHERE params_id=v_row.params_id;
-	END LOOP;
-
-	RAISE NOTICE 'deleting sequences NOT in pset_id=150';
-	DELETE FROM pseq WHERE pseq_id NOT IN (SELECT pseq_id FROM pseqset WHERE pset_id=150);
-
-	select meta_update_kv('publicized at',now());
-	RAISE NOTICE '%: Done. You should VACUUM ANALYZE VERBOSE.', timeofday();
-	RETURN;
-END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.publicize() OWNER TO unison;
-
---
--- Name: FUNCTION publicize(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION publicize() IS 'DANGER: This function deletes all proprietary data. It may only be run in a database named csb-public.';
-
-
---
--- Name: randseq(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION randseq(integer) RETURNS text
-    AS $_X$my $A="ACDEFGHIKLMNPQRSTVWY"; my $s=""; $s.=substr($A,rand(length($A)),1) for 1..$_[0]; return $s;$_X$
-    LANGUAGE plperl;
-
-
-ALTER FUNCTION unison.randseq(integer) OWNER TO unison;
-
---
--- Name: release(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION release() RETURNS void
-    AS $$
-BEGIN
-perform meta_update_kv('release timestamp',now());
-perform meta_update_kv('release',to_char(now(), 'YYYY-MM-DD') );
-return;
-END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.release() OWNER TO unison;
-
---
--- Name: FUNCTION release(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION release() IS 'perform final operations for unison release';
-
-
---
--- Name: representative_pseq_id(integer, integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) RETURNS integer
-    AS $_$select t_pseq_id as pseq_id from pmap_locus_representative_mv where q_pseq_id=$1 and genasm_id=$2 and params_id=$3$_$
-    LANGUAGE sql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) OWNER TO unison;
-
---
--- Name: FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) IS 'return "best" representative pseq_id for given pseq_id, genasm_id, params_id';
-
-
---
--- Name: residue_atomres_trigger(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION residue_atomres_trigger() RETURNS trigger
-    AS $$
-  DECLARE
-  BEGIN
-
-	IF new.atom_res IS null or new.atom_res = '' THEN
-		IF new.res_id IS not null or new.res_id != '' THEN
-			RAISE EXCEPTION 'res_id is not null when atom_res is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
-			RETURN NULL;
-		END IF;
-	END IF;
-	IF new.res_id IS null or new.res_id = '' THEN
-		IF new.atom_res IS not null or new.atom_res != '' THEN
-			RAISE EXCEPTION 'atom_res is not null when res_id is null for pdbc = % and seqpos = %',new.pdbc,new.seq_pos;
-			RETURN NULL;
-		END IF;
-	END IF;
-	RETURN new;
-
-  END;$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.residue_atomres_trigger() OWNER TO unison;
-
---
--- Name: run_all_perftests(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION run_all_perftests(pid integer) RETURNS void
-    AS $$
-DECLARE
-	pla perftest_platform%ROWTYPE;
-	def perftest_def%ROWTYPE;
-	res perftest_result%ROWTYPE;
-	i smallint;
-	t0 timestamp;
-	t1 timestamp;
-	td integer;
-	sum_td integer;
-	rows integer;
-	rid integer;
-BEGIN
-	SELECT INTO pla * FROM perftest_platform where platform_id = pid;
-	IF NOT FOUND THEN
-		RAISE EXCEPTION 'platform_id=%: NOT FOUND; aborting', pid;
-	END IF;
-
-	-- sanity checks to ensure that the user doesn't call us with an obviously bogus
-	-- platform_id
-	IF NOT pla.current THEN
-		RAISE EXCEPTION 'platform_id=%: platform is not current; aborting', pid;
-	END IF;
-
-	IF pla.locked THEN
-		RAISE EXCEPTION 'platform_id=%: platform is locked; aborting', pid;
-	END IF;
-
-	IF pla.pg_version_str != version() THEN
-		RAISE EXCEPTION 'platform_id=% pg_version_str=% but version()=%; aborting', pid, pla.pg_version_str, version();
-	END IF;
-
-	IF pla.ip != inet_server_addr() THEN
-		RAISE EXCEPTION 'platform_id=% ip=% but inet_server_addr()=%; aborting', pid, pla_ip, inet_server_addr();
-	END IF;
-
-	insert into perftest_run (platform_id,start_ts) values (pid,clock_timestamp()::timestamp);
-	rid := lastval();			-- run_id from above insertion
-
-	RAISE NOTICE '* running perftest for platform_id=% (%), run_id %', pid, pla.name, rid;
-
-	FOR def IN SELECT * FROM perftest_def WHERE current ORDER BY ordr,def_id LOOP
-		RAISE NOTICE 'def_id=% (%): %', def.def_id, def.name, def.sql;
-		sum_td := 0;
-		FOR i IN 1..def.n_runs LOOP
-			-- run test
-			t0 := clock_timestamp();
-			EXECUTE def.sql;
-			GET DIAGNOSTICS rows = ROW_COUNT;
-			t1 := clock_timestamp();
-			td := extract(milliseconds from t1-t0)::integer;
-
-			IF i = 1 THEN
-				res.n_rows = rows;
-				IF rows < def.min_n_rows THEN
-					RAISE WARNING 'def_id=%, #%: returned % rows; expected >%', def.def_id, i, rows, def.min_n_rows;
-				END IF;
-			ELSE
-				IF rows != res.n_rows THEN
-					RAISE WARNING 'def_id=%, #%: returned % rows; iteration 1 returned % rows', def.def_id, i, rows, res.n_rows;
-				END IF;
-			END IF;
-			
-			IF td > def.max_time THEN
-				RAISE WARNING 'def_id=%, #%: time exceeded max_time (% ms > % ms)', def.def_id, i, td, def.max_time;
-			END IF;
-	
-			res.times[i] = td;
-			sum_td := sum_td + td;
-
-			RAISE NOTICE '  #%: % rows, % ms', i, rows, td;
-		END LOOP;
-
-		res.avg_time = sum_td / def.n_runs;
-		IF res.avg_time > def.max_avg_time THEN
-			RAISE WARNING 'def_id=%: avg_time (% ms) exceeed max_av_time (% ms)', def.def_id, res.avg_time, def.max_time;
-		END IF;
-
-		res.def_id := def.def_id;
-		res.run_id := rid;
-		res.had_error := FALSE;
-
-		INSERT INTO perftest_result(def_id,run_id,had_error,n_rows,times,avg_time)
-			VALUES (res.def_id,res.run_id,res.had_error,res.n_rows,res.times,res.avg_time);
-	END LOOP;
-
-	update perftest_run set stop_ts=clock_timestamp()::timestamp where run_id=rid;
-END;
-$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.run_all_perftests(pid integer) OWNER TO unison;
-
---
--- Name: seqhash(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION seqhash(text) RETURNS text
-    AS $_$DECLARE S text; BEGIN return ( _seqhash_no_cleaning( clean_sequence($1) ) ); END$_$
-    LANGUAGE plpgsql IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.seqhash(text) OWNER TO unison;
-
---
--- Name: sequence_ends(text, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION sequence_ends(text, integer) RETURNS text
-    AS $_X$
-my $seq = $_[0];
-my $end_len = $_[1];
-my $elipsis = '..';
-return $seq if ( length($seq) <= $end_len + $end_len + length($elipsis) );
-return substr($seq,0,$end_len) . $elipsis . substr($seq,-$end_len);
-$_X$
-    LANGUAGE plperl IMMUTABLE STRICT;
-
-
-ALTER FUNCTION unison.sequence_ends(text, integer) OWNER TO unison;
-
---
--- Name: FUNCTION sequence_ends(text, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION sequence_ends(text, integer) IS 'returns first and last N chars of sequence, e.g., ACDEF..STVWY';
-
-
---
--- Name: spdi_dna_palias_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION spdi_dna_palias_id(integer) RETURNS integer
-    AS $_$
-DECLARE
-	q_id alias for $1;
-	a_id integer;
-BEGIN
-	select into a_id QA.palias_id from pseqalias QA
-		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('SPDI') and alias~'^DNA'
-		limit 1;
-	return a_id;
-END;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison.spdi_dna_palias_id(integer) OWNER TO unison;
-
---
--- Name: spdi_palias_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION spdi_palias_id(integer) RETURNS integer
-    AS $_$
-DECLARE
-	q_id alias for $1;
-	a_id integer;
-BEGIN
-	-- order by alias desc has the effect of preferring UNQ, then PRO, then DNA
-	select into a_id QA.palias_id from pseqalias QA
-		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('GenenGenes')
-		order by alias desc
-		limit 1;
-	return a_id;
-END;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison.spdi_palias_id(integer) OWNER TO unison;
-
---
--- Name: spdi_pro_palias_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION spdi_pro_palias_id(integer) RETURNS integer
-    AS $_$
-DECLARE
-	q_id alias for $1;
-	a_id integer;
-BEGIN
-	select into a_id QA.palias_id from pseqalias QA
-		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('SPDI') and alias~'^PRO'
-		limit 1;
-	return a_id;
-END;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison.spdi_pro_palias_id(integer) OWNER TO unison;
-
---
--- Name: spdi_unq_palias_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION spdi_unq_palias_id(integer) RETURNS integer
-    AS $_$
-DECLARE
-	q_id alias for $1;
-	a_id integer;
-BEGIN
-	select into a_id QA.palias_id from pseqalias QA
-		join paliasorigin OA on OA.palias_id=QA.palias_id
-		where QA.pseq_id=q_id and QA.is_current=TRUE and OA.origin_id=origin_id('SPDI') and alias~'^UNQ'
-		limit 1;
-	return a_id;
-END;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison.spdi_unq_palias_id(integer) OWNER TO unison;
-
---
--- Name: split(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION split(text, text) RETURNS text[]
-    AS $_$
-  DECLARE
-    i int := 0;
-    word text;
-    result text := '{';
-    result_arr text[];
-  BEGIN
-    LOOP
-      i := i + 1;
-      SELECT INTO word split_part($1, $2, i);
-      IF word = '' THEN
-        EXIT;
-      END IF;
-      IF i > 1 THEN
-        result := result || ',"' || word || '"';
-      ELSE
-        result := result || '"' || word || '"';
-      END IF;
-    END LOOP;
-    result := result || '}';
-    result_arr := result;
-    RETURN result_arr;
-  END
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.split(text, text) OWNER TO unison;
-
---
--- Name: FUNCTION split(text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION split(text, text) IS 'split text into an array - similar to Perl split';
-
-
---
--- Name: sprintf(text, text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION sprintf(text, text, text) RETURNS text
-    AS $_$
-  my ($string, $args, $delim) = @_;
-  my $delsplit = defined $delim ? qr{\Q$delim} : qr{\s+};
-  return sprintf($string, (split $delsplit, $args));
-$_$
-    LANGUAGE plperl;
-
-
-ALTER FUNCTION unison.sprintf(text, text, text) OWNER TO unison;
-
---
--- Name: FUNCTION sprintf(text, text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION sprintf(text, text, text) IS 'sprintf(fmt,argstring,dlm): format dlm-delimited argstring using fmt';
-
-
---
--- Name: sprintf(text, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION sprintf(text, text) RETURNS text
-    AS $_$
-  SELECT sprintf($1,$2,null);
-$_$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.sprintf(text, text) OWNER TO unison;
-
---
--- Name: FUNCTION sprintf(text, text); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION sprintf(text, text) IS 'sprintf(fmt,argstring): format whitespace-delimited  argstring using fmt';
-
-
---
--- Name: sst_palias_id(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION sst_palias_id(integer) RETURNS integer
-    AS $_$
-BEGIN
-	raise warning 'SST_PALIAS_ID is deprecated';
-	raise warning '  use SPDI_PALIAS_ID instead';
-	return( spdi_palias_id( $1 ) );	
-END;$_$
-    LANGUAGE plpgsql STABLE STRICT;
-
-
-ALTER FUNCTION unison.sst_palias_id(integer) OWNER TO unison;
-
---
--- Name: unq2descr(integer, text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION unq2descr(integer, text) RETURNS void
-    AS $_$
-DECLARE
-	p alias for $1;
-	UNQ alias for $2;
-BEGIN
-	raise notice 'UNQ=%',UNQ;
-	update palias set descr=UNQ||' '||descr where origin_id=15 and pseq_id=p and descr not null;
-	return;
-END;
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.unq2descr(integer, text) OWNER TO unison;
-
---
--- Name: upd_run_history(integer, integer, boolean); Type: FUNCTION; Schema: unison; Owner: unison
 --
-
-CREATE FUNCTION upd_run_history(integer, integer, boolean) RETURNS timestamp with time zone
-    AS $_$
-DECLARE
-	q alias for $1;
-	r alias for $2;
-	f alias for $3;
-	z timestamp;
-BEGIN
-	z:=now();
-	update run_history set failed=f,ran_on=z where pseq_id=q and run_id=r;
-	if not FOUND then
-		-- update failed... tuple must not exist
-		insert into run_history (pseq_id,run_id,failed,ran_on) values (q,r,f,z);
-	end if;
-	return z;
-END;$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.upd_run_history(integer, integer, boolean) OWNER TO unison;
-
---
--- Name: FUNCTION upd_run_history(integer, integer, boolean); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION upd_run_history(integer, integer, boolean) IS 'inserts/updates run_history for the given pseq_id,run_id,failed); returns timestamp';
-
-
---
--- Name: upd_run_history(integer, integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION upd_run_history(integer, integer) RETURNS timestamp with time zone
-    AS $_$BEGIN return upd_run_history($1,$2,NULL); END$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.upd_run_history(integer, integer) OWNER TO unison;
-
---
--- Name: FUNCTION upd_run_history(integer, integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION upd_run_history(integer, integer) IS 'equivalent to upd_run_history(pseq_id,run_id,NULL)';
-
-
---
--- Name: update_pmodelset(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION update_pmodelset(integer) RETURNS integer
-    AS $_$
-DECLARE
-	v_pmodelset_id alias for $1;
-
-	v_row record;
-	v_pg_row record;
-	v_cmd text;
-	v_tmptblname text;
-
-	v_nrows_del integer := 0;
-	v_nrows_ins integer := 0;
-	v_nrows_tot integer := 0;
-BEGIN
-	-- ********************************* checklist *****************************************
-	-- check if the requested pmodelset_id exists
-	SELECT INTO v_row pmodelset_id,name,descr,def,locked,pmsm_table FROM pmodelset WHERE pmodelset_id=v_pmodelset_id;
-	IF NOT FOUND THEN
-		RAISE EXCEPTION 'pmodelset_id=% does not exist', v_pmodelset_id;
-		RETURN NULL;
-	END IF;
-
-	-- check if pmodelset is immutable (locked)
-	IF v_row.locked IS TRUE THEN
-		RAISE EXCEPTION '% set (pmodelset_id=%) is locked for updates.', v_row.name,v_pmodelset_id;
-		RETURN NULL;
-	END IF;
-
-	-- check if an sql definition exists
-	IF v_row.def IS NULL THEN
-		RAISE EXCEPTION 'The definition for pmodelset_id=% is null.', v_pmodelset_id;
-		RETURN NULL;
-	END IF;
-
-	-- check if the pmsm_pm* table is set
-	IF v_row.pmsm_table IS NULL THEN
-		RAISE EXCEPTION 'The pmsm_pm* table name for this set (pmodelset_id=%) is null.', v_pmodelset_id;
-		RETURN NULL;
-	END IF;
-
-	-- check if the pmsm_pm* table exists
-	SELECT INTO v_pg_row tablename FROM pg_tables where tablename=v_row.pmsm_table;
-	IF NOT FOUND THEN
-		RAISE EXCEPTION 'table=% does not exist', v_row.pmsm_table;
-		RETURN NULL;
-	END IF;
-	-- **************************************************************************************
-
-	-- warn with name and id
-	RAISE DEBUG '* % (pmodelset_id=%)', v_row.name, v_row.pmodelset_id;
-
-	v_tmptblname := 'update_pmodelset_' || v_pmodelset_id || '_' || md5(now()||random());
-
-	-- materialize a temp table of the current set contents
-	v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||' AS SELECT DISTINCT pmodel_id FROM ('||v_row.def||') X';
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-	GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
-	RAISE DEBUG '% rows in temp table', v_nrows_tot;
-
-	-- delete obsolete models using an intermediate, indexed table
-	v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||'_del AS SELECT pmodel_id from '||v_row.pmsm_table||' where pmodelset_id='||v_pmodelset_id||' EXCEPT select pmodel_id from '||v_tmptblname;
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-	v_cmd := 'CREATE INDEX '||v_tmptblname||'_del_m_idx on '||v_tmptblname||'_del(pmodel_id)';
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-	v_cmd := 'ANALYZE '||v_tmptblname||'_del';
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-	v_cmd:='DELETE FROM '||v_row.pmsm_table||' USING '||v_tmptblname||'_del D WHERE pmodelset_id='||v_pmodelset_id||' AND '||v_row.pmsm_table||'.pmodel_id=D.pmodel_id';
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-	GET DIAGNOSTICS v_nrows_del = ROW_COUNT;
-
-	v_cmd:='DROP TABLE ' || v_tmptblname||'_del';
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-	-- add new models
-	v_cmd:='INSERT INTO '||v_row.pmsm_table||' (pmodelset_id,pmodel_id) SELECT '||v_pmodelset_id||',pmodel_id FROM (SELECT pmodel_id FROM '||v_tmptblname||' EXCEPT SELECT pmodel_id FROM '||v_row.pmsm_table||' WHERE pmodelset_id='||v_pmodelset_id||') X';
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-	GET DIAGNOSTICS v_nrows_ins = ROW_COUNT;
-
-	-- drop the temp table
-	v_cmd:='DROP TABLE ' || v_tmptblname;
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-	v_cmd := 'SELECT pmodel_id FROM '||v_row.pmsm_table||' WHERE pmodelset_id = '||v_pmodelset_id;
-	RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-	GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
-
-	RAISE NOTICE '  % (pmodelset_id=%): % model deleted, % models added, % total',
-	v_row.name, v_row.pmodelset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
-	RETURN v_nrows_tot;
-
-END
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.update_pmodelset(integer) OWNER TO unison;
-
---
--- Name: FUNCTION update_pmodelset(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION update_pmodelset(integer) IS 'update pmodelset for a specified pmodelset_id using the definition in pmodelset.def';
-
-
---
--- Name: update_pset(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION update_pset(integer) RETURNS integer
-    AS $_$
-DECLARE
-    v_pset_id alias for $1;
-    v_row record;
-    v_cmd text;
-    v_nrows_del integer;
-    v_nrows_ins integer;
-    v_nrows_tot integer;
-    v_tmptblname text;
-BEGIN
-    SELECT INTO v_row pset_id,name,def FROM pset WHERE pset_id=v_pset_id;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'pset_id=% does not exist', v_pset_id;
-        RETURN NULL;
-    END IF;
-
-    IF v_row.def IS NULL THEN
-        RAISE EXCEPTION 'The set definition for pset_id=% is null.', v_pset_id;
-        RETURN NULL;
-    END IF;
-    RAISE DEBUG '* % (pset_id=%)', v_row.name, v_row.pset_id;
-
-    v_tmptblname := 'update_pset_' || v_pset_id || '_' || md5(now()::text||random()::text);
-
-	-- materialize a temp table of the current set contents
-    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||' AS SELECT DISTINCT pseq_id FROM ('||v_row.def||') X';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
-	RAISE DEBUG '% rows in temp table', v_nrows_tot;
-
-	-- delete obsolete seqs using an intermediate, indexed table
-    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||'_del AS SELECT pseq_id from pseqset where pset_id='||v_pset_id||' EXCEPT select pseq_id from '||v_tmptblname;
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    v_cmd := 'CREATE INDEX '||v_tmptblname||'_del_q_idx on '||v_tmptblname||'_del(pseq_id)';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    v_cmd := 'ANALYZE '||v_tmptblname||'_del';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    v_cmd:='DELETE FROM pseqset USING '||v_tmptblname||'_del D WHERE pset_id='||v_pset_id||' AND pseqset.pseq_id=D.pseq_id';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    GET DIAGNOSTICS v_nrows_del = ROW_COUNT;
-    v_cmd:='DROP TABLE ' || v_tmptblname||'_del';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-	-- add new seqs
-    v_cmd:='INSERT INTO pseqset (pset_id,pseq_id) SELECT '||v_row.pset_id||',pseq_id FROM (SELECT pseq_id FROM '||v_tmptblname||' EXCEPT SELECT pseq_id FROM pseqset WHERE pset_id='||v_pset_id||') X';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    GET DIAGNOSTICS v_nrows_ins = ROW_COUNT;
-
-	-- drop the temp table
-    v_cmd:='DROP TABLE ' || v_tmptblname;
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-    SELECT INTO v_nrows_tot COUNT(*) FROM pseqset WHERE pset_id = v_pset_id;
-    RAISE NOTICE '  % (pset_id=%): % sequences deleted, % sequences added, % total',
-        v_row.name, v_row.pset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
-    RETURN v_nrows_tot;
-END
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.update_pset(integer) OWNER TO unison;
-
---
--- Name: FUNCTION update_pset(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION update_pset(integer) IS 'update pmodelset for a specified pmodelset_id using the definition in pmodelset.def';
-
-
---
--- Name: update_pset_orig(integer); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION update_pset_orig(integer) RETURNS integer
-    AS $_$
-DECLARE
-    v_pset_id alias for $1;
-    v_row record;
-    v_cmd text;
-    v_nrows_del integer;
-    v_nrows_ins integer;
-    v_nrows_tot integer;
-    v_tmptblname text;
-BEGIN
-    SELECT INTO v_row pset_id,name,def FROM pset WHERE pset_id=v_pset_id;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'pset_id=% does not exist', v_pset_id;
-        RETURN NULL;
-    END IF;
-
-    IF v_row.def IS NULL THEN
-        RAISE EXCEPTION 'The set definition for pset_id=% is null.', v_pset_id;
-        RETURN NULL;
-    END IF;
-    RAISE DEBUG '* % (pset_id=%)', v_row.name, v_row.pset_id;
-
-	-- populate a temp table of the current set contents
-    v_tmptblname := 'update_pset_' || v_pset_id || '_' || substr(md5(now()||random(),1,10));
-    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||' AS SELECT DISTINCT pseq_id FROM ('||v_row.def||') X';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    GET DIAGNOSTICS v_nrows_tot = ROW_COUNT;
-	RAISE DEBUG '% rows in temp table', v_nrows_tot;
-
-    v_cmd := 'CREATE TEMP TABLE '||v_tmptblname||'_del AS SELECT pseq_id from pseqset where pset_id='||v_pset_id||' EXCEPT select pseq_id from '||v_tmptblname;
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    v_cmd := 'CREATE INDEX '||v_tmptblname||'_del_q_idx on '||v_tmptblname||'_del(pseq_id)';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    v_cmd := 'ANALYZE '||v_tmptblname||'_del';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-	
-	-- delete obsolete seqs
-    v_cmd:='DELETE FROM pseqset USING '||v_tmptblname||'_del D WHERE pset_id='||v_pset_id||' AND pseqset.pseq_id=D.pseq_id';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    GET DIAGNOSTICS v_nrows_del = ROW_COUNT;
-
-	-- add new seqs
-    v_cmd:='INSERT INTO pseqset (pset_id,pseq_id) SELECT '||v_row.pset_id||',pseq_id FROM (SELECT pseq_id FROM '||v_tmptblname||' EXCEPT SELECT pseq_id FROM pseqset WHERE pset_id='||v_pset_id||') X';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    GET DIAGNOSTICS v_nrows_ins = ROW_COUNT;
-
-	-- drop the temp tables
-    v_cmd:='DROP TABLE ' || v_tmptblname;
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-    v_cmd:='DROP TABLE ' || v_tmptblname||'_del';
-    RAISE DEBUG '%', v_cmd;
-	EXECUTE v_cmd;
-
-    SELECT INTO v_nrows_tot COUNT(*) FROM pseqset WHERE pset_id = v_pset_id;
-    RAISE NOTICE '  % (pset_id=%): % sequences deleted, % sequences added, % total',
-        v_row.name, v_row.pset_id, v_nrows_del, v_nrows_ins, v_nrows_tot;
-    RETURN v_nrows_tot;
-END
-$_$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.update_pset_orig(integer) OWNER TO unison;
-
---
--- Name: FUNCTION update_pset_orig(integer); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION update_pset_orig(integer) IS 'update pseqset for a specified pset_id using the definition in pset.def';
-
-
---
--- Name: update_psets_extrinsic(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION update_psets_extrinsic() RETURNS void
-    AS $$
-DECLARE
-	v_row record;
-	v_nseqs integer;
-BEGIN
-	FOR v_row IN SELECT pset_id,name FROM pset WHERE pset_id between 100 and 199 order by pset_id LOOP
-		SELECT INTO v_nseqs update_pset( v_row.pset_id );
-		RAISE NOTICE '% (pset_id=%): % sequences', v_row.name, v_row.pset_id, v_nseqs;
-    END LOOP;
-    RETURN;
-END;
-$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.update_psets_extrinsic() OWNER TO unison;
-
---
--- Name: FUNCTION update_psets_extrinsic(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION update_psets_extrinsic() IS 'update pseqset for set definitions based on computed features';
-
-
---
--- Name: update_psets_intrinsic(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION update_psets_intrinsic() RETURNS void
-    AS $$
-DECLARE
-	v_row record;
-	v_nseqs integer;
-BEGIN
-	FOR v_row IN SELECT pset_id,name FROM pset WHERE pset_id between 1 and 99 order by pset_id LOOP
-		SELECT INTO v_nseqs update_pset( v_row.pset_id );
-		RAISE NOTICE '% (pset_id=%): % sequences', v_row.name, v_row.pset_id, v_nseqs;
-    END LOOP;
-    RETURN;
-END;
-$$
-    LANGUAGE plpgsql;
-
-
-ALTER FUNCTION unison.update_psets_intrinsic() OWNER TO unison;
-
---
--- Name: FUNCTION update_psets_intrinsic(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION update_psets_intrinsic() IS 'update pseqset for set definitions based on origin, alias, description, and tax_id';
-
-
---
--- Name: update_tax_ids(); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION update_tax_ids() RETURNS void
-    AS $$update paliasorigin set tax_id=inferred_tax_id from _infer_tax_id_changed_v where paliasorigin.palias_id=_infer_tax_id_changed_v.palias_id;$$
-    LANGUAGE sql;
-
-
-ALTER FUNCTION unison.update_tax_ids() OWNER TO unison;
-
---
--- Name: FUNCTION update_tax_ids(); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON FUNCTION update_tax_ids() IS 'update paliasorigin.tax_id as necessary based on tax_ids inferred from origin, alias, and description';
-
-
---
--- Name: warn(text); Type: FUNCTION; Schema: unison; Owner: unison
---
-
-CREATE FUNCTION warn(text) RETURNS void
-    AS $_$
-DECLARE
-	msg text;
-BEGIN
-	msg:=$1;
-	RAISE WARNING '%', msg;
-	return;
-END;$_$
-    LANGUAGE plpgsql STRICT;
-
-
-ALTER FUNCTION unison.warn(text) OWNER TO unison;
-
---
--- Name: array_accum(anyelement); Type: AGGREGATE; Schema: unison; Owner: unison
---
-
-CREATE AGGREGATE array_accum(anyelement) (
-    SFUNC = array_append,
-    STYPE = anyarray,
-    INITCOND = '{}'
+-- Name: ptm_type; Type: TABLE; Schema: unison_aux; Owner: unison; Tablespace: 
+--
+
+CREATE TABLE ptm_type (
+    ptm_type_id integer NOT NULL,
+    origin_id integer NOT NULL,
+    ptm_type text NOT NULL,
+    acc text,
+    target text NOT NULL,
+    pos_mod_aa text,
+    pos_mod_pp text,
+    correction_formula text,
+    mass_diff_isotopic double precision,
+    mass_diff_avg double precision,
+    cellular_location text,
+    keyword text
 );
 
 
-ALTER AGGREGATE unison.array_accum(anyelement) OWNER TO unison;
+ALTER TABLE unison_aux.ptm_type OWNER TO unison;
 
 --
--- Name: defline_agg(anyelement); Type: AGGREGATE; Schema: unison; Owner: unison
+-- Name: ptm_type_ptm_type_id_seq; Type: SEQUENCE; Schema: unison_aux; Owner: unison
 --
 
-CREATE AGGREGATE defline_agg(anyelement) (
-    SFUNC = array_append,
-    STYPE = anyarray,
-    INITCOND = '{}',
-    FINALFUNC = _defline_agg_finalfunc
-);
-
-
-ALTER AGGREGATE unison.defline_agg(anyelement) OWNER TO unison;
-
---
--- Name: AGGREGATE defline_agg(anyelement); Type: COMMENT; Schema: unison; Owner: unison
---
-
-COMMENT ON AGGREGATE defline_agg(anyelement) IS 'Ctrl-A delimited deflines';
-
-
-SET search_path = go, pg_catalog;
-
---
--- Name: association_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE association_id_seq
+CREATE SEQUENCE ptm_type_ptm_type_id_seq
     INCREMENT BY 1
     NO MAXVALUE
     NO MINVALUE
     CACHE 1;
 
 
-ALTER TABLE go.association_id_seq OWNER TO unison;
+ALTER TABLE unison_aux.ptm_type_ptm_type_id_seq OWNER TO unison;
 
 --
--- Name: db_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
+-- Name: ptm_type_ptm_type_id_seq; Type: SEQUENCE OWNED BY; Schema: unison_aux; Owner: unison
 --
 
-CREATE SEQUENCE db_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.db_id_seq OWNER TO unison;
-
---
--- Name: dbxref_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE dbxref_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.dbxref_id_seq OWNER TO unison;
-
---
--- Name: evidence_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE evidence_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.evidence_id_seq OWNER TO unison;
-
---
--- Name: gene_product_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE gene_product_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.gene_product_id_seq OWNER TO unison;
-
---
--- Name: graph_path_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE graph_path_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.graph_path_id_seq OWNER TO unison;
-
---
--- Name: seq_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE seq_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.seq_id_seq OWNER TO unison;
-
---
--- Name: seq_property_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE seq_property_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.seq_property_id_seq OWNER TO unison;
-
---
--- Name: species_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE species_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.species_id_seq OWNER TO unison;
-
---
--- Name: term2term_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE term2term_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.term2term_id_seq OWNER TO unison;
-
---
--- Name: term_id_seq; Type: SEQUENCE; Schema: go; Owner: unison
---
-
-CREATE SEQUENCE term_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE go.term_id_seq OWNER TO unison;
-
-SET search_path = gong, pg_catalog;
-
---
--- Name: alias_alias_id_seq; Type: SEQUENCE; Schema: gong; Owner: unison
---
-
-CREATE SEQUENCE alias_alias_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE gong.alias_alias_id_seq OWNER TO unison;
-
---
--- Name: alias_alias_id_seq; Type: SEQUENCE OWNED BY; Schema: gong; Owner: unison
---
-
-ALTER SEQUENCE alias_alias_id_seq OWNED BY alias.alias_id;
-
-
-SET search_path = marray, pg_catalog;
-
---
--- Name: chip_chip_id_seq; Type: SEQUENCE; Schema: marray; Owner: unison
---
-
-CREATE SEQUENCE chip_chip_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE marray.chip_chip_id_seq OWNER TO unison;
-
---
--- Name: chip_chip_id_seq; Type: SEQUENCE OWNED BY; Schema: marray; Owner: unison
---
-
-ALTER SEQUENCE chip_chip_id_seq OWNED BY chip.chip_id;
-
-
-SET search_path = pdb, pg_catalog;
-
---
--- Name: descriptor_origin_descriptor_origin_id_seq; Type: SEQUENCE; Schema: pdb; Owner: unison
---
-
-CREATE SEQUENCE descriptor_origin_descriptor_origin_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    MINVALUE 0
-    CACHE 1;
-
-
-ALTER TABLE pdb.descriptor_origin_descriptor_origin_id_seq OWNER TO unison;
-
---
--- Name: descriptor_origin_descriptor_origin_id_seq; Type: SEQUENCE OWNED BY; Schema: pdb; Owner: unison
---
-
-ALTER SEQUENCE descriptor_origin_descriptor_origin_id_seq OWNED BY descriptor_origin.descriptor_origin_id;
-
-
-SET search_path = unison, pg_catalog;
-
---
--- Name: aliasset_aliasset_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE aliasset_aliasset_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.aliasset_aliasset_id_seq OWNER TO unison;
-
---
--- Name: aliasset_aliasset_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE aliasset_aliasset_id_seq OWNED BY aliasset.aliasset_id;
-
-
---
--- Name: canned_views_cv_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE canned_views_cv_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.canned_views_cv_id_seq OWNER TO unison;
-
---
--- Name: canned_views_cv_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE canned_views_cv_id_seq OWNED BY canned_views.cv_id;
-
-
---
--- Name: genasm_genasm_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE genasm_genasm_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.genasm_genasm_id_seq OWNER TO unison;
-
---
--- Name: genasm_genasm_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE genasm_genasm_id_seq OWNED BY genasm.genasm_id;
-
-
---
--- Name: origin_origin_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE origin_origin_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.origin_origin_id_seq OWNER TO unison;
-
---
--- Name: origin_origin_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE origin_origin_id_seq OWNED BY origin.origin_id;
-
-
---
--- Name: p2gblataln_p2gblataln_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE p2gblataln_p2gblataln_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.p2gblataln_p2gblataln_id_seq OWNER TO unison;
-
---
--- Name: p2gblataln_p2gblataln_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE p2gblataln_p2gblataln_id_seq OWNED BY p2gblataln.p2gblataln_id;
-
-
---
--- Name: p2gblathsp_p2gblathsp_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE p2gblathsp_p2gblathsp_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.p2gblathsp_p2gblathsp_id_seq OWNER TO unison;
-
---
--- Name: p2gblathsp_p2gblathsp_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE p2gblathsp_p2gblathsp_id_seq OWNED BY p2gblathsp.p2gblathsp_id;
-
-
---
--- Name: paliasorigin_palias_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE paliasorigin_palias_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.paliasorigin_palias_id_seq OWNER TO unison;
-
---
--- Name: paliasorigin_palias_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE paliasorigin_palias_id_seq OWNED BY paliasorigin.palias_id;
-
-
---
--- Name: params_params_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE params_params_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.params_params_id_seq OWNER TO unison;
-
---
--- Name: params_params_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE params_params_id_seq OWNED BY params.params_id;
-
-
---
--- Name: pcluster_pcluster_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE pcluster_pcluster_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.pcluster_pcluster_id_seq OWNER TO unison;
-
---
--- Name: pcluster_pcluster_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE pcluster_pcluster_id_seq OWNED BY pcluster.pcluster_id;
-
-
---
--- Name: perftest_def_def_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE perftest_def_def_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.perftest_def_def_id_seq OWNER TO unison;
-
---
--- Name: perftest_def_def_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE perftest_def_def_id_seq OWNED BY perftest_def.def_id;
-
-
---
--- Name: perftest_platform_platform_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE perftest_platform_platform_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.perftest_platform_platform_id_seq OWNER TO unison;
-
---
--- Name: perftest_platform_platform_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE perftest_platform_platform_id_seq OWNED BY perftest_platform.platform_id;
-
-
---
--- Name: perftest_run_run_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE perftest_run_run_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.perftest_run_run_id_seq OWNER TO unison;
-
---
--- Name: perftest_run_run_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE perftest_run_run_id_seq OWNED BY perftest_run.run_id;
-
-
---
--- Name: pftype_pftype_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE pftype_pftype_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.pftype_pftype_id_seq OWNER TO unison;
-
---
--- Name: pftype_pftype_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE pftype_pftype_id_seq OWNED BY pftype.pftype_id;
-
-
---
--- Name: pmap_aln_aln_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE pmap_aln_aln_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.pmap_aln_aln_id_seq OWNER TO unison;
-
---
--- Name: pmap_aln_aln_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE pmap_aln_aln_id_seq OWNED BY pmap_aln.aln_id;
-
-
---
--- Name: pmap_hsp_hsp_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE pmap_hsp_hsp_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.pmap_hsp_hsp_id_seq OWNER TO unison;
-
---
--- Name: pmap_hsp_hsp_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE pmap_hsp_hsp_id_seq OWNED BY pmap_hsp.hsp_id;
-
-
---
--- Name: pmodelset_pmodelset_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE pmodelset_pmodelset_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.pmodelset_pmodelset_id_seq OWNER TO unison;
-
---
--- Name: pmodelset_pmodelset_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE pmodelset_pmodelset_id_seq OWNED BY pmodelset.pmodelset_id;
-
-
---
--- Name: pseq_pseq_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE pseq_pseq_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.pseq_pseq_id_seq OWNER TO unison;
-
---
--- Name: pseq_pseq_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE pseq_pseq_id_seq OWNED BY pseq.pseq_id;
-
-
---
--- Name: pset_pset_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE pset_pset_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.pset_pset_id_seq OWNER TO unison;
-
---
--- Name: pset_pset_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE pset_pset_id_seq OWNED BY pset.pset_id;
-
-
---
--- Name: psprotcomp_location_psloc_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE psprotcomp_location_psloc_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.psprotcomp_location_psloc_id_seq OWNER TO unison;
-
---
--- Name: psprotcomp_location_psloc_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE psprotcomp_location_psloc_id_seq OWNED BY psprotcomp_location.psloc_id;
-
-
---
--- Name: run_run_id_seq; Type: SEQUENCE; Schema: unison; Owner: unison
---
-
-CREATE SEQUENCE run_run_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE unison.run_run_id_seq OWNER TO unison;
-
---
--- Name: run_run_id_seq; Type: SEQUENCE OWNED BY; Schema: unison; Owner: unison
---
-
-ALTER SEQUENCE run_run_id_seq OWNED BY run.run_id;
+ALTER SEQUENCE ptm_type_ptm_type_id_seq OWNED BY ptm_type.ptm_type_id;
 
 
 SET search_path = gong, pg_catalog;
@@ -18127,10 +18356,10 @@ ALTER TABLE p2gblathsp ALTER COLUMN p2gblathsp_id SET DEFAULT nextval('p2gblaths
 
 
 --
--- Name: palias_id; Type: DEFAULT; Schema: unison; Owner: unison
+-- Name: pannotation_id; Type: DEFAULT; Schema: unison; Owner: unison
 --
 
-ALTER TABLE paliasorigin ALTER COLUMN palias_id SET DEFAULT nextval('paliasorigin_palias_id_seq'::regclass);
+ALTER TABLE pannotation ALTER COLUMN pannotation_id SET DEFAULT nextval('pannotation_pannotation_id_seq'::regclass);
 
 
 --
@@ -18236,6 +18465,15 @@ ALTER TABLE psprotcomp_location ALTER COLUMN psloc_id SET DEFAULT nextval('pspro
 --
 
 ALTER TABLE run ALTER COLUMN run_id SET DEFAULT nextval('run_run_id_seq'::regclass);
+
+
+SET search_path = unison_aux, pg_catalog;
+
+--
+-- Name: ptm_type_id; Type: DEFAULT; Schema: unison_aux; Owner: unison
+--
+
+ALTER TABLE ptm_type ALTER COLUMN ptm_type_id SET DEFAULT nextval('ptm_type_ptm_type_id_seq'::regclass);
 
 
 SET search_path = go, pg_catalog;
@@ -18651,11 +18889,11 @@ ALTER TABLE ONLY p2gblathsp
 
 
 --
--- Name: palias_pkey; Type: CONSTRAINT; Schema: unison; Owner: unison; Tablespace: 
+-- Name: pannotation_pkey; Type: CONSTRAINT; Schema: unison; Owner: unison; Tablespace: 
 --
 
-ALTER TABLE ONLY paliasorigin
-    ADD CONSTRAINT palias_pkey PRIMARY KEY (palias_id);
+ALTER TABLE ONLY pannotation
+    ADD CONSTRAINT pannotation_pkey PRIMARY KEY (pannotation_id);
 
 
 --
@@ -18886,6 +19124,14 @@ ALTER TABLE ONLY cytoband_hg18
 
 ALTER TABLE ONLY hugo
     ADD CONSTRAINT hugo_pkey PRIMARY KEY (hgnc_id);
+
+
+--
+-- Name: ptm_type_pkey; Type: CONSTRAINT; Schema: unison_aux; Owner: unison; Tablespace: 
+--
+
+ALTER TABLE ONLY ptm_type
+    ADD CONSTRAINT ptm_type_pkey PRIMARY KEY (ptm_type_id);
 
 
 SET search_path = go, pg_catalog;
@@ -19526,7 +19772,7 @@ SET search_path = gong, pg_catalog;
 -- Name: alias_alias_idx; Type: INDEX; Schema: gong; Owner: unison; Tablespace: 
 --
 
-CREATE INDEX alias_alias_idx ON alias USING btree (upper(alias));
+CREATE INDEX alias_alias_idx ON alias USING btree (lower(alias) text_pattern_ops);
 
 
 --
@@ -19717,13 +19963,6 @@ CREATE UNIQUE INDEX ligand_descriptor_ld_origin_id ON ligand_descriptors USING b
 CREATE UNIQUE INDEX residue_res_seq_idx ON residue USING btree (pdbc, res_id, seq_pos);
 
 
---
--- Name: residue_seq_res_idx; Type: INDEX; Schema: pdb; Owner: unison; Tablespace: 
---
-
-CREATE UNIQUE INDEX residue_seq_res_idx ON residue USING btree (pdbc, seq_pos, res_id);
-
-
 SET search_path = scop, pg_catalog;
 
 --
@@ -19839,14 +20078,14 @@ SET search_path = tax, pg_catalog;
 -- Name: spspec_common_idx; Type: INDEX; Schema: tax; Owner: unison; Tablespace: 
 --
 
-CREATE INDEX spspec_common_idx ON spspec USING btree (upper(common));
+CREATE INDEX spspec_common_idx ON spspec USING btree (lower(common) text_pattern_ops);
 
 
 --
 -- Name: spspec_gs_idx; Type: INDEX; Schema: tax; Owner: unison; Tablespace: 
 --
 
-CREATE UNIQUE INDEX spspec_gs_idx ON spspec USING btree (upper(gs));
+CREATE UNIQUE INDEX spspec_gs_idx ON spspec USING btree (lower(gs) text_pattern_ops);
 
 
 --
@@ -19860,7 +20099,7 @@ CREATE INDEX spspec_k_idx ON spspec USING btree (k);
 -- Name: spspec_latin_idx; Type: INDEX; Schema: tax; Owner: unison; Tablespace: 
 --
 
-CREATE UNIQUE INDEX spspec_latin_idx ON spspec USING btree (upper(latin));
+CREATE UNIQUE INDEX spspec_latin_idx ON spspec USING btree (lower(latin) text_pattern_ops);
 
 
 SET search_path = taxonomy, pg_catalog;
@@ -19902,6 +20141,55 @@ SET search_path = unison, pg_catalog;
 CREATE INDEX best_annotation_mv_pseq_id_idx ON best_annotation_mv USING btree (pseq_id);
 
 ALTER TABLE best_annotation_mv CLUSTER ON best_annotation_mv_pseq_id_idx;
+
+
+--
+-- Name: current_annotations_mv_alias; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX current_annotations_mv_alias ON current_annotations_mv USING btree (alias text_pattern_ops);
+
+
+--
+-- Name: current_annotations_mv_alias_cf; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX current_annotations_mv_alias_cf ON current_annotations_mv USING btree (lower(alias) text_pattern_ops);
+
+
+--
+-- Name: current_annotations_mv_ann_pref; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX current_annotations_mv_ann_pref ON current_annotations_mv USING btree (ann_pref);
+
+
+--
+-- Name: current_annotations_mv_origin; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX current_annotations_mv_origin ON current_annotations_mv USING btree (origin);
+
+
+--
+-- Name: current_annotations_mv_origin_id; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX current_annotations_mv_origin_id ON current_annotations_mv USING btree (origin_id);
+
+
+--
+-- Name: current_annotations_mv_pseq_id; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX current_annotations_mv_pseq_id ON current_annotations_mv USING btree (pseq_id);
+
+
+--
+-- Name: current_annotations_mv_tax_id; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX current_annotations_mv_tax_id ON current_annotations_mv USING btree (tax_id);
 
 
 --
@@ -20000,7 +20288,7 @@ CREATE INDEX ncbi_pseq_mv_q ON ncbi_pseq_mv USING btree (pseq_id);
 -- Name: origin_origin_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE UNIQUE INDEX origin_origin_idx ON origin USING btree (upper(origin));
+CREATE UNIQUE INDEX origin_origin_idx ON origin USING btree (lower(origin) text_pattern_ops);
 
 
 --
@@ -20051,6 +20339,8 @@ CREATE UNIQUE INDEX p2gblathsp_unq_idx ON p2gblathsp USING btree (genasm_id, chr
 
 CREATE INDEX pahmm_mining1_idx ON pahmm USING btree (params_id, pmodel_id, eval);
 
+ALTER TABLE pahmm CLUSTER ON pahmm_mining1_idx;
+
 
 --
 -- Name: pahmm_mining2_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
@@ -20086,59 +20376,6 @@ CREATE INDEX pahmm_pseq_id_idx ON pahmm USING btree (pseq_id);
 
 CREATE UNIQUE INDEX pahmm_redundant_feature_idx ON pahmm USING btree (params_id, pseq_id, pmodel_id, start, stop, mstart, mstop);
 
-ALTER TABLE pahmm CLUSTER ON pahmm_redundant_feature_idx;
-
-
---
--- Name: paliasorigin_alias_casefold_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE INDEX paliasorigin_alias_casefold_idx ON paliasorigin USING btree (upper(alias));
-
-ALTER TABLE paliasorigin CLUSTER ON paliasorigin_alias_casefold_idx;
-
-
---
--- Name: paliasorigin_alias_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE INDEX paliasorigin_alias_idx ON paliasorigin USING btree (alias);
-
-
---
--- Name: paliasorigin_alias_unique_in_origin_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE UNIQUE INDEX paliasorigin_alias_unique_in_origin_idx ON paliasorigin USING btree (origin_id, alias);
-
-
---
--- Name: paliasorigin_o_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE INDEX paliasorigin_o_idx ON paliasorigin USING btree (origin_id);
-
-
---
--- Name: paliasorigin_search1_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE INDEX paliasorigin_search1_idx ON paliasorigin USING btree (palias_id, origin_id);
-
-
---
--- Name: paliasorigin_search3_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE INDEX paliasorigin_search3_idx ON paliasorigin USING btree (origin_id, tax_id, palias_id);
-
-
---
--- Name: paliasorigin_tax_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
---
-
-CREATE INDEX paliasorigin_tax_id_idx ON paliasorigin USING btree (tax_id);
-
 
 --
 -- Name: palignment_pseq_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
@@ -20147,6 +20384,69 @@ CREATE INDEX paliasorigin_tax_id_idx ON paliasorigin USING btree (tax_id);
 CREATE INDEX palignment_pseq_id_idx ON palignment USING btree (pseq_id);
 
 ALTER TABLE palignment CLUSTER ON palignment_pseq_id_idx;
+
+
+--
+-- Name: pannotation_alias; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_alias ON pannotation USING btree (alias);
+
+
+--
+-- Name: pannotation_alias_cf; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_alias_cf ON pannotation USING btree (lower(alias));
+
+
+--
+-- Name: pannotation_alias_cf_tpo; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_alias_cf_tpo ON pannotation USING btree (lower(alias) text_pattern_ops);
+
+
+--
+-- Name: pannotation_alias_tpo; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_alias_tpo ON pannotation USING btree (alias text_pattern_ops);
+
+
+--
+-- Name: pannotation_alias_unique_in_origin_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE UNIQUE INDEX pannotation_alias_unique_in_origin_idx ON pannotation USING btree (origin_id, alias);
+
+
+--
+-- Name: pannotation_o_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_o_idx ON pannotation USING btree (origin_id);
+
+
+--
+-- Name: pannotation_search1_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_search1_idx ON pannotation USING btree (pannotation_id, origin_id);
+
+
+--
+-- Name: pannotation_search3_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_search3_idx ON pannotation USING btree (origin_id, tax_id, pannotation_id);
+
+
+--
+-- Name: pannotation_tax_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX pannotation_tax_id_idx ON pannotation USING btree (tax_id);
 
 
 --
@@ -20957,7 +21257,7 @@ CREATE INDEX pmodel_origin_id_idx ON pmodel USING btree (origin_id);
 -- Name: pmodelset_name_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE UNIQUE INDEX pmodelset_name_idx ON pmodelset USING btree (upper(name));
+CREATE UNIQUE INDEX pmodelset_name_idx ON pmodelset USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -21242,7 +21542,7 @@ ALTER TABLE pseq_probe_mv CLUSTER ON pseq_probe_serach1_idx;
 -- Name: pseqalias_current_palias_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE INDEX pseqalias_current_palias_id_idx ON pseqalias USING btree (pseq_id, palias_id) WHERE (is_current = true);
+CREATE INDEX pseqalias_current_palias_id_idx ON pseq_pannotation USING btree (pseq_id, pannotation_id) WHERE (is_current = true);
 
 
 --
@@ -21256,44 +21556,44 @@ COMMENT ON INDEX pseqalias_current_palias_id_idx IS 'rapid pseq_id->palias_id ma
 -- Name: pseqalias_current_palias_id_pseq_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE INDEX pseqalias_current_palias_id_pseq_id_idx ON pseqalias USING btree (palias_id, pseq_id) WHERE (is_current = true);
+CREATE INDEX pseqalias_current_palias_id_pseq_id_idx ON pseq_pannotation USING btree (pannotation_id, pseq_id) WHERE (is_current = true);
 
 
 --
 -- Name: pseqalias_duplicate_alias_and_version_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE UNIQUE INDEX pseqalias_duplicate_alias_and_version_idx ON pseqalias USING btree (palias_id, version);
+CREATE UNIQUE INDEX pseqalias_duplicate_alias_and_version_idx ON pseq_pannotation USING btree (pannotation_id, version);
 
-ALTER TABLE pseqalias CLUSTER ON pseqalias_duplicate_alias_and_version_idx;
+ALTER TABLE pseq_pannotation CLUSTER ON pseqalias_duplicate_alias_and_version_idx;
 
 
 --
 -- Name: pseqalias_is_current_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE INDEX pseqalias_is_current_idx ON pseqalias USING btree (is_current);
+CREATE INDEX pseqalias_is_current_idx ON pseq_pannotation USING btree (is_current);
 
 
 --
 -- Name: pseqalias_one_iscurrent_per_palias_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE UNIQUE INDEX pseqalias_one_iscurrent_per_palias_id_idx ON pseqalias USING btree (palias_id) WHERE (is_current = true);
+CREATE UNIQUE INDEX pseqalias_one_iscurrent_per_palias_id_idx ON pseq_pannotation USING btree (pannotation_id) WHERE (is_current = true);
 
 
 --
 -- Name: pseqalias_pseq_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE INDEX pseqalias_pseq_id_idx ON pseqalias USING btree (pseq_id);
+CREATE INDEX pseqalias_pseq_id_idx ON pseq_pannotation USING btree (pseq_id);
 
 
 --
 -- Name: pseqalias_ref_pseq_id_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE INDEX pseqalias_ref_pseq_id_idx ON pseqalias USING btree (ref_pseq_id);
+CREATE INDEX pseqalias_ref_pseq_id_idx ON pseq_pannotation USING btree (ref_pseq_id);
 
 
 --
@@ -21323,7 +21623,7 @@ ALTER TABLE pseqset CLUSTER ON pseqset_seq_already_in_set_idx;
 -- Name: pset_name_idx; Type: INDEX; Schema: unison; Owner: unison; Tablespace: 
 --
 
-CREATE UNIQUE INDEX pset_name_idx ON pset USING btree (upper(name));
+CREATE UNIQUE INDEX pset_name_idx ON pset USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -21470,6 +21770,20 @@ CREATE INDEX hugo_status_idx ON hugo USING btree (status);
 CREATE INDEX hugo_uniprot_id_md_idx ON hugo USING btree (uniprot_id_md);
 
 
+--
+-- Name: ptm_seq_alias; Type: INDEX; Schema: unison_aux; Owner: unison; Tablespace: 
+--
+
+CREATE INDEX ptm_seq_alias ON ptm USING btree (alias);
+
+
+--
+-- Name: ptm_type_origin_ptm_type_unq_idx; Type: INDEX; Schema: unison_aux; Owner: unison; Tablespace: 
+--
+
+CREATE UNIQUE INDEX ptm_type_origin_ptm_type_unq_idx ON ptm_type USING btree (origin_id, ptm_type);
+
+
 SET search_path = pdb, pg_catalog;
 
 --
@@ -21582,6 +21896,16 @@ CREATE TRIGGER pnote_iu_trigger
     BEFORE INSERT OR UPDATE ON pnote
     FOR EACH ROW
     EXECUTE PROCEDURE pnote_iu_trigger();
+
+
+--
+-- Name: pseq_after_i_trigger; Type: TRIGGER; Schema: unison; Owner: unison
+--
+
+CREATE TRIGGER pseq_after_i_trigger
+    AFTER INSERT ON pseq
+    FOR EACH ROW
+    EXECUTE PROCEDURE pseq_after_i_trigger();
 
 
 --
@@ -21873,7 +22197,7 @@ ALTER TABLE ONLY pmodel
 -- Name: origin_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
 --
 
-ALTER TABLE ONLY paliasorigin
+ALTER TABLE ONLY pannotation
     ADD CONSTRAINT origin_id_exists FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
@@ -21907,6 +22231,54 @@ ALTER TABLE ONLY pmprospect
 
 ALTER TABLE ONLY pmpssm
     ADD CONSTRAINT origin_id_exists FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: origin_id_fk; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY best_annotation_mv
+    ADD CONSTRAINT origin_id_fk FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: origin_id_fk; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_locus_representative_mv
+    ADD CONSTRAINT origin_id_fk FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: origin_id_fk; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_gg_representative_mv
+    ADD CONSTRAINT origin_id_fk FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: origin_id_fk; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY ensembl_coordinates_mv
+    ADD CONSTRAINT origin_id_fk FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: origin_id_fk; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY ensembl_unambiguous_coordinates_mv
+    ADD CONSTRAINT origin_id_fk FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: origin_id_fk; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_pfam_mv
+    ADD CONSTRAINT origin_id_fk FOREIGN KEY (origin_id) REFERENCES origin(origin_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -21945,8 +22317,8 @@ ALTER TABLE ONLY pahmm
 -- Name: palias_fk; Type: FK CONSTRAINT; Schema: unison; Owner: unison
 --
 
-ALTER TABLE ONLY pseqalias
-    ADD CONSTRAINT palias_fk FOREIGN KEY (palias_id) REFERENCES paliasorigin(palias_id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY pseq_pannotation
+    ADD CONSTRAINT palias_fk FOREIGN KEY (pannotation_id) REFERENCES pannotation(pannotation_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -21955,6 +22327,14 @@ ALTER TABLE ONLY pseqalias
 
 ALTER TABLE ONLY palignment
     ADD CONSTRAINT palignment_pmodel_id_exists FOREIGN KEY (pmodel_id) REFERENCES pmodel(pmodel_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pannotation_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY current_annotations_mv
+    ADD CONSTRAINT pannotation_id_exists FOREIGN KEY (pannotation_id) REFERENCES pannotation(pannotation_id);
 
 
 --
@@ -22034,6 +22414,62 @@ ALTER TABLE ONLY pftmhmm
 --
 
 ALTER TABLE ONLY psdisorder
+    ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_locus_representative_mv
+    ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_gg_representative_mv
+    ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_unambiguous_overlaps_mv
+    ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_unambiguous_mv
+    ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pseq_probe_mv
+    ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_pfam_mv
+    ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: params_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_mv
     ADD CONSTRAINT params_id_exists FOREIGN KEY (params_id) REFERENCES params(params_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
@@ -22529,7 +22965,7 @@ ALTER TABLE ONLY pseqset
 -- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
 --
 
-ALTER TABLE ONLY pseqalias
+ALTER TABLE ONLY pseq_pannotation
     ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
@@ -22614,6 +23050,78 @@ ALTER TABLE ONLY psdisorder
 
 
 --
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY best_annotation_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY ncbi_pseq_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY ensembl_coordinates_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY ensembl_unambiguous_coordinates_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_unambiguous_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pseq_gene_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pseq_probe_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_pfam_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
+--
+
+ALTER TABLE ONLY pmap_mv
+    ADD CONSTRAINT pseq_id_exists FOREIGN KEY (pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: pset_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
 --
 
@@ -22665,7 +23173,7 @@ ALTER TABLE ONLY psprotcomp
 -- Name: ref_pseq_id_exists; Type: FK CONSTRAINT; Schema: unison; Owner: unison
 --
 
-ALTER TABLE ONLY pseqalias
+ALTER TABLE ONLY pseq_pannotation
     ADD CONSTRAINT ref_pseq_id_exists FOREIGN KEY (ref_pseq_id) REFERENCES pseq(pseq_id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
@@ -22691,6 +23199,16 @@ ALTER TABLE ONLY run
 
 ALTER TABLE ONLY run
     ADD CONSTRAINT run_pomodelset_id_exists FOREIGN KEY (pmodelset_id) REFERENCES pmodelset(pmodelset_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+SET search_path = unison_aux, pg_catalog;
+
+--
+-- Name: ptm_ptm_type_id_fkey; Type: FK CONSTRAINT; Schema: unison_aux; Owner: unison
+--
+
+ALTER TABLE ONLY ptm
+    ADD CONSTRAINT ptm_ptm_type_id_fkey FOREIGN KEY (ptm_type_id) REFERENCES ptm_type(ptm_type_id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -22814,6 +23332,592 @@ GRANT ALL ON SCHEMA unison_aux TO unison;
 GRANT USAGE ON SCHEMA unison_aux TO PUBLIC;
 
 
+SET search_path = marray, pg_catalog;
+
+--
+-- Name: chip_id(text); Type: ACL; Schema: marray; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION chip_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION chip_id(text) FROM unison;
+GRANT ALL ON FUNCTION chip_id(text) TO unison;
+GRANT ALL ON FUNCTION chip_id(text) TO PUBLIC;
+
+
+SET search_path = pdb, pg_catalog;
+
+--
+-- Name: descriptor_origin_id(text, text, text); Type: ACL; Schema: pdb; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION descriptor_origin_id(text, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION descriptor_origin_id(text, text, text) FROM unison;
+GRANT ALL ON FUNCTION descriptor_origin_id(text, text, text) TO unison;
+GRANT ALL ON FUNCTION descriptor_origin_id(text, text, text) TO PUBLIC;
+
+
+--
+-- Name: descriptor_origin_id(text, text); Type: ACL; Schema: pdb; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION descriptor_origin_id(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION descriptor_origin_id(text, text) FROM unison;
+GRANT ALL ON FUNCTION descriptor_origin_id(text, text) TO unison;
+GRANT ALL ON FUNCTION descriptor_origin_id(text, text) TO PUBLIC;
+
+
+--
+-- Name: descriptor_origin_id(text); Type: ACL; Schema: pdb; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION descriptor_origin_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION descriptor_origin_id(text) FROM unison;
+GRANT ALL ON FUNCTION descriptor_origin_id(text) TO unison;
+GRANT ALL ON FUNCTION descriptor_origin_id(text) TO PUBLIC;
+
+
+SET search_path = pgutils, pg_catalog;
+
+--
+-- Name: pk_references(text, text, text, text); Type: ACL; Schema: pgutils; Owner: rkh
+--
+
+REVOKE ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) FROM rkh;
+GRANT ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) TO rkh;
+GRANT ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) TO PUBLIC;
+
+
+--
+-- Name: pk_references(text, text); Type: ACL; Schema: pgutils; Owner: rkh
+--
+
+REVOKE ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) FROM rkh;
+GRANT ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) TO rkh;
+GRANT ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) TO PUBLIC;
+
+
+SET search_path = tax, pg_catalog;
+
+--
+-- Name: gs2tax_id(text); Type: ACL; Schema: tax; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION gs2tax_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION gs2tax_id(text) FROM unison;
+GRANT ALL ON FUNCTION gs2tax_id(text) TO unison;
+GRANT ALL ON FUNCTION gs2tax_id(text) TO PUBLIC;
+
+
+SET search_path = unison, pg_catalog;
+
+--
+-- Name: _agg_as_set_finalfunc(anyarray); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) FROM unison;
+GRANT ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) TO unison;
+GRANT ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) TO PUBLIC;
+
+
+--
+-- Name: _dblast_species(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _dblast_species(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _dblast_species(text) FROM unison;
+GRANT ALL ON FUNCTION _dblast_species(text) TO unison;
+GRANT ALL ON FUNCTION _dblast_species(text) TO PUBLIC;
+
+
+--
+-- Name: _defline_agg_finalfunc(anyarray); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _defline_agg_finalfunc(anyarray) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _defline_agg_finalfunc(anyarray) FROM unison;
+GRANT ALL ON FUNCTION _defline_agg_finalfunc(anyarray) TO unison;
+GRANT ALL ON FUNCTION _defline_agg_finalfunc(anyarray) TO PUBLIC;
+
+
+--
+-- Name: _expand_aa_sets(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _expand_aa_sets(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _expand_aa_sets(text) FROM unison;
+GRANT ALL ON FUNCTION _expand_aa_sets(text) TO unison;
+GRANT ALL ON FUNCTION _expand_aa_sets(text) TO PUBLIC;
+
+
+--
+-- Name: _geneseq_species(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _geneseq_species(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _geneseq_species(text) FROM unison;
+GRANT ALL ON FUNCTION _geneseq_species(text) TO unison;
+GRANT ALL ON FUNCTION _geneseq_species(text) TO PUBLIC;
+
+
+--
+-- Name: _nr_species(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _nr_species(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _nr_species(text) FROM unison;
+GRANT ALL ON FUNCTION _nr_species(text) TO unison;
+GRANT ALL ON FUNCTION _nr_species(text) TO PUBLIC;
+
+
+--
+-- Name: _refseq_species(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _refseq_species(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _refseq_species(text) FROM unison;
+GRANT ALL ON FUNCTION _refseq_species(text) TO unison;
+GRANT ALL ON FUNCTION _refseq_species(text) TO PUBLIC;
+
+
+--
+-- Name: _seqhash_no_cleaning(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION _seqhash_no_cleaning(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION _seqhash_no_cleaning(text) FROM unison;
+GRANT ALL ON FUNCTION _seqhash_no_cleaning(text) TO unison;
+GRANT ALL ON FUNCTION _seqhash_no_cleaning(text) TO PUBLIC;
+
+
+--
+-- Name: a280(text, text, boolean); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION a280(text, text, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION a280(text, text, boolean) FROM unison;
+GRANT ALL ON FUNCTION a280(text, text, boolean) TO unison;
+GRANT ALL ON FUNCTION a280(text, text, boolean) TO PUBLIC;
+
+
+--
+-- Name: aa_1_to_3(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION aa_1_to_3(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION aa_1_to_3(text) FROM unison;
+GRANT ALL ON FUNCTION aa_1_to_3(text) TO unison;
+GRANT ALL ON FUNCTION aa_1_to_3(text) TO PUBLIC;
+
+
+--
+-- Name: aa_3_to_1(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION aa_3_to_1(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION aa_3_to_1(text) FROM unison;
+GRANT ALL ON FUNCTION aa_3_to_1(text) TO unison;
+GRANT ALL ON FUNCTION aa_3_to_1(text) TO PUBLIC;
+
+
+--
+-- Name: assign_annotation(integer, integer, text, text, integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) FROM unison;
+GRANT ALL ON FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) TO unison;
+GRANT ALL ON FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) TO PUBLIC;
+GRANT ALL ON FUNCTION assign_annotation(v_pseq_id integer, v_origin_id integer, v_alias text, v_descr text, v_tax_id integer, OUT v_pannotation_id integer) TO genengenes;
+
+
+--
+-- Name: current_params_id_by_pftype_id(integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION current_params_id_by_pftype_id(integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION current_params_id_by_pftype_id(integer) FROM unison;
+GRANT ALL ON FUNCTION current_params_id_by_pftype_id(integer) TO unison;
+GRANT ALL ON FUNCTION current_params_id_by_pftype_id(integer) TO PUBLIC;
+
+
+--
+-- Name: domain_digest(integer, integer, text, text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) FROM unison;
+GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) TO unison;
+GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) TO PUBLIC;
+
+
+--
+-- Name: domain_digest(integer, integer, text, integer, double precision); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) FROM unison;
+GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) TO unison;
+GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) TO PUBLIC;
+
+
+--
+-- Name: domain_digest(integer, text, text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) FROM unison;
+GRANT ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) TO unison;
+GRANT ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) TO PUBLIC;
+
+
+--
+-- Name: domain_digests(integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION domain_digests(integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION domain_digests(integer) FROM unison;
+GRANT ALL ON FUNCTION domain_digests(integer) TO unison;
+GRANT ALL ON FUNCTION domain_digests(integer) TO PUBLIC;
+
+
+--
+-- Name: expand_aa_sets(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION expand_aa_sets(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION expand_aa_sets(text) FROM unison;
+GRANT ALL ON FUNCTION expand_aa_sets(text) TO unison;
+GRANT ALL ON FUNCTION expand_aa_sets(text) TO PUBLIC;
+
+
+--
+-- Name: has_iupac_ambiguity_aa(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION has_iupac_ambiguity_aa(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION has_iupac_ambiguity_aa(text) FROM unison;
+GRANT ALL ON FUNCTION has_iupac_ambiguity_aa(text) TO unison;
+GRANT ALL ON FUNCTION has_iupac_ambiguity_aa(text) TO PUBLIC;
+
+
+--
+-- Name: has_iupac_gap_aa(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION has_iupac_gap_aa(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION has_iupac_gap_aa(text) FROM unison;
+GRANT ALL ON FUNCTION has_iupac_gap_aa(text) TO unison;
+GRANT ALL ON FUNCTION has_iupac_gap_aa(text) TO PUBLIC;
+
+
+--
+-- Name: has_iupac_stop_aa(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION has_iupac_stop_aa(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION has_iupac_stop_aa(text) FROM unison;
+GRANT ALL ON FUNCTION has_iupac_stop_aa(text) TO unison;
+GRANT ALL ON FUNCTION has_iupac_stop_aa(text) TO PUBLIC;
+
+
+--
+-- Name: has_non_iupac_aa(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION has_non_iupac_aa(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION has_non_iupac_aa(text) FROM unison;
+GRANT ALL ON FUNCTION has_non_iupac_aa(text) TO unison;
+GRANT ALL ON FUNCTION has_non_iupac_aa(text) TO PUBLIC;
+
+
+--
+-- Name: has_only_iupac_aa_ungapped(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION has_only_iupac_aa_ungapped(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION has_only_iupac_aa_ungapped(text) FROM unison;
+GRANT ALL ON FUNCTION has_only_iupac_aa_ungapped(text) TO unison;
+GRANT ALL ON FUNCTION has_only_iupac_aa_ungapped(text) TO PUBLIC;
+
+
+--
+-- Name: has_only_iupac_std_aa_ungapped(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) FROM unison;
+GRANT ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) TO unison;
+GRANT ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) TO PUBLIC;
+
+
+--
+-- Name: hmm_pmodel_id(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION hmm_pmodel_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION hmm_pmodel_id(text) FROM unison;
+GRANT ALL ON FUNCTION hmm_pmodel_id(text) TO unison;
+GRANT ALL ON FUNCTION hmm_pmodel_id(text) TO PUBLIC;
+
+
+--
+-- Name: ins_pannotation(integer, text, text, integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION ins_pannotation(integer, text, text, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION ins_pannotation(integer, text, text, integer) FROM unison;
+GRANT ALL ON FUNCTION ins_pannotation(integer, text, text, integer) TO unison;
+GRANT ALL ON FUNCTION ins_pannotation(integer, text, text, integer) TO PUBLIC;
+GRANT ALL ON FUNCTION ins_pannotation(integer, text, text, integer) TO genengenes;
+
+
+--
+-- Name: link_url(integer, text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION link_url(integer, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION link_url(integer, text) FROM unison;
+GRANT ALL ON FUNCTION link_url(integer, text) TO unison;
+GRANT ALL ON FUNCTION link_url(integer, text) TO PUBLIC;
+
+
+--
+-- Name: link_url(text, text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION link_url(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION link_url(text, text) FROM unison;
+GRANT ALL ON FUNCTION link_url(text, text) TO unison;
+GRANT ALL ON FUNCTION link_url(text, text) TO PUBLIC;
+
+
+--
+-- Name: locus_fmt(text, text, integer, integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) FROM unison;
+GRANT ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) TO unison;
+GRANT ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) TO PUBLIC;
+
+
+--
+-- Name: mol_wt(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION mol_wt(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION mol_wt(text) FROM unison;
+GRANT ALL ON FUNCTION mol_wt(text) TO unison;
+GRANT ALL ON FUNCTION mol_wt(text) TO PUBLIC;
+
+
+--
+-- Name: origin_id(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION origin_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION origin_id(text) FROM unison;
+GRANT ALL ON FUNCTION origin_id(text) TO unison;
+GRANT ALL ON FUNCTION origin_id(text) TO PUBLIC;
+
+
+--
+-- Name: pdb_seq_pos(text, text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pdb_seq_pos(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pdb_seq_pos(text, text) FROM unison;
+GRANT ALL ON FUNCTION pdb_seq_pos(text, text) TO unison;
+GRANT ALL ON FUNCTION pdb_seq_pos(text, text) TO PUBLIC;
+
+
+--
+-- Name: pfsignalphmm_pred(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pfsignalphmm_pred(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pfsignalphmm_pred(text) FROM unison;
+GRANT ALL ON FUNCTION pfsignalphmm_pred(text) TO unison;
+GRANT ALL ON FUNCTION pfsignalphmm_pred(text) TO PUBLIC;
+
+
+--
+-- Name: pftype_id(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pftype_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pftype_id(text) FROM unison;
+GRANT ALL ON FUNCTION pftype_id(text) TO unison;
+GRANT ALL ON FUNCTION pftype_id(text) TO PUBLIC;
+
+
+--
+-- Name: pi(text, text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pi(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pi(text, text) FROM unison;
+GRANT ALL ON FUNCTION pi(text, text) TO unison;
+GRANT ALL ON FUNCTION pi(text, text) TO PUBLIC;
+
+
+--
+-- Name: pmodelset_id(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pmodelset_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pmodelset_id(text) FROM unison;
+GRANT ALL ON FUNCTION pmodelset_id(text) TO unison;
+GRANT ALL ON FUNCTION pmodelset_id(text) TO PUBLIC;
+
+
+--
+-- Name: porigin_id(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION porigin_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION porigin_id(text) FROM unison;
+GRANT ALL ON FUNCTION porigin_id(text) TO unison;
+GRANT ALL ON FUNCTION porigin_id(text) TO PUBLIC;
+
+
+--
+-- Name: pseq_id_from_sequence(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pseq_id_from_sequence(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pseq_id_from_sequence(text) FROM unison;
+GRANT ALL ON FUNCTION pseq_id_from_sequence(text) TO unison;
+GRANT ALL ON FUNCTION pseq_id_from_sequence(text) TO PUBLIC;
+
+
+--
+-- Name: pseq_id_sequence(integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) FROM unison;
+GRANT ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) TO unison;
+GRANT ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) TO PUBLIC;
+
+
+--
+-- Name: pseq_locus(integer, integer, integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pseq_locus(integer, integer, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pseq_locus(integer, integer, integer) FROM unison;
+GRANT ALL ON FUNCTION pseq_locus(integer, integer, integer) TO unison;
+GRANT ALL ON FUNCTION pseq_locus(integer, integer, integer) TO PUBLIC;
+
+
+--
+-- Name: pset_id(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION pset_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION pset_id(text) FROM unison;
+GRANT ALL ON FUNCTION pset_id(text) TO unison;
+GRANT ALL ON FUNCTION pset_id(text) TO PUBLIC;
+
+
+--
+-- Name: psloc_id(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION psloc_id(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION psloc_id(text) FROM unison;
+GRANT ALL ON FUNCTION psloc_id(text) TO unison;
+GRANT ALL ON FUNCTION psloc_id(text) TO PUBLIC;
+
+
+--
+-- Name: representative_pseq_id(integer, integer, integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) FROM unison;
+GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) TO unison;
+GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) TO PUBLIC;
+
+
+--
+-- Name: representative_pseq_id(integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) FROM unison;
+GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) TO unison;
+GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) TO PUBLIC;
+
+
+--
+-- Name: seqhash(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION seqhash(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION seqhash(text) FROM unison;
+GRANT ALL ON FUNCTION seqhash(text) TO unison;
+GRANT ALL ON FUNCTION seqhash(text) TO PUBLIC;
+
+
+--
+-- Name: sequence_ends(text, integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION sequence_ends(text, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION sequence_ends(text, integer) FROM unison;
+GRANT ALL ON FUNCTION sequence_ends(text, integer) TO unison;
+GRANT ALL ON FUNCTION sequence_ends(text, integer) TO PUBLIC;
+
+
+--
+-- Name: sequence_ends(text); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION sequence_ends(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION sequence_ends(text) FROM unison;
+GRANT ALL ON FUNCTION sequence_ends(text) TO unison;
+GRANT ALL ON FUNCTION sequence_ends(text) TO PUBLIC;
+
+
+--
+-- Name: update_pmodelset(integer); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION update_pmodelset(integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION update_pmodelset(integer) FROM unison;
+GRANT ALL ON FUNCTION update_pmodelset(integer) TO unison;
+GRANT ALL ON FUNCTION update_pmodelset(integer) TO PUBLIC;
+
+
+SET search_path = pgutils, pg_catalog;
+
+--
+-- Name: as_set(anyelement); Type: ACL; Schema: pgutils; Owner: rkh
+--
+
+REVOKE ALL ON FUNCTION as_set(anyelement) FROM PUBLIC;
+REVOKE ALL ON FUNCTION as_set(anyelement) FROM rkh;
+GRANT ALL ON FUNCTION as_set(anyelement) TO rkh;
+GRANT ALL ON FUNCTION as_set(anyelement) TO PUBLIC;
+
+
+SET search_path = unison, pg_catalog;
+
+--
+-- Name: array_accum(anyelement); Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON FUNCTION array_accum(anyelement) FROM PUBLIC;
+REVOKE ALL ON FUNCTION array_accum(anyelement) FROM unison;
+GRANT ALL ON FUNCTION array_accum(anyelement) TO unison;
+GRANT ALL ON FUNCTION array_accum(anyelement) TO PUBLIC;
+
+
 --
 -- Name: p2gblataln; Type: ACL; Schema: unison; Owner: unison
 --
@@ -22857,16 +23961,6 @@ GRANT ALL ON TABLE pseq TO unison;
 GRANT INSERT,UPDATE ON TABLE pseq TO loader;
 GRANT INSERT ON TABLE pseq TO genengenes;
 GRANT SELECT,REFERENCES ON TABLE pseq TO PUBLIC;
-
-
---
--- Name: pftype_id(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pftype_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pftype_id(text) FROM unison;
-GRANT ALL ON FUNCTION pftype_id(text) TO unison;
-GRANT ALL ON FUNCTION pftype_id(text) TO PUBLIC;
 
 
 --
@@ -23030,7 +24124,6 @@ REVOKE ALL ON TABLE pseqset FROM PUBLIC;
 REVOKE ALL ON TABLE pseqset FROM unison;
 GRANT ALL ON TABLE pseqset TO unison;
 GRANT INSERT,UPDATE ON TABLE pseqset TO loader;
-GRANT SELECT,INSERT,DELETE ON TABLE pseqset TO cavs;
 GRANT SELECT ON TABLE pseqset TO PUBLIC;
 GRANT INSERT,DELETE,UPDATE ON TABLE pseqset TO matthejb;
 
@@ -23048,27 +24141,27 @@ GRANT INSERT,UPDATE ON TABLE pset TO matthejb;
 
 
 --
--- Name: paliasorigin; Type: ACL; Schema: unison; Owner: unison
+-- Name: pannotation; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE paliasorigin FROM PUBLIC;
-REVOKE ALL ON TABLE paliasorigin FROM unison;
-GRANT ALL ON TABLE paliasorigin TO unison;
-GRANT SELECT,INSERT,UPDATE ON TABLE paliasorigin TO loader;
-GRANT SELECT,INSERT,UPDATE ON TABLE paliasorigin TO genengenes;
-GRANT SELECT ON TABLE paliasorigin TO PUBLIC;
+REVOKE ALL ON TABLE pannotation FROM PUBLIC;
+REVOKE ALL ON TABLE pannotation FROM unison;
+GRANT ALL ON TABLE pannotation TO unison;
+GRANT SELECT,INSERT,UPDATE ON TABLE pannotation TO loader;
+GRANT SELECT,INSERT,UPDATE ON TABLE pannotation TO genengenes;
+GRANT SELECT ON TABLE pannotation TO PUBLIC;
 
 
 --
--- Name: pseqalias; Type: ACL; Schema: unison; Owner: unison
+-- Name: pseq_pannotation; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE pseqalias FROM PUBLIC;
-REVOKE ALL ON TABLE pseqalias FROM unison;
-GRANT ALL ON TABLE pseqalias TO unison;
-GRANT SELECT,INSERT,UPDATE ON TABLE pseqalias TO loader;
-GRANT INSERT ON TABLE pseqalias TO genengenes;
-GRANT SELECT ON TABLE pseqalias TO PUBLIC;
+REVOKE ALL ON TABLE pseq_pannotation FROM PUBLIC;
+REVOKE ALL ON TABLE pseq_pannotation FROM unison;
+GRANT ALL ON TABLE pseq_pannotation TO unison;
+GRANT SELECT,INSERT,UPDATE ON TABLE pseq_pannotation TO loader;
+GRANT INSERT ON TABLE pseq_pannotation TO genengenes;
+GRANT SELECT ON TABLE pseq_pannotation TO PUBLIC;
 
 
 --
@@ -23313,6 +24406,16 @@ GRANT SELECT ON TABLE alias TO PUBLIC;
 
 
 --
+-- Name: alias_alias_id_seq; Type: ACL; Schema: gong; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE alias_alias_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE alias_alias_id_seq FROM unison;
+GRANT ALL ON SEQUENCE alias_alias_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE alias_alias_id_seq TO loader;
+
+
+--
 -- Name: evidence_code; Type: ACL; Schema: gong; Owner: unison
 --
 
@@ -23375,6 +24478,16 @@ GRANT SELECT ON TABLE chip TO PUBLIC;
 
 
 --
+-- Name: chip_chip_id_seq; Type: ACL; Schema: marray; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE chip_chip_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE chip_chip_id_seq FROM unison;
+GRANT ALL ON SEQUENCE chip_chip_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE chip_chip_id_seq TO loader;
+
+
+--
 -- Name: probe; Type: ACL; Schema: marray; Owner: unison
 --
 
@@ -23393,18 +24506,6 @@ REVOKE ALL ON TABLE chip_probe_v FROM PUBLIC;
 REVOKE ALL ON TABLE chip_probe_v FROM unison;
 GRANT ALL ON TABLE chip_probe_v TO unison;
 GRANT SELECT ON TABLE chip_probe_v TO PUBLIC;
-
-
-SET search_path = unison, pg_catalog;
-
---
--- Name: origin_id(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION origin_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION origin_id(text) FROM unison;
-GRANT ALL ON FUNCTION origin_id(text) TO unison;
-GRANT ALL ON FUNCTION origin_id(text) TO PUBLIC;
 
 
 SET search_path = ncbi, pg_catalog;
@@ -23528,7 +24629,6 @@ SET search_path = tax, pg_catalog;
 REVOKE ALL ON TABLE spspec FROM PUBLIC;
 REVOKE ALL ON TABLE spspec FROM unison;
 GRANT ALL ON TABLE spspec TO unison;
-GRANT REFERENCES ON TABLE spspec TO cavs;
 GRANT INSERT,UPDATE ON TABLE spspec TO loader;
 GRANT SELECT ON TABLE spspec TO PUBLIC;
 
@@ -23536,23 +24636,13 @@ GRANT SELECT ON TABLE spspec TO PUBLIC;
 SET search_path = unison, pg_catalog;
 
 --
--- Name: current_annotations_unsorted_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: current_annotations_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE current_annotations_unsorted_v FROM PUBLIC;
-REVOKE ALL ON TABLE current_annotations_unsorted_v FROM unison;
-GRANT ALL ON TABLE current_annotations_unsorted_v TO unison;
-GRANT SELECT ON TABLE current_annotations_unsorted_v TO PUBLIC;
-
-
---
--- Name: pset_id(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pset_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pset_id(text) FROM unison;
-GRANT ALL ON FUNCTION pset_id(text) TO unison;
-GRANT ALL ON FUNCTION pset_id(text) TO PUBLIC;
+REVOKE ALL ON TABLE current_annotations_v FROM PUBLIC;
+REVOKE ALL ON TABLE current_annotations_v FROM unison;
+GRANT ALL ON TABLE current_annotations_v TO unison;
+GRANT SELECT ON TABLE current_annotations_v TO PUBLIC;
 
 
 --
@@ -23585,16 +24675,6 @@ REVOKE ALL ON TABLE ligand_descriptors FROM PUBLIC;
 REVOKE ALL ON TABLE ligand_descriptors FROM unison;
 GRANT ALL ON TABLE ligand_descriptors TO unison;
 GRANT SELECT ON TABLE ligand_descriptors TO PUBLIC;
-
-
---
--- Name: descriptor_origin_id(text, text); Type: ACL; Schema: pdb; Owner: unison
---
-
-REVOKE ALL ON FUNCTION descriptor_origin_id(text, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION descriptor_origin_id(text, text) FROM unison;
-GRANT ALL ON FUNCTION descriptor_origin_id(text, text) TO unison;
-GRANT ALL ON FUNCTION descriptor_origin_id(text, text) TO PUBLIC;
 
 
 SET search_path = unison, pg_catalog;
@@ -23664,6 +24744,27 @@ GRANT ALL ON TABLE papseq_pdbcs_mv TO unison;
 GRANT SELECT ON TABLE papseq_pdbcs_mv TO PUBLIC;
 
 
+--
+-- Name: pftmhmm; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pftmhmm FROM PUBLIC;
+REVOKE ALL ON TABLE pftmhmm FROM unison;
+GRANT ALL ON TABLE pftmhmm TO unison;
+GRANT INSERT,UPDATE ON TABLE pftmhmm TO loader;
+GRANT SELECT ON TABLE pftmhmm TO PUBLIC;
+
+
+--
+-- Name: pftmhmm_tms_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pftmhmm_tms_v FROM PUBLIC;
+REVOKE ALL ON TABLE pftmhmm_tms_v FROM unison;
+GRANT ALL ON TABLE pftmhmm_tms_v TO unison;
+GRANT SELECT ON TABLE pftmhmm_tms_v TO PUBLIC;
+
+
 SET search_path = pdb, pg_catalog;
 
 --
@@ -23678,16 +24779,6 @@ GRANT SELECT ON TABLE chain TO PUBLIC;
 
 
 SET search_path = unison, pg_catalog;
-
---
--- Name: domain_digest(integer, integer, text, text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) FROM unison;
-GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) TO unison;
-GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, note text, OUT digest text) TO PUBLIC;
-
 
 --
 -- Name: params; Type: ACL; Schema: unison; Owner: unison
@@ -23709,17 +24800,6 @@ REVOKE ALL ON TABLE pfsignalpnn FROM unison;
 GRANT ALL ON TABLE pfsignalpnn TO unison;
 GRANT INSERT,UPDATE ON TABLE pfsignalpnn TO loader;
 GRANT SELECT ON TABLE pfsignalpnn TO PUBLIC;
-
-
---
--- Name: pftmhmm; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE pftmhmm FROM PUBLIC;
-REVOKE ALL ON TABLE pftmhmm FROM unison;
-GRANT ALL ON TABLE pftmhmm TO unison;
-GRANT INSERT,UPDATE ON TABLE pftmhmm TO loader;
-GRANT SELECT ON TABLE pftmhmm TO PUBLIC;
 
 
 --
@@ -23829,13 +24909,65 @@ GRANT SELECT ON TABLE paprospect_scop_v TO PUBLIC;
 
 
 --
--- Name: _agg_as_set_finalfunc(anyarray); Type: ACL; Schema: unison; Owner: unison
+-- Name: run_history; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) FROM unison;
-GRANT ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) TO unison;
-GRANT ALL ON FUNCTION _agg_as_set_finalfunc(anyarray) TO PUBLIC;
+REVOKE ALL ON TABLE run_history FROM PUBLIC;
+REVOKE ALL ON TABLE run_history FROM unison;
+GRANT ALL ON TABLE run_history TO unison;
+GRANT ALL ON TABLE run_history TO loader;
+GRANT SELECT ON TABLE run_history TO PUBLIC;
+
+
+--
+-- Name: pftmhmm_tm_count_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pftmhmm_tm_count_v FROM PUBLIC;
+REVOKE ALL ON TABLE pftmhmm_tm_count_v FROM unison;
+GRANT ALL ON TABLE pftmhmm_tm_count_v TO unison;
+GRANT SELECT ON TABLE pftmhmm_tm_count_v TO PUBLIC;
+
+
+--
+-- Name: psprotcomp; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE psprotcomp FROM PUBLIC;
+REVOKE ALL ON TABLE psprotcomp FROM unison;
+GRANT ALL ON TABLE psprotcomp TO unison;
+GRANT INSERT ON TABLE psprotcomp TO loader;
+GRANT SELECT ON TABLE psprotcomp TO PUBLIC;
+
+
+--
+-- Name: psprotcomp_location; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE psprotcomp_location FROM PUBLIC;
+REVOKE ALL ON TABLE psprotcomp_location FROM unison;
+GRANT ALL ON TABLE psprotcomp_location TO unison;
+GRANT SELECT ON TABLE psprotcomp_location TO PUBLIC;
+
+
+--
+-- Name: psprotcomp_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE psprotcomp_v FROM PUBLIC;
+REVOKE ALL ON TABLE psprotcomp_v FROM unison;
+GRANT ALL ON TABLE psprotcomp_v TO unison;
+GRANT SELECT ON TABLE psprotcomp_v TO PUBLIC;
+
+
+--
+-- Name: psprotcomp_reliable_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE psprotcomp_reliable_v FROM PUBLIC;
+REVOKE ALL ON TABLE psprotcomp_reliable_v FROM unison;
+GRANT ALL ON TABLE psprotcomp_reliable_v TO unison;
+GRANT SELECT ON TABLE psprotcomp_reliable_v TO PUBLIC;
 
 
 --
@@ -23872,23 +25004,13 @@ GRANT SELECT ON TABLE pmap_hsp TO PUBLIC;
 
 
 --
--- Name: pmodelset_id(text); Type: ACL; Schema: unison; Owner: unison
+-- Name: current_annotations_sorted_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON FUNCTION pmodelset_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pmodelset_id(text) FROM unison;
-GRANT ALL ON FUNCTION pmodelset_id(text) TO unison;
-GRANT ALL ON FUNCTION pmodelset_id(text) TO PUBLIC;
-
-
---
--- Name: current_annotations_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE current_annotations_v FROM PUBLIC;
-REVOKE ALL ON TABLE current_annotations_v FROM unison;
-GRANT ALL ON TABLE current_annotations_v TO unison;
-GRANT SELECT ON TABLE current_annotations_v TO PUBLIC;
+REVOKE ALL ON TABLE current_annotations_sorted_v FROM PUBLIC;
+REVOKE ALL ON TABLE current_annotations_sorted_v FROM unison;
+GRANT ALL ON TABLE current_annotations_sorted_v TO unison;
+GRANT SELECT ON TABLE current_annotations_sorted_v TO PUBLIC;
 
 
 SET search_path = ncbi, pg_catalog;
@@ -24271,6 +25393,16 @@ GRANT SELECT ON TABLE inherited_tables TO PUBLIC;
 
 
 --
+-- Name: locks; Type: ACL; Schema: pgutils; Owner: rkh
+--
+
+REVOKE ALL ON TABLE locks FROM PUBLIC;
+REVOKE ALL ON TABLE locks FROM rkh;
+GRANT ALL ON TABLE locks TO rkh;
+GRANT SELECT ON TABLE locks TO PUBLIC;
+
+
+--
 -- Name: oid_names; Type: ACL; Schema: pgutils; Owner: rkh
 --
 
@@ -24278,6 +25410,26 @@ REVOKE ALL ON TABLE oid_names FROM PUBLIC;
 REVOKE ALL ON TABLE oid_names FROM rkh;
 GRANT ALL ON TABLE oid_names TO rkh;
 GRANT SELECT ON TABLE oid_names TO PUBLIC;
+
+
+--
+-- Name: readme; Type: ACL; Schema: pgutils; Owner: rkh
+--
+
+REVOKE ALL ON TABLE readme FROM PUBLIC;
+REVOKE ALL ON TABLE readme FROM rkh;
+GRANT ALL ON TABLE readme TO rkh;
+GRANT SELECT ON TABLE readme TO PUBLIC;
+
+
+--
+-- Name: role_members_v; Type: ACL; Schema: pgutils; Owner: postgres
+--
+
+REVOKE ALL ON TABLE role_members_v FROM PUBLIC;
+REVOKE ALL ON TABLE role_members_v FROM postgres;
+GRANT ALL ON TABLE role_members_v TO postgres;
+GRANT SELECT ON TABLE role_members_v TO rkh;
 
 
 --
@@ -24338,40 +25490,6 @@ REVOKE ALL ON TABLE table_perms FROM PUBLIC;
 REVOKE ALL ON TABLE table_perms FROM rkh;
 GRANT ALL ON TABLE table_perms TO rkh;
 GRANT SELECT ON TABLE table_perms TO PUBLIC;
-
-
-SET search_path = tax, pg_catalog;
-
---
--- Name: gs2tax_id(text); Type: ACL; Schema: tax; Owner: unison
---
-
-REVOKE ALL ON FUNCTION gs2tax_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION gs2tax_id(text) FROM unison;
-GRANT ALL ON FUNCTION gs2tax_id(text) TO unison;
-GRANT ALL ON FUNCTION gs2tax_id(text) TO PUBLIC;
-
-
-SET search_path = unison, pg_catalog;
-
---
--- Name: domain_digests(integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION domain_digests(integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION domain_digests(integer) FROM unison;
-GRANT ALL ON FUNCTION domain_digests(integer) TO unison;
-GRANT ALL ON FUNCTION domain_digests(integer) TO PUBLIC;
-
-
---
--- Name: representative_pseq_id(integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) FROM unison;
-GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) TO unison;
-GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, OUT pseq_id integer) TO PUBLIC;
 
 
 SET search_path = sst, pg_catalog;
@@ -24483,16 +25601,6 @@ GRANT SELECT ON TABLE best_annotation_mv TO PUBLIC;
 
 
 --
--- Name: pseq_locus(integer, integer, integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pseq_locus(integer, integer, integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pseq_locus(integer, integer, integer) FROM unison;
-GRANT ALL ON FUNCTION pseq_locus(integer, integer, integer) TO unison;
-GRANT ALL ON FUNCTION pseq_locus(integer, integer, integer) TO PUBLIC;
-
-
---
 -- Name: pmap_locus_representative_mv; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -24523,13 +25631,23 @@ GRANT SELECT ON TABLE pmap_gg_representative_mv TO PUBLIC;
 
 
 --
--- Name: all_annotations_unsorted_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: all_annotations_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE all_annotations_unsorted_v FROM PUBLIC;
-REVOKE ALL ON TABLE all_annotations_unsorted_v FROM unison;
-GRANT ALL ON TABLE all_annotations_unsorted_v TO unison;
-GRANT SELECT ON TABLE all_annotations_unsorted_v TO PUBLIC;
+REVOKE ALL ON TABLE all_annotations_v FROM PUBLIC;
+REVOKE ALL ON TABLE all_annotations_v FROM unison;
+GRANT ALL ON TABLE all_annotations_v TO unison;
+GRANT SELECT ON TABLE all_annotations_v TO PUBLIC;
+
+
+--
+-- Name: pahmm_current_pfam_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pahmm_current_pfam_v FROM PUBLIC;
+REVOKE ALL ON TABLE pahmm_current_pfam_v FROM unison;
+GRANT ALL ON TABLE pahmm_current_pfam_v TO unison;
+GRANT SELECT ON TABLE pahmm_current_pfam_v TO PUBLIC;
 
 
 --
@@ -24543,16 +25661,6 @@ GRANT SELECT ON TABLE pfregexp_v TO PUBLIC;
 
 
 --
--- Name: pftmhmm_tms_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE pftmhmm_tms_v FROM PUBLIC;
-REVOKE ALL ON TABLE pftmhmm_tms_v FROM unison;
-GRANT ALL ON TABLE pftmhmm_tms_v TO unison;
-GRANT SELECT ON TABLE pftmhmm_tms_v TO PUBLIC;
-
-
---
 -- Name: papseq_pdbcs_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -24560,26 +25668,6 @@ REVOKE ALL ON TABLE papseq_pdbcs_v FROM PUBLIC;
 REVOKE ALL ON TABLE papseq_pdbcs_v FROM unison;
 GRANT ALL ON TABLE papseq_pdbcs_v TO unison;
 GRANT SELECT ON TABLE papseq_pdbcs_v TO PUBLIC;
-
-
---
--- Name: domain_digest(integer, integer, text, integer, double precision); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) FROM unison;
-GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) TO unison;
-GRANT ALL ON FUNCTION domain_digest(pstart integer, pstop integer, name text, score integer, eval double precision, OUT digest text) TO PUBLIC;
-
-
---
--- Name: link_url(integer, text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION link_url(integer, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION link_url(integer, text) FROM unison;
-GRANT ALL ON FUNCTION link_url(integer, text) TO unison;
-GRANT ALL ON FUNCTION link_url(integer, text) TO PUBLIC;
 
 
 --
@@ -24591,27 +25679,6 @@ REVOKE ALL ON TABLE pseq_features_hmm_v FROM unison;
 GRANT ALL ON TABLE pseq_features_hmm_v TO unison;
 GRANT ALL ON TABLE pseq_features_hmm_v TO rkh;
 GRANT SELECT ON TABLE pseq_features_hmm_v TO PUBLIC;
-
-
---
--- Name: run_history; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE run_history FROM PUBLIC;
-REVOKE ALL ON TABLE run_history FROM unison;
-GRANT ALL ON TABLE run_history TO unison;
-GRANT ALL ON TABLE run_history TO loader;
-GRANT SELECT ON TABLE run_history TO PUBLIC;
-
-
---
--- Name: pftmhmm_tm_count_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE pftmhmm_tm_count_v FROM PUBLIC;
-REVOKE ALL ON TABLE pftmhmm_tm_count_v FROM unison;
-GRANT ALL ON TABLE pftmhmm_tm_count_v TO unison;
-GRANT SELECT ON TABLE pftmhmm_tm_count_v TO PUBLIC;
 
 
 --
@@ -24713,6 +25780,16 @@ GRANT SELECT ON TABLE unqproform TO PUBLIC;
 
 
 SET search_path = unison, pg_catalog;
+
+--
+-- Name: pseq_features_pfam_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pseq_features_pfam_v FROM PUBLIC;
+REVOKE ALL ON TABLE pseq_features_pfam_v FROM unison;
+GRANT ALL ON TABLE pseq_features_pfam_v TO unison;
+GRANT SELECT ON TABLE pseq_features_pfam_v TO PUBLIC;
+
 
 --
 -- Name: _deprecated_pseq_gene_v; Type: ACL; Schema: unison; Owner: unison
@@ -24875,13 +25952,23 @@ GRANT SELECT ON TABLE aliasset_alias_v TO PUBLIC;
 
 
 --
--- Name: all_annotations_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: all_annotations_sorted_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE all_annotations_v FROM PUBLIC;
-REVOKE ALL ON TABLE all_annotations_v FROM unison;
-GRANT ALL ON TABLE all_annotations_v TO unison;
-GRANT SELECT ON TABLE all_annotations_v TO PUBLIC;
+REVOKE ALL ON TABLE all_annotations_sorted_v FROM PUBLIC;
+REVOKE ALL ON TABLE all_annotations_sorted_v FROM unison;
+GRANT ALL ON TABLE all_annotations_sorted_v TO unison;
+GRANT SELECT ON TABLE all_annotations_sorted_v TO PUBLIC;
+
+
+--
+-- Name: current_annotations_mv; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE current_annotations_mv FROM PUBLIC;
+REVOKE ALL ON TABLE current_annotations_mv FROM unison;
+GRANT ALL ON TABLE current_annotations_mv TO unison;
+GRANT SELECT ON TABLE current_annotations_mv TO PUBLIC;
 
 
 --
@@ -24925,16 +26012,6 @@ GRANT SELECT ON TABLE best_annotation_v TO PUBLIC;
 
 
 --
--- Name: better_annotations_unsorted_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE better_annotations_unsorted_v FROM PUBLIC;
-REVOKE ALL ON TABLE better_annotations_unsorted_v FROM unison;
-GRANT ALL ON TABLE better_annotations_unsorted_v TO unison;
-GRANT SELECT ON TABLE better_annotations_unsorted_v TO PUBLIC;
-
-
---
 -- Name: better_annotations_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -24942,6 +26019,16 @@ REVOKE ALL ON TABLE better_annotations_v FROM PUBLIC;
 REVOKE ALL ON TABLE better_annotations_v FROM unison;
 GRANT ALL ON TABLE better_annotations_v TO unison;
 GRANT SELECT ON TABLE better_annotations_v TO PUBLIC;
+
+
+--
+-- Name: better_annotations_sorted_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE better_annotations_sorted_v FROM PUBLIC;
+REVOKE ALL ON TABLE better_annotations_sorted_v FROM unison;
+GRANT ALL ON TABLE better_annotations_sorted_v TO unison;
+GRANT SELECT ON TABLE better_annotations_sorted_v TO PUBLIC;
 
 
 --
@@ -24961,8 +26048,17 @@ GRANT SELECT ON TABLE blatloci TO PUBLIC;
 REVOKE ALL ON TABLE canned_views FROM PUBLIC;
 REVOKE ALL ON TABLE canned_views FROM unison;
 GRANT ALL ON TABLE canned_views TO unison;
-GRANT SELECT,INSERT,DELETE ON TABLE canned_views TO cavs;
 GRANT SELECT ON TABLE canned_views TO PUBLIC;
+
+
+--
+-- Name: canned_views_cv_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE canned_views_cv_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE canned_views_cv_id_seq FROM unison;
+GRANT ALL ON SEQUENCE canned_views_cv_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE canned_views_cv_id_seq TO loader;
 
 
 --
@@ -25026,16 +26122,6 @@ GRANT SELECT ON TABLE ensembl_unambiguous_overlaps_v TO PUBLIC;
 
 
 --
--- Name: sequence_ends(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION sequence_ends(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION sequence_ends(text) FROM unison;
-GRANT ALL ON FUNCTION sequence_ends(text) TO unison;
-GRANT ALL ON FUNCTION sequence_ends(text) TO PUBLIC;
-
-
---
 -- Name: extended_annotation_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25067,6 +26153,16 @@ GRANT SELECT,REFERENCES ON TABLE genasm TO PUBLIC;
 
 
 --
+-- Name: genasm_genasm_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE genasm_genasm_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE genasm_genasm_id_seq FROM unison;
+GRANT ALL ON SEQUENCE genasm_genasm_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE genasm_genasm_id_seq TO loader;
+
+
+--
 -- Name: gg_famid_pseq_id_mv; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25094,16 +26190,6 @@ REVOKE ALL ON TABLE homologene_paralogs_v FROM PUBLIC;
 REVOKE ALL ON TABLE homologene_paralogs_v FROM unison;
 GRANT ALL ON TABLE homologene_paralogs_v TO unison;
 GRANT SELECT ON TABLE homologene_paralogs_v TO PUBLIC;
-
-
---
--- Name: hmm_pmodel_id(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION hmm_pmodel_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION hmm_pmodel_id(text) FROM unison;
-GRANT ALL ON FUNCTION hmm_pmodel_id(text) TO unison;
-GRANT ALL ON FUNCTION hmm_pmodel_id(text) TO PUBLIC;
 
 
 --
@@ -25229,13 +26315,13 @@ GRANT SELECT ON TABLE ncbi_pseq_v TO PUBLIC;
 
 
 --
--- Name: nearby_sequences_unsorted_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: nearby_sequences_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE nearby_sequences_unsorted_v FROM PUBLIC;
-REVOKE ALL ON TABLE nearby_sequences_unsorted_v FROM unison;
-GRANT ALL ON TABLE nearby_sequences_unsorted_v TO unison;
-GRANT SELECT ON TABLE nearby_sequences_unsorted_v TO PUBLIC;
+REVOKE ALL ON TABLE nearby_sequences_v FROM PUBLIC;
+REVOKE ALL ON TABLE nearby_sequences_v FROM unison;
+GRANT ALL ON TABLE nearby_sequences_v TO unison;
+GRANT SELECT ON TABLE nearby_sequences_v TO PUBLIC;
 
 
 --
@@ -25259,23 +26345,13 @@ GRANT SELECT ON TABLE patents_pataa_v TO PUBLIC;
 
 
 --
--- Name: patents_unsorted_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: patents_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE patents_unsorted_v FROM PUBLIC;
-REVOKE ALL ON TABLE patents_unsorted_v FROM unison;
-GRANT ALL ON TABLE patents_unsorted_v TO unison;
-GRANT SELECT ON TABLE patents_unsorted_v TO PUBLIC;
-
-
---
--- Name: nearby_patents_unsorted_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE nearby_patents_unsorted_v FROM PUBLIC;
-REVOKE ALL ON TABLE nearby_patents_unsorted_v FROM unison;
-GRANT ALL ON TABLE nearby_patents_unsorted_v TO unison;
-GRANT SELECT ON TABLE nearby_patents_unsorted_v TO PUBLIC;
+REVOKE ALL ON TABLE patents_v FROM PUBLIC;
+REVOKE ALL ON TABLE patents_v FROM unison;
+GRANT ALL ON TABLE patents_v TO unison;
+GRANT SELECT ON TABLE patents_v TO PUBLIC;
 
 
 --
@@ -25289,13 +26365,33 @@ GRANT SELECT ON TABLE nearby_patents_v TO PUBLIC;
 
 
 --
--- Name: nearby_sequences_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: nearby_patents_sorted_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE nearby_sequences_v FROM PUBLIC;
-REVOKE ALL ON TABLE nearby_sequences_v FROM unison;
-GRANT ALL ON TABLE nearby_sequences_v TO unison;
-GRANT SELECT ON TABLE nearby_sequences_v TO PUBLIC;
+REVOKE ALL ON TABLE nearby_patents_sorted_v FROM PUBLIC;
+REVOKE ALL ON TABLE nearby_patents_sorted_v FROM unison;
+GRANT ALL ON TABLE nearby_patents_sorted_v TO unison;
+GRANT SELECT ON TABLE nearby_patents_sorted_v TO PUBLIC;
+
+
+--
+-- Name: nearby_sequences_sorted_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE nearby_sequences_sorted_v FROM PUBLIC;
+REVOKE ALL ON TABLE nearby_sequences_sorted_v FROM unison;
+GRANT ALL ON TABLE nearby_sequences_sorted_v TO unison;
+GRANT SELECT ON TABLE nearby_sequences_sorted_v TO PUBLIC;
+
+
+--
+-- Name: origin_origin_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE origin_origin_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE origin_origin_id_seq FROM unison;
+GRANT ALL ON SEQUENCE origin_origin_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE origin_origin_id_seq TO loader;
 
 
 --
@@ -25309,6 +26405,16 @@ GRANT SELECT ON TABLE orphaned_sequences_v TO PUBLIC;
 
 
 --
+-- Name: p2gblataln_p2gblataln_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE p2gblataln_p2gblataln_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE p2gblataln_p2gblataln_id_seq FROM unison;
+GRANT ALL ON SEQUENCE p2gblataln_p2gblataln_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE p2gblataln_p2gblataln_id_seq TO loader;
+
+
+--
 -- Name: p2gblataln_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25316,6 +26422,37 @@ REVOKE ALL ON TABLE p2gblataln_v FROM PUBLIC;
 REVOKE ALL ON TABLE p2gblataln_v FROM unison;
 GRANT ALL ON TABLE p2gblataln_v TO unison;
 GRANT SELECT ON TABLE p2gblataln_v TO PUBLIC;
+
+
+--
+-- Name: p2gblathsp_p2gblathsp_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE p2gblathsp_p2gblathsp_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE p2gblathsp_p2gblathsp_id_seq FROM unison;
+GRANT ALL ON SEQUENCE p2gblathsp_p2gblathsp_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE p2gblathsp_p2gblathsp_id_seq TO loader;
+
+
+--
+-- Name: paliasorigin; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE paliasorigin FROM PUBLIC;
+REVOKE ALL ON TABLE paliasorigin FROM unison;
+GRANT ALL ON TABLE paliasorigin TO unison;
+GRANT SELECT ON TABLE paliasorigin TO PUBLIC;
+
+
+--
+-- Name: pannotation_pannotation_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pannotation_pannotation_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pannotation_pannotation_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pannotation_pannotation_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pannotation_pannotation_id_seq TO loader;
+GRANT UPDATE ON SEQUENCE pannotation_pannotation_id_seq TO genengenes;
 
 
 --
@@ -25340,6 +26477,16 @@ GRANT SELECT ON TABLE papssm TO PUBLIC;
 
 
 --
+-- Name: params_params_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE params_params_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE params_params_id_seq FROM unison;
+GRANT ALL ON SEQUENCE params_params_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE params_params_id_seq TO loader;
+
+
+--
 -- Name: params_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25360,13 +26507,23 @@ GRANT SELECT ON TABLE pataa_v TO PUBLIC;
 
 
 --
--- Name: patents_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: patent_count_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE patents_v FROM PUBLIC;
-REVOKE ALL ON TABLE patents_v FROM unison;
-GRANT ALL ON TABLE patents_v TO unison;
-GRANT SELECT ON TABLE patents_v TO PUBLIC;
+REVOKE ALL ON TABLE patent_count_v FROM PUBLIC;
+REVOKE ALL ON TABLE patent_count_v FROM unison;
+GRANT ALL ON TABLE patent_count_v TO unison;
+GRANT SELECT ON TABLE patent_count_v TO PUBLIC;
+
+
+--
+-- Name: patents_sorted_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE patents_sorted_v FROM PUBLIC;
+REVOKE ALL ON TABLE patents_sorted_v FROM unison;
+GRANT ALL ON TABLE patents_sorted_v TO unison;
+GRANT SELECT ON TABLE patents_sorted_v TO PUBLIC;
 
 
 --
@@ -25377,7 +26534,6 @@ REVOKE ALL ON TABLE pcluster FROM PUBLIC;
 REVOKE ALL ON TABLE pcluster FROM unison;
 GRANT ALL ON TABLE pcluster TO unison;
 GRANT SELECT,INSERT,UPDATE ON TABLE pcluster TO loader;
-GRANT SELECT,INSERT ON TABLE pcluster TO cavs;
 GRANT SELECT,REFERENCES ON TABLE pcluster TO PUBLIC;
 
 
@@ -25389,8 +26545,17 @@ REVOKE ALL ON TABLE pcluster_member FROM PUBLIC;
 REVOKE ALL ON TABLE pcluster_member FROM unison;
 GRANT ALL ON TABLE pcluster_member TO unison;
 GRANT SELECT,INSERT,UPDATE ON TABLE pcluster_member TO loader;
-GRANT SELECT,INSERT ON TABLE pcluster_member TO cavs;
 GRANT SELECT,REFERENCES ON TABLE pcluster_member TO PUBLIC;
+
+
+--
+-- Name: pcluster_pcluster_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pcluster_pcluster_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pcluster_pcluster_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pcluster_pcluster_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pcluster_pcluster_id_seq TO loader;
 
 
 --
@@ -25473,16 +26638,6 @@ REVOKE ALL ON TABLE pfbigpi_v FROM PUBLIC;
 REVOKE ALL ON TABLE pfbigpi_v FROM unison;
 GRANT ALL ON TABLE pfbigpi_v TO unison;
 GRANT SELECT ON TABLE pfbigpi_v TO PUBLIC;
-
-
---
--- Name: pseq_id_sequence(integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) FROM unison;
-GRANT ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) TO unison;
-GRANT ALL ON FUNCTION pseq_id_sequence(pseq_id integer, OUT sequence text) TO PUBLIC;
 
 
 --
@@ -25583,13 +26738,23 @@ GRANT SELECT ON TABLE pfsignalphmm_v TO PUBLIC;
 
 
 --
--- Name: pftmhmm_ecd_length_v; Type: ACL; Schema: unison; Owner: unison
+-- Name: pftmhmm_ecd_v; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE pftmhmm_ecd_length_v FROM PUBLIC;
-REVOKE ALL ON TABLE pftmhmm_ecd_length_v FROM unison;
-GRANT ALL ON TABLE pftmhmm_ecd_length_v TO unison;
-GRANT SELECT ON TABLE pftmhmm_ecd_length_v TO PUBLIC;
+REVOKE ALL ON TABLE pftmhmm_ecd_v FROM PUBLIC;
+REVOKE ALL ON TABLE pftmhmm_ecd_v FROM unison;
+GRANT ALL ON TABLE pftmhmm_ecd_v TO unison;
+GRANT SELECT ON TABLE pftmhmm_ecd_v TO PUBLIC;
+
+
+--
+-- Name: pftype_pftype_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pftype_pftype_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pftype_pftype_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pftype_pftype_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pftype_pftype_id_seq TO loader;
 
 
 --
@@ -25600,6 +26765,16 @@ REVOKE ALL ON TABLE pftype_preferred_run_v FROM PUBLIC;
 REVOKE ALL ON TABLE pftype_preferred_run_v FROM unison;
 GRANT ALL ON TABLE pftype_preferred_run_v TO unison;
 GRANT SELECT ON TABLE pftype_preferred_run_v TO PUBLIC;
+
+
+--
+-- Name: pmap_aln_aln_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pmap_aln_aln_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pmap_aln_aln_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pmap_aln_aln_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pmap_aln_aln_id_seq TO loader;
 
 
 --
@@ -25643,6 +26818,16 @@ GRANT SELECT ON TABLE pmap_gg_representative_v TO PUBLIC;
 
 
 --
+-- Name: pmap_hsp_hsp_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pmap_hsp_hsp_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pmap_hsp_hsp_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pmap_hsp_hsp_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pmap_hsp_hsp_id_seq TO loader;
+
+
+--
 -- Name: pmap_locus_representative_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25683,16 +26868,6 @@ GRANT SELECT ON TABLE pmap_unambiguous_mv TO PUBLIC;
 
 
 --
--- Name: pseq_features_pfam_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE pseq_features_pfam_v FROM PUBLIC;
-REVOKE ALL ON TABLE pseq_features_pfam_v FROM unison;
-GRANT ALL ON TABLE pseq_features_pfam_v TO unison;
-GRANT SELECT ON TABLE pseq_features_pfam_v TO PUBLIC;
-
-
---
 -- Name: pmap_pfam_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25700,6 +26875,16 @@ REVOKE ALL ON TABLE pmap_pfam_v FROM PUBLIC;
 REVOKE ALL ON TABLE pmap_pfam_v FROM unison;
 GRANT ALL ON TABLE pmap_pfam_v TO unison;
 GRANT SELECT ON TABLE pmap_pfam_v TO PUBLIC;
+
+
+--
+-- Name: pmap_tmhmm_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pmap_tmhmm_v FROM PUBLIC;
+REVOKE ALL ON TABLE pmap_tmhmm_v FROM unison;
+GRANT ALL ON TABLE pmap_tmhmm_v TO unison;
+GRANT SELECT ON TABLE pmap_tmhmm_v TO PUBLIC;
 
 
 --
@@ -25730,6 +26915,16 @@ REVOKE ALL ON TABLE pmodel2go FROM PUBLIC;
 REVOKE ALL ON TABLE pmodel2go FROM unison;
 GRANT ALL ON TABLE pmodel2go TO unison;
 GRANT SELECT ON TABLE pmodel2go TO PUBLIC;
+
+
+--
+-- Name: pmodelset_pmodelset_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pmodelset_pmodelset_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pmodelset_pmodelset_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pmodelset_pmodelset_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pmodelset_pmodelset_id_seq TO loader;
 
 
 --
@@ -25827,26 +27022,6 @@ GRANT SELECT ON TABLE pseq_features_bigpi_v TO PUBLIC;
 
 
 --
--- Name: aa_1_to_3(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION aa_1_to_3(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION aa_1_to_3(text) FROM unison;
-GRANT ALL ON FUNCTION aa_1_to_3(text) TO unison;
-GRANT ALL ON FUNCTION aa_1_to_3(text) TO PUBLIC;
-
-
---
--- Name: domain_digest(integer, text, text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) FROM unison;
-GRANT ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) TO unison;
-GRANT ALL ON FUNCTION domain_digest(pstart integer, name text, note text, OUT digest text) TO PUBLIC;
-
-
---
 -- Name: pseq_features_netphos_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25875,16 +27050,6 @@ REVOKE ALL ON TABLE pseq_features_regexp_v FROM unison;
 GRANT ALL ON TABLE pseq_features_regexp_v TO unison;
 GRANT ALL ON TABLE pseq_features_regexp_v TO rkh;
 GRANT SELECT ON TABLE pseq_features_regexp_v TO PUBLIC;
-
-
---
--- Name: pdb_seq_pos(text, text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pdb_seq_pos(text, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pdb_seq_pos(text, text) FROM unison;
-GRANT ALL ON FUNCTION pdb_seq_pos(text, text) TO unison;
-GRANT ALL ON FUNCTION pdb_seq_pos(text, text) TO PUBLIC;
 
 
 --
@@ -25959,26 +27124,6 @@ GRANT SELECT ON TABLE pseq_probe_v TO PUBLIC;
 
 
 --
--- Name: mol_wt(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION mol_wt(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION mol_wt(text) FROM unison;
-GRANT ALL ON FUNCTION mol_wt(text) TO unison;
-GRANT ALL ON FUNCTION mol_wt(text) TO PUBLIC;
-
-
---
--- Name: pi(text, text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pi(text, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pi(text, text) FROM unison;
-GRANT ALL ON FUNCTION pi(text, text) TO unison;
-GRANT ALL ON FUNCTION pi(text, text) TO PUBLIC;
-
-
---
 -- Name: pseq_prop_v; Type: ACL; Schema: unison; Owner: unison
 --
 
@@ -25986,6 +27131,42 @@ REVOKE ALL ON TABLE pseq_prop_v FROM PUBLIC;
 REVOKE ALL ON TABLE pseq_prop_v FROM unison;
 GRANT ALL ON TABLE pseq_prop_v TO unison;
 GRANT SELECT ON TABLE pseq_prop_v TO PUBLIC;
+
+
+--
+-- Name: pseq_pseq_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pseq_pseq_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pseq_pseq_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pseq_pseq_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pseq_pseq_id_seq TO loader;
+GRANT UPDATE ON SEQUENCE pseq_pseq_id_seq TO genengenes;
+GRANT SELECT ON SEQUENCE pseq_pseq_id_seq TO PUBLIC;
+
+
+SET search_path = unison_aux, pg_catalog;
+
+--
+-- Name: ptm; Type: ACL; Schema: unison_aux; Owner: unison
+--
+
+REVOKE ALL ON TABLE ptm FROM PUBLIC;
+REVOKE ALL ON TABLE ptm FROM unison;
+GRANT ALL ON TABLE ptm TO unison;
+GRANT SELECT ON TABLE ptm TO PUBLIC;
+
+
+SET search_path = unison, pg_catalog;
+
+--
+-- Name: pseq_ptm_v; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pseq_ptm_v FROM PUBLIC;
+REVOKE ALL ON TABLE pseq_ptm_v FROM unison;
+GRANT ALL ON TABLE pseq_ptm_v TO unison;
+GRANT SELECT ON TABLE pseq_ptm_v TO PUBLIC;
 
 
 --
@@ -26027,6 +27208,16 @@ REVOKE ALL ON TABLE pseq_template_v FROM PUBLIC;
 REVOKE ALL ON TABLE pseq_template_v FROM unison;
 GRANT ALL ON TABLE pseq_template_v TO unison;
 GRANT SELECT ON TABLE pseq_template_v TO PUBLIC;
+
+
+--
+-- Name: pseqalias; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON TABLE pseqalias FROM PUBLIC;
+REVOKE ALL ON TABLE pseqalias FROM unison;
+GRANT ALL ON TABLE pseqalias TO unison;
+GRANT SELECT ON TABLE pseqalias TO PUBLIC;
 
 
 --
@@ -26097,6 +27288,16 @@ REVOKE ALL ON TABLE pset_patented_98_dv FROM PUBLIC;
 REVOKE ALL ON TABLE pset_patented_98_dv FROM unison;
 GRANT ALL ON TABLE pset_patented_98_dv TO unison;
 GRANT SELECT ON TABLE pset_patented_98_dv TO PUBLIC;
+
+
+--
+-- Name: pset_pset_id_seq; Type: ACL; Schema: unison; Owner: unison
+--
+
+REVOKE ALL ON SEQUENCE pset_pset_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE pset_pset_id_seq FROM unison;
+GRANT ALL ON SEQUENCE pset_pset_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE pset_pset_id_seq TO loader;
 
 
 --
@@ -26192,44 +27393,13 @@ GRANT SELECT ON TABLE psipred TO PUBLIC;
 
 
 --
--- Name: psprotcomp; Type: ACL; Schema: unison; Owner: unison
+-- Name: psprotcomp_location_psloc_id_seq; Type: ACL; Schema: unison; Owner: unison
 --
 
-REVOKE ALL ON TABLE psprotcomp FROM PUBLIC;
-REVOKE ALL ON TABLE psprotcomp FROM unison;
-GRANT ALL ON TABLE psprotcomp TO unison;
-GRANT INSERT ON TABLE psprotcomp TO loader;
-GRANT SELECT ON TABLE psprotcomp TO PUBLIC;
-
-
---
--- Name: psprotcomp_location; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE psprotcomp_location FROM PUBLIC;
-REVOKE ALL ON TABLE psprotcomp_location FROM unison;
-GRANT ALL ON TABLE psprotcomp_location TO unison;
-GRANT SELECT ON TABLE psprotcomp_location TO PUBLIC;
-
-
---
--- Name: psprotcomp_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE psprotcomp_v FROM PUBLIC;
-REVOKE ALL ON TABLE psprotcomp_v FROM unison;
-GRANT ALL ON TABLE psprotcomp_v TO unison;
-GRANT SELECT ON TABLE psprotcomp_v TO PUBLIC;
-
-
---
--- Name: psprotcomp_reliable_v; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON TABLE psprotcomp_reliable_v FROM PUBLIC;
-REVOKE ALL ON TABLE psprotcomp_reliable_v FROM unison;
-GRANT ALL ON TABLE psprotcomp_reliable_v TO unison;
-GRANT SELECT ON TABLE psprotcomp_reliable_v TO PUBLIC;
+REVOKE ALL ON SEQUENCE psprotcomp_location_psloc_id_seq FROM PUBLIC;
+REVOKE ALL ON SEQUENCE psprotcomp_location_psloc_id_seq FROM unison;
+GRANT ALL ON SEQUENCE psprotcomp_location_psloc_id_seq TO unison;
+GRANT UPDATE ON SEQUENCE psprotcomp_location_psloc_id_seq TO loader;
 
 
 --
@@ -26304,499 +27474,14 @@ GRANT ALL ON TABLE hugo TO unison;
 GRANT SELECT ON TABLE hugo TO PUBLIC;
 
 
-SET search_path = pdb, pg_catalog;
-
---
--- Name: descriptor_origin_id(text, text, text); Type: ACL; Schema: pdb; Owner: unison
---
-
-REVOKE ALL ON FUNCTION descriptor_origin_id(text, text, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION descriptor_origin_id(text, text, text) FROM unison;
-GRANT ALL ON FUNCTION descriptor_origin_id(text, text, text) TO unison;
-GRANT ALL ON FUNCTION descriptor_origin_id(text, text, text) TO PUBLIC;
-
-
---
--- Name: descriptor_origin_id(text); Type: ACL; Schema: pdb; Owner: unison
---
-
-REVOKE ALL ON FUNCTION descriptor_origin_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION descriptor_origin_id(text) FROM unison;
-GRANT ALL ON FUNCTION descriptor_origin_id(text) TO unison;
-GRANT ALL ON FUNCTION descriptor_origin_id(text) TO PUBLIC;
-
-
-SET search_path = pgutils, pg_catalog;
-
---
--- Name: pk_references(text, text, text, text); Type: ACL; Schema: pgutils; Owner: rkh
---
-
-REVOKE ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) FROM rkh;
-GRANT ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) TO rkh;
-GRANT ALL ON FUNCTION pk_references(nsp text, rel text, col text, expr text, OUT n integer, OUT fk_referent text) TO PUBLIC;
-
-
---
--- Name: pk_references(text, text); Type: ACL; Schema: pgutils; Owner: rkh
---
-
-REVOKE ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) FROM rkh;
-GRANT ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) TO rkh;
-GRANT ALL ON FUNCTION pk_references(nrc text, expr text, OUT n integer, OUT fk_referent text) TO PUBLIC;
-
-
-SET search_path = unison, pg_catalog;
-
---
--- Name: _dblast_species(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION _dblast_species(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _dblast_species(text) FROM unison;
-GRANT ALL ON FUNCTION _dblast_species(text) TO unison;
-GRANT ALL ON FUNCTION _dblast_species(text) TO PUBLIC;
-
-
---
--- Name: _defline_agg_finalfunc(anyarray); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION _defline_agg_finalfunc(anyarray) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _defline_agg_finalfunc(anyarray) FROM unison;
-GRANT ALL ON FUNCTION _defline_agg_finalfunc(anyarray) TO unison;
-GRANT ALL ON FUNCTION _defline_agg_finalfunc(anyarray) TO PUBLIC;
-
-
---
--- Name: _expand_aa_sets(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION _expand_aa_sets(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _expand_aa_sets(text) FROM unison;
-GRANT ALL ON FUNCTION _expand_aa_sets(text) TO unison;
-GRANT ALL ON FUNCTION _expand_aa_sets(text) TO PUBLIC;
-
-
---
--- Name: _geneseq_species(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION _geneseq_species(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _geneseq_species(text) FROM unison;
-GRANT ALL ON FUNCTION _geneseq_species(text) TO unison;
-GRANT ALL ON FUNCTION _geneseq_species(text) TO PUBLIC;
-
-
---
--- Name: _nr_species(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION _nr_species(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _nr_species(text) FROM unison;
-GRANT ALL ON FUNCTION _nr_species(text) TO unison;
-GRANT ALL ON FUNCTION _nr_species(text) TO PUBLIC;
-
-
---
--- Name: _refseq_species(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION _refseq_species(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _refseq_species(text) FROM unison;
-GRANT ALL ON FUNCTION _refseq_species(text) TO unison;
-GRANT ALL ON FUNCTION _refseq_species(text) TO PUBLIC;
-
-
---
--- Name: _seqhash_no_cleaning(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION _seqhash_no_cleaning(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION _seqhash_no_cleaning(text) FROM unison;
-GRANT ALL ON FUNCTION _seqhash_no_cleaning(text) TO unison;
-GRANT ALL ON FUNCTION _seqhash_no_cleaning(text) TO PUBLIC;
-
-
---
--- Name: a280(text, text, boolean); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION a280(text, text, boolean) FROM PUBLIC;
-REVOKE ALL ON FUNCTION a280(text, text, boolean) FROM unison;
-GRANT ALL ON FUNCTION a280(text, text, boolean) TO unison;
-GRANT ALL ON FUNCTION a280(text, text, boolean) TO PUBLIC;
-
-
---
--- Name: aa_3_to_1(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION aa_3_to_1(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION aa_3_to_1(text) FROM unison;
-GRANT ALL ON FUNCTION aa_3_to_1(text) TO unison;
-GRANT ALL ON FUNCTION aa_3_to_1(text) TO PUBLIC;
-
-
---
--- Name: current_params_id_by_pftype_id(integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION current_params_id_by_pftype_id(integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION current_params_id_by_pftype_id(integer) FROM unison;
-GRANT ALL ON FUNCTION current_params_id_by_pftype_id(integer) TO unison;
-GRANT ALL ON FUNCTION current_params_id_by_pftype_id(integer) TO PUBLIC;
-
-
---
--- Name: expand_aa_sets(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION expand_aa_sets(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION expand_aa_sets(text) FROM unison;
-GRANT ALL ON FUNCTION expand_aa_sets(text) TO unison;
-GRANT ALL ON FUNCTION expand_aa_sets(text) TO PUBLIC;
-
-
---
--- Name: has_iupac_ambiguity_aa(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION has_iupac_ambiguity_aa(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION has_iupac_ambiguity_aa(text) FROM unison;
-GRANT ALL ON FUNCTION has_iupac_ambiguity_aa(text) TO unison;
-GRANT ALL ON FUNCTION has_iupac_ambiguity_aa(text) TO PUBLIC;
-
-
---
--- Name: has_iupac_gap_aa(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION has_iupac_gap_aa(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION has_iupac_gap_aa(text) FROM unison;
-GRANT ALL ON FUNCTION has_iupac_gap_aa(text) TO unison;
-GRANT ALL ON FUNCTION has_iupac_gap_aa(text) TO PUBLIC;
-
-
---
--- Name: has_iupac_stop_aa(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION has_iupac_stop_aa(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION has_iupac_stop_aa(text) FROM unison;
-GRANT ALL ON FUNCTION has_iupac_stop_aa(text) TO unison;
-GRANT ALL ON FUNCTION has_iupac_stop_aa(text) TO PUBLIC;
-
-
---
--- Name: has_non_iupac_aa(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION has_non_iupac_aa(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION has_non_iupac_aa(text) FROM unison;
-GRANT ALL ON FUNCTION has_non_iupac_aa(text) TO unison;
-GRANT ALL ON FUNCTION has_non_iupac_aa(text) TO PUBLIC;
-
-
---
--- Name: has_only_iupac_aa_ungapped(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION has_only_iupac_aa_ungapped(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION has_only_iupac_aa_ungapped(text) FROM unison;
-GRANT ALL ON FUNCTION has_only_iupac_aa_ungapped(text) TO unison;
-GRANT ALL ON FUNCTION has_only_iupac_aa_ungapped(text) TO PUBLIC;
-
-
---
--- Name: has_only_iupac_std_aa_ungapped(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) FROM unison;
-GRANT ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) TO unison;
-GRANT ALL ON FUNCTION has_only_iupac_std_aa_ungapped(text) TO PUBLIC;
-
-
---
--- Name: link_url(text, text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION link_url(text, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION link_url(text, text) FROM unison;
-GRANT ALL ON FUNCTION link_url(text, text) TO unison;
-GRANT ALL ON FUNCTION link_url(text, text) TO PUBLIC;
-
-
---
--- Name: locus_fmt(text, text, integer, integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) FROM unison;
-GRANT ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) TO unison;
-GRANT ALL ON FUNCTION locus_fmt(chr text, str text, gstart integer, gstop integer) TO PUBLIC;
-
-
---
--- Name: pfsignalphmm_pred(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pfsignalphmm_pred(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pfsignalphmm_pred(text) FROM unison;
-GRANT ALL ON FUNCTION pfsignalphmm_pred(text) TO unison;
-GRANT ALL ON FUNCTION pfsignalphmm_pred(text) TO PUBLIC;
-
-
---
--- Name: porigin_id(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION porigin_id(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION porigin_id(text) FROM unison;
-GRANT ALL ON FUNCTION porigin_id(text) TO unison;
-GRANT ALL ON FUNCTION porigin_id(text) TO PUBLIC;
-
-
---
--- Name: pseq_id_from_sequence(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION pseq_id_from_sequence(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION pseq_id_from_sequence(text) FROM unison;
-GRANT ALL ON FUNCTION pseq_id_from_sequence(text) TO unison;
-GRANT ALL ON FUNCTION pseq_id_from_sequence(text) TO PUBLIC;
-
-
---
--- Name: representative_pseq_id(integer, integer, integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) FROM unison;
-GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) TO unison;
-GRANT ALL ON FUNCTION representative_pseq_id(q_pseq_id integer, genasm_id integer, params_id integer, OUT pseq_id integer) TO PUBLIC;
-
-
---
--- Name: seqhash(text); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION seqhash(text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION seqhash(text) FROM unison;
-GRANT ALL ON FUNCTION seqhash(text) TO unison;
-GRANT ALL ON FUNCTION seqhash(text) TO PUBLIC;
-
-
---
--- Name: sequence_ends(text, integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION sequence_ends(text, integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION sequence_ends(text, integer) FROM unison;
-GRANT ALL ON FUNCTION sequence_ends(text, integer) TO unison;
-GRANT ALL ON FUNCTION sequence_ends(text, integer) TO PUBLIC;
-
-
---
--- Name: update_pmodelset(integer); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION update_pmodelset(integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION update_pmodelset(integer) FROM unison;
-GRANT ALL ON FUNCTION update_pmodelset(integer) TO unison;
-GRANT ALL ON FUNCTION update_pmodelset(integer) TO PUBLIC;
-
-
---
--- Name: array_accum(anyelement); Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON FUNCTION array_accum(anyelement) FROM PUBLIC;
-REVOKE ALL ON FUNCTION array_accum(anyelement) FROM unison;
-GRANT ALL ON FUNCTION array_accum(anyelement) TO unison;
-GRANT ALL ON FUNCTION array_accum(anyelement) TO PUBLIC;
-
-
-SET search_path = gong, pg_catalog;
-
---
--- Name: alias_alias_id_seq; Type: ACL; Schema: gong; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE alias_alias_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE alias_alias_id_seq FROM unison;
-GRANT ALL ON SEQUENCE alias_alias_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE alias_alias_id_seq TO loader;
-
-
-SET search_path = marray, pg_catalog;
-
---
--- Name: chip_chip_id_seq; Type: ACL; Schema: marray; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE chip_chip_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE chip_chip_id_seq FROM unison;
-GRANT ALL ON SEQUENCE chip_chip_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE chip_chip_id_seq TO loader;
-
-
-SET search_path = unison, pg_catalog;
-
---
--- Name: canned_views_cv_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE canned_views_cv_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE canned_views_cv_id_seq FROM unison;
-GRANT ALL ON SEQUENCE canned_views_cv_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE canned_views_cv_id_seq TO loader;
-
-
---
--- Name: genasm_genasm_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE genasm_genasm_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE genasm_genasm_id_seq FROM unison;
-GRANT ALL ON SEQUENCE genasm_genasm_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE genasm_genasm_id_seq TO loader;
-
-
---
--- Name: origin_origin_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE origin_origin_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE origin_origin_id_seq FROM unison;
-GRANT ALL ON SEQUENCE origin_origin_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE origin_origin_id_seq TO loader;
-
-
---
--- Name: p2gblataln_p2gblataln_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE p2gblataln_p2gblataln_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE p2gblataln_p2gblataln_id_seq FROM unison;
-GRANT ALL ON SEQUENCE p2gblataln_p2gblataln_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE p2gblataln_p2gblataln_id_seq TO loader;
-
-
---
--- Name: p2gblathsp_p2gblathsp_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE p2gblathsp_p2gblathsp_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE p2gblathsp_p2gblathsp_id_seq FROM unison;
-GRANT ALL ON SEQUENCE p2gblathsp_p2gblathsp_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE p2gblathsp_p2gblathsp_id_seq TO loader;
-
-
---
--- Name: paliasorigin_palias_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE paliasorigin_palias_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE paliasorigin_palias_id_seq FROM unison;
-GRANT ALL ON SEQUENCE paliasorigin_palias_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE paliasorigin_palias_id_seq TO loader;
-GRANT UPDATE ON SEQUENCE paliasorigin_palias_id_seq TO genengenes;
-
-
---
--- Name: params_params_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE params_params_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE params_params_id_seq FROM unison;
-GRANT ALL ON SEQUENCE params_params_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE params_params_id_seq TO loader;
-
-
---
--- Name: pcluster_pcluster_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE pcluster_pcluster_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE pcluster_pcluster_id_seq FROM unison;
-GRANT ALL ON SEQUENCE pcluster_pcluster_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE pcluster_pcluster_id_seq TO loader;
-
-
---
--- Name: pftype_pftype_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE pftype_pftype_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE pftype_pftype_id_seq FROM unison;
-GRANT ALL ON SEQUENCE pftype_pftype_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE pftype_pftype_id_seq TO loader;
-
-
---
--- Name: pmap_aln_aln_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE pmap_aln_aln_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE pmap_aln_aln_id_seq FROM unison;
-GRANT ALL ON SEQUENCE pmap_aln_aln_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE pmap_aln_aln_id_seq TO loader;
-
-
---
--- Name: pmap_hsp_hsp_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE pmap_hsp_hsp_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE pmap_hsp_hsp_id_seq FROM unison;
-GRANT ALL ON SEQUENCE pmap_hsp_hsp_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE pmap_hsp_hsp_id_seq TO loader;
-
-
---
--- Name: pmodelset_pmodelset_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE pmodelset_pmodelset_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE pmodelset_pmodelset_id_seq FROM unison;
-GRANT ALL ON SEQUENCE pmodelset_pmodelset_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE pmodelset_pmodelset_id_seq TO loader;
-
-
---
--- Name: pseq_pseq_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE pseq_pseq_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE pseq_pseq_id_seq FROM unison;
-GRANT ALL ON SEQUENCE pseq_pseq_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE pseq_pseq_id_seq TO loader;
-GRANT UPDATE ON SEQUENCE pseq_pseq_id_seq TO genengenes;
-GRANT SELECT ON SEQUENCE pseq_pseq_id_seq TO PUBLIC;
-
-
---
--- Name: pset_pset_id_seq; Type: ACL; Schema: unison; Owner: unison
---
-
-REVOKE ALL ON SEQUENCE pset_pset_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE pset_pset_id_seq FROM unison;
-GRANT ALL ON SEQUENCE pset_pset_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE pset_pset_id_seq TO loader;
-
-
 --
--- Name: psprotcomp_location_psloc_id_seq; Type: ACL; Schema: unison; Owner: unison
+-- Name: ptm_type; Type: ACL; Schema: unison_aux; Owner: unison
 --
 
-REVOKE ALL ON SEQUENCE psprotcomp_location_psloc_id_seq FROM PUBLIC;
-REVOKE ALL ON SEQUENCE psprotcomp_location_psloc_id_seq FROM unison;
-GRANT ALL ON SEQUENCE psprotcomp_location_psloc_id_seq TO unison;
-GRANT UPDATE ON SEQUENCE psprotcomp_location_psloc_id_seq TO loader;
+REVOKE ALL ON TABLE ptm_type FROM PUBLIC;
+REVOKE ALL ON TABLE ptm_type FROM unison;
+GRANT ALL ON TABLE ptm_type TO unison;
+GRANT SELECT ON TABLE ptm_type TO PUBLIC;
 
 
 --
