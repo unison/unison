@@ -55,6 +55,7 @@ from Unison::Exceptions.
 use CBT::debug;
 CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 
+
 # Anyone using Unison::Exceptions will want the try/catch/...
 # syntax; import it for them just as 'use Error qw(:try)' would do
 package Unison::Exceptions;
@@ -62,9 +63,9 @@ use base qw(Exporter);
 use Error qw(:try);
 @EXPORT = @Error::subs::EXPORT_OK;
 
-# Define some standard exceptions
+
+# Define some standard Unison exceptions
 package Unison::Exception;
-use base 'Unison::Exception';
 
 our @EXCEPTIONS = qw(NotImplemented NotConnected ConnectionFailed BadUsage
   RuntimeError DBIError);
@@ -72,6 +73,7 @@ our @EXCEPTIONS = qw(NotImplemented NotConnected ConnectionFailed BadUsage
 foreach my $subtype (@EXCEPTIONS) {
     eval "package Unison::Exception::$subtype; use base 'Unison::Exception';";
 }
+
 
 =pod
 
