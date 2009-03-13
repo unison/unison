@@ -29,7 +29,7 @@ load/${INSTANCE}/apache/%.log: logs/${INSTANCE}/apache/%.gz
 	/bin/mv -f "$@.err" "$@"
 
 # depends on PGHOST=respgsql PGDATABASE=logs
-%-update
+%-update:
 	./bin/update-src_host_ip $*
 
 
