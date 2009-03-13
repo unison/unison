@@ -14,17 +14,11 @@ use Unison::WWW::Page;
 my $p = new Unison::WWW::Page();
 
 print $p->render('Welcome', <<EOBODY);
-<div class="notice">
-NEWS: <a href="http://harts.net/reece/pubs/">Our manuscript on Unison</a>
-was accepted to the 2009 <a href="http://psb.stanford.edu/">Pacific
-Symposium on Biocomputing</a>.  The slides will appear there soon.
-</div>
-
 <fieldset class="group" style="width: 50%; float: right;">
 <legend>Unison in a Nutshell</legend>
 <div style="text-align:">
 <a class="nofeedback" href="about.pl">
-<img width="100%" src="av/concept-graphic-med.jpg" alt="[Concept]">
+<img width="100%" src="av/concept-graphic-med.gif" alt="[Concept]">
 </a>
 <br><a href="about.html">Learn more about Unison.</a>
 </div>

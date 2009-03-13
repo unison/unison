@@ -20,7 +20,7 @@ update: $(SS:.png=-sm.jpg) concept-graphic-med.gif results-cube-med.gif
 
 # "small" images intended as icons/thumbnails
 # aim for 100px max in larger dimension w/moderate quality
-# in practice, this results in images 5-10KB
+# in practice, this results in most images ~5-10KB
 CONVERT_SM_OPTS:= -geometry 100x100 -quality 40
 %-sm.jpg %-sm.png: %.jpg
 	convert ${CONVERT_SM_OPTS} $< $@
@@ -30,7 +30,7 @@ CONVERT_SM_OPTS:= -geometry 100x100 -quality 40
 
 # "medium" images intended for legible inset graphics
 # aim for 500x500 w/moderate quality and sizes
-# in practice, this results in images 20-40KB
+# in practice, this results in most images ~20-40KB
 MED_GEOMETRY:=-geometry 500x500
 CONVERT_MED_OPTS:=-antialias -quality 60
 %-med.jpg %-med.png: %.jpg
