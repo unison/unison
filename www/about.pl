@@ -17,7 +17,7 @@ print $p->render('Download', <<EOBODY);
 <fieldset class="group" style="width: 300px; float: right; clear: right;">
 <legend>Unison Overview</legend>
 <a class="nofeedback" href="av/concept-graphic.gif">
-<img width="100%" src="av/concept-graphic-med.jpg" alt="[Concept]">
+<img width="100%" src="av/concept-graphic-med.gif" alt="[Concept]">
 </a>
 </fieldset>
 
