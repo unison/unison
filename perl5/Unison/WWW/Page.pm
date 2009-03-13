@@ -53,6 +53,8 @@ sub _page_connect ($);
 our $infer_pseq_id = 0;
 our $skip_db_connect = 0;
 
+my $TOOLTIP_ICON = '<img src="av/faq.gif">';
+
 =pod
 
 =head1 PUBLIC METHODS
@@ -346,19 +348,20 @@ sub start_page() {
   my $p = shift;
   my $v = $p->Vars();
   my $navbar = Unison::WWW::NavBar::render_navbar($p);
-  my $logo_tooltip = ( '<b>Unison revision:</b> ' . $Unison::REVISION
-					   . '<br><b>Connection information:</b>'
-					   . ( defined $v->{dbname} 
-						   ? sprintf(
-									 '<br><b>db host:</b> %s'
-									 .'<br><b>db instance:</b> %s'
-									 .'<br><b>db user:</b> %s',
-									 $v->{host} || 'localhost',
-									 $v->{dbname},
-									 $v->{username}
-									)
-						   : '<br><i>not connected</i>'
-						 )
+  my $logo_tooltip = (
+					  '<b>Unison revision:</b> ' . $Unison::REVISION
+					  . '<br><b>Connection information:</b>'
+					  . ( defined $v->{dbname} 
+						  ? sprintf(
+									'<br><b>db host:</b> %s'
+									.'<br><b>db instance:</b> %s'
+									.'<br><b>db user:</b> %s',
+									$v->{host} || 'localhost',
+									$v->{dbname},
+									$v->{username}
+								   )
+						  : '<br><i>not connected</i>'
+						)
 					 );
 
   return <<EOF;
@@ -366,8 +369,8 @@ sub start_page() {
 <tr>
 <!-- ========== begin logo ========== -->
   <td class="left">
-    <a tooltip="$logo_tooltip" class="nofeedback" href="./">
-      <img width=120 height=34 src="av/unison.png">
+    <a tooltip="$logo_tooltip" class="nofeedback" href="./"><img width=120 height=34 src="av/unison.png">
+	
     </a>
   </td>
 <!-- ========== end logo ========== -->
@@ -618,6 +621,7 @@ sub tooltip {
   shift if ref $_[0];					   # can be called as method or fx
   my ( $text, $tooltip, $class ) = @_;
   return $text unless defined $tooltip;
+  $text ||= $TOOLTIP_ICON;
   local $Text::Wrap::columns = 80;
   $tooltip =~ s/\s+/ /g;
 
@@ -762,7 +766,7 @@ EOT
 
   return (
 		  '<table class="summary">', '<tr>',
-		  '<th><div>Best Annotation ', $self->tooltip( '?', $tooltip ),
+		  '<th><div>Best Annotation ', $self->tooltip( $TOOLTIP_ICON, $tooltip ),
 		  '</div></th>',              '<td>',
 		  $ba,                        '</td>',
 		  '</tr>',                    '</table>'
@@ -786,7 +790,7 @@ sub entrez_annotation_UNIMPLEMENTED {
   my $pseq_id = shift;
   my $u       = $self->{unison};
   my $entrez  = '<br><b>Entrez annotation</b>&nbsp;'
-	. $self->tooltip( '?', 'Entrez Gene annotation' ) . ': ';
+	. $self->tooltip( $TOOLTIP_ICON, 'Entrez Gene annotation' ) . ': ';
 
   my (@entrez) = $u->entrez_annotations($pseq_id);
   $entrez .= '<div style="width: 80%; padding-left: 50px;">';

@@ -371,7 +371,6 @@ span.button:hover {
 /* tooltip */
 span.has_tooltip {
  color: U_TOOLTIP_FG;
- background: U_TOOLTIP_BG;
  cursor:help;
 }
 

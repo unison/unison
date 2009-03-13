@@ -65,7 +65,7 @@ sub homologs_group ($) {
         return $p->group(
             'HomoloGene&nbsp'
               . $p->tooltip(
-                '?',
+                undef,
 "Homologous sequences as determined by NCBI's Homologene project"
               ),
             '<table width="100%">',
@@ -120,7 +120,7 @@ sub homologs_group ($) {
     $p->group(
         'HomoloGene&nbsp'
           . $p->tooltip(
-            '?',
+            undef,
             "Homologous sequences as determined by NCBI's Homologene project"
           ),
         '<table class="uwtable" width="100%">',

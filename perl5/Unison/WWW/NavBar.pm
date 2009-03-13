@@ -169,7 +169,6 @@ sub __filter_navs($$@) {
   my ( $is_prd, $is_pub, @navs ) = @_;
   for ( my $i = $#navs ; $i >= 0 ; $i-- ) {
 	if ( $navs[$i][0][0] eq '' ) {
-
 	  # menu break
 	  next;
 	}
