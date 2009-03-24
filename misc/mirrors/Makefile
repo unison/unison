@@ -343,7 +343,7 @@ logs/wwpdb.log: FORCE
 		${PDB_URL}/pub/pdb/data/structures/divided/XML/ \
 		${PDB_URL}/pub/pdb/data/structures/divided/pdb/ \
 		${PDB_URL}/pub/pdb/derived_data \
-		http://remediation.wwpdb.org/downloads/Components-rel-alt.xml.gz
+		http://ligand-expo.rcsb.org/dictionaries/components-pub-xml.tar.gz
 	/bin/mv -f $@.err $@
 	chmod -cR a+rX ftp.wwpdb.org
 

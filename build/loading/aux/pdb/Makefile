@@ -7,7 +7,7 @@ include ../../params.mk
 PDB_ROOT:=/gne/research/data/public/pdb
 export PDB_XML_PATH:=${PDB_ROOT}/all.xml.gz
 
-LIGAND_DATA:=${PDB_ROOT}/Components-rel-alt.xml.gz
+LIGAND_DATA:=${PDB_ROOT}/components-pub-xml.tar.gz
 
 update default all: ligands.load allxml-todo.load
 
