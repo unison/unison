@@ -1,0 +1,20 @@
+* Web stuff
+cd /gne/research/web/prd/apache/htdocs
+ln -sfn /gne/research/apps/gunison/prd/www gunison
+cd /gne/research/web/dev/apache/htdocs
+ln -sfn /gne/research/apps/gunison/dev/www gunison
+
+
+* Database stuff
+create user gunison password 'qIxIn';
+alter database "csb-dev-snapshot..." rename to "gunison-dev";
+alter database "gunison-dev" owner to gunison;
+
+export PGHOST=respgsql
+export PGDATABASE=gunison-dev
+export PGUSER=gunison
+export PGPASSWORD=qIxIn
+
+psql -dgunison-dev -f drop.sql
+psql -qAtf chown.sql
+psql -qAtf revoke-loader.sql
