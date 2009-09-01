@@ -1,26 +1,43 @@
-#!/bin/sh
+#!/bin/bash
 # dev-snapshot -- make dated snapshot of csb-dev and delete older snapshots
-# usage: sudo -u postgres dev-snapshot
+#
+# possible invocation:
+# $ PGPASS=~/.pgpass-cron PGHOST=respgsql PGUSER=postgres dev-snapshot
 
-# This is Genentech-specific but should be generalized
+
+jemappelle=$(basename $0)
+
+max_snaps=${MAX_SNAPS:-1}
+src_datname=${SRC_DATNAME:-csb-dev}
+debug=0
+
+while getopts 'd:DS:' o; do
+	case "$o" in
+		d) src_datname="$OPTARG";;
+		D) debug=1;;
+		S) max_snaps="$OPTARG";;
+		[?]) echo >&2 <<EOF
+Usage: $jemappelle [-d dbname] [-S max_snapshots] [-n]
+EOF
+			exit 1;;
+	esac
+done
 
 
-MAX_SNAPS=2
-SRC_DATNAME=csb-dev
+exec 1>&2
+
+
+/bin/date +"%F %T: $jemappelle started"
 
 
 ts=`/bin/date +%Y%m%d-%H%M%S`
-snap_prefix="${SRC_DATNAME}-snapshot"
+snap_prefix="${src_datname}-snapshot"
 snap_name="$snap_prefix-$ts"
-
-
-/bin/date +'%F %T: started'
-
 
 DUMP_OPTS=
 PSQL_OPTS='-qa -v ON_ERROR_STOP=1'
 ECHO=
-if [ -n "$SNAPSHOT_DEBUG" ]; then
+if [ "$debug" = "1" ]; then
 		DUMP_OPTS=-s
 		#PSQL_OPTS=-qa
 		ECHO='echo +'
@@ -30,8 +47,11 @@ fi
 
 echo
 echo ============================================================
-echo "* selected environment:"
+echo "* selected environment and executable paths:"
 echo PATH=${PATH}
+echo PGHOST=${PGHOST}
+echo PGUSER=${PGUSER}
+echo PGPASSFILE=${PGPASSFILE}
 for exe in createdb psql pg_dump; do
 	type -p $exe
 	$exe --version
@@ -46,7 +66,7 @@ echo "* create/dump/restore:"
 (
 set -ex
 createdb -O unison -E UTF-8 "tmp_${snap_name}"
-pg_dump $DUMP_OPTS "$SRC_DATNAME" | psql $PSQL_OPTS -d "tmp_$snap_name"
+pg_dump $DUMP_OPTS "$src_datname" | psql $PSQL_OPTS -d "tmp_$snap_name"
 )
 STATUS=$?
 
@@ -57,15 +77,15 @@ if [ "$STATUS" = "0" ]; then
 	psql -d "tmp_$snap_name" <<EOF
 UPDATE pg_database D SET datconfig=S.datconfig,datacl=S.datacl
   FROM pg_database S
- WHERE S.datname='$SRC_DATNAME' AND D.datname='tmp_$snap_name';
+ WHERE S.datname='$src_datname' AND D.datname='tmp_$snap_name';
 EOF
 
 	psql -d "tmp_$snap_name" -c 'analyze verbose'
 	
 	psql -d template1 -c "alter database \"tmp_$snap_name\" rename to \"$snap_name\""
 	
-	# keep only the most recent MAX_SNAPS snapshots
-	psql -Atc "select datname from pg_database where datname~'^$snap_prefix-' order by datname desc offset $MAX_SNAPS" \
+	# keep only the most recent max_snaps snapshots
+	psql -Atc "select datname from pg_database where datname~'^$snap_prefix-' order by datname desc offset $max_snaps" \
 	| while read datname; do
 		(set -x; $ECHO dropdb "$datname")
 	done
@@ -88,7 +108,7 @@ echo "* /srv space:"
 df -h /srv
 
 
-/bin/date +"%F %T: finished [STATUS=$STATUS]"
+/bin/date +"%F %T: $jemappelle finished [STATUS=$STATUS]"
 
 
 exit $STATUS
