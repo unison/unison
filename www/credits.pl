@@ -106,7 +106,7 @@ command used: convert -geometry 100x30 imagein imageout
 	  <br>Department of Biology, University College London, Wolfson House
 	  <br>4 Stephenson Way, London NW1 2HE, UK
 	  <br>http://www.genenames.org/
-	  <br>See <a href="about_origins.pl">Unison Origins</a> for
+	  <br>See <a href="contents.pl">Unison Contents</a> for
 	  download date.
 	</td>
 </tr>
