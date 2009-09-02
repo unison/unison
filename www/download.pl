@@ -41,9 +41,8 @@ can be computed and loading using the scripts in the source code
 distribution.
 
 <!-- all instances point to the public database dumps rather than the local dumps dir -->
-<br><iframe frameborder=0 width="100%" src="http://unison-db.org/dumps"></iframe>
+<br><iframe style="border:none; width:100%; height:300px" src="http://unison-db.org/dumps"></iframe>
 </dd>
-
 </dl>
 
 EOBODY
