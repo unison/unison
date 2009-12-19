@@ -103,13 +103,15 @@ A few of Unison's distinguishing features are:
 	and others.
   </dd>
 
+
   <dt>Unison is freely available to use and download.
-	<dd>The database schema, tools, web pages, and non-proprietary data
-	are released under the Academic Free License,
-	an <a href="http://www.opensource.org/">OpenSource</a> (TM) approved
-	license.  The database and web interface are available for public
-	access (query times are limited).
+  <dd>The Unison source code, database, data, and other files are released
+  under licenses that encourage widespread use, distribution, and
+  modification -- see <a href="license.pl">Unison license</a> for details.
+  The database and web interface are available for immediate public
+  access.
   </dd>
+
 </dl>
 
 <div style="padding: 5px; margin-left: 20px; margin-right: 20px; border: thin solid
