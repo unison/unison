@@ -351,14 +351,14 @@ sub start_page() {
   my $logo_tooltip = (
 					  '<b>Unison revision:</b> ' . $Unison::REVISION
 					  . '<br><b>Connection information:</b>'
-					  . ( defined $v->{dbname} 
+					  . ( defined $p->{unison}->{dbname}
 						  ? sprintf(
 									'<br><b>db host:</b> %s'
 									.'<br><b>db instance:</b> %s'
 									.'<br><b>db user:</b> %s',
-									$v->{host} || 'localhost',
-									$v->{dbname},
-									$v->{username}
+									$p->{unison}->{host} || 'localhost',
+									$p->{unison}->{dbname},
+									$p->{unison}->{username}
 								   )
 						  : '<br><i>not connected</i>'
 						)
@@ -994,18 +994,15 @@ sub _page_connect ($) {
 
   try {
 	$self->_set_connection_params();
-	$self->{unison} = new Unison(
-								 host     => $v->{host},
-								 dbname   => $v->{dbname},
-								 username => $v->{username},
-								 password => $v->{password}
-								 # NB: KRB5CCNAME may affect connection success
-								);
-	# Errors are caught by exceptions.
+	my %cp = ( host     => $v->{host},
+			   dbname   => $v->{dbname},
+			   username => $v->{username},
+			   password => $v->{password} );
 
-	# If the connection succeeded, then set PG vars so that spawned apps
-	# connect to the same database.  The krb credential, if any, is
-	# implicitly passed in KRB5CCNAME.
+	$self->{unison} = new Unison( %cp );	# Error handling by exceptions.
+
+	# Set PG vars so that spawned apps connect to the same database.  The
+	# krb credential, if any, is implicitly passed in KRB5CCNAME.
 	if ( $v->{host} ) {
 	  $ENV{PGHOST} = $v->{host};
 	} else {
