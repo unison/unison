@@ -50,7 +50,7 @@ use warnings;
 
 package Unison;
 
-our ($REVISION) = '$Rev: 9999$' =~ m/Rev: (\d+)/;
+our ($REVISION) = '$Rev$' =~ m/Rev: (\d+)/;
 
 use Unison::DBI;
 use Unison::Exceptions;
