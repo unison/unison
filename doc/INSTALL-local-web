@@ -1,0 +1,23 @@
+2009-12-18 16:34 Reece Hart <reece@harts.net>
+
+Goal: Install the Unison web interface locally, relying on the remote
+public database for data.  This is primarily useful for development purposes.
+
+Tested on Ubuntu 9.04, apache 2.2, Unison rev 1908
+
+* install apache
+$ sudo apt-get install apache
+
+* install perl modules
+You'll need Algorithm::Cluster Statistics::Basic, GD::Graph::Map, Bioperl
+
+* get a fresh Unison install
+svn co https://unison-db.svn.sourceforge.net/svnroot/unison-db/trunk unison-db/trunk
+
+* configure Apache.
+Use unison/misc/config/simple as a template.
+$ sudo /etc/init.d/apache2 reload
+
+* test
+point browser to http://localhost/unison/
+
