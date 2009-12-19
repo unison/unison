@@ -173,7 +173,7 @@ sub summary_group ($) {
             '<br>',
             (
                 map {
-                    sprintf( "%s %s; %s", @{%$_}{qw(common symbol descr)} )
+                    sprintf( "%s %s; %s", @$_{qw(common symbol descr)} )
                       . ( defined $_->{map_loc} ? " ($_->{map_loc})" : '' )
                   } $u->entrez_annotations( $v->{pseq_id} )
             )
@@ -211,7 +211,7 @@ sub summary_group ($) {
         'AA (<code>' . elide_sequence( $pseq->{seq}, 15 ) . '</code>)',
         "<a href=\"get_fasta.pl?pseq_id=$v->{pseq_id}\">download FASTA</a>",
         sprintf('<br>MW: %.1f Da &nbsp;&nbsp;&nbsp; pI: %.2f &nbsp;&nbsp;&nbsp; &epsilon;<sub>280</sub>: %d M<sup>-1</sup> cm<sup>-1</sup> &nbsp;&nbsp;&nbsp; &epsilon;<sub>280</sub>(1mg/ml): %.2f',
-				@{%$props}{qw(mol_wt pi a280)}, $props->{a280}/$props->{mol_wt}),
+				@$props{qw(mol_wt pi a280)}, $props->{a280}/$props->{mol_wt}),
 		sprintf('<br>MD5: %s &nbsp;&nbsp;&nbsp; added: %s', $pseq->{md5}, $pseq->{added}),
         '</td></tr>',
         "\n",

@@ -20,7 +20,7 @@ print $p->render('Welcome', <<EOBODY);
 <a class="nofeedback" href="about.pl">
 <img width="100%" src="av/concept-graphic-med.gif" alt="[Concept]">
 </a>
-<br><a href="about.html">Learn more about Unison.</a>
+<br><a href="about.pl">Learn more about Unison.</a>
 </div>
 </fieldset>
 
