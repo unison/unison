@@ -44,12 +44,15 @@ use Getopt::Long;
 #use lib '/gne/research/apps/bioperl/prd/lib/perl5';
 
 our %opts = (
-    host 		=> ( ( ( exists $ENV{PGHOST} )
-					   and ( $ENV{PGHOST} =~ m/\w/ ) )
+    host 		=> (
+					( ( exists $ENV{PGHOST} ) and ( $ENV{PGHOST} =~ m/\w/ ) )
 					 ? $ENV{PGHOST}
-					 : (`dnsdomainname` =~ m/^gene\.com$/ or `hostname` =~ m/gene\.com$/) # Genentech
-			                 ? 'respgsql' 
-			                 : 'unison-db.org' ),
+					 : (
+						(`dnsdomainname` =~ m/^gene\.com$/ or `hostname` =~ m/gene\.com$/) # Genentech
+						? 'respgsql' 
+						: 'unison-db.org'
+					   )
+				   ),
     dbname 		=> $ENV{PGDATABASE} 
 	                                 ||((`dnsdomainname` =~ m/^gene\.com$/ or `hostname` =~ m/gene\.com$/) 
 			                 ? 'csb'
@@ -138,38 +141,15 @@ Genentech environment are used.
 
 sub connect {
     my $self = shift;
-    if ( not defined $self->{dbname} ) {
-        throw Unison::Exception::ConnectionFailed(
-            "couldn't connect to Unison",
-            'dbname undefined' );
-    }
-    if ( not defined $self->{username} ) {
-        throw Unison::Exception::ConnectionFailed(
-            "couldn't connect to Unison",
-            'username undefined' );
-    }
 
-    my $dsn = "dbi:Pg:dbname=$self->{dbname}";
-    if ( defined $self->{host} ) {    # never happens: host eq ''
-        $dsn .= ";host=$self->{host}";
-    }
+	$self->{host}     = 'unison-db.org' unless defined $self->{host};
+	$self->{dbname}   = 'unison'        unless defined $self->{dbname};
+    $self->{username} = 'PUBLIC'        unless defined $self->{username};
 
-	# PUBLIC is deprecated within Genentech
-    if (    defined $self->{username}
-        and $self->{username} eq 'PUBLIC'
-        and defined $self->{host}
-        and $self->{host} =~ m/^(?:csb|rescomp\d\d|respgsql|resdev|research)/ )
-    {
-        warn(<<EOT);
-! You are using the PUBLIC login to Unison. This is -- and has always
-! been -- unsupported.  It will be discontinued eventually. You
-! should use Kerberos authentiation whenever possible; see the Unison
-! documentation at http://research/unison/.
-EOT
-    }
-
-    my $dbh = DBI->connect( $dsn, $self->{username}, $self->{password},
-        $self->{attr} );
+    my $dsn = sprintf('dbi:Pg:host=%s;dbname=%s',$self->{host},$self->{dbname});
+    my $dbh = DBI->connect( $dsn,
+							$self->{username}, $self->{password},
+							$self->{attr} );
     if ( not defined $dbh ) {
         throw Unison::Exception::ConnectionFailed(
             "couldn't connect to Unison: ",
