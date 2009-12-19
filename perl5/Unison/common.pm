@@ -3,7 +3,7 @@
 
 Unison::Unison -- import commonly used Unison modules
 
-S<$Id$>
+S<$Id: common.pm 1875 2008-12-12 05:36:54Z reece $>
 
 =head1 SYNOPSIS
 
@@ -48,10 +48,9 @@ CBT::debug::identify_file() if ($CBT::debug::trace_uses);
 use strict;
 use warnings;
 
-BEGIN {
-  our $UNISON_TOP = __FILE__;
-  $UNISON_TOP =~ s%/[^/]+/[^/]+/[^/]+$%%;
-}
+package Unison;
+
+our ($REVISION) = '$Rev: 9999$' =~ m/Rev: (\d+)/;
 
 use Unison::DBI;
 use Unison::Exceptions;
@@ -60,7 +59,6 @@ use Unison::params;
 use Unison::origin;
 use Unison::pseq;
 use Unison::run_history;
-use Unison::version;
 
 =pod
 
