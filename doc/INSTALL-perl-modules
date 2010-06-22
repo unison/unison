@@ -1,0 +1,69 @@
+install documentation for perl modules
+2010-02-09 16:57 Reece Hart <reece@harts.net>
+
+In typical Perl fashion, there's more than one way and one place to
+install perl modules.  This documentation is intended to provide one of
+the many right ways to live in peace with Perl modules.
+
+Among the many problems is that the interdependent tools, modules, and
+meta data are stored in multiple places.  For example, the 'cpan' command
+line tool typically exists (at least) at /usr/bin/cpan.  If you install
+CPAN as an unprivileged user, the cpan command and its modules will be
+placed in non-system locations (e.g., ~/perl5/); invoking them properly
+demands setting PATH and PERL5LIB correctly, and having a suitable config
+file in ~/.cpan/.  It's easy to get this horribly and subtly wrong.  To
+make matters worse, Perl is enduring a drawn-out and mind-numbing
+evolution from ExtUtils::MakeMaker to Module::Build, which by default use
+incompatible module trees.
+
+The general scheme will be to create a directory root for a set of perl
+modules.  You may have more than one such root.  The root contains enough
+meta information to build a consistent tree.  In particular, we'll put the
+CPAN config directory, which is typically in the user's home directory,
+into this root.
+
+
+
+
+* first time
+me$ PMROOT=/h/lab/opt/perl-modules
+me$ mkdir -p $PMROOT
+me$ env - HOME=$PMROOT TERM=$TERM PATH=$PMROOT/bin:/usr/sbin:/usr/bin:/sbin:/bin PERL5LIB=$PMROOT/lib/perl5 cpan
+(init with defaults)
+cpan> o conf init urllist
+cpan> o conf makepl_arg INSTALL_BASE=$HOME
+cpan> o conf mbuildpl_arg --install_base=$HOME
+cpan> o conf prefer_installer MB
+cpan> o conf commit
+cpan> install CPAN
+
+* future installs
+me$ env - HOME=$PMROOT PATH=$PMROOT/bin:/usr/sbin:/usr/bin:/sbin:/bin cpan
+cpan>
+
+
+eg$ PERL5LIB=<PERL_PREFIX>/lib/perl5 <PERL_PREFIX>/bin/cpan
+(add'l config needed; defaults for now)
+cpan> install YAML
+cpan> install Digest::SHA
+cpan> install ExtUtils::MakeMaker
+cpan> install Module::Build
+cpan> o conf prefer_installer MB
+cpan> o conf commit
+cpan> install <required modules. See below.>
+
+
+
+eg$ mkdir -p $PMROOT/.cpan/sources 
+eg$ wget http://www.cpan.org/MIRRORED.BY -O $PMROOT/.cpan/sources/MIRRORED.BY
+
+eg$ cpan
+cpan> o conf makepl_arg "PREFIX=<PERL_PREFIX> INSTALLDIRS=perl"
+cpan> install CPAN
+cpan> quit
+
+
+
+NOTE: You may have latent dependencies on shared objects from the deprecated installation (eg, Perl DBD::Pg). 
+cpan> force install DBD::Pg
+(Force is needed because CPAN may think that the module is already installed, but it's linked against an older libpq.)

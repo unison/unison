@@ -34,9 +34,9 @@ $ make install
 
 * create users
 NOTE: the following is 8.1-specific.
-$ createuser -A -R    PUBLIC
-$ createuser -A -R -P unison
-$ createuser -A -R -P loader
+$ createuser -D -A -R    PUBLIC
+$ createuser -D -A -R -P unison
+$ createuser -D -A -R -P loader
 
 
 * Genentech only::

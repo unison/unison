@@ -5,18 +5,28 @@
 # TODO
 ## * automatically determine download version for pfam, homologene,
 ## ensembl, and scop
-
+## * separate stanzas into separate files, e.g., sources.d/ensembl.mk
+## (but creates a problem that symlinks to makefile will fail unless
+## we defined a "top" directory or symlink the include dir.)
+##
 ############################################################################
 ### CONFIGURATION
 
 # versions -- check these frequently and manually
-HOMOLOGENE_VERSION:=63
+GRCH_VERSION:=37
+HOMOLOGENE_VERSION:=64
 MINT_VERSION:=2008-10-01
-PFAM_VERSION:=23.0
+PFAM_VERSION:=24.0
 SCOP_VERSION:=1.73
 STRING_VERSION:=7.1
 
 ASTRAL_VERSION:=${SCOP_VERSION}
+
+DBSNP_SPECIES:=				\
+	dog_9615	\
+	human_9606	\
+	mouse_10090	\
+	rat_10116
 
 # other config that doesn't change often
 ENSEMBL_BASE_URL:=ftp://ftp.ensembl.org/pub
@@ -81,6 +91,9 @@ WGET=wget -o$@.err -m -np
 # other options: --limit-rate=1m --waitretry=1
 
 
+_:=$(shell mkdir -p logs)
+
+
 default: update
 
 
@@ -115,6 +128,14 @@ logs/blast.log: logs/nr.log logs/pataa.log logs/blast-matrices.log
 UPDATE_TARGETS+=ccds
 logs/ccds.log:
 	${WGET} -R archive ftp://ftp.ncbi.nih.gov/pub/CCDS
+	/bin/mv -f $@.err $@
+
+
+############################################################################
+### BOWTIE
+UPDATE_TARGETS+=bowtie
+logs/bowtie.log:
+	${WGET} ftp://ftp.cbcb.umd.edu/pub/data/bowtie_indexes/h*.ebwt.zip
 	/bin/mv -f $@.err $@
 
 
@@ -162,6 +183,17 @@ logs/dali.log:
 
 
 ############################################################################
+### DBSNP
+UPDATE_TARGETS+=dbsnp
+logs/dbsnp.log: $(foreach s,${DBSNP_SPECIES},logs/dbsnp-${s}.log)
+	/bin/ls -1 $^ >$@.err
+	/bin/mv -f $@.err $@
+logs/dbsnp-%.log: FORCE
+	${WGET} ftp://ftp.ncbi.nih.gov/snp/organisms/$*/XML
+	/bin/mv -f $@.err $@
+
+
+############################################################################
 ### ENSEMBL
 UPDATE_TARGETS+=ensembl
 logs/ensembl.log: $(foreach s,${ENSEMBL_SPECIES},logs/ensembl-${s}.log)
@@ -184,6 +216,17 @@ logs/go.log: FORCE
 		ftp://ftp.geneontology.org/pub/go/ontology/ \
 		ftp://ftp.geneontology.org/pub/go/xml/ \
 		ftp://ftp.geneontology.org/pub/godatabase/archive/full/2007*
+	/bin/mv -f $@.err $@
+
+
+
+############################################################################
+### GENOME REFERENCE CONSORTIUM
+UPDATE_TARGETS+=grch-${GRCH_VERSION}
+.PHONY: grch
+grch: grch-${GRCH_VERSION}
+logs/grch-%.log: FORCE
+	${WGET} ftp://ftp.ncbi.nlm.nih.gov/genbank/genomes/Eukaryotes/vertebrates_mammals/Homo_sapiens/GRCh$*/Primary_Assembly/assembled_chromosomes/FASTA/
 	/bin/mv -f $@.err $@
 
 
@@ -318,7 +361,7 @@ UPDATE_TARGETS+=pfam-${PFAM_VERSION}
 .PHONY: pfam
 pfam: pfam-${PFAM_VERSION}
 logs/pfam-%.log: FORCE
-	${WGET} ftp://selab.janelia.org/pub/pfam/pfam-$*
+	${WGET} ftp://ftp.sanger.ac.uk/pub/databases/Pfam/releases/Pfam$*
 	/bin/mv -f $@.err $@
 
 
@@ -375,7 +418,7 @@ logs/string.log: FORCE
 ############################################################################
 ### TIGRFAM
 UPDATE_TARGETS+=tigrfam
-OLD_RELEASES:=$(addsuffix _Release,1.0 1.1 1.2 2.0 2.1 3.0 4.0 4.1 5.0 6.0)
+OLD_RELEASES:=$(addsuffix _Release,1.0 1.1 1.2 2.0 2.1 3.0 4.0 4.1 5.0 6.0 7.0 8.0)
 logs/tigrfam.log: FORCE
 	${WGET} $(addprefix -X ,${OLD_RELEASES}) ftp://ftp.jcvi.org/pub/data/TIGRFAMs
 	/bin/mv -f $@.err $@
@@ -383,14 +426,10 @@ logs/tigrfam.log: FORCE
 
 ############################################################################
 ### UC SANTA CRUZ ASSEMBLY
-# UPDATE_TARGETS+=ucsc
-logs/hg18.log:
-	( \
-	set -e; \
-	wget -q -O- http://hgdownload.cse.ucsc.edu/goldenPath/hg18/chromosomes/ \
-	| perl -ln0e 'while (m/chr.+?fa.gz/g) { print "http://hgdownload.cse.ucsc.edu/goldenPath/hg18/chromosomes/$$&" }' \
-	| ${WGET} -i-; \
-	) >$@.err 2>&1
+UPDATE_TARGETS+=hg19
+logs/hg%.log:
+	@mkdir -p ./hgdownload.cse.ucsc.edu/goldenPath
+	rsync -HPRavz rsync://hgdownload.cse.ucsc.edu/goldenPath/hg$*/chromosomes ./hgdownload.cse.ucsc.edu/goldenPath/ >$@.err 2>&1
 	/bin/mv -f $@.err $@
 
 
@@ -429,36 +468,55 @@ logs/iproclass.log: FORCE
 
 logs/pir.log: logs/pirsf.log logs/iproclass.log
 
-############################################################################
-#########################	 PROPRIETARY STUFF   ###########################
-############################################################################
 
 ############################################################################
-### DERWENT
-UPDATE_TARGETS+=geneseq
-logs/geneseq.log: FORCE
-	${WGET} --user=genentech --password=genentech ftp://ftp.derwent.co.uk/
+### Personal Genomes Project
+UPDATE_TARGETS+=pgp
+logs/pgp.log: FORCE
+	${WGET} http://www.personalgenomes.org/data/PGP9.3
 	/bin/mv -f $@.err $@
 
+
 ############################################################################
-### Francisella tularensis genome
-ftu.log: FORCE
-	${WGET} --http-user=dixit --http-passwd=fold \
-		http://artedi.ebc.uu.se/Projects/Francisella/rightpage_tul1.html \
-		http://artedi.ebc.uu.se/Projects/Francisella/data/FAQ.html \
-		http://artedi.ebc.uu.se/Projects/Francisella/data/Francisella_2002-09-12
+### ICD
+UPDATE_TARGETS+=icd10
+logs/icd10.log: FORCE
+	${WGET} http://www.cms.hhs.gov/ICD10/downloads/{Dxgem_2009.zip,Pcs2009_tabidx.zip}
 	/bin/mv -f $@.err $@
 
 
 
+logs/pubs-wang-nature-2008.log: logs/pubs-%.log:
+	${WGET} -P pubs/$* \
+		ftp://yhdata:yhdownload@yh.genomics.org.cn/Rawdata \
+		ftp://yhdata:yhdownload@yh.genomics.org.cn/Rawdata2 \
+		ftp://yhdata:yhdownload@yh.genomics.org.cn/soap \
+		ftp://yhdata:yhdownload@yh.genomics.org.cn/geno_soap3 \
+		ftp://yhdata:yhdownload@yh.genomics.org.cn/haplotype
+	/bin/mv -f $@.err $@
 
-.PHONY: update
-update: ${UPDATE_TARGETS}
+
+logs/pubs-ng-12-exomes-nature-2009.log: logs/pubs-%.log:
+	${WGET} -P pubs/$* \
+		ftp://ftp.ncbi.nlm.nih.gov/sra/Studies/SRP000/SRP000910/
+	/bin/mv -f $@.err $@
+
+
+############################################################################
+### External makefiles, which may not exist
+### Proprietary stuff goes in subordinate files
+-include Makefile-genentech
+
+
 
 ############################################################################
 ### shorthands (e.g., rcsb : logs/rcsb.log)
 .PHONY: ${UPDATE_TARGETS}
 ${UPDATE_TARGETS} : % : logs/%.log;
+
+.PHONY: update
+update: ${UPDATE_TARGETS}
+
 
 
 dusk:
