@@ -1,0 +1,7 @@
+#!/bin/sh
+
+export PATH=/lab/opt/postgresql/prd/x86_64-linux-2.6/bin:/usr/bin:bin
+PGDATA=/scratch/reece/postgresql/8.4
+echo $PATH
+
+exec pg_ctl -D "$PGDATA" ${1+"$@"}

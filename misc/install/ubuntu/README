@@ -1,0 +1,17 @@
+The files in this directory provide an example of how to configure a
+configuring and install unison on an Ubuntu system that uses the
+Debian-style PostgreSQL environment, which differs significantly from the
+stock environment.
+
+The installation does this:
+- sets up /srv/unison for the database files (PGDATA)
+- puts configuration in /etc/postgresql/<version>/unison/
+- puts logging in /var/log/postgresql/unison/YYYY/MM/ with rotation
+
+
+Usage:
+$ sudo /etc/init.d/postgresql-8.4 stop
+$ sudo rm -fr /srv/unison /etc/postgresql/8.4/unison
+$ sudo ./install.sh
+$ sudo /etc/init.d/postgresql-8.4 start
+$ (time sudo -u postgres ./restore.sh) >restore.log 2>&1
