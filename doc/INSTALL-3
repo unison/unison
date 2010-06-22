@@ -1,0 +1,103 @@
+Unison install
+
+Install PostgreSQL
+eg$ wget -nd http://ftp7.us.postgresql.org/pub/postgresql/vx.y.z/postgresql-x.y.z.tar.bz2
+eg$ tar -xjf postgresql-x.y.z.tar.bz2
+eg$ mkdir postgresql-x.y.z/$PLATFORM
+eg$ cd $!
+eg$ ./configure --prefix=/opt/postgresql/x.y.z/$PLATFORM --with-perl --with-python --with-pam
+eg$ make
+eg$ make install
+eg$ cd contrib
+eg$ for d in auto_explain cube dblink fuzzystrmatch hstore ltree pgcrypto pg_trgm tablefunc; do \
+	make -C $d install; done
+(In the above, x, y, and z are parts of the version number, such as x=8,y=4,z=1.)
+
+
+Create the PostgreSQL database instance
+Make sure the installed postgresql is in your path.
+eg$ mkdir -p /srv/postgresql
+eg$ sudo -u postgres initdb -D /srv/postgresql/8.4 -E UTF-8 --no-locale
+
+
+
+
+
+Get the source code
+Unison releases are served out of the svn working directory. There's no
+explicit compilation or installation step WARNING: This installs files
+according to my conventions and many of the config files specific paths
+that are not likely to apply to most users.
+eg$ cd
+eg$ svn co https://unison-db.svn.sourceforge.net/svnroot/unison-db/trunk unison/unison-db/trunk
+eg$ make -C ~/unison/unison-db/trunk/misc/config/unison-db.org/ install
+
+
+Start the database
+eg$ ~/etc/init.d/postgresql start
+eg$ psql -dtemplate1 -c "ALTER USER rkh PASSWORD 'peace,love,understanding'"
+eg$ for u in PUBLIC unison loader postgres; do createuser -SDR $u; done
+
+
+Push the public version of the database
+(This is done from within Genentech and therefore won't apply to most folks
+gne-internal$ cd ~/unison-db/trunk/build/release
+gne-internal$ dropdb -h research-pub.gene.com csb-dev-pub
+gne-internal$ make csb-dev-pub-push.log
+
+
+
+eg$ alter database "unison" set search_path = unison, pdb, gong, scop, tax, public;
+
+
+
+IF THIS IS A MINOR VERSION UPGRADE
+you PROBABLY don't need to do anything other than restart postgresql.
+
+eg$ sudo rcpostgresql stop
+(Enable the new version. How you do this depends on local installation customs.)
+eg$ sudo rcpostgresql start
+
+
+
+IF THIS IS A MAJOR VERSION UPGRADE
+...you'll have to dump-restore the databases.
+
+Here's a sketch of how this goes. These instructions are far from
+complete.
+
+create a new database cluster directory
+eg$ initdb --locale=C -E UTF8 /srv/postgresql-x.y
+
+configure the cluster to use port 5433 (5432 is the default)
+eg$ vi /srv/postgresql-x.y/psotgresql.conf
+uncomment change port to 5433 (from 5432)
+
+start the new cluster
+eg$ /install/path/pg_ctl start (other flags are needed)
+
+dump the current database cluster into the new cluster
+eg$ pg_dumpall | psql -p5433
+It behooves you to check for errors. BI use 'grep ERROR'.
+
+You'll then have to update PGDATA/postgresql.conf, PGDATA/pg_hba.com,
+and PGDATA/postgres.keytab. 
+
+
+
+
+Good luck.
+
+
+
+PG 8.3 migration:
+$ module load apps/postgresql/dev
+$ pg_ctl -D /srv/postgresql/postgresql-8.3 -l ~/logs/csb-postgresql-8.3/pg_ctl.log  stop
+$ rm -fr /srv/postgresql/postgresql-8.3 ~/logs/csb-postgresql-8.3
+$ initdb -E UTF8 -D /srv/postgresql/postgresql-8.3
+$ mkdir -p /gne/home/postgres/logs/csb-postgresql-8.3
+$ ln -bv  /srv/postgresql/pg_hba.conf /srv/postgresql/postgresql.conf /srv/postgresql/postgresql-8.3/
+$ pg_ctl -D /srv/postgresql/postgresql-8.3 -l ~/logs/csb-postgresql-8.3/pg_ctl.log  start
+
+$ pg_dump -s -p5432 | psql -p9876 -qaf- >|~/migration.log 2>&1 &
+
