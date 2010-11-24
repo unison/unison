@@ -459,6 +459,102 @@ sub residue {
     return $ret;
 }
 
+
+######################################################################
+## protein_atom()
+
+=pod
+
+=item protein_atom()
+
+ Name:      protein_atom()
+ Purpose:   get data for the protein_atom table
+ Arguments: none
+ Returns:   tab delimited protein_atom info
+
+=cut
+
+sub protein_atom {
+
+    my $self  = shift;
+    my $fh    = shift || \*STDOUT;
+    my $pdbid = uc( $self->{pdbid} );
+    my $ret   = '';
+    my $method = $att{exptl}{method}{ $pdbid . ":" };
+    foreach my $pri_col (sort {$order->{$a} <=> $order->{$b}} keys %{$att{atom_site}{label_seq_id}}) {
+
+	my $seqres = $att{atom_site}{auth_comp_id}{$pri_col};
+	next unless ($att{atom_site}{group_PDB}{$pri_col} eq 'ATOM') and defined $aa_codes{$seqres};
+
+        my $chain = $att{atom_site}{auth_asym_id}{$pri_col} || '';
+	my $x_coor = $att{atom_site}{Cartn_x}{$pri_col} || '';
+	my $y_coor = $att{atom_site}{Cartn_y}{$pri_col} || '';
+	my $z_coor = $att{atom_site}{Cartn_z}{$pri_col} || '';
+	my $seq_num = $att{atom_site}{label_seq_id}{$pri_col} || '';
+	my $res_id = $att{atom_site}{auth_seq_id}{$pri_col} || '';
+	my $b_fac = $att{atom_site}{B_iso_or_equiv}{$pri_col} || '';
+	my $atom_name = $att{atom_site}{auth_atom_id}{$pri_col} || '';
+	#print "$pdbid$chain\t$atom_name\t$seq_num\t$res_id\t$x_coor\t$y_coor\t$z_coor\t$b_fac\n";
+	$ret
+            .= "$atom_name\t"
+	    . "{$x_coor,"
+	    . "$y_coor,"
+	    . "$z_coor}\t"
+	    . "$b_fac\t"
+            . "$res_id\t"
+	    . "$seq_num\t"
+            . "$chain\t"
+	    . lc($pdbid)."\n"
+
+    }
+    return $ret;
+}
+
+######################################################################
+## ligand_atom()
+
+=pod
+
+=item ligand_atom()
+
+ Name:      ligand_atom()
+ Purpose:   get data for the ligand_atom table
+ Arguments: none
+ Returns:   tab delimited ligand_atom info
+
+=cut
+
+sub ligand_atom {
+
+    my $self  = shift;
+    my $fh    = shift || \*STDOUT;
+    my $pdbid = uc( $self->{pdbid} );
+    my $ret   = '';
+   
+    foreach my $pri_col (sort {$order->{$a} <=> $order->{$b}} keys %{$att{atom_site}{label_seq_id}}) {
+
+	my $lig_id = $att{atom_site}{auth_comp_id}{$pri_col} || '';
+	next unless ($att{atom_site}{group_PDB}{$pri_col} eq 'HETATM' and $lig_id ne 'HOH' and not defined $aa_codes{$lig_id});
+
+	my $x_coor = $att{atom_site}{Cartn_x}{$pri_col} || '';
+	my $y_coor = $att{atom_site}{Cartn_y}{$pri_col} || '';
+	my $z_coor = $att{atom_site}{Cartn_z}{$pri_col} || '';
+	my $b_fac = $att{atom_site}{B_iso_or_equiv}{$pri_col} || '';
+	my $atom_name = $att{atom_site}{auth_atom_id}{$pri_col} || '';
+	#print "$pdbid\t$atom_name\tt$lig_id\t$x_coor\t$y_coor\t$z_coor\t$b_fac\n";
+	$ret
+            .= "$atom_name\t"
+	    . "{$x_coor,"
+	    . "$y_coor,"
+	    . "$z_coor}\t"
+	    . "$b_fac\t"
+            . "$lig_id\t"
+	    . lc($pdbid)."\n"
+    }
+    return $ret;
+}
+
+
 ######################################################################
 ## pdb_ligand()
 
@@ -505,6 +601,7 @@ sub _get_data_tag {
     my ( $twig, $field ) = @_;
 
     my $table_name = $field->gi;
+
     $table_name =~ s/^PDBx://;
     $table_name =~ s/Category$//;
     my %options = ( forcearray => '1', keyattr => 'id' );
@@ -527,7 +624,7 @@ sub _get_data_tag {
 
             $order->{$pri_col} = $att_ctr++;
 
-    #print "$table_name\t$col\t$pri_col\t$att{$table_name}{$col}{$pri_col}\n";
+	    #print "$table_name\t$col\t$pri_col\t$att{$table_name}{$col}{$pri_col}\n";
         }
     }
 }
@@ -557,9 +654,12 @@ sub _xml_init {
         'chem_comp'       => { 'id'       => undef },
         'entity'          => { 'id'       => undef },
         'refine'          => { 'entry_id' => undef },
+	'refine_hist'     => { 'cycle_id' => undef },
         'struct_keywords' => { 'entry_id' => undef },
         'struct'          => { 'entry_id' => undef },
-        'exptl'           => { 'entry_id' => undef }
+        'exptl'           => { 'entry_id' => undef },
+        'struct_conn'     => { 'id'       => undef },
+	'atom_site'       => { 'id'       => undef }
     );
     %att = (
         'database_PDB_rev' => { 'date'           => undef },
@@ -589,12 +689,34 @@ sub _xml_init {
 			       'ls_R_factor_R_work' => undef,
 			       'ls_R_factor_R_free' => undef
 			     },
+        'refine_hist'     => { 'pdbx_number_atoms_protein' => undef },
         'struct_keywords' => { 'pdbx_keywords' => undef },
         'struct'          => {
             'title'           => undef,
             'pdbx_descriptor' => undef
         },
-        'exptl' => { 'method' => undef }
+        'exptl' => { 'method' => undef },
+	'struct_conn' => { 
+	    'ptnr1_auth_asym_id' => undef,
+	    'ptnr1_auth_comp_id' => undef,
+	    'ptnr1_auth_seq_id'  => undef,
+	    'ptnr2_auth_asym_id' => undef,
+	    'ptnr2_auth_comp_id' => undef,
+	    'ptnr2_auth_seq_id'  => undef,
+	},
+	'atom_site' => {
+	    'group_PDB' => undef,
+	    'Cartn_x' => undef,
+	    'Cartn_y' => undef,
+	    'Cartn_z' => undef,
+	    'label_seq_id' => undef,
+	    'B_iso_or_equiv' => undef,
+    	    'auth_seq_id' => undef,
+	    'auth_atom_id' => undef,
+	    'auth_asym_id' => undef,
+	    'auth_comp_id' => undef,
+	    'pdbx_PDB_model_num' => undef
+	    },
     );
 
     $order            = undef;
@@ -613,9 +735,12 @@ sub _xml_init {
             'PDBx:chem_compCategory'            => 1,
             'PDBx:entityCategory'               => 1,
             'PDBx:refineCategory'               => 1,
+            'PDBx:refine_histCategory'          => 1,
             'PDBx:struct_keywordsCategory'      => 1,
             'PDBx:structCategory'               => 1,
-            'PDBx:exptlCategory'                => 1
+            'PDBx:exptlCategory'                => 1,
+            'PDBx:struct_connCategory'          => 1,
+	    'PDBx:atom_siteCategory'            => 1
         },
         TwigHandlers => {
             'PDBx:database_PDB_revCategory'     => \&_get_data_tag,
@@ -627,9 +752,12 @@ sub _xml_init {
             'PDBx:chem_compCategory'            => \&_get_data_tag,
             'PDBx:entityCategory'               => \&_get_data_tag,
             'PDBx:refineCategory'               => \&_get_data_tag,
+            'PDBx:refine_histCategory'          => \&_get_data_tag,
             'PDBx:struct_keywordsCategory'      => \&_get_data_tag,
             'PDBx:structCategory'               => \&_get_data_tag,
             'PDBx:exptlCategory'                => \&_get_data_tag,
+            'PDBx:struct_connCategory'          => \&_get_data_tag,
+	    'PDBx:atom_siteCategory'            => \&_get_data_tag
         }
     );
 
