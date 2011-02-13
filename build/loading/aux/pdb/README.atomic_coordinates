@@ -1,0 +1,3 @@
+Loading into the protein_atom and ligand_atom is implemented as an optional feature.
+If the atom tables (protein_atom and ligand_atom) are desired run the new make rule: 
+your_input.load_atom (assuming your_input.ids)

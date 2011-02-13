@@ -19,6 +19,7 @@ my %opts = (
 	    verbose  => 0,
 	    sql      => 0,
 	    update   => 0,
+            atomic   => 0,
 	    format   => 'XML',
 	    ext      => 'xml.gz',
 	    schema   => 'pdb',
@@ -37,6 +38,7 @@ GetOptions(\%opts,
 	   'ext|e=s',
 	   'schema=s',
 	   'sql',
+           'atomic',
 	   'update|u',
 	   'verbose|v',
 	   'host|h',
@@ -81,13 +83,19 @@ foreach my $pdb (@pdbids ) {
   my $p = new PDBML($fn) || next;
   my $data;
 
-  $data->{summary} = $p->summary();
-  $data->{chain}   = $p->chain();
-  $data->{pdb_ligand}  = $p->pdb_ligand();
-  $data->{residue} = $p->residue();
+  if($opts{atomic}) {
+    $data->{protein_atom} = $p->protein_atom();
+    $data->{ligand_atom} = $p->ligand_atom();
+  } else {
+    $data->{summary} = $p->summary();
+    $data->{chain}   = $p->chain();
+    $data->{pdb_ligand}  = $p->pdb_ligand();
+    $data->{residue} = $p->residue();
+  }
 
   if($opts{update}) {
-    my $dsql = 'delete from pdb.summary where pdbid=?';
+    my $dsql = "delete from $opts{schema}.summary where pdbid=?";
+    $dsql = "delete from $opts{schema}.atom where pdbid=?" if $opts{atomic};
     my $dsth = $dbh->prepare_cached($dsql);
     if($opts{sql}) {print "$dsql\n";}
     else {$dsth->execute($pdb);}
@@ -117,7 +125,9 @@ sub insert_data {
   my $data = shift;
 
   #$db->{AutoCommit}=0;
-  foreach my $table('summary','chain','residue','pdb_ligand')  {
+  my @tables = qw(summary chain residue pdb_ligand);
+  @tables = qw(protein_atom ligand_atom) if $opts{atomic};
+  foreach my $table(@tables)  {
 
     if($opts{sql}) {
       print $data->{$table},"\n";
