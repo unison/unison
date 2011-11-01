@@ -942,7 +942,7 @@ they depend on data that are not released with Unison.
 
 sub is_public_instance {
   if (defined $ENV{SERVER_ADDR}
-	  and $ENV{SERVER_ADDR} !~ m/^(?:128\.137|10\.246)\./) {
+	  and $ENV{SERVER_ADDR} !~ m/^(?:128\.137|10\.246|72\.34)\./) {
     return 1;
   }
   return 0;
@@ -964,7 +964,7 @@ on data that are not released with Unison.
 
 sub is_genentech_instance {
   if (defined $ENV{SERVER_ADDR}
-	  and $ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.)' ) {
+	  and $ENV{SERVER_ADDR} =~ '^(128\.137\.|10\.|72\.34)' ) {
     return 1;
   }
   return 0;
