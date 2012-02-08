@@ -16,7 +16,7 @@
 GRCH_VERSION:=37
 HOMOLOGENE_VERSION:=64
 MINT_VERSION:=2008-10-01
-PFAM_VERSION:=24.0
+PFAM_VERSION:=26.0
 SCOP_VERSION:=1.73
 STRING_VERSION:=7.1
 
@@ -30,6 +30,7 @@ DBSNP_SPECIES:=				\
 
 # other config that doesn't change often
 ENSEMBL_BASE_URL:=ftp://ftp.ensembl.org/pub
+ENSEMBL_RELEASE:=65
 ENSEMBL_SPECIES:=				\
 	bos_taurus					\
 	caenorhabditis_elegans		\
@@ -124,18 +125,18 @@ logs/blast.log: logs/nr.log logs/pataa.log logs/blast-matrices.log
 
 
 ############################################################################
-### CCDS
-UPDATE_TARGETS+=ccds
-logs/ccds.log:
-	${WGET} -R archive ftp://ftp.ncbi.nih.gov/pub/CCDS
-	/bin/mv -f $@.err $@
-
-
-############################################################################
 ### BOWTIE
 UPDATE_TARGETS+=bowtie
 logs/bowtie.log:
 	${WGET} ftp://ftp.cbcb.umd.edu/pub/data/bowtie_indexes/h*.ebwt.zip
+	/bin/mv -f $@.err $@
+
+
+############################################################################
+### CCDS
+UPDATE_TARGETS+=ccds
+logs/ccds.log:
+	${WGET} -R archive ftp://ftp.ncbi.nih.gov/pub/CCDS
 	/bin/mv -f $@.err $@
 
 
@@ -169,20 +170,6 @@ logs/cosmic.log: FORCE
 
 
 ############################################################################
-### DALI
-UPDATE_TARGETS+=dali
-logs/dali.log:
-	# DALI
-	# older version (prod?)
-	# ${WGET} http://www.bioinfo.biocenter.helsinki.fi:8080/dali/download.html http://www.bioinfo.biocenter.helsinki.fi:8080/dali/dali_dccp.gz http://www.bioinfo.biocenter.helsinki.fi:8080/dali/dali_fragments.gz http://www.bioinfo.biocenter.helsinki.fi:8080/dali/TABLE2
-	# newer version (dev?)
-	# ${WGET} http://ekhidna.biocenter.helsinki.fi:8080/dali/download.html http://ekhidna.biocenter.helsinki.fi:8080/dali/dali_dccp.gz http://ekhidna.biocenter.helsinki.fi:8080/dali/dali_fragments.gz http://ekhidna.biocenter.helsinki.fi:8080/dali/TABLE2
-	# even more newer version (?)
-	${WGET} http://ekhidna.biocenter.helsinki.fi/dali/downloads/download.html http://ekhidna.biocenter.helsinki.fi/dali/downloads/dali_dccp.gz http://ekhidna.biocenter.helsinki.fi:/dali/downloads/dali_fragments.gz http://ekhidna.biocenter.helsinki.fi/dali/downloads/TABLE2
-	/bin/mv -f $@.err $@
-
-
-############################################################################
 ### DBSNP
 UPDATE_TARGETS+=dbsnp
 logs/dbsnp.log: $(foreach s,${DBSNP_SPECIES},logs/dbsnp-${s}.log)
@@ -194,16 +181,32 @@ logs/dbsnp-%.log: FORCE
 
 
 ############################################################################
+### DSSP
+UPDATE_TARGETS+=dssp
+logs/dssp.log:
+	rsync -Rrltvz --delete-after rsync://rsync.cmbi.ru.nl/dssp dssp/ >$@.err 2>&1
+	/bin/mv -f $@.err $@
+
+
+############################################################################
 ### ENSEMBL
-UPDATE_TARGETS+=ensembl
-logs/ensembl.log: $(foreach s,${ENSEMBL_SPECIES},logs/ensembl-${s}.log)
+ENSEMBL_SUBTARGETS:=$(foreach s,${ENSEMBL_SPECIES},ensembl-${s})
+UPDATE_TARGETS+=ensembl ${ENSEMBL_SUBTARGETS}
+logs/ensembl.log: $(foreach s,${ENSEMBL_SUBTARGETS},logs/${s}.log)
 	/bin/ls -1 $^ >$@.err
 	/bin/mv -f $@.err $@
+
 logs/ensembl-%.log: FORCE
 	${WGET} \
-		${ENSEMBL_BASE_URL}/current_fasta/$*/pep \
-		${ENSEMBL_BASE_URL}/current_genbank/$*
+		${ENSEMBL_BASE_URL}/release-${ENSEMBL_RELEASE}/fasta/homo_sapiens/pep/ \
+		${ENSEMBL_BASE_URL}/release-${ENSEMBL_RELEASE}/mysql/homo_sapiens_*_${ENSEMBL_RELEASE}_*
 	/bin/mv -f $@.err $@
+
+#logs/ensembl-%.log: FORCE
+#	${WGET} \
+#		${ENSEMBL_BASE_URL}/current_fasta/$*/pep \
+#		${ENSEMBL_BASE_URL}/current_genbank/$*
+#	/bin/mv -f $@.err $@
 
 
 ############################################################################
@@ -226,7 +229,7 @@ UPDATE_TARGETS+=grch-${GRCH_VERSION}
 .PHONY: grch
 grch: grch-${GRCH_VERSION}
 logs/grch-%.log: FORCE
-	${WGET} ftp://ftp.ncbi.nlm.nih.gov/genbank/genomes/Eukaryotes/vertebrates_mammals/Homo_sapiens/GRCh$*/Primary_Assembly/assembled_chromosomes/FASTA/
+	${WGET} ftp://ftp.ncbi.nih.gov/genbank/genomes/Eukaryotes/vertebrates_mammals/Homo_sapiens/GRCh$*/Primary_Assembly/assembled_chromosomes/FASTA/
 	/bin/mv -f $@.err $@
 
 
@@ -306,7 +309,7 @@ logs/ncbi-genomes.log: $(foreach s,${NCBI_SPECIES},logs/ncbi-genomes-${s}.log)
 	/bin/ls -1 $^ >$@.err
 	/bin/mv -f $@.err $@
 logs/ncbi-genomes-H_sapiens.log: logs/ncbi-genomes-%.log:
-	${WGET} ftp://ftp.ncbi.nih.gov/genomes/$*/CHR*
+	${WGET} ftp://ftp.ncbi.nih.gov/genomes/$*/{CHR*,Assembled_chromosomes/gbs/hs_ref*.gbs.gz}
 	/bin/mv -f $@.err $@
 logs/ncbi-genomes-%.log:
 	@mkdir -p ${@D}
@@ -376,19 +379,16 @@ logs/reactome.log: FORCE
 
 ############################################################################
 ### WWPDB
-# WARNING: --retr-symlinks doesn't set timestamps correctly
 UPDATE_TARGETS+=wwpdb
-PDB_URL:=ftp://ftp.wwpdb.org
 .PRECIOUS: logs/wwpdb.log
 logs/wwpdb.log: FORCE
-	umask 022; \
-	${WGET} \
-		${PDB_URL}/pub/pdb/data/structures/divided/XML/ \
-		${PDB_URL}/pub/pdb/data/structures/divided/pdb/ \
-		${PDB_URL}/pub/pdb/derived_data \
-		http://ligand-expo.rcsb.org/dictionaries/components-pub-xml.tar.gz
+	rsync -aRv --delete-after --port=33444 \
+		rsync.wwpdb.org::ftp/data/structures/divided/XML/ \
+		rsync.wwpdb.org::ftp/data/structures/divided/pdb/ \
+		rsync.wwpdb.org::ftp/data/structures/all/pdb/ \
+		rsync.wwpdb.org/ \
+		>$@.err 2>&1
 	/bin/mv -f $@.err $@
-	chmod -cR a+rX ftp.wwpdb.org
 
 
 ############################################################################
@@ -498,7 +498,7 @@ logs/pubs-wang-nature-2008.log: logs/pubs-%.log:
 
 logs/pubs-ng-12-exomes-nature-2009.log: logs/pubs-%.log:
 	${WGET} -P pubs/$* \
-		ftp://ftp.ncbi.nlm.nih.gov/sra/Studies/SRP000/SRP000910/
+		ftp://ftp.ncbi.nih.gov/sra/Studies/SRP000/SRP000910/
 	/bin/mv -f $@.err $@
 
 
@@ -506,7 +506,6 @@ logs/pubs-ng-12-exomes-nature-2009.log: logs/pubs-%.log:
 ### External makefiles, which may not exist
 ### Proprietary stuff goes in subordinate files
 -include Makefile-genentech
-
 
 
 ############################################################################
