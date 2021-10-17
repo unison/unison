@@ -12,6 +12,9 @@ incremental updates of new sequences and new features.  Unison includes a
 set of command line and web tools for data loading, manipulation, and
 updating.  Source code and other content are released under the Apache
 License 2.0 and Creative Commons Attribution License 3.0 respectively.
-Unison is available for use and download at http://unison-db.org/ .
+~~Unison is available for use and download at http://unison-db.org/.~~
 
 Reece Hart <reece@unison-db.org>
+
+
+Update: The public instance of Unison is no longer available.
